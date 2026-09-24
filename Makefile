@@ -131,5 +131,5 @@ build-prod: ## Build production images for $(PLATFORM): make build-prod TAG=2026
 
 smoke-prod: ## Run the built amd64 images with compose.prod.yml (test values) and hit /api/v1/health
 	IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) up -d --wait
-	curl -fsS http://localhost:$${WEB_PORT:-8080}/api/v1/health && echo " ✅ smoke ok"
+	curl -fsS http://localhost:6890/smyoutask/api/v1/health && echo " ✅ smoke ok"
 	IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) down

@@ -17,8 +17,7 @@ sequenceDiagram
   T->>T: Tiếp nhận → Bắt đầu → Hoàn thành
   Note over L: Khi mọi task DONE → đơn AWAITING_CONFIRMATION
   T->>C: Xin chữ ký phiếu xác nhận
-  T->>L: Chụp & tải ảnh phiếu
-  L->>L: Hoàn tất đơn (COMPLETED)
+  T->>T: Chụp & tải ảnh phiếu, bấm Hoàn tất đơn (COMPLETED) — hoặc QLKT làm (Q04)
   C-->>L: Phát hiện sai sót
   L->>L: Chuyển "Chỉnh sửa" (REVISION): thêm task phát sinh / mở lại task lỗi (ghi lỗi KPI)
   Note over L,T: Lặp lại chu trình nhận → làm → xong → xác nhận lại

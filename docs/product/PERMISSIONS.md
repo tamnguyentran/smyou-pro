@@ -24,7 +24,8 @@
 | Tạo/sửa/giao/huỷ task | — | — | ✅ | — |
 | Chuyển "Chỉnh sửa", mở lại task | — | — | ✅ | — |
 | Tải ảnh phiếu xác nhận | — | — | ✅ | đơn được giao |
-| Hoàn tất đơn | — | — | ✅ | — |
+| Hoàn tất đơn | — | — | ✅ | đơn được giao (Q04) |
+| Sửa dòng hàng/giá sau khi gửi (tới trước Hoàn tất/Huỷ, có audit) | ✅ | đơn của mình (Q09) | — | — |
 | Nhận/từ chối/bắt đầu/xong task | — | — | — | của mình |
 | KPI | tất cả | — | tất cả | của mình |
 | Nhật ký hệ thống | ✅ | — | — | — |

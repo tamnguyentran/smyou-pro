@@ -36,9 +36,53 @@ Có registry (GHCR / registry nội bộ) thì dùng `--push` thay vì save/load
 - `dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo && dnf install docker-ce docker-ce-cli containerd.io docker-compose-plugin`; `systemctl enable --now docker`.
 - User `deploy` thuộc nhóm `docker`; SSH key, tắt đăng nhập mật khẩu.
 - **firewalld**: chỉ mở 80/443 (và SSH). Postgres không publish port ra ngoài.
-- **SELinux** để `enforcing`: dùng named volume; nếu bind-mount thư mục host thì thêm hậu tố `:Z`.
-- HTTPS: Caddy hoặc nginx + certbot trước container `web` (chốt khi có domain — Q12).
+- **SELinux** để `enforcing`: dùng named volume; nếu bind-mount thư mục host thì thêm hậu tố `:Z`. Host nginx proxy tới cổng localhost cần `setsebool -P httpd_can_network_connect 1` (thường đã bật vì server đang chạy các app khác).
 - Đồng hồ: `chronyd` bật; container dùng UTC, app hiển thị giờ VN.
+
+### 5.1 Chạy dưới subpath `https://ilabsviet.com/smyoutask/` (Q12)
+Server đã có **nginx hệ thống** giữ HTTPS cho `ilabsviet.com` và proxy nhiều app theo subpath (TicketSeq, ChatBOT…). SMYou dùng đúng mô hình của TicketSeq:
+- Container `web` (nginx + SPA) publish **`127.0.0.1:6890`** (cổng 8080/8000/3000/3012/3100/3111/3222/3500/5000/6868/8100/8200/8500 đã bị app khác dùng — kiểm tra lại bằng `ss -ltnp` trước khi deploy).
+- Nginx hệ thống **forward nguyên path, KHÔNG strip `/smyoutask`**. Bên trong container `web`: `/smyoutask/api/` → backend `/api/` (strip prefix ở đây), còn lại → SPA.
+- Ứng dụng biết subpath qua `BASE_PATH=/smyoutask` (.env.prod): Vite build với `base: '/smyoutask/'`, React Router `basename`, cookie `Path=/smyoutask`, API client gọi `/smyoutask/api/v1`. Dev trên Mac: `BASE_PATH` rỗng.
+- HTTPS, chứng chỉ, rate-limit (`limit_req zone=perip`) do nginx hệ thống lo; container không cần TLS. Backend tin header `X-Forwarded-Proto` (uvicorn `--proxy-headers --forwarded-allow-ips=*` vì chỉ nhận kết nối từ 127.0.0.1) để cookie `Secure` đúng.
+
+Thêm vào file cấu hình nginx của `ilabsviet.com` (cạnh khối TicketSeq), rồi `nginx -t && systemctl reload nginx`:
+```nginx
+# (khai báo cùng nhóm upstream ở đầu file)
+upstream smyoutask_ilabsviet {
+    server 127.0.0.1:6890;
+}
+
+# (trong server { listen 443 ssl http2; server_name ilabsviet.com; ... })
+# START: SMYou Pro — Quản lý đơn hàng & đầu việc (Docker, container web :6890)
+location = /smyoutask {
+    return 301 /smyoutask/;
+}
+location /smyoutask/ {
+    limit_req zone=perip burst=20 nodelay;
+
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host $host;
+
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    # KHÔNG có "/" cuối ở proxy_pass: giữ nguyên prefix /smyoutask/ cho container web tự định tuyến
+    proxy_pass http://smyoutask_ilabsviet;
+
+    proxy_connect_timeout 59s;
+    proxy_read_timeout 120s;
+    proxy_send_timeout 120s;
+    proxy_hide_header X-Powered-By;
+    proxy_redirect off;
+
+    client_max_body_size 12M;   # ảnh phiếu xác nhận ≤ 10MB
+}
+# END: SMYou Pro
+```
 
 ## 6. Migration khi deploy
 Container backend chạy `alembic upgrade head` khi khởi động. Migration phải **tương thích ngược 1 phiên bản** (expand → migrate → contract) để rollback image không phá DB.
