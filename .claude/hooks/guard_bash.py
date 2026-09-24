@@ -21,7 +21,7 @@ RULES = [
     (r"\brm\s+-[a-zA-Z]*r[a-zA-Z]*\s+(/|~|\$HOME|\*|\.)(\s|$)", "recursive delete of a root/home/cwd path"),
     (r"\bDROP\s+(DATABASE|SCHEMA|TABLE)\b", "dropping database objects outside migrations"),
     (r"\balembic\b[^\n;&|]*\bdowngrade\s+base\b", "downgrading all migrations"),
-    (r"\b(cat|less|head|tail|more)\s+[^\n|;&]*\.env(\.local|\.prod)?(\s|$)", "reading real .env secrets"),
+    (r"\b(cat|less|head|tail|more)\s+[^\n|;&]*\.env(\.local|\.dev|\.prod)?(\s|$)", "reading real .env secrets"),
 ]
 
 

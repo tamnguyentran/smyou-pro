@@ -9,7 +9,7 @@
 Là nhà phát triển (người/AI), tôi cần một backend FastAPI chạy được, có cấu hình, kết nối DB, định dạng lỗi thống nhất và bộ công cụ chất lượng, để mọi tính năng sau xây trên nền nhất quán.
 
 ## 2. Phạm vi
-- Trong: `backend/pyproject.toml` (uv, ruff, mypy strict, pytest + marker `ac`, import-linter, Hypothesis profiles, mutmut), `uv.lock`; `app/main.py` `create_app()`; `core/config.py`, `core/db.py`, `core/errors.py`, `core/request_id.py`; module `system` với `GET /api/v1/health`; Alembic cấu hình + migration baseline rỗng; `scripts/export_openapi.py`; `compose.yml` tối thiểu chỉ có `db` (Postgres 17, host port 5442, tạo sẵn DB `smyou_test`).
+- Trong: `backend/pyproject.toml` (uv, ruff, mypy strict, pytest + marker `ac`, import-linter, Hypothesis profiles, mutmut), `uv.lock`; `app/main.py` `create_app()`; `core/config.py`, `core/db.py`, `core/errors.py`, `core/request_id.py`; module `system` với `GET /api/v1/health`; Alembic cấu hình + migration baseline rỗng; `scripts/export_openapi.py`; `compose.dev.yml` + `.env.dev.example` (môi trường Mac M2) tối thiểu chỉ có `db` (Postgres 17, host port 5442, tạo sẵn DB `smyou_test`); `.env.prod.example` (AlmaLinux) — `compose.prod.yml` làm ở M0-03.
 - Ngoài: auth, spec loader (M0-04), Dockerfile backend & compose đầy đủ (M0-03), frontend.
 
 ## 3. Acceptance Criteria
@@ -36,8 +36,8 @@ Migration baseline rỗng `0001_baseline` (chỉ để chuỗi migration có g�
 Không có.
 
 ## 7. Kịch bản UAT thủ công
-1. `docker compose up -d db` → `cd backend && uv run uvicorn app.main:app --port 8010` → mở `http://localhost:8010/api/v1/health` thấy `status: ok`.
-2. Tắt DB (`docker compose stop db`) → tải lại → thấy lỗi 503 tiếng Việt.
+1. `make setup` (tạo `.env.dev`) → `docker compose -f compose.dev.yml --env-file .env.dev up -d db` → `cd backend && uv run uvicorn app.main:app --port 8010` → mở `http://localhost:8010/api/v1/health` thấy `status: ok`.
+2. Tắt DB (`docker compose -f compose.dev.yml stop db`) → tải lại → thấy lỗi 503 tiếng Việt.
 
 ## 8. Giả định & câu hỏi
 - Cổng dev: DB 5442, backend 8010, Vite 5183 (máy dev đã có dịch vụ khác chiếm 5432/5433/8000/5173).

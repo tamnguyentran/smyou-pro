@@ -1,5 +1,6 @@
-# Dev stack. M0-01: database only; backend/web services are added in M0-03.
-name: smyou
+# DEV / TEST stack for the MacBook Pro M2 (arm64). Env: .env.dev (copy of .env.dev.example).
+# Production (AlmaLinux) uses compose.prod.yml + .env.prod. M0-01: database only; backend/web added in M0-03.
+name: smyou-dev
 
 services:
   db:
