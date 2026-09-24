@@ -11,7 +11,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 > - `backend/Dockerfile` và `frontend/Dockerfile` có target `dev` và `prod`; `compose.yml` có healthcheck cho mọi service (`--wait` dựa vào đó); `compose.prod.yml` publish `web` ở `${WEB_PORT:-8080}`.
 > - Playwright projects `mobile` (iPhone 13) và `desktop` (1440×900); tag `@a11y`, `@screenshot`; screenshot lưu `reports/screenshots/{project}/`.
 > - Vitest coverage threshold 75% cho `src/features`, `src/lib`.
-- [ ] **M0-01 Scaffold backend**: uv project, FastAPI `create_app`, config, DB session, `/api/v1/health` (kiểm DB), problem+json handler, ruff/mypy/import-linter/pytest config, Alembic init. AC-SYS-001 health 200 khi DB sống, 503 khi DB chết.
+- [~] **M0-01 Scaffold backend**: uv project, FastAPI `create_app`, config, DB session, `/api/v1/health` (kiểm DB), problem+json handler, ruff/mypy/import-linter/pytest config, Alembic init. AC-SYS-001 health 200 khi DB sống, 503 khi DB chết.
 - [ ] **M0-02 Scaffold frontend**: Vite React TS strict, Tailwind v4 + tokens (UI_GUIDELINES §2), font tự host, ESLint/Prettier/Vitest/Playwright config, trang placeholder dùng token. AC-SYS-002 build ok; AC-SYS-003 không cuộn ngang 360px.
 - [ ] **M0-03 Docker & Makefile**: `compose.yml` + override dev (hot reload), Dockerfile BE/FE, mọi target Makefile chạy được, pre-commit cài được. AC-SYS-004 `make up` → web + api healthy trên Mac M2.
 - [ ] **M0-04 Spec loader & sinh test**: `core/spec_loader.py` đọc 2 YAML (validate bằng Pydantic), test `test_guards_implemented` (skeleton guard trả NotImplemented được phép ở M0 bằng danh sách chờ), `test_routes_declare_capability`. AC-SYS-005 YAML sai cú pháp/thiếu trường → app không khởi động.
