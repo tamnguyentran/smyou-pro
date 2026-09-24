@@ -1,0 +1,197 @@
+# SOURCE OF TRUTH for workflow states. Backend loads this file; tests are generated from it:
+#   - every listed transition must succeed for an allowed actor when guards pass
+#   - every (state, command) pair NOT listed must be rejected with 409 INVALID_TRANSITION
+#   - every listed guard must have a dedicated negative test
+# Editing this file changes business rules → requires product-owner approval (Claude Code will ask).
+# Prose explanation & diagrams: docs/product/WORKFLOWS.md
+version: 1
+
+order:
+  label: Đơn hàng
+  initial: DRAFT
+  states:
+    DRAFT:                 { label: Nháp,               color: todo }
+    PENDING_DISPATCH:      { label: Chờ điều phối,       color: review }
+    IN_PROGRESS:           { label: Đang thực hiện,      color: in_progress }
+    AWAITING_CONFIRMATION: { label: Chờ khách xác nhận,  color: review }
+    COMPLETED:             { label: Hoàn tất,            color: completed, terminal: false }  # can go to REVISION
+    REVISION:              { label: Chỉnh sửa,           color: urgent }
+    CANCELLED:             { label: Đã huỷ,              color: todo, terminal: true }
+  transitions:
+    - command: submit
+      from: [DRAFT]
+      to: PENDING_DISPATCH
+      capability: order.submit
+      guards: [customer_present, has_lines_or_description, service_address_present]
+      effects: [notify_tech_leads, audit]
+    - command: recall
+      from: [PENDING_DISPATCH]
+      to: DRAFT
+      capability: order.submit
+      guards: [order_has_no_tasks]
+      effects: [audit]
+    - command: start_dispatch          # system: fired when the first task of the order is created
+      from: [PENDING_DISPATCH]
+      to: IN_PROGRESS
+      actor: system
+      effects: [audit]
+    - command: all_tasks_done          # system: re-evaluated after every task/assignment change
+      from: [IN_PROGRESS, REVISION]
+      to: AWAITING_CONFIRMATION
+      actor: system
+      guards: [has_active_tasks, all_active_tasks_done, revision_has_work_if_revision]
+      effects: [notify_tech_leads, notify_order_owner, audit]
+    - command: complete
+      from: [AWAITING_CONFIRMATION]
+      to: COMPLETED
+      capability: order.complete
+      guards: [confirmation_attachment_in_current_revision, signer_name_present]
+      effects: [notify_order_owner, audit]
+    - command: request_revision
+      from: [AWAITING_CONFIRMATION, COMPLETED]
+      to: REVISION
+      capability: order.revise
+      guards: [reason_present]
+      effects: [increment_revision_no, notify_order_owner, audit]
+    - command: cancel
+      from: [DRAFT, PENDING_DISPATCH]
+      to: CANCELLED
+      capability: order.cancel
+      guards: [reason_present, order_has_no_tasks]
+      effects: [audit]
+    - command: cancel_active
+      from: [IN_PROGRESS, AWAITING_CONFIRMATION, REVISION]
+      to: CANCELLED
+      capability: order.cancel_active
+      guards: [reason_present]
+      effects: [cancel_open_tasks, notify_assignees, audit]
+
+task:
+  label: Đầu việc
+  # Task status is DERIVED from its active assignments (current cycle, not REJECTED/REMOVED),
+  # except CANCELLED which is explicit. Evaluate rules top-down; first match wins.
+  derived_status:
+    - { status: CANCELLED,          when: task.cancelled_at is set }
+    - { status: NEEDS_ASSIGNEE,     when: no active assignments }
+    - { status: DONE,               when: all active assignments are DONE }
+    - { status: IN_PROGRESS,        when: any active assignment is IN_PROGRESS or DONE }
+    - { status: PENDING_ACCEPTANCE, when: any active assignment is PENDING }
+    - { status: ACCEPTED,           when: otherwise (all active assignments ACCEPTED) }
+  states:
+    NEEDS_ASSIGNEE:     { label: Cần giao lại,   color: urgent }
+    PENDING_ACCEPTANCE: { label: Chờ tiếp nhận,  color: todo }
+    ACCEPTED:           { label: Đã tiếp nhận,   color: review }
+    IN_PROGRESS:        { label: Đang thực hiện, color: in_progress }
+    DONE:               { label: Hoàn thành,     color: completed }
+    CANCELLED:          { label: Đã huỷ,         color: todo }
+  commands:
+    - command: create
+      capability: task.manage
+      guards: [order_in_dispatchable_state, at_least_one_assignee, assignees_are_active_technicians,
+               estimated_hours_positive, due_at_not_in_past]
+      effects: [create_pending_assignments, fire_order_start_dispatch_if_first_task, notify_assignees, audit]
+      origin: "INITIAL if order not in REVISION, else ADDITIONAL"
+    - command: update                  # title, description, estimated_hours, due_at, priority
+      capability: task.manage
+      allowed_task_status: [NEEDS_ASSIGNEE, PENDING_ACCEPTANCE, ACCEPTED, IN_PROGRESS]
+      guards: [order_in_dispatchable_state]
+      effects: [notify_assignees, audit]
+    - command: add_assignee
+      capability: task.manage
+      allowed_task_status: [NEEDS_ASSIGNEE, PENDING_ACCEPTANCE, ACCEPTED, IN_PROGRESS]
+      guards: [order_in_dispatchable_state, assignees_are_active_technicians, not_already_active_assignee]
+      effects: [notify_assignees, audit]
+    - command: reopen
+      capability: task.reopen
+      allowed_task_status: [DONE]
+      guards: [order_in_revision, reason_present]
+      effects: [increment_task_cycle, record_defect_for_previous_cycle_assignees,
+                create_pending_assignments, fire_order_reevaluate, notify_assignees, audit]
+    - command: cancel
+      capability: task.manage
+      allowed_task_status: [NEEDS_ASSIGNEE, PENDING_ACCEPTANCE, ACCEPTED, IN_PROGRESS]
+      guards: [order_in_dispatchable_state, reason_present]
+      effects: [remove_open_assignments, fire_order_reevaluate, notify_assignees, audit]
+
+assignment:
+  label: Phân công (1 nhân viên × 1 task × 1 chu kỳ)
+  initial: PENDING
+  states:
+    PENDING:     { label: Chờ tiếp nhận,  color: todo }
+    ACCEPTED:    { label: Đã tiếp nhận,   color: review }
+    REJECTED:    { label: Đã từ chối,     color: urgent,    terminal: true }
+    IN_PROGRESS: { label: Đang thực hiện, color: in_progress }
+    DONE:        { label: Hoàn thành,     color: completed, terminal: true }
+    REMOVED:     { label: Đã gỡ,          color: todo,      terminal: true }
+  transitions:
+    - command: accept
+      from: [PENDING]
+      to: ACCEPTED
+      actor: assignee
+      guards: [order_in_dispatchable_state, task_not_cancelled]
+      effects: [audit]
+    - command: reject
+      from: [PENDING]
+      to: REJECTED
+      actor: assignee
+      guards: [reject_reason_code_present, reject_reason_text_present]
+      effects: [notify_tech_leads, fire_order_reevaluate, audit]
+    - command: start
+      from: [ACCEPTED]
+      to: IN_PROGRESS
+      actor: assignee
+      guards: [order_in_dispatchable_state, task_not_cancelled]
+      effects: [audit]
+    - command: complete
+      from: [IN_PROGRESS]
+      to: DONE
+      actor: assignee
+      guards: [task_not_cancelled]
+      effects: [fire_order_reevaluate, notify_tech_leads_if_task_done, audit]
+    - command: remove
+      from: [PENDING, ACCEPTED, IN_PROGRESS]
+      to: REMOVED
+      capability: task.manage
+      guards: [order_in_dispatchable_state]
+      effects: [notify_assignee, fire_order_reevaluate, audit]
+
+reject_reason_codes:
+  BUSY: Không đủ thời gian (đang nhiều việc)
+  SICK: Ốm đau / nghỉ phép
+  SKILL: Không phù hợp chuyên môn
+  DISTANCE: Địa điểm quá xa / không di chuyển được
+  OTHER: Lý do khác
+
+# Guard definitions (implemented as pure functions in the domain layer; names must match)
+guards:
+  customer_present: order has a customer (existing or walk-in with name + phone)
+  has_lines_or_description: order has ≥1 line OR a non-empty work description
+  service_address_present: service address is non-empty
+  order_has_no_tasks: order has zero tasks (including cancelled)
+  has_active_tasks: order has ≥1 task not CANCELLED
+  all_active_tasks_done: every non-cancelled task has derived status DONE
+  revision_has_work_if_revision: if order is REVISION, ≥1 task was created or reopened in the current revision
+  confirmation_attachment_in_current_revision: ≥1 attachment kind=CUSTOMER_CONFIRMATION with revision_no = order.revision_no
+  signer_name_present: customer signer name is non-empty
+  reason_present: reason text trimmed length ≥ 5
+  order_in_dispatchable_state: order status in [PENDING_DISPATCH, IN_PROGRESS, REVISION]
+  order_in_revision: order status == REVISION
+  at_least_one_assignee: ≥1 assignee given
+  assignees_are_active_technicians: every assignee is active and has role TECHNICIAN
+  not_already_active_assignee: employee has no active assignment on this task in the current cycle
+  estimated_hours_positive: 0 < estimated_hours ≤ 200, step 0.25
+  due_at_not_in_past: due_at ≥ now (server clock)
+  task_not_cancelled: task.cancelled_at is null
+  reject_reason_code_present: reason_code in reject_reason_codes
+  reject_reason_text_present: reason text trimmed length ≥ 5
+
+# Invariants — must hold after ANY sequence of commands (checked by Hypothesis stateful tests)
+invariants:
+  - An order in COMPLETED has ≥1 CUSTOMER_CONFIRMATION attachment for its current revision_no.
+  - An order in AWAITING_CONFIRMATION or COMPLETED has ≥1 non-cancelled task and all are DONE.
+  - A task's stored status always equals the derived status computed from its assignments.
+  - An employee has at most one active assignment per task per cycle.
+  - Assignments of a previous cycle are never modified after the task is reopened.
+  - Every state change produces exactly one audit_event with from/to states.
+  - A CANCELLED order has no PENDING/ACCEPTED/IN_PROGRESS assignments.
+  - revision_no only increases; task.cycle only increases.

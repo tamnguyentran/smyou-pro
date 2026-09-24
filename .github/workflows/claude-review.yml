@@ -1,0 +1,48 @@
+name: Claude PR Review
+
+# Second, independent AI review on every PR (the author session already ran /review locally).
+# Setup once: in Claude Code run `/install-github-app`, which creates the CLAUDE_CODE_OAUTH_TOKEN
+# (or use ANTHROPIC_API_KEY) repository secret.
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    env:
+      HAS_CLAUDE_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+    steps:
+      - if: env.HAS_CLAUDE_TOKEN != 'true'
+        run: echo "::notice::CLAUDE_CODE_OAUTH_TOKEN not set — run /install-github-app in Claude Code. Skipping AI review."
+      - uses: actions/checkout@v4
+        if: env.HAS_CLAUDE_TOKEN == 'true'
+        with: { fetch-depth: 0 }
+      - uses: anthropics/claude-code-action@v1
+        if: env.HAS_CLAUDE_TOKEN == 'true'
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are an independent reviewer for SMYou Pro. Read CLAUDE.md first.
+            1. Identify the backlog ID from the branch name / PR title and read docs/specs/<ID>*.md (Acceptance Criteria).
+            2. Review ONLY the PR diff (`gh pr diff`) against: the spec's ACs, spec/state_machines.yaml,
+               spec/permissions.yaml, docs/architecture/ARCHITECTURE.md, docs/design/UI_GUIDELINES.md.
+            3. Focus on: business-rule violations, missing authorization/scope (IDOR), status changes outside the
+               transition table, money/rounding errors, tests that were weakened or do not prove their AC
+               (compare test files between the first `test(...)` commit and HEAD), missing negative tests.
+            4. Report only issues you verified by reading the code. No style nits (linters handle them).
+            5. Post inline comments for concrete issues and one summary comment with:
+               VERDICT (PASS / CHANGES_REQUIRED), a severity-ranked list, and "Owner attention" items
+               (anything that needs a business decision), written in Vietnamese.
+          claude_args: |
+            --max-turns 40
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*),Read,Grep,Glob"

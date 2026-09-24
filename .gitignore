@@ -1,0 +1,46 @@
+# secrets
+.env
+.env.local
+.env.prod
+**/secrets/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+coverage.xml
+htmlcov/
+mutants/
+.mutmut-cache
+
+# node
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# generated reports (published as CI artifacts, not committed)
+reports/
+
+# local data
+data/
+uploads/
+backups/
+
+# claude code local state
+.claude/.stop_attempts
+.claude/settings.local.json
+CLAUDE.local.md
+
+# os / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

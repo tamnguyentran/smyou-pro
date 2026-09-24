@@ -1,0 +1,47 @@
+name: Nightly quality
+
+on:
+  schedule:
+    - cron: "0 19 * * *"   # 02:00 Asia/Ho_Chi_Minh
+  workflow_dispatch:
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { python-version: "3.12" }
+      - run: uv sync --frozen
+      - name: Mutation testing on domain layer (threshold ≥ 80% killed)
+        run: |
+          uv run mutmut run || true
+          uv run mutmut export-cicd-stats
+          python3 - <<'EOF'
+          import json
+          s = json.load(open("mutants/mutmut-cicd-stats.json"))
+          killed, total = s["killed"], s["total"] - s.get("skipped", 0)
+          score = killed / total * 100 if total else 100
+          print(f"mutation score: {score:.1f}% ({killed}/{total})")
+          raise SystemExit(0 if score >= 80 else 1)
+          EOF
+
+  stateful-long:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:17
+        env: { POSTGRES_USER: smyou, POSTGRES_PASSWORD: smyou, POSTGRES_DB: smyou_test }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U smyou" --health-interval 5s --health-retries 10
+    defaults: { run: { working-directory: backend } }
+    env:
+      DATABASE_URL: postgresql+psycopg://smyou:smyou@localhost:5432/smyou_test
+      HYPOTHESIS_PROFILE: nightly   # many more examples than the PR profile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { python-version: "3.12" }
+      - run: uv sync --frozen && uv run alembic upgrade head
+      - run: uv run pytest tests/stateful -q

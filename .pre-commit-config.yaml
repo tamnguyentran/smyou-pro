@@ -1,0 +1,49 @@
+# Install: `make setup` (runs `uvx pre-commit install`). Runs on every commit — by humans and by Claude.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+        exclude: ^Tài liệu tham khảo/
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: [--branch, main]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.0
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff (backend)
+        entry: bash -c 'cd backend && uv run ruff check --fix . && uv run ruff format .'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+      - id: eslint-prettier
+        name: eslint + prettier (frontend)
+        entry: bash -c 'cd frontend && npx prettier --write "src/**/*.{ts,tsx,css}" && npm run lint'
+        language: system
+        files: ^frontend/.*\.(ts|tsx|css)$
+        pass_filenames: false
+      - id: spec-yaml-valid
+        name: spec YAML parses
+        entry: python3 -c "import sys,json; [__import__('yaml').safe_load(open(f)) for f in sys.argv[1:]]"
+        language: python
+        additional_dependencies: [pyyaml]
+        files: ^spec/.*\.ya?ml$
+      - id: ac-traceability
+        name: AC traceability
+        entry: python3 scripts/check_ac_coverage.py
+        language: system
+        pass_filenames: false
+        files: ^(docs/specs/|backend/tests/|frontend/src/.*\.test\.tsx?$|frontend/e2e/)

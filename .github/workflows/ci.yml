@@ -1,0 +1,155 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+  DATABASE_URL: postgresql+psycopg://smyou:smyou@localhost:5432/smyou_test
+  APP_ENV: test
+  JWT_SECRET: ci-only-not-secret
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.d.outputs.backend }}
+      frontend: ${{ steps.d.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: d
+        run: |
+          echo "backend=$([ -f backend/pyproject.toml ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "frontend=$([ -f frontend/package.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+  backend:
+    needs: detect
+    if: needs.detect.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:17
+        env: { POSTGRES_USER: smyou, POSTGRES_PASSWORD: smyou, POSTGRES_DB: smyou_test }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U smyou" --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults: { run: { working-directory: backend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { python-version: "${{ env.PYTHON_VERSION }}", enable-cache: true }
+      - run: uv sync --frozen
+      - name: Lint & format
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Architecture boundaries
+        run: uv run lint-imports
+      - name: Typecheck
+        run: uv run mypy app
+      - name: Migrations up/down/up + drift
+        run: uv run alembic upgrade head && uv run alembic downgrade -1 && uv run alembic upgrade head && uv run alembic check
+      - name: Tests (unit, generated, stateful, integration, contract) + coverage
+        run: uv run pytest -q --cov=app --cov-branch --cov-report=xml --cov-fail-under=85 --junitxml=../reports/junit-backend.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: backend-reports, path: reports/ }
+
+  frontend:
+    needs: detect
+    if: needs.detect.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: frontend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - run: npm ci
+      - run: npm run lint
+      - run: npx prettier --check "src/**/*.{ts,tsx,css}"
+      - run: npx tsc --noEmit
+      - run: python3 ../scripts/check_no_raw_colors.py
+      - run: npx vitest run --coverage
+      - run: npm run build
+
+  contract:
+    needs: detect
+    if: needs.detect.outputs.backend == 'true' && needs.detect.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - run: cd backend && uv sync --frozen
+      - run: cd frontend && npm ci
+      - name: OpenAPI → TS types must be committed
+        run: make contract
+
+  traceability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/check_ac_coverage.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: ac-matrix, path: reports/ac-matrix.md }
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - run: cp .env.example .env
+      - run: docker compose up -d --build --wait
+      - run: docker compose exec -T backend python -m scripts.seed_e2e
+      - run: cd frontend && npm ci && npx playwright install --with-deps chromium webkit
+      - run: cd frontend && npx playwright test
+      - if: failure()
+        run: docker compose logs --no-color > reports/compose.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-report-and-screenshots
+          path: |
+            frontend/playwright-report/
+            reports/screenshots/
+            reports/compose.log
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+      - uses: astral-sh/setup-uv@v6
+        if: hashFiles('backend/uv.lock') != ''
+        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+      - name: Python dependency audit
+        if: hashFiles('backend/uv.lock') != ''
+        run: cd backend && uv export --frozen --no-hashes > /tmp/req.txt && uvx pip-audit -r /tmp/req.txt
+      - name: npm audit
+        if: hashFiles('frontend/package-lock.json') != ''
+        run: cd frontend && npm audit --audit-level=high --omit=dev
+
+  image:
+    # GitHub runners are x86_64 = same arch as AlmaLinux production: catches arch-specific failures.
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - run: make build-prod TAG=ci PLATFORM=linux/amd64
+      - run: cp .env.example .env && make smoke-prod TAG=ci
+      - name: Scan images for HIGH/CRITICAL CVEs
+        uses: aquasecurity/trivy-action@0.28.0
+        with: { image-ref: "smyou-backend:ci", severity: "HIGH,CRITICAL", exit-code: "1", ignore-unfixed: true }

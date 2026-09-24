@@ -1,0 +1,126 @@
+# SOURCE OF TRUTH for authorization and navigation. Backend loads this file; tests are generated from it:
+#   - for every capability × role: allowed roles succeed (within scope), all others get 403
+#   - every API route must declare exactly one capability (or be listed under public_routes) — else test fails
+#   - every menu item's capability must exist here; menu shown to a user = items whose capability they hold
+# A user can hold SEVERAL roles; effective permission = union. Scope precedence: all > own/assigned.
+# Editing this file changes business rules → requires product-owner approval (Claude Code will ask).
+version: 1
+
+roles:
+  MANAGER:    { label: Quản lý chung }
+  SALE:       { label: Nhân viên kinh doanh }
+  TECH_LEAD:  { label: Quản lý kỹ thuật }
+  TECHNICIAN: { label: Nhân viên kỹ thuật }
+
+# scope meanings:
+#   all      — every record
+#   own      — records the user created (orders.created_by / customers.created_by)
+#   assigned — records linked to a task where the user has (or had) an assignment
+#   self     — the user's own record only
+scopes: [all, own, assigned, self]
+
+capabilities:
+  # --- Danh mục ---
+  catalog.read:          { MANAGER: all, SALE: all, TECH_LEAD: all }
+  catalog.manage:        { MANAGER: all }
+  # --- Nhân sự ---
+  employee.read:         { MANAGER: all, TECH_LEAD: all }
+  employee.manage:       { MANAGER: all }            # create, edit, deactivate, set roles, reset password
+  profile.manage:        { MANAGER: self, SALE: self, TECH_LEAD: self, TECHNICIAN: self }
+  # --- Khách hàng ---
+  customer.read:         { MANAGER: all, SALE: all, TECH_LEAD: all }
+  customer.manage:       { MANAGER: all, SALE: all }
+  # --- Đơn hàng ---
+  order.read:            { MANAGER: all, SALE: all, TECH_LEAD: all, TECHNICIAN: assigned }
+  order.read_prices:     { MANAGER: all, SALE: all, TECH_LEAD: all, TECHNICIAN: assigned }  # Q03: technicians see prices of their orders
+  order.create:          { MANAGER: all, SALE: all }
+  order.edit_draft:      { MANAGER: all, SALE: own }
+  order.edit_contact:    { MANAGER: all, SALE: own }  # phone/address/notes after submit, until COMPLETED
+  order.edit_lines_after_submit: { MANAGER: all }
+  order.submit:          { MANAGER: all, SALE: own }
+  order.cancel:          { MANAGER: all, SALE: own }
+  order.cancel_active:   { MANAGER: all }
+  order.upload_confirmation: { TECH_LEAD: all, TECHNICIAN: assigned }
+  order.complete:        { TECH_LEAD: all }
+  order.revise:          { TECH_LEAD: all }
+  # --- Đầu việc ---
+  task.read:             { MANAGER: all, TECH_LEAD: all, TECHNICIAN: assigned }
+  task.manage:           { TECH_LEAD: all }          # create, update, assign, remove assignee, cancel
+  task.reopen:           { TECH_LEAD: all }
+  assignment.respond:    { TECHNICIAN: self }        # accept/reject/start/complete OWN assignment only
+  task.upload_photo:     { TECH_LEAD: all, TECHNICIAN: assigned }
+  # --- Báo cáo ---
+  dashboard.read:        { MANAGER: all, SALE: own, TECH_LEAD: all, TECHNICIAN: self }
+  kpi.read:              { MANAGER: all, TECH_LEAD: all, TECHNICIAN: self }
+  audit.read:            { MANAGER: all }
+  notification.read:     { MANAGER: self, SALE: self, TECH_LEAD: self, TECHNICIAN: self }
+
+public_routes:
+  - GET /api/v1/health
+  - POST /api/v1/auth/login
+  - POST /api/v1/auth/refresh
+  - POST /api/v1/auth/logout
+
+# Navigation (2 levels). Frontend renders from GET /api/v1/me (roles + capabilities) + this structure,
+# copied into frontend/src/app/menu.ts; a test asserts the two stay identical.
+menu:
+  - id: dashboard
+    label: Tổng quan
+    icon: LayoutDashboard
+    path: /
+    capability: dashboard.read
+  - id: my-work
+    label: Việc của tôi
+    icon: ClipboardCheck
+    path: /my-tasks
+    capability: assignment.respond
+    badge: pending_assignments_count
+  - id: dispatch
+    label: Điều phối kỹ thuật
+    icon: Wrench
+    capability: task.manage
+    children:
+      - { id: dispatch-queue,  label: Đơn chờ điều phối, icon: Inbox,        path: /dispatch/queue,  badge: pending_dispatch_count }
+      - { id: dispatch-board,  label: Bảng đầu việc,     icon: KanbanSquare, path: /dispatch/board }
+      - { id: dispatch-load,   label: Lịch & tải việc,   icon: CalendarRange, path: /dispatch/workload }
+      - { id: dispatch-revise, label: Đơn cần chỉnh sửa, icon: RotateCcw,    path: /dispatch/revisions, badge: revision_count }
+  - id: sales
+    label: Đơn hàng
+    icon: ShoppingBag
+    capability: order.create
+    children:
+      - { id: orders,        label: Danh sách đơn, icon: ListOrdered, path: /orders }
+      - { id: order-new,     label: Tạo đơn mới,   icon: FilePlus2,   path: /orders/new }
+      - { id: customers,     label: Khách hàng,    icon: Users,       path: /customers, capability: customer.manage }
+  - id: catalog
+    label: Danh mục
+    icon: Package
+    capability: catalog.manage
+    children:
+      - { id: products, label: Sản phẩm, icon: Monitor,  path: /catalog/products }
+      - { id: services, label: Dịch vụ,  icon: Hammer,   path: /catalog/services }
+  - id: employees
+    label: Nhân sự & phân quyền
+    icon: UserCog
+    path: /employees
+    capability: employee.manage
+  - id: reports
+    label: Báo cáo KPI
+    icon: BarChart3
+    path: /reports/kpi
+    capability: kpi.read
+  - id: audit
+    label: Nhật ký hệ thống
+    icon: History
+    path: /audit
+    capability: audit.read
+
+# Mobile bottom navigation (max 5). Centre button = primary action of the user's highest-priority role;
+# hidden when the user has none. Priority: TECH_LEAD > SALE > MANAGER > TECHNICIAN.
+mobile_bottom_nav:
+  items: [dashboard, my-work|dispatch-board|orders, primary_action, notifications, profile]
+  primary_action:
+    TECH_LEAD:  { label: Tạo đầu việc, icon: Plus, path: /dispatch/queue }
+    SALE:       { label: Tạo đơn,      icon: Plus, path: /orders/new }
+    MANAGER:    { label: Tạo đơn,      icon: Plus, path: /orders/new }
+    TECHNICIAN: null
