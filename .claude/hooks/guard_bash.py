@@ -21,8 +21,18 @@ RULES = [
     (r"\brm\s+-[a-zA-Z]*r[a-zA-Z]*\s+(/|~|\$HOME|\*|\.)(\s|$)", "recursive delete of a root/home/cwd path"),
     (r"\bDROP\s+(DATABASE|SCHEMA|TABLE)\b", "dropping database objects outside migrations"),
     (r"\balembic\b[^\n;&|]*\bdowngrade\s+base\b", "downgrading all migrations"),
-    (r"\b(cat|less|head|tail|more)\s+[^\n|;&]*\.env(\.local|\.dev|\.prod)?(\s|$)", "reading real .env secrets"),
 ]
+
+# Any token naming a real env file (.env, .env.dev, ./.env.prod, '.env.local' …), whatever command uses it.
+# `*.example` files are safe; `cp .env.X.example .env.X` (creating a local env from its example) is allowed.
+ENV_FILE = re.compile(r"(?<![\w.-])\.env(?:\.[\w-]+)*(?![\w-])")
+ENV_FROM_EXAMPLE = re.compile(r"^\s*cp\s+(\./)?\.env\.[\w-]+\.example\s+(\./)?\.env\.[\w-]+\s*$")
+
+
+def touches_real_env_file(command):
+    if ENV_FROM_EXAMPLE.match(command):
+        return False
+    return any(not m.group(0).endswith(".example") for m in ENV_FILE.finditer(command))
 
 
 def current_branch():
@@ -36,6 +46,8 @@ def current_branch():
 
 def check(data):
     command = (data.get("tool_input") or {}).get("command", "") or ""
+    if touches_real_env_file(command):
+        return "BLOCKED: reading/copying real .env secrets. Use the *.example files, or ask the user."
     for pattern, label in RULES:
         if re.search(pattern, command, flags=re.IGNORECASE):
             return f"BLOCKED: {label}. Ask the user to run this themselves if it is really needed."

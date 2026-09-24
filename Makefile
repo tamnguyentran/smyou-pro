@@ -65,6 +65,7 @@ lint: ## ruff + import-linter + eslint + prettier check + raw color check
 	$(call be,uv run ruff check . && uv run ruff format --check . && uv run lint-imports)
 	$(call fe,npm run lint && npx prettier --check $(PRETTIER_SRC))
 	python3 scripts/check_no_raw_colors.py
+	python3 -m unittest discover -q -s .claude/hooks -p 'test_*.py'
 
 format: ## Auto-format everything
 	$(call be,uv run ruff check --fix . && uv run ruff format .)

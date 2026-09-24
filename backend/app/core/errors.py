@@ -1,6 +1,7 @@
 """RFC 9457 problem+json error responses (ARCHITECTURE §4)."""
 
 import logging
+from collections.abc import Mapping
 from http import HTTPStatus
 from typing import Any, cast
 
@@ -52,9 +53,12 @@ def problem_response(
     *,
     errors: list[dict[str, str]] | None = None,
     extra: dict[str, Any] | None = None,
+    headers: Mapping[str, str] | None = None,
 ) -> JSONResponse:
     request_id = get_request_id(request)
+    # `extra` goes first so it can never override the reserved problem fields below.
     body: dict[str, Any] = {
+        **(extra or {}),
         "type": "about:blank",
         "title": HTTPStatus(status).phrase,
         "status": status,
@@ -62,12 +66,13 @@ def problem_response(
         "detail": detail,
         "instance": request.url.path,
         "request_id": request_id,
-        **(extra or {}),
     }
     if errors is not None:
         body["errors"] = errors
-    headers = {REQUEST_ID_HEADER: request_id} if request_id else None
-    return JSONResponse(body, status_code=status, media_type=PROBLEM_MEDIA_TYPE, headers=headers)
+    response_headers = dict(headers or {})
+    if request_id:
+        response_headers[REQUEST_ID_HEADER] = request_id
+    return JSONResponse(body, status_code=status, media_type=PROBLEM_MEDIA_TYPE, headers=response_headers)
 
 
 def _field_name(loc: tuple[Any, ...]) -> str:
@@ -85,7 +90,7 @@ async def _app_error(request: Request, exc: Exception) -> JSONResponse:
 async def _http_error(request: Request, exc: Exception) -> JSONResponse:
     exc = cast(StarletteHTTPException, exc)
     code, detail = _HTTP_CODES.get(exc.status_code, ("HTTP_ERROR", "Yêu cầu không thể xử lý."))
-    return problem_response(request, exc.status_code, code, detail)
+    return problem_response(request, exc.status_code, code, detail, headers=exc.headers)
 
 
 async def _validation_error(request: Request, exc: Exception) -> JSONResponse:

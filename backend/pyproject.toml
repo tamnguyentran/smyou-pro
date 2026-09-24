@@ -89,3 +89,5 @@ forbidden_modules = ["app.modules"]
 [tool.mutmut]
 paths_to_mutate = ["app/modules/"]
 tests_dir = ["tests/unit/"]
+# Only pure domain logic is mutated (BACKLOG M0 contract); IO layers are covered by integration tests.
+do_not_mutate = ["*/router.py", "*/models.py", "*/schemas.py", "*/service.py", "*/queries.py", "*/__init__.py"]

@@ -14,6 +14,7 @@ from app.modules.system.router import router as system_router
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings()
+    is_production = settings.app_env == "production"
     engine = create_db_engine(settings.database_url, settings.db_connect_timeout_seconds)
 
     @asynccontextmanager
@@ -24,8 +25,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="SMYou Pro API",
         version=settings.app_version,
-        openapi_url="/api/v1/openapi.json",
-        docs_url="/api/docs" if settings.app_env != "production" else None,
+        # The API description is not published in production (scripts/export_openapi.py uses app.openapi()).
+        openapi_url=None if is_production else "/api/v1/openapi.json",
+        docs_url=None if is_production else "/api/docs",
         redoc_url=None,
         lifespan=lifespan,
     )

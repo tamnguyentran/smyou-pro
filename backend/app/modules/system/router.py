@@ -1,5 +1,6 @@
 """Operational endpoints (public)."""
 
+import logging
 from typing import Literal
 
 from fastapi import APIRouter, Request
@@ -10,6 +11,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.config import Settings
 from app.core.db import ping
 from app.core.errors import AppError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["system"])
 
@@ -33,5 +36,7 @@ def health(request: Request) -> HealthResponse:
     try:
         ping(engine)
     except SQLAlchemyError as exc:
+        # Log only the error class: driver messages can contain host names; never log the URL.
+        logger.warning("Database ping failed (%s)", type(exc).__name__)
         raise AppError(503, "SERVICE_UNAVAILABLE", "Không kết nối được cơ sở dữ liệu.") from exc
     return HealthResponse(status="ok", database="ok", version=settings.app_version)
