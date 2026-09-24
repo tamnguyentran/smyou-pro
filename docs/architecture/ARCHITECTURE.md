@@ -1,7 +1,7 @@
 # Architecture & Conventions
 
 ## 1. Tổng quan
-Modular monolith: 1 backend FastAPI + 1 SPA React + PostgreSQL, chạy bằng Docker Compose. Nginx phục vụ SPA và reverse-proxy `/api` ở production.
+Modular monolith: 1 backend FastAPI + 1 SPA React + PostgreSQL, chạy bằng Docker Compose. Production: nginx hệ thống (HTTPS, `ilabsviet.com`) → container `web` (nginx: SPA + proxy `/smyoutask/api` → backend) — ADR-014.
 
 ```
 Browser (mobile/desktop)

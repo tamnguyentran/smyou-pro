@@ -1,0 +1,24 @@
+# DEV / TEST stack for the MacBook Pro M2 (arm64). Env: .env.dev (copy of .env.dev.example).
+# Production (AlmaLinux) uses compose.prod.yml + .env.prod. M0-01: database only; backend/web added in M0-03.
+name: smyou-dev
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-smyou}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-dev}
+      POSTGRES_DB: ${POSTGRES_DB:-smyou}
+    ports:
+      - "127.0.0.1:${DB_PORT:-5442}:5432"  # localhost only: never expose the dev DB to the LAN
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-smyou} -d $${POSTGRES_DB:-smyou}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:

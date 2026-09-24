@@ -1,6 +1,7 @@
 # secrets
 .env
 .env.local
+.env.dev
 .env.prod
 **/secrets/
 
@@ -44,3 +45,6 @@ CLAUDE.local.md
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# server infrastructure config (other apps, certificate paths) — kept local, not pushed
+Tài liệu tham khảo/ilabsviet.com

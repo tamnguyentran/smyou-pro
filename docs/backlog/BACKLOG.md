@@ -8,12 +8,12 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 > Hợp đồng với tooling đã có sẵn (`Makefile`, `.github/workflows/`, `.claude/`) — M0 phải tạo đủ:
 > - `backend/pyproject.toml`: marker pytest `ac`; `[tool.mutmut]` paths `app/modules/*/domain.py`; import-linter contracts (domain không import fastapi/sqlalchemy; router không import models); Hypothesis profiles `ci` và `nightly`; mypy strict; ruff rules gồm `S` (bandit), `B`, `UP`, `I`.
 > - `scripts/export_openapi.py` (ghi OpenAPI ra file JSON, sắp xếp key ổn định); `backend/scripts/seed_e2e.py` (M1-01 trở đi).
-> - `backend/Dockerfile` và `frontend/Dockerfile` có target `dev` và `prod`; `compose.yml` có healthcheck cho mọi service (`--wait` dựa vào đó); `compose.prod.yml` publish `web` ở `${WEB_PORT:-8080}`.
+> - `backend/Dockerfile` và `frontend/Dockerfile` có target `dev` và `prod`. **Hai bộ file môi trường riêng** (DEPLOYMENT §2): `compose.dev.yml` + `.env.dev.example` (Mac M2) và `compose.prod.yml` + `.env.prod.example` (AlmaLinux, chỉ dùng image `${IMAGE_TAG}` build trên Mac, không có `build:`). Mọi service có healthcheck (`--wait` dựa vào đó); `compose.prod.yml` publish `web` ở `${WEB_PORT:-8080}`.
 > - Playwright projects `mobile` (iPhone 13) và `desktop` (1440×900); tag `@a11y`, `@screenshot`; screenshot lưu `reports/screenshots/{project}/`.
 > - Vitest coverage threshold 75% cho `src/features`, `src/lib`.
-- [ ] **M0-01 Scaffold backend**: uv project, FastAPI `create_app`, config, DB session, `/api/v1/health` (kiểm DB), problem+json handler, ruff/mypy/import-linter/pytest config, Alembic init. AC-SYS-001 health 200 khi DB sống, 503 khi DB chết.
-- [ ] **M0-02 Scaffold frontend**: Vite React TS strict, Tailwind v4 + tokens (UI_GUIDELINES §2), font tự host, ESLint/Prettier/Vitest/Playwright config, trang placeholder dùng token. AC-SYS-002 build ok; AC-SYS-003 không cuộn ngang 360px.
-- [ ] **M0-03 Docker & Makefile**: `compose.yml` + override dev (hot reload), Dockerfile BE/FE, mọi target Makefile chạy được, pre-commit cài được. AC-SYS-004 `make up` → web + api healthy trên Mac M2.
+- [R] **M0-01 Scaffold backend**: uv project, FastAPI `create_app`, config, DB session, `/api/v1/health` (kiểm DB), problem+json handler, ruff/mypy/import-linter/pytest config, Alembic init. AC-SYS-001 health 200 khi DB sống, 503 khi DB chết.
+- [ ] **M0-02 Scaffold frontend**: Vite React TS strict, `BASE_PATH` cấu hình được (Vite `base`, Router `basename`, API base URL — ADR-014), Tailwind v4 + tokens (UI_GUIDELINES §2), font tự host, ESLint/Prettier/Vitest/Playwright config, trang placeholder dùng token. AC-SYS-002 build ok; AC-SYS-003 không cuộn ngang 360px.
+- [ ] **M0-03 Docker & Makefile**: `compose.dev.yml` đầy đủ (hot reload) + `compose.prod.yml`, Dockerfile BE/FE, `make build-prod`/`smoke-prod` chạy được trên Mac M2, `compose.prod.yml` đặt cứng `APP_ENV=production` cho backend (review M0-01), `web` publish `${WEB_BIND:-127.0.0.1}:${WEB_PORT:-6890}` và định tuyến `/smyoutask/api/` → backend (ADR-014), smoke test gọi `http://localhost:6890/smyoutask/api/v1/health`, mọi target Makefile chạy được, pre-commit cài được. AC-SYS-004 `make up` → web + api healthy trên Mac M2.
 - [ ] **M0-04 Spec loader & sinh test**: `core/spec_loader.py` đọc 2 YAML (validate bằng Pydantic), test `test_guards_implemented` (skeleton guard trả NotImplemented được phép ở M0 bằng danh sách chờ), `test_routes_declare_capability`. AC-SYS-005 YAML sai cú pháp/thiếu trường → app không khởi động.
 - [ ] **M0-05 CI xanh**: `.github/workflows/ci.yml` chạy đủ job trên PR; job `image` build amd64 + smoke.
 
@@ -60,6 +60,6 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [ ] **M8-01 Báo cáo KPI thô** theo KTV & khoảng ngày: số task xong, % đúng hạn, số lần từ chối theo lý do, số lỗi (defect) trừ `excluded_from_kpi`, giờ ước tính vs thực tế; xuất CSV. (Công thức điểm: Q10.)
 
 ## M9 — Production
-- [ ] **M9-01 Image prod + compose.prod + nginx + HTTPS**.
+- [ ] **M9-01 Deploy lên `https://ilabsviet.com/smyoutask/`**: thêm khối nginx hệ thống (DEPLOYMENT §5.1), HTTPS dùng chứng chỉ sẵn có của host.
 - [ ] **M9-02 deploy.sh, backup/restore scripts + thử khôi phục**.
 - [ ] **M9-03 Nhập dữ liệu thật, UAT toàn bộ, go-live checklist**.

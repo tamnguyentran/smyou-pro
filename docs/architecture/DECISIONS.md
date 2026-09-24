@@ -35,6 +35,9 @@ Frontend không viết tay type API. `make contract` xuất `openapi.json` và s
 ## ADR-011: Image đa kiến trúc
 Dev arm64 (M2), prod amd64 (AlmaLinux). Image production build với `--platform linux/amd64` và chạy smoke test trên runner amd64 của CI. Không phụ thuộc native lib không có wheel amd64/arm64.
 
+## ADR-014: Triển khai dưới subpath sau nginx hệ thống
+Bối cảnh: server AlmaLinux dùng chung với nhiều app; nginx hệ thống đã giữ HTTPS cho `ilabsviet.com` và proxy theo subpath (Q12). Quyết định: SMYou chạy ở `https://ilabsviet.com/smyoutask/`; container `web` publish `127.0.0.1:6890`; nginx hệ thống forward nguyên path (không strip); container `web` định tuyến `/smyoutask/api/` → backend và phục vụ SPA. Subpath là cấu hình (`BASE_PATH`), dev dùng root. Hệ quả: mọi URL phía frontend (asset, router, API client) và cookie `Path` phải lấy từ `BASE_PATH` — không hard-code `/`; E2E production-like chạy với `BASE_PATH=/smyoutask` để bắt lỗi đường dẫn.
+
 ## ADR-013: Giá tách VAT theo dòng, cờ giá cố định
 Bối cảnh: báo giá thực tế có mặt hàng giá gồm VAT, có mặt hàng cộng VAT 8% riêng; một số giá không được phép thương lượng. Quyết định (Q01, Q16–Q18): sản phẩm/dịch vụ lưu giá chưa VAT, `vat_rate` (numeric, chọn nhanh 0/8/10 hoặc nhập tuỳ ý) và `price_fixed`. Dòng đơn snapshot cả ba; VAT tính và làm tròn từng dòng; `price_fixed` chỉ khoá đơn giá (giảm giá và tặng kèm vẫn được). Hệ quả: một đơn có nhiều mức VAT; hiển thị tổng theo mức VAT; server kiểm tra `PRICE_FIXED`.
 

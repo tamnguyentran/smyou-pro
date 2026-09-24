@@ -3,7 +3,9 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-COMPOSE := docker compose
+# Dev/test on the Mac M2: compose.dev.yml + .env.dev. Production (AlmaLinux): compose.prod.yml + .env.prod.
+COMPOSE := docker compose -f compose.dev.yml $(if $(wildcard .env.dev),--env-file .env.dev)
+COMPOSE_SMOKE := docker compose -f compose.prod.yml --env-file .env.prod.example -p smyou-smoke
 TAG ?= dev
 PLATFORM ?= linux/amd64
 PRETTIER_SRC := "src/**/*.{ts,tsx,css}"
@@ -34,7 +36,7 @@ setup: ## Install deps, git hooks, Playwright browsers
 	$(call be,uv sync)
 	$(call fe,npm ci && npx playwright install chromium webkit)
 	uvx pre-commit install
-	@test -f .env || cp .env.example .env
+	@test -f .env.dev || cp .env.dev.example .env.dev
 
 up: ## Start dev stack (db, backend, web) and wait for health
 	$(COMPOSE) up -d --build --wait
@@ -63,6 +65,7 @@ lint: ## ruff + import-linter + eslint + prettier check + raw color check
 	$(call be,uv run ruff check . && uv run ruff format --check . && uv run lint-imports)
 	$(call fe,npm run lint && npx prettier --check $(PRETTIER_SRC))
 	python3 scripts/check_no_raw_colors.py
+	python3 -m unittest discover -q -s .claude/hooks -p 'test_*.py'
 
 format: ## Auto-format everything
 	$(call be,uv run ruff check --fix . && uv run ruff format .)
@@ -93,7 +96,7 @@ ac: ## Acceptance-criteria → test traceability (writes reports/ac-matrix.md)
 
 migrations-check: ## upgrade → downgrade -1 → upgrade on test DB, and model/migration drift
 	$(if $(HAS_BE),$(COMPOSE) up -d --wait db)
-	$(call be,uv run alembic upgrade head && uv run alembic downgrade -1 && uv run alembic upgrade head && uv run alembic check)
+	$(call be,export DATABASE_URL=$${TEST_DATABASE_URL:-postgresql+psycopg://smyou:change-me-dev@localhost:5442/smyou_test} && uv run alembic upgrade head && uv run alembic downgrade -1 && uv run alembic upgrade head && uv run alembic check)
 
 # ---------- gates ----------
 check-fast: lint typecheck test-unit ## Quick gate (Stop hook runs this)
@@ -126,7 +129,7 @@ build-prod: ## Build production images for $(PLATFORM): make build-prod TAG=2026
 	docker buildx build --platform $(PLATFORM) -t smyou-backend:$(TAG) --target prod --load backend
 	docker buildx build --platform $(PLATFORM) -t smyou-web:$(TAG) --target prod --load frontend
 
-smoke-prod: ## Run the built amd64 images and hit /api/v1/health
-	TAG=$(TAG) $(COMPOSE) -f compose.yml -f compose.prod.yml -p smyou-smoke up -d --wait
-	curl -fsS http://localhost:$${WEB_PORT:-8080}/api/v1/health && echo " ✅ smoke ok"
-	$(COMPOSE) -p smyou-smoke down
+smoke-prod: ## Run the built amd64 images with compose.prod.yml (test values) and hit /api/v1/health
+	IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) up -d --wait
+	curl -fsS http://localhost:6890/smyoutask/api/v1/health && echo " ✅ smoke ok"
+	IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) down

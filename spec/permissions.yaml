@@ -36,12 +36,12 @@ capabilities:
   order.create:          { MANAGER: all, SALE: all }
   order.edit_draft:      { MANAGER: all, SALE: own }
   order.edit_contact:    { MANAGER: all, SALE: own }  # phone/address/notes after submit, until COMPLETED
-  order.edit_lines_after_submit: { MANAGER: all }
+  order.edit_lines_after_submit: { MANAGER: all, SALE: own }  # Q09: until COMPLETED/CANCELLED, audited
   order.submit:          { MANAGER: all, SALE: own }
   order.cancel:          { MANAGER: all, SALE: own }
   order.cancel_active:   { MANAGER: all }
   order.upload_confirmation: { TECH_LEAD: all, TECHNICIAN: assigned }
-  order.complete:        { TECH_LEAD: all }
+  order.complete:        { TECH_LEAD: all, TECHNICIAN: assigned }  # Q04
   order.revise:          { TECH_LEAD: all }
   # --- Đầu việc ---
   task.read:             { MANAGER: all, TECH_LEAD: all, TECHNICIAN: assigned }

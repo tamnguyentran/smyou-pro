@@ -56,7 +56,7 @@ def check(data):
     base = os.path.basename(path)
 
     if base == ".env" or (base.startswith(".env.") and not base.endswith(".example")):
-        return f"BLOCKED: do not write real env files ({base}). Edit .env.example and tell the user."
+        return f"BLOCKED: do not write real env files ({base}). Edit .env.dev.example / .env.prod.example and tell the user."
 
     if EXEMPT.search(path):
         return None
