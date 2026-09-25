@@ -1,6 +1,6 @@
 # M0-01 — Scaffold backend
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M0-01 · **Milestone:** M0
 - **Approval:** kỹ thuật thuần; chủ dự án uỷ quyền triển khai tuần tự M0 (2026-09-25)
 - **Liên quan:** ARCHITECTURE §2–§6, DECISIONS ADR-001/009, BACKLOG M0 (hợp đồng tooling)

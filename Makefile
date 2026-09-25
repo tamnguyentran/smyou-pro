@@ -8,7 +8,7 @@ COMPOSE := docker compose -f compose.dev.yml $(if $(wildcard .env.dev),--env-fil
 COMPOSE_SMOKE := docker compose -f compose.prod.yml --env-file .env.prod.example -p smyou-smoke
 TAG ?= dev
 PLATFORM ?= linux/amd64
-PRETTIER_SRC := "src/**/*.{ts,tsx,css}"
+PRETTIER_SRC := "src/**/*.{ts,tsx,css}" "e2e/**/*.ts"
 PRETTIER_ALL := "src/**/*.{ts,tsx,css}" "e2e/**/*.ts"
 
 # Prefer Node 22 from nvm locally (see .nvmrc); CI uses actions/setup-node.

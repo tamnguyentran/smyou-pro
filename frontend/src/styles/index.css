@@ -1,0 +1,47 @@
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "tailwindcss";
+
+/* Design tokens — docs/design/UI_GUIDELINES.md §2. Components use these, never raw hex. */
+@theme {
+  --font-sans: "Plus Jakarta Sans Variable", "Inter", system-ui, sans-serif;
+
+  --color-brand: #0f2f2e;
+  --color-brand-hover: #164543;
+  --color-brand-light: #e6f0ee;
+  --color-accent: #d97706;
+  --color-accent-light: #fef3c7;
+  --color-page: #f8fafc;
+  --color-card: #ffffff;
+  --color-sidebar-sub: #f1f5f9;
+  --color-line: #e2e8f0;
+  --color-heading: #0f172a;
+  --color-body: #334155;
+  --color-muted: #64748b;
+  --color-placeholder: #94a3b8;
+
+  /* Status colours (bg / fg / border) — mapped from `color` in spec/state_machines.yaml. */
+  --color-todo-bg: #f1f5f9;
+  --color-todo-fg: #475569;
+  --color-todo-border: #cbd5e1;
+  --color-in_progress-bg: #eff6ff;
+  --color-in_progress-fg: #1d4ed8;
+  --color-in_progress-border: #bfdbfe;
+  --color-review-bg: #fffbeb;
+  --color-review-fg: #b45309;
+  --color-review-border: #fde68a;
+  --color-completed-bg: #ecfdf5;
+  --color-completed-fg: #047857;
+  --color-completed-border: #a7f3d0;
+  --color-urgent-bg: #fef2f2;
+  --color-urgent-fg: #b91c1c;
+  --color-urgent-border: #fecaca;
+
+  --shadow-card: 0 2px 8px rgba(15, 47, 46, 0.04);
+  --shadow-card-hover: 0 8px 20px rgba(15, 47, 46, 0.08);
+}
+
+@layer base {
+  body {
+    @apply bg-page font-sans text-body antialiased;
+  }
+}
