@@ -48,3 +48,4 @@ CLAUDE.local.md
 
 # server infrastructure config (other apps, certificate paths) — kept local, not pushed
 Tài liệu tham khảo/ilabsviet.com
+*.tsbuildinfo
