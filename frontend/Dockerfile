@@ -28,7 +28,10 @@ RUN if [ -n "$BASE_PATH" ]; then redirect='s|#REDIRECT ||'; else redirect='/#RED
     && sed -e "$redirect" -e "s|__BASE_PATH__|$BASE_PATH|g" /tmp/default.conf.template \
        > /etc/nginx/conf.d/default.conf \
     && rm /tmp/default.conf.template
+RUN rm -f /usr/share/nginx/html/*.html
 COPY --from=build /app/dist /usr/share/nginx/html${BASE_PATH}
+# Build args do not exist at run time; keep the subpath for the healthcheck.
+ENV SMYOU_BASE_PATH=${BASE_PATH}
 EXPOSE 80
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
-    CMD wget -q -O /dev/null "http://127.0.0.1${BASE_PATH}/" || exit 1
+    CMD wget -q -O /dev/null "http://127.0.0.1${SMYOU_BASE_PATH}/" || exit 1

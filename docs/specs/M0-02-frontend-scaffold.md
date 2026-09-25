@@ -52,6 +52,6 @@ Không có.
 
 ## 8. Giả định & câu hỏi
 - Cổng: Vite dev 5183, Vite preview (E2E) 4183.
-- E2E chạy trên `vite preview` của bản build `BASE_PATH=/smyoutask` (ADR-014: E2E production-like dùng subpath); khi có service `web` (M0-03), E2E chuyển sang stack Docker.
+- E2E chạy trên `vite preview` của bản build `BASE_PATH=/smyoutask` (ADR-014: E2E production-like dùng subpath); khi có service `web` (M0-03), E2E chuyển sang stack Docker. *(Điều chỉnh ở M0-03 §8: E2E vẫn chạy trên `vite preview`; image prod được kiểm bằng `make smoke-prod`.)*
 - CI job `image` được bỏ qua cho tới khi `backend/Dockerfile` và `frontend/Dockerfile` tồn tại (M0-03), nếu không PR M0-02 sẽ đỏ vì thiếu Dockerfile.
 - Thư viện dev bổ sung ngoài danh sách ARCHITECTURE §2 nhưng là phụ trợ bắt buộc của các công cụ đã chốt: `@vitejs/plugin-react`, `@tailwindcss/vite`, `@vitest/coverage-v8`, `jsdom`, `@testing-library/jest-dom`, `@testing-library/user-event`, `globals`, `@eslint/js`.

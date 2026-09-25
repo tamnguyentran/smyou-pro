@@ -41,7 +41,7 @@ setup: ## Install deps, git hooks, Playwright browsers
 	@test -f .env.dev || cp .env.dev.example .env.dev
 
 up: ## Start dev stack (db, backend, web) and wait for health
-	$(COMPOSE) up -d --build --wait
+	$(COMPOSE) up -d --build --wait --renew-anon-volumes
 
 down: ## Stop dev stack (keeps data volumes)
 	$(COMPOSE) down
@@ -106,7 +106,7 @@ check-fast: lint typecheck test-unit ## Quick gate (Stop hook runs this)
 check: lint typecheck test contract ac migrations-check ## Full gate before commit/PR
 
 e2e: ## Dev Docker stack health + Playwright (mobile + desktop, axe)
-	$(COMPOSE) up -d --build --wait
+	$(COMPOSE) up -d --build --wait --renew-anon-volumes
 	$(call be,uv run pytest -q -m docker tests/docker/test_dev_stack.py)
 	$(if $(wildcard backend/scripts/seed_e2e.py),$(COMPOSE) exec -T backend python -m scripts.seed_e2e)
 	$(call fe,npx playwright test)
