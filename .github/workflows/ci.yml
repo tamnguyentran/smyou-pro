@@ -74,7 +74,7 @@ jobs:
         with: { node-version: "${{ env.NODE_VERSION }}", cache: npm, cache-dependency-path: frontend/package-lock.json }
       - run: npm ci
       - run: npm run lint
-      - run: npx prettier --check "src/**/*.{ts,tsx,css}"
+      - run: npx prettier --check "src/**/*.{ts,tsx,css}" "e2e/**/*.ts"
       - run: npx tsc --noEmit
       - run: python3 ../scripts/check_no_raw_colors.py
       - run: npx vitest run --coverage

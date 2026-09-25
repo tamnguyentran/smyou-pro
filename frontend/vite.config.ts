@@ -5,7 +5,7 @@ import { resolveBasePath } from "./src/lib/basePath.ts";
 
 // BASE_PATH ("" in dev, "/smyoutask" in production — ADR-014) drives the asset base,
 // which the app reads back at runtime as import.meta.env.BASE_URL.
-const { viteBase } = resolveBasePath(process.env.BASE_PATH);
+const { viteBase, apiPrefix } = resolveBasePath(process.env.BASE_PATH);
 const backendPort = process.env.BACKEND_PORT ?? "8010";
 
 export default defineConfig({
@@ -14,7 +14,13 @@ export default defineConfig({
   server: {
     port: Number(process.env.VITE_PORT ?? "5183"),
     strictPort: true,
-    proxy: { "/api": `http://localhost:${backendPort}` },
+    // The backend serves /api/v1 at its root; strip BASE_PATH when dev runs under a subpath.
+    proxy: {
+      [`${apiPrefix}/api`]: {
+        target: `http://localhost:${backendPort}`,
+        rewrite: (path) => path.slice(apiPrefix.length),
+      },
+    },
   },
   preview: { port: 4183, strictPort: true },
   test: {
