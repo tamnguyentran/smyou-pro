@@ -12,10 +12,6 @@ concurrency:
 env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "22"
-  DATABASE_URL: postgresql+psycopg://smyou:smyou@localhost:5432/smyou_test
-  TEST_DATABASE_URL: postgresql+psycopg://smyou:smyou@localhost:5432/smyou_test
-  APP_ENV: test
-  JWT_SECRET: ci-only-not-secret
 
 jobs:
   detect:
@@ -43,6 +39,12 @@ jobs:
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U smyou" --health-interval 5s --health-timeout 5s --health-retries 10
+    # Job-level only: compose interpolation prefers shell env, so these must not leak into docker jobs.
+    env:
+      DATABASE_URL: postgresql+psycopg://smyou:smyou@localhost:5432/smyou_test
+      TEST_DATABASE_URL: postgresql+psycopg://smyou:smyou@localhost:5432/smyou_test
+      APP_ENV: test
+      JWT_SECRET: ci-only-not-secret
     defaults: { run: { working-directory: backend } }
     steps:
       - uses: actions/checkout@v4

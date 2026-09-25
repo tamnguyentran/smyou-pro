@@ -5,7 +5,9 @@ SHELL := /bin/bash
 
 # Dev/test on the Mac M2: compose.dev.yml + .env.dev. Production (AlmaLinux): compose.prod.yml + .env.prod.
 COMPOSE := docker compose -f compose.dev.yml $(if $(wildcard .env.dev),--env-file .env.dev)
-COMPOSE_SMOKE := docker compose -f compose.prod.yml --env-file .env.prod.example -p smyou-smoke
+# Shell env wins over --env-file in compose interpolation: drop app vars so the smoke run uses the example file only.
+COMPOSE_SMOKE := env -u DATABASE_URL -u TEST_DATABASE_URL -u APP_ENV -u JWT_SECRET -u POSTGRES_USER \
+	-u POSTGRES_PASSWORD -u POSTGRES_DB -u BASE_PATH docker compose -f compose.prod.yml --env-file .env.prod.example -p smyou-smoke
 TAG ?= dev
 PLATFORM ?= linux/amd64
 # Subpath baked into the web image (ADR-014).
