@@ -11,7 +11,7 @@
 
 ## 2. Các file (tạo ở backlog M0/M9)
 - `backend/Dockerfile` — multi-stage: `uv` sync → image `python:3.12-slim`, user không phải root, `HEALTHCHECK` gọi `/api/v1/health`.
-- `frontend/Dockerfile` — stage build `node:22-alpine` → stage `nginx:alpine` chứa `dist/` + `nginx.conf` (SPA fallback, gzip, cache asset hash 1 năm, `/api` proxy tới backend, `client_max_body_size 12m`).
+- `frontend/Dockerfile` — stage build `node:22-alpine` → stage `nginx:alpine` chứa `dist/` + `nginx/default.conf.template` (SPA fallback, gzip, cache asset hash 1 năm, `index.html` no-cache, `<BASE_PATH>/api/` proxy tới backend `/api/`, `client_max_body_size 12m`, `server_tokens off`, header bảo mật). `BASE_PATH` là **build-arg** (mặc định `/smyoutask`, Makefile `PROD_BASE_PATH`): cùng giá trị được nướng vào bundle và cấu hình nginx — đổi subpath phải build lại image web.
 Hai bộ file **tách riêng hoàn toàn** (không merge/override lẫn nhau) để không bao giờ lẫn cấu hình dev vào production:
 - `compose.dev.yml` + `.env.dev` — Mac M2: `db` (postgres:17, port host 5442, volume `pgdata`, tạo sẵn DB `smyou_test`), `backend` (build target `dev`, mount source, uvicorn `--reload`, port 8010), `web` (Vite dev server, port 5183).
 - `compose.prod.yml` + `.env.prod` — AlmaLinux: `db` (không publish port), `backend` (`image: smyou-backend:${IMAGE_TAG}`, chạy `alembic upgrade head` rồi uvicorn), `web` (`image: smyou-web:${IMAGE_TAG}`, nginx, port `${WEB_PORT}`); **không có `build:`**; `restart: unless-stopped`; log `json-file` max-size 10m; volume `pgdata`, `uploads`.
@@ -20,7 +20,7 @@ Hai bộ file **tách riêng hoàn toàn** (không merge/override lẫn nhau) đ
 ## 3. Build image production trên Mac M2
 ```bash
 make build-prod TAG=2026.10.01-1          # = docker buildx build --platform linux/amd64 ... --load
-make smoke-prod TAG=2026.10.01-1          # chạy image amd64 qua emulation, gọi /api/v1/health
+make smoke-prod TAG=2026.10.01-1          # chạy image amd64 qua emulation + tests/docker/test_prod_stack.py, rồi dọn stack
 ```
 Lưu ý: emulation amd64 trên M2 chậm (build lần đầu vài phút) — bình thường. CI (runner amd64) cũng build + smoke test cùng Dockerfile nên lỗi kiến trúc bị bắt trước khi deploy.
 

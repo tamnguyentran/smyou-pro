@@ -8,6 +8,8 @@ COMPOSE := docker compose -f compose.dev.yml $(if $(wildcard .env.dev),--env-fil
 COMPOSE_SMOKE := docker compose -f compose.prod.yml --env-file .env.prod.example -p smyou-smoke
 TAG ?= dev
 PLATFORM ?= linux/amd64
+# Subpath baked into the web image (ADR-014).
+PROD_BASE_PATH ?= /smyoutask
 PRETTIER_SRC := "src/**/*.{ts,tsx,css}" "e2e/**/*.ts"
 PRETTIER_ALL := "src/**/*.{ts,tsx,css}" "e2e/**/*.ts"
 
@@ -103,8 +105,9 @@ check-fast: lint typecheck test-unit ## Quick gate (Stop hook runs this)
 
 check: lint typecheck test contract ac migrations-check ## Full gate before commit/PR
 
-e2e: ## Playwright (mobile + desktop, axe) against the Docker stack
-	$(if $(HAS_FE),$(COMPOSE) up -d --build --wait)
+e2e: ## Dev Docker stack health + Playwright (mobile + desktop, axe)
+	$(COMPOSE) up -d --build --wait
+	$(call be,uv run pytest -q -m docker tests/docker/test_dev_stack.py)
 	$(if $(wildcard backend/scripts/seed_e2e.py),$(COMPOSE) exec -T backend python -m scripts.seed_e2e)
 	$(call fe,npx playwright test)
 
@@ -127,9 +130,13 @@ mutation-changed: ## Mutation testing when domain files changed vs main (paths s
 # ---------- production images (Mac M2 → AlmaLinux x86_64) ----------
 build-prod: ## Build production images for $(PLATFORM): make build-prod TAG=2026.10.01-1
 	docker buildx build --platform $(PLATFORM) -t smyou-backend:$(TAG) --target prod --load backend
-	docker buildx build --platform $(PLATFORM) -t smyou-web:$(TAG) --target prod --load frontend
+	docker buildx build --platform $(PLATFORM) -t smyou-web:$(TAG) --target prod --load \
+		--build-arg BASE_PATH=$(PROD_BASE_PATH) frontend
 
-smoke-prod: ## Run the built amd64 images with compose.prod.yml (test values) and hit /api/v1/health
-	IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) up -d --wait
-	curl -fsS http://localhost:6890/smyoutask/api/v1/health && echo " ✅ smoke ok"
-	IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) down
+smoke-prod: ## Run the built images with compose.prod.yml (test values), run tests/docker/test_prod_stack.py, clean up
+	IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) up -d --wait || { IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) logs --no-color; \
+		IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) down -v; exit 1; }
+	cd backend && SMOKE_TAG=$(TAG) SMOKE_PROJECT=smyou-smoke SMOKE_URL=http://127.0.0.1:6890 \
+		uv run pytest -q -m docker tests/docker/test_prod_stack.py; status=$$?; \
+		cd .. && IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) down -v; \
+		[ $$status -eq 0 ] && echo "✅ smoke ok"; exit $$status

@@ -6,7 +6,9 @@ import { resolveBasePath } from "./src/lib/basePath.ts";
 // BASE_PATH ("" in dev, "/smyoutask" in production — ADR-014) drives the asset base,
 // which the app reads back at runtime as import.meta.env.BASE_URL.
 const { viteBase, apiPrefix } = resolveBasePath(process.env.BASE_PATH);
-const backendPort = process.env.BACKEND_PORT ?? "8010";
+// On the Mac: backend on localhost:8010. Inside compose.dev.yml: BACKEND_URL=http://backend:8000.
+const backendUrl =
+  process.env.BACKEND_URL ?? `http://localhost:${process.env.BACKEND_PORT ?? "8010"}`;
 
 export default defineConfig({
   base: viteBase,
@@ -17,7 +19,7 @@ export default defineConfig({
     // The backend serves /api/v1 at its root; strip BASE_PATH when dev runs under a subpath.
     proxy: {
       [`${apiPrefix}/api`]: {
-        target: `http://localhost:${backendPort}`,
+        target: backendUrl,
         rewrite: (path) => path.slice(apiPrefix.length),
       },
     },

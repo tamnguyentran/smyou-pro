@@ -1,0 +1,61 @@
+# PRODUCTION on AlmaLinux: docker compose -f compose.prod.yml --env-file <server env file> up -d --wait
+# Images only (built on the Mac with `make build-prod`, loaded on the server) — no `build:` here.
+# Tried locally before deploying: `make smoke-prod` (uses the committed prod example env file).
+name: smyou
+
+x-common: &common
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+services:
+  db:
+    <<: *common
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      POSTGRES_DB: ${POSTGRES_DB:?required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    <<: *common
+    image: smyou-backend:${IMAGE_TAG:?required}
+    environment:
+      APP_ENV: production    # hard-coded: never publish API docs from this file (review M0-01)
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Ho_Chi_Minh}
+      DATABASE_URL: ${DATABASE_URL:?required}
+      JWT_SECRET: ${JWT_SECRET:?required}
+      ACCESS_TOKEN_MINUTES: ${ACCESS_TOKEN_MINUTES:-15}
+      REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-7}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      LOGIN_MAX_FAILED: ${LOGIN_MAX_FAILED:-5}
+      LOGIN_LOCK_MINUTES: ${LOGIN_LOCK_MINUTES:-15}
+      UPLOAD_DIR: /data/uploads
+      UPLOAD_MAX_MB: ${UPLOAD_MAX_MB:-10}
+      BASE_PATH: ${BASE_PATH:-/smyoutask}
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      db: { condition: service_healthy }
+
+  web:
+    <<: *common
+    image: smyou-web:${IMAGE_TAG:?required}
+    ports:
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-6890}:80"
+    depends_on:
+      backend: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  uploads:
