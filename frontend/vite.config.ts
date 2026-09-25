@@ -24,7 +24,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/features/**", "src/lib/**"],
-      exclude: ["**/*.test.{ts,tsx}", "src/lib/api/schema.d.ts"],
+      exclude: ["**/*.test.{ts,tsx}", "src/lib/api/schema.d.ts", "src/lib/api/openapi.json"],
       thresholds: { lines: 75, functions: 75, branches: 75, statements: 75 },
     },
   },
