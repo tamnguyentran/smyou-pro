@@ -61,9 +61,10 @@ warn_required_dynamic_aliases = true
 # ---------------- pytest ----------------
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers --strict-config"
+addopts = "-ra --strict-markers --strict-config -m 'not docker'"
 markers = [
   "ac(id): links a test to an Acceptance Criterion ID in docs/specs (e.g. AC-ORD-001)",
+  "docker: needs a live Docker stack; run by make e2e (dev) and make smoke-prod (prod), not by default",
 ]
 filterwarnings = ["error::DeprecationWarning:app.*"]
 
