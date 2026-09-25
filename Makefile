@@ -133,10 +133,10 @@ build-prod: ## Build production images for $(PLATFORM): make build-prod TAG=2026
 	docker buildx build --platform $(PLATFORM) -t smyou-web:$(TAG) --target prod --load \
 		--build-arg BASE_PATH=$(PROD_BASE_PATH) frontend
 
-smoke-prod: ## Run the built images with compose.prod.yml (test values), run tests/docker/test_prod_stack.py, clean up
+smoke-prod: ## Run the built images with compose.prod.yml (test values), run prod-stack docker tests, clean up
 	IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) up -d --wait || { IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) logs --no-color; \
 		IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) down -v; exit 1; }
 	cd backend && SMOKE_TAG=$(TAG) SMOKE_PROJECT=smyou-smoke SMOKE_URL=http://127.0.0.1:6890 \
-		uv run pytest -q -m docker tests/docker/test_prod_stack.py; status=$$?; \
+		uv run pytest -q -m docker tests/docker --ignore=tests/docker/test_dev_stack.py; status=$$?; \
 		cd .. && IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) down -v; \
 		[ $$status -eq 0 ] && echo "✅ smoke ok"; exit $$status
