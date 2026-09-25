@@ -52,6 +52,7 @@ services:
     <<: *common
     image: smyou-web:${IMAGE_TAG:?required}
     ports:
+      # Loopback only: web trusts X-Real-IP / X-Forwarded-Proto from the host nginx (DEPLOYMENT §5.1).
       - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-6890}:80"
     depends_on:
       backend: { condition: service_healthy }
