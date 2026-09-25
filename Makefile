@@ -37,7 +37,7 @@ help: ## List targets
 setup: ## Install deps, git hooks, Playwright browsers
 	$(call be,uv sync)
 	$(call fe,npm ci && npx playwright install chromium webkit)
-	uvx pre-commit install
+	uvx --python 3.12 pre-commit install
 	@test -f .env.dev || cp .env.dev.example .env.dev
 
 up: ## Start dev stack (db, backend, web) and wait for health
