@@ -1,6 +1,6 @@
 # M0-02 — Scaffold frontend
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M0-02 · **Milestone:** M0
 - **Approval:** kỹ thuật thuần; chủ dự án uỷ quyền triển khai tuần tự M0 (2026-09-25)
 - **Liên quan:** ARCHITECTURE §2, §3, §7; DECISIONS ADR-014 (subpath); UI_GUIDELINES §2, §8; DEPLOYMENT §2; BACKLOG M0 (hợp đồng tooling)
