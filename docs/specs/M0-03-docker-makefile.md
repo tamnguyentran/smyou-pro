@@ -1,6 +1,6 @@
 # M0-03 — Docker & Makefile
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M0-03 · **Milestone:** M0
 - **Approval:** kỹ thuật thuần; chủ dự án uỷ quyền triển khai tuần tự M0 (2026-09-25)
 - **Liên quan:** DEPLOYMENT §1–§6; DECISIONS ADR-014 (subpath); review M0-01 (APP_ENV production cứng); BACKLOG M0 (hợp đồng tooling)
