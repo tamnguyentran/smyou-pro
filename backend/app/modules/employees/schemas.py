@@ -4,7 +4,7 @@ import re
 import uuid
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, StringConstraints, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 from app.modules.employees.domain import normalize_phone
 from app.modules.identity.schemas import Email
@@ -38,6 +38,9 @@ class EmployeeCreate(BaseModel):
 
 
 class EmployeeUpdate(BaseModel):
+    # is_active / roles / code are not editable here: state changes are named commands (CLAUDE.md #4).
+    model_config = ConfigDict(extra="forbid")
+
     version: int
     full_name: FullName | None = None
     email: Email | None = None

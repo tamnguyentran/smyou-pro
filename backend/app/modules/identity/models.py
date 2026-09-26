@@ -44,7 +44,7 @@ class Employee(Base):
     title: Mapped[str | None] = mapped_column(String(80))
     password_hash: Mapped[str] = mapped_column(Text)
     must_change_password: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
-    is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
+    is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"), index=True)
     failed_login_count: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     password_changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

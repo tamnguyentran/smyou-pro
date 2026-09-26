@@ -7,11 +7,11 @@ import logging
 import uuid
 from datetime import datetime
 
-from sqlalchemy import func, or_, select, text, update
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.authz import Actor
+from app.core.authz import Actor, ScopeRules, apply_scope, get_in_scope_or_404
 from app.core.errors import AppError
 from app.core.security import hash_password
 from app.core.sequences import next_value
@@ -23,7 +23,8 @@ from app.modules.employees.schemas import (
     EmployeeUpdate,
     EmployeeWithPassword,
 )
-from app.modules.identity.models import ROLES, AuthSession, Employee, EmployeeRole
+from app.modules.identity.models import ROLES, Employee, EmployeeRole
+from app.modules.identity.service import revoke_all_sessions
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,9 @@ logger = logging.getLogger(__name__)
 # count then always sees the other request's committed result (AC-EMP-008).
 _MANAGER_LOCK = 20260926_01
 EMAIL_TAKEN = "Email đã được dùng cho nhân viên khác."
+# employee.read / employee.manage are `all` for every role holding them today; any narrower scope
+# added to permissions.yaml later fails closed (no rule → no rows) until a rule is written here.
+RULES: ScopeRules = {}
 
 
 def _out(employee: Employee, now: datetime) -> EmployeeOut:
@@ -72,8 +76,11 @@ def _ensure_email_free(session: Session, email: str, *, except_id: uuid.UUID | N
 def _flush(session: Session) -> None:
     try:
         session.flush()
-    except IntegrityError as exc:  # a concurrent request took the email between check and write
-        raise _email_taken() from exc
+    except IntegrityError as exc:
+        constraint = getattr(getattr(exc.orig, "diag", None), "constraint_name", None)
+        if constraint == "uq_employees_email":  # a concurrent request took the email meanwhile
+            raise _email_taken() from exc
+        raise
 
 
 def _locked(session: Session, employee_id: uuid.UUID, version: int) -> Employee:
@@ -100,14 +107,6 @@ def _require_another_active_manager(session: Session, employee_id: uuid.UUID) ->
         raise AppError(409, "LAST_MANAGER", "Phải còn ít nhất một Quản lý chung đang hoạt động.")
 
 
-def _revoke_sessions(session: Session, employee_id: uuid.UUID, now: datetime) -> None:
-    session.execute(
-        update(AuthSession)
-        .where(AuthSession.employee_id == employee_id, AuthSession.revoked_at.is_(None))
-        .values(revoked_at=now)
-    )
-
-
 def _like(q: str) -> str:
     escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     return f"%{escaped}%"
@@ -115,6 +114,7 @@ def _like(q: str) -> str:
 
 def list_employees(
     session: Session,
+    actor: Actor,
     *,
     q: str | None,
     role: str | None,
@@ -123,7 +123,7 @@ def list_employees(
     offset: int,
     now: datetime,
 ) -> EmployeePage:
-    query = select(Employee)
+    query = apply_scope(select(Employee), actor, RULES)
     if q and q.strip():
         pattern = _like(q.strip())
         query = query.where(
@@ -139,14 +139,16 @@ def list_employees(
     if is_active is not None:
         query = query.where(Employee.is_active.is_(is_active))
     total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
-    rows = session.scalars(query.order_by(Employee.code).limit(limit).offset(offset)).all()
+    # NV999 < NV1000: shorter codes first, then alphabetical
+    ordered = query.order_by(func.length(Employee.code), Employee.code)
+    rows = session.scalars(ordered.limit(limit).offset(offset)).all()
     return EmployeePage(items=[_out(e, now) for e in rows], total=total, limit=limit, offset=offset)
 
 
-def get_employee(session: Session, employee_id: uuid.UUID, *, now: datetime) -> EmployeeOut:
-    employee = session.get(Employee, employee_id)
-    if employee is None:
-        raise AppError(404, "NOT_FOUND", "Không tìm thấy nhân viên.")
+def get_employee(session: Session, actor: Actor, employee_id: uuid.UUID, *, now: datetime) -> EmployeeOut:
+    employee: Employee = get_in_scope_or_404(
+        session, select(Employee).where(Employee.id == employee_id), actor, RULES
+    )
     return _out(employee, now)
 
 
@@ -227,7 +229,7 @@ def deactivate(
         _require_another_active_manager(session, employee.id)
     employee.is_active = False
     employee.version += 1
-    _revoke_sessions(session, employee.id, now)  # signed out on every device (Q34)
+    revoke_all_sessions(session, employee.id, now=now)  # signed out on every device (Q34)
     session.flush()
     _log("deactivate", employee, actor)
     return _out(employee, now)
@@ -257,7 +259,7 @@ def reset_password(
     employee.failed_login_count = 0
     employee.locked_until = None  # clears a temporary lock-out (Q37)
     employee.version += 1
-    _revoke_sessions(session, employee.id, now)
+    revoke_all_sessions(session, employee.id, now=now)
     session.flush()
     _log("reset-password", employee, actor)
     return EmployeeWithPassword(employee=_out(employee, now), temporary_password=password)

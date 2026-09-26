@@ -79,7 +79,7 @@ spec/                       # state_machines.yaml, permissions.yaml (nguồn s�
 scripts/                    # check_ac_coverage.py, export_openapi.py, seed_dev.py …
 ```
 
-**Ranh giới (import-linter enforce):** `domain` không import gì ngoài stdlib + `domain` khác; `router` không import `models`; module chỉ gọi module khác qua `service` public của nó.
+**Ranh giới (import-linter enforce):** `domain` không import gì ngoài stdlib + `domain` khác; `router` không import `models`; module chỉ gọi module khác qua `service` public của nó. Ngoại lệ đã biết: `employees` (quản trị nhân viên, M1-04a) đọc/ghi trực tiếp bảng `employees`/`employee_roles` thuộc model của `identity` (cùng một thực thể), nhưng mọi hành vi phiên đăng nhập (thu hồi phiên) đi qua `identity.service` (`revoke_all_sessions`).
 
 ## 4. Quy ước API
 - Tiền tố `/api/v1`. JSON `snake_case`. ID là UUID; hiển thị dùng `code`.

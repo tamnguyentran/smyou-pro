@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from app.core.authz import Actor, require
 from app.core.db import DbSession
@@ -21,6 +21,7 @@ from app.modules.employees.schemas import (
 )
 
 router = APIRouter(prefix="/api/v1/employees", tags=["employees"])
+NO_STORE = "no-store"  # responses carrying a temporary password must not be cached
 Reader = Annotated[Actor, Depends(require("employee.read"))]
 Manager = Annotated[Actor, Depends(require("employee.manage"))]
 
@@ -50,7 +51,7 @@ def _now(request: Request) -> datetime:
 def list_employees(
     request: Request,
     session: DbSession,
-    _: Reader,
+    actor: Reader,
     q: Annotated[str | None, Query(max_length=100)] = None,
     role: Role | None = None,
     is_active: bool | None = None,
@@ -58,7 +59,7 @@ def list_employees(
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> EmployeePage:
     return service.list_employees(
-        session, q=q, role=role, is_active=is_active, limit=limit, offset=offset, now=_now(request)
+        session, actor, q=q, role=role, is_active=is_active, limit=limit, offset=offset, now=_now(request)
     )
 
 
@@ -69,8 +70,8 @@ def list_employees(
     response_model=EmployeeOut,
     responses=_docs(NOT_FOUND),
 )
-def get_employee(employee_id: uuid.UUID, request: Request, session: DbSession, _: Reader) -> EmployeeOut:
-    return service.get_employee(session, employee_id, now=_now(request))
+def get_employee(employee_id: uuid.UUID, request: Request, session: DbSession, actor: Reader) -> EmployeeOut:
+    return service.get_employee(session, actor, employee_id, now=_now(request))
 
 
 @router.post(
@@ -82,8 +83,9 @@ def get_employee(employee_id: uuid.UUID, request: Request, session: DbSession, _
     responses=_docs((409, "CONFLICT (email)")),
 )
 def create_employee(
-    body: EmployeeCreate, request: Request, session: DbSession, actor: Manager
+    body: EmployeeCreate, request: Request, response: Response, session: DbSession, actor: Manager
 ) -> EmployeeWithPassword:
+    response.headers["Cache-Control"] = NO_STORE
     return service.create_employee(session, actor, body, now=_now(request))
 
 
@@ -149,6 +151,12 @@ def activate(
     responses=_docs(NOT_FOUND, CONFLICTS),
 )
 def reset_password(
-    employee_id: uuid.UUID, body: VersionRequest, request: Request, session: DbSession, actor: Manager
+    employee_id: uuid.UUID,
+    body: VersionRequest,
+    request: Request,
+    response: Response,
+    session: DbSession,
+    actor: Manager,
 ) -> EmployeeWithPassword:
+    response.headers["Cache-Control"] = NO_STORE
     return service.reset_password(session, actor, employee_id, version=body.version, now=_now(request))
