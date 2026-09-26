@@ -1,7 +1,7 @@
 # Weekly dependency and base-image updates (QUALITY_GATES §6). Each update arrives as a PR and must pass CI.
 version: 2
 updates:
-  - package-ecosystem: pip
+  - package-ecosystem: uv   # updates uv.lock (pip would leave the lock untouched)
     directory: /backend
     schedule: { interval: weekly }
     open-pull-requests-limit: 5

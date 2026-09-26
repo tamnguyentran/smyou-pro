@@ -99,7 +99,7 @@ def test_dependabot_covers_every_ecosystem_weekly() -> None:
     assert config["version"] == 2
     entries = {(u["package-ecosystem"], u["directory"]) for u in config["updates"]}
     expected = {
-        ("pip", "/backend"),
+        ("uv", "/backend"),  # backend is managed by uv (uv.lock); changed from pip with owner approval
         ("npm", "/frontend"),
         ("github-actions", "/"),
         ("docker", "/backend"),
