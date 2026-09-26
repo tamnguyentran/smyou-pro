@@ -89,7 +89,7 @@ scripts/                    # check_ac_coverage.py, export_openapi.py, seed_dev.
   `{ "type": "about:blank", "title": "...", "status": 409, "code": "INVALID_TRANSITION", "detail": "Thông điệp tiếng Việt cho người dùng", "errors": [{ "field": "reason", "code": "too_short" }] }`
   Mã chuẩn: `VALIDATION_ERROR` 422, `UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `INVALID_TRANSITION` 409, `GUARD_FAILED` 409 (kèm `guard`), `STALE_VERSION` 409, `CONFLICT` 409, `FILE_REJECTED` 415/413.
 - Mọi route khai báo `response_model`, `summary`, `operation_id` (dạng `orders_submit`) → client TS sinh ra có tên ổn định.
-- `GET /api/v1/me` trả `{ employee, roles, capabilities: { "order.read": "all", ... }, counters: {...} }` — frontend dựng menu từ đây.
+- `GET /api/v1/me` trả `{ employee, roles, capabilities: { "order.read": ["all"], "dashboard.read": ["own", "self"], ... }, counters: {...} }` — mỗi capability kèm **danh sách** phạm vi hiệu lực (hợp các vai trò; có `all` thì chỉ còn `all`); `counters` chỉ có badge của mục menu người đó thấy. Frontend dựng menu từ đây.
 
 ## 5. Quy ước DB
 - Tên bảng số nhiều snake_case; FK `<entity>_id`; index cho mọi FK và cột lọc.
@@ -102,7 +102,7 @@ scripts/                    # check_ac_coverage.py, export_openapi.py, seed_dev.
 ## 6. Quy ước backend
 - Hàm service nhận `session`, `actor: Actor`, `command: XxxCommand`; trả domain/DTO. Transaction mở ở dependency `get_uow()`; service không `commit` lẻ tẻ.
 - State machine: `core/spec_loader.py` đọc `spec/state_machines.yaml` lúc khởi động; `domain.transition(entity, command, ctx)` tra bảng, chạy guard theo tên (`GUARDS[name]`), trả danh sách effect. Guard thiếu implementation → app không khởi động (test bắt được).
-- Authz: `require("capability")` dependency trả `Actor(id, roles, scopes)`; truy vấn đọc luôn qua `apply_scope(query, actor, capability)`.
+- Authz: `require("capability")` dependency trả `Actor(id, roles, capability, scopes)`; truy vấn đọc luôn qua `apply_scope(query, actor, RULES)` (mỗi module khai báo `RULES = {"own": …, "assigned": …}`; scope không có luật → không trả dòng nào); đọc 1 bản ghi qua `get_in_scope_or_404`. Bộ đếm badge đăng ký trong `COUNTERS` ở `app/main.py`.
 - Logging JSON có `request_id`; không log mật khẩu, token, số điện thoại đầy đủ.
 - Cấu hình qua biến môi trường (`.env`), không hard-code secret.
 

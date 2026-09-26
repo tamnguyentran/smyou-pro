@@ -11,11 +11,18 @@ from app.core.config import Settings
 from app.core.db import DbSession
 from app.core.errors import problem_response
 from app.modules.identity import service
-from app.modules.identity.schemas import ChangePasswordRequest, EmployeeSummary, LoginRequest, LoginResponse
+from app.modules.identity.schemas import (
+    ChangePasswordRequest,
+    EmployeeSummary,
+    LoginRequest,
+    LoginResponse,
+    MeResponse,
+)
 from app.modules.identity.service import ACCESS_COOKIE, Failure, Issued
 
 REFRESH_COOKIE = "smyou_refresh"
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+me_router = APIRouter(prefix="/api/v1", tags=["me"])
 
 _FAILURES: dict[Failure, tuple[int, str]] = {
     Failure.INVALID_CREDENTIALS: (401, "Email hoặc mật khẩu không đúng."),
@@ -189,3 +196,19 @@ def change_password(
     response = Response(status_code=204)
     _set_session_cookies(response, settings, result)
     return response
+
+
+@me_router.get(
+    "/me",
+    operation_id="me_get",
+    summary="Thông tin, vai trò, quyền và bộ đếm của người đang đăng nhập",
+    response_model=MeResponse,
+    responses={
+        401: {"description": "problem+json — UNAUTHENTICATED: Vui lòng đăng nhập."},
+        403: {"description": "problem+json — PASSWORD_CHANGE_REQUIRED | FORBIDDEN"},
+    },
+)
+def me(
+    request: Request, session: DbSession, actor: Annotated[Actor, Depends(require("profile.manage"))]
+) -> MeResponse:
+    return service.me(session, actor, request.app.state.specs.permissions, request.app.state.counters)
