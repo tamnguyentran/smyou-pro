@@ -1,4 +1,4 @@
-import { LogOut, Menu as MenuIcon, Plus } from "lucide-react";
+import { LogOut, Menu as MenuIcon, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, Outlet } from "react-router";
 import { Alert } from "../../components/ui/Alert";
@@ -8,6 +8,7 @@ import { useSignOut } from "../../features/auth/useSignOut";
 import { useMe } from "../../features/me/api";
 import { useMediaQuery } from "../../lib/useMediaQuery";
 import { primaryAction, roleLabels, visibleMenu } from "../menu";
+import { MeError } from "./MeError";
 import { NavMenu } from "./NavMenu";
 import { PageTitleContext } from "./pageTitle";
 
@@ -43,17 +44,11 @@ function MenuBody({ onNavigate }: { onNavigate?: () => void }) {
   }
   if (me.isError) {
     return (
-      <div className="space-y-3 px-3 text-sm text-body">
-        <p>Không tải được thông tin tài khoản.</p>
-        <Button
-          variant="secondary"
-          onClick={() => {
-            void me.refetch();
-          }}
-        >
-          Thử lại
-        </Button>
-      </div>
+      <MeError
+        onRetry={() => {
+          void me.refetch();
+        }}
+      />
     );
   }
   return (
@@ -149,6 +144,14 @@ function Drawer({ onClose }: { onClose: () => void }) {
         ref={panel}
         className="absolute inset-y-0 left-0 w-80 max-w-[85vw] animate-[drawer-in_300ms_ease-in-out] bg-card shadow-card-hover motion-reduce:animate-none"
       >
+        <button
+          type="button"
+          aria-label="Đóng menu"
+          onClick={onClose}
+          className="absolute top-3 right-2 flex size-11 items-center justify-center rounded-xl text-muted hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        >
+          <X aria-hidden="true" className="size-5" />
+        </button>
         <Panel onNavigate={onClose} />
       </div>
     </div>

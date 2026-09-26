@@ -8,13 +8,18 @@ type Counters = Record<string, number>;
 
 function Badge({ count }: { count: number | undefined }) {
   if (!count) return null;
+  // The leading space keeps the link's accessible name "Đơn chờ điều phối 4 mục".
   return (
-    <span
-      aria-label={`${String(count)} mục`}
-      className="ml-auto min-w-6 rounded-full bg-accent-light px-2 py-0.5 text-center text-xs font-semibold text-heading tabular-nums"
-    >
-      {count > 99 ? "99+" : count}
-    </span>
+    <>
+      {" "}
+      <span
+        role="img"
+        aria-label={`${String(count)} mục`}
+        className="ml-auto min-w-6 rounded-full bg-accent-light px-2 py-0.5 text-center text-xs font-semibold text-heading tabular-nums"
+      >
+        {count > 99 ? "99+" : count}
+      </span>
+    </>
   );
 }
 
@@ -64,7 +69,14 @@ function Group({
   onNavigate?: () => void;
 }) {
   const { pathname } = useLocation();
-  const [open, setOpen] = useState(() => item.children.some((c) => c.path === pathname));
+  const active = item.children.some((c) => c.path === pathname);
+  const [open, setOpen] = useState(active);
+  // Open when navigation lands on a child (top-bar button, Back, deep link); closing stays manual.
+  const [wasActive, setWasActive] = useState(active);
+  if (active !== wasActive) {
+    setWasActive(active);
+    if (active) setOpen(true);
+  }
   return (
     <>
       <button
