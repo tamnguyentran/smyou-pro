@@ -36,18 +36,20 @@ async function evidence(page: Page, info: TestInfo, file: string) {
       .filter((v) => v.impact === "serious" || v.impact === "critical")
       .map((v) => v.id),
   ).toEqual([]);
-  for (const width of [page.viewportSize()?.width ?? 390, 360]) {
-    await page.setViewportSize({ width, height: 780 });
+  // screenshot at the project size (390 / 1440) first, then the 360px overflow check
+  await page.screenshot({
+    path: resolve(import.meta.dirname, "../../reports/screenshots", info.project.name, file),
+    fullPage: true,
+  });
+  const size = page.viewportSize();
+  for (const width of [size?.width ?? 390, 360]) {
+    await page.setViewportSize({ width, height: size?.height ?? 780 });
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
       ),
     ).toBe(true);
   }
-  await page.screenshot({
-    path: resolve(import.meta.dirname, "../../reports/screenshots", info.project.name, file),
-    fullPage: true,
-  });
 }
 
 for (const role of Object.keys(ACCOUNTS) as Role[]) {
@@ -63,6 +65,10 @@ for (const role of Object.keys(ACCOUNTS) as Role[]) {
     }
     await expect(nav.getByRole("link").first()).toBeVisible();
     await expect(nav.getByRole("link")).toHaveText(SLOTS[role]);
+    // fixed to the bottom edge of the screen
+    expect(await nav.evaluate((e) => getComputedStyle(e).position)).toBe("fixed");
+    const box = await nav.boundingBox();
+    expect(Math.round((box?.y ?? 0) + (box?.height ?? 0))).toBe(page.viewportSize()?.height);
     for (const link of await nav.getByRole("link").all()) {
       expect((await link.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
     }
