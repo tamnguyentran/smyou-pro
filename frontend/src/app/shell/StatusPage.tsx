@@ -6,26 +6,22 @@ function StatusPage({
   title,
   icon: Icon,
   message,
-  homeLink = true,
 }: {
   title: string;
   icon: LucideIcon;
   message: string;
-  homeLink?: boolean;
 }) {
   usePageTitle(title);
   return (
     <section className="flex flex-col items-center justify-center gap-4 py-16 text-center">
       <Icon aria-hidden="true" className="size-12 text-muted" />
       <p className="text-sm leading-relaxed text-body">{message}</p>
-      {homeLink ? (
-        <Link
-          to="/"
-          className="inline-flex min-h-11 items-center rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition duration-200 hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-        >
-          Về trang chủ
-        </Link>
-      ) : null}
+      <Link
+        to="/"
+        className="inline-flex min-h-11 items-center rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition duration-200 hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+      >
+        Về trang chủ
+      </Link>
     </section>
   );
 }
@@ -51,7 +47,6 @@ export function ComingSoonPage({ title, icon }: { title: string; icon?: LucideIc
       title={title}
       icon={icon ?? Construction}
       message="Tính năng đang được phát triển."
-      homeLink={false}
     />
   );
 }

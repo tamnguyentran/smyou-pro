@@ -18,7 +18,8 @@ function Failed({ title, onRetry }: { title: string; onRetry: () => void }) {
  * otherwise the page (a placeholder until its feature is built, Q27). */
 export function MenuPage({ item, capabilities }: { item: MenuItem; capabilities: string[] }) {
   const me = useMe();
-  if (me.isError) {
+  // Only a failed first load is an error: a failed background refetch keeps the cached data.
+  if (!me.data && me.isError) {
     return (
       <Failed
         title={item.label}

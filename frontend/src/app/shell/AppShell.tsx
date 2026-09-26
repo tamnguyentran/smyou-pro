@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/Button";
 import { useSession } from "../../features/auth/api";
 import { useSignOut } from "../../features/auth/useSignOut";
 import { useMe } from "../../features/me/api";
+import { cn } from "../../lib/cn";
 import { useMediaQuery } from "../../lib/useMediaQuery";
 import { primaryAction, roleLabels, visibleMenu } from "../menu";
 import { MeError } from "./MeError";
@@ -42,7 +43,7 @@ function MenuBody({ onNavigate }: { onNavigate?: () => void }) {
       </div>
     );
   }
-  if (me.isError) {
+  if (!me.data) {
     return (
       <MeError
         onRetry={() => {
@@ -62,14 +63,14 @@ function MenuBody({ onNavigate }: { onNavigate?: () => void }) {
 
 /** Menu panel shared by the desktop sidebar and the phone drawer. Identity comes from the session,
  * so signing out works even when /me cannot be loaded. */
-function Panel({ onNavigate }: { onNavigate?: () => void }) {
+function Panel({ onNavigate, inDrawer = false }: { onNavigate?: () => void; inDrawer?: boolean }) {
   const { data: session } = useSession();
   const { signOut, pending, failed } = useSignOut();
   const name = session?.employee.full_name ?? "";
   const roles = roleLabels(session?.employee.roles ?? []);
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-line p-4">
+      <div className={cn("border-b border-line p-4", inDrawer && "pr-14")}>
         <Brand roles={roles} />
       </div>
       <div className="flex-1 overflow-y-auto p-3">
@@ -152,7 +153,7 @@ function Drawer({ onClose }: { onClose: () => void }) {
         >
           <X aria-hidden="true" className="size-5" />
         </button>
-        <Panel onNavigate={onClose} />
+        <Panel onNavigate={onClose} inDrawer />
       </div>
     </div>
   );
