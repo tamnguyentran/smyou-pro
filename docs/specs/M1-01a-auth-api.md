@@ -14,7 +14,6 @@ Là nhân viên SMYou, tôi đăng nhập bằng email + mật khẩu trên đi�
   - `POST /api/v1/auth/login`, `/refresh`, `/logout` (public), `POST /api/v1/auth/change-password` (`profile.manage`, scope self).
   - `require()` thật: xác thực cookie access (401), chặn khi `must_change_password` (403), kiểm capability theo vai trò (403). *Scope và `/me` để M1-02.*
   - Lệnh CLI tạo Manager đầu tiên: `python -m app.cli create-manager`.
-  - `backend/scripts/seed_e2e.py`: tạo tài khoản mẫu cho E2E.
 - Ngoài: quản lý nhân viên / reset mật khẩu bởi Manager (M1-04), `/me` + menu + scope (M1-02, M1-03), ghi `audit_events` (M1-05 — xem Q23), quên mật khẩu qua email (không có email — PRD §5).
 
 Giao diện (trang Đăng nhập, Đổi mật khẩu, tự làm mới phiên) và E2E: `M1-01b-auth-ui.md` (Q24).

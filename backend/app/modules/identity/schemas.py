@@ -5,9 +5,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, StringConstraints
 
-Email = Annotated[
-    str, StringConstraints(strip_whitespace=True, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-]
+EMAIL_PATTERN = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+Email = Annotated[str, StringConstraints(strip_whitespace=True, max_length=254, pattern=EMAIL_PATTERN)]
 Password = Annotated[str, StringConstraints(min_length=1, max_length=128)]
 
 

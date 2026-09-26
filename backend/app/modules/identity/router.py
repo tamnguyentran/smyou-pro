@@ -27,9 +27,15 @@ _FAILURES: dict[Failure, tuple[int, str]] = {
     Failure.UNAUTHENTICATED: (401, "Vui lòng đăng nhập."),
     Failure.SESSION_REVOKED: (401, "Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại."),
 }
-_ERRORS: dict[int | str, dict[str, Any]] = {
-    status: {"description": f"problem+json ({detail})"} for status, detail in _FAILURES.values()
-}
+
+
+def _responses(*failures: Failure) -> dict[int | str, dict[str, Any]]:
+    """OpenAPI error docs for one endpoint; failures sharing a status are listed together."""
+    docs: dict[int | str, list[str]] = {}
+    for failure in failures:
+        status, detail = _FAILURES[failure]
+        docs.setdefault(status, []).append(f"{failure.value}: {detail}")
+    return {status: {"description": "problem+json — " + " | ".join(lines)} for status, lines in docs.items()}
 
 
 def _settings(request: Request) -> Settings:
@@ -98,7 +104,7 @@ def _body(issued: Issued) -> LoginResponse:
     operation_id="auth_login",
     summary="Đăng nhập bằng email và mật khẩu",
     response_model=LoginResponse,
-    responses=_ERRORS,
+    responses=_responses(Failure.INVALID_CREDENTIALS, Failure.ACCOUNT_DISABLED, Failure.ACCOUNT_LOCKED),
 )
 def login(
     body: LoginRequest, request: Request, response: Response, session: DbSession
@@ -123,7 +129,7 @@ def login(
     operation_id="auth_refresh",
     summary="Làm mới phiên đăng nhập (xoay vòng refresh token)",
     response_model=LoginResponse,
-    responses=_ERRORS,
+    responses=_responses(Failure.UNAUTHENTICATED, Failure.SESSION_REVOKED),
 )
 def refresh(request: Request, response: Response, session: DbSession) -> LoginResponse | JSONResponse:
     settings = _settings(request)

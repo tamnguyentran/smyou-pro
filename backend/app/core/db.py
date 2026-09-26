@@ -40,7 +40,7 @@ def create_session_factory(engine: Engine) -> sessionmaker[Session]:
 
 
 def get_session(request: Request) -> Iterator[Session]:
-    """One transaction per request: committed when the endpoint returns, rolled back if it raises.
+    """One transaction per request: committed before the response is sent, rolled back if the endpoint raises.
 
     Endpoints that must persist something *and* answer with an error (e.g. a failed-login counter)
     return a problem response instead of raising, so the transaction still commits.
@@ -50,4 +50,5 @@ def get_session(request: Request) -> Iterator[Session]:
         yield session
 
 
-DbSession = Annotated[Session, Depends(get_session)]
+# scope="function": the transaction commits before the response (and its Set-Cookie) is sent.
+DbSession = Annotated[Session, Depends(get_session, scope="function")]

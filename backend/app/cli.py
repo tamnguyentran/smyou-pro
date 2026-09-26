@@ -5,6 +5,7 @@ Bootstraps the first Manager on a fresh database; later accounts are created in 
 
 import argparse
 import getpass
+import re
 import sys
 from datetime import UTC, datetime
 
@@ -13,6 +14,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.core.config import Settings
 from app.core.db import create_db_engine, create_session_factory
 from app.modules.identity.domain import password_problems
+from app.modules.identity.schemas import EMAIL_PATTERN
 from app.modules.identity.service import Failure, create_manager
 
 _DUPLICATES = {
@@ -33,6 +35,9 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None, *, session_factory: sessionmaker[Session] | None = None) -> int:
     args = _parser().parse_args(sys.argv[1:] if argv is None else argv)
+    if not re.fullmatch(EMAIL_PATTERN, args.email.strip()):
+        sys.stderr.write("Email không hợp lệ (cần dạng ten@congty.vn).\n")
+        return 1
     password = getpass.getpass("Mật khẩu: ")
     if getpass.getpass("Nhập lại mật khẩu: ") != password:
         sys.stderr.write("Mật khẩu nhập lại không khớp.\n")

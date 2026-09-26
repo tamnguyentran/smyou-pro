@@ -206,15 +206,15 @@ def change_password(
 def create_manager(
     session: Session, *, email: str, full_name: str, code: str, password: str, now: datetime
 ) -> Employee | Failure:
-    email = email.strip()
+    email, code, full_name = email.strip(), code.strip(), full_name.strip()
     if session.scalar(select(exists().where(Employee.email == email))):
         return Failure.DUPLICATE_EMAIL
     if session.scalar(select(exists().where(Employee.code == code))):
         return Failure.DUPLICATE_CODE
     employee = Employee(
         email=email,
-        full_name=full_name.strip(),
-        code=code.strip(),
+        full_name=full_name,
+        code=code,
         department="MANAGEMENT",
         password_hash=hash_password(password),
         must_change_password=False,
