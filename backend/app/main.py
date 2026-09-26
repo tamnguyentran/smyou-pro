@@ -2,14 +2,17 @@
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 from fastapi import FastAPI
 
 from app.core.config import Settings
-from app.core.db import create_db_engine
+from app.core.db import create_db_engine, create_session_factory
 from app.core.errors import register_error_handlers
 from app.core.request_id import RequestIdMiddleware
 from app.core.spec_loader import check_guard_registry, load_specs
+from app.modules.identity.router import router as auth_router
+from app.modules.identity.service import authenticate
 from app.modules.system.router import router as system_router
 from app.modules.workflow.guards import GUARDS, PENDING_GUARDS
 
@@ -39,10 +42,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.engine = engine
     app.state.specs = specs
+    app.state.session_factory = create_session_factory(engine)
+    app.state.clock = lambda: datetime.now(UTC)  # tests swap in a fake clock
+    app.state.authenticator = authenticate
 
     register_error_handlers(app)
     app.add_middleware(RequestIdMiddleware)
     app.include_router(system_router)
+    app.include_router(auth_router)
     return app
 
 

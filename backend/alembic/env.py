@@ -5,11 +5,10 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import create_engine, pool
 
+# Import every module's models here so autogenerate/check see all tables.
+import app.modules.identity.models  # noqa: F401  # registers tables on Base.metadata
 from app.core.config import Settings
 from app.core.db import Base
-
-# Import every module's models here so autogenerate/check see all tables.
-# e.g. import app.modules.identity.models  # register tables
 
 config = context.config
 if config.config_file_name is not None:
