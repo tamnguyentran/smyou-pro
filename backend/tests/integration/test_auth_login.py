@@ -41,7 +41,7 @@ def test_login_success_sets_session_cookies(api: TestClient, db: Connection) -> 
         "employee": {"id": str(an), "code": "NV001", "full_name": "Nguyễn Văn An", "roles": ["MANAGER"]},
         "must_change_password": False,
     }
-    assert "password" not in res.text
+    assert "password_hash" not in res.text
     cookies = set_cookies(res)
     access, refresh = cookie_attrs(cookies[ACCESS_COOKIE]), cookie_attrs(cookies[REFRESH_COOKIE])
     for attrs in (access, refresh):
