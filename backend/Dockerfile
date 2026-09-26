@@ -35,6 +35,8 @@ COPY --from=build /opt/venv /opt/venv
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY app ./app
+# Business-rule source of truth, loaded at startup (named build context: --build-context spec=spec).
+COPY --from=spec . /spec
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=5 \
