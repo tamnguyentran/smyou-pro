@@ -159,7 +159,10 @@ def logout(request: Request, session: DbSession) -> Response:
     operation_id="auth_change_password",
     summary="Đổi mật khẩu của chính mình",
     status_code=204,
-    responses={401: {"description": "problem+json"}, 422: {"description": "problem+json"}},
+    responses={
+        **_responses(Failure.UNAUTHENTICATED, Failure.ACCOUNT_LOCKED),
+        422: {"description": "problem+json — VALIDATION_ERROR (current_password / new_password)"},
+    },
 )
 def change_password(
     body: ChangePasswordRequest,

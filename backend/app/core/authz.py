@@ -27,6 +27,8 @@ class Actor:
     id: uuid.UUID
     roles: frozenset[str]
     must_change_password: bool
+    # Refresh-token family of the request's session (None outside a cookie session).
+    session_family: uuid.UUID | None = None
 
 
 Authenticator = Callable[[Request, Session], Actor | None]

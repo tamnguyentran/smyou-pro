@@ -85,6 +85,22 @@ def _revoke(session: Session, condition: ColumnElement[bool], *, now: datetime) 
     )
 
 
+def _session_live(session: Session, family_id: uuid.UUID | None, now: datetime) -> bool:
+    if family_id is None:
+        return False
+    return bool(
+        session.scalar(
+            select(
+                exists().where(
+                    AuthSession.family_id == family_id,
+                    AuthSession.revoked_at.is_(None),
+                    AuthSession.expires_at > now,
+                )
+            )
+        )
+    )
+
+
 def login(
     session: Session, *, email: str, password: str, now: datetime, settings: Settings, user_agent: str
 ) -> Issued | Failure:
@@ -172,8 +188,9 @@ def change_password(
     user_agent: str,
 ) -> Issued | Failure | list[tuple[str, str]]:
     employee = session.get(Employee, actor.id, with_for_update=True)
-    if employee is None:  # deleted between authentication and this call
-        return [("current_password", "Mật khẩu hiện tại không đúng.")]
+    if employee is None or not _session_live(session, actor.session_family, now):
+        # A concurrent request locked the account (and revoked every session) while this one waited.
+        return Failure.UNAUTHENTICATED
     if not verify_password(current_password, employee.password_hash):
         # Same counter as login: a stolen session must not allow unlimited guessing (review M1-01a).
         employee.failed_login_count, locked_until = register_failure(
@@ -194,6 +211,8 @@ def change_password(
     employee.password_hash = hash_password(new_password)
     employee.must_change_password = False
     employee.password_changed_at = now
+    employee.failed_login_count = 0
+    employee.locked_until = None
     employee.version += 1
     _revoke(session, AuthSession.employee_id == employee.id, now=now)
     logger.info("password changed for %s; other sessions revoked", employee.id)
@@ -241,19 +260,14 @@ def authenticate(request: Request, session: Session) -> Actor | None:
     if (
         employee is None
         or not employee.is_active
-        or is_locked(employee.locked_until, now)
         or password_stamp(employee.password_changed_at) != claims.password_stamp
     ):
         return None
-    live = session.scalar(
-        select(
-            exists().where(
-                AuthSession.family_id == claims.session_family,
-                AuthSession.revoked_at.is_(None),
-                AuthSession.expires_at > now,
-            )
-        )
-    )
-    if not live:
+    if not _session_live(session, claims.session_family, now):
         return None
-    return Actor(employee.id, frozenset(r.role for r in employee.roles), employee.must_change_password)
+    return Actor(
+        employee.id,
+        frozenset(r.role for r in employee.roles),
+        employee.must_change_password,
+        claims.session_family,
+    )

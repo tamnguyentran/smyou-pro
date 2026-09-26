@@ -38,6 +38,9 @@ def main(argv: list[str] | None = None, *, session_factory: sessionmaker[Session
     if not re.fullmatch(EMAIL_PATTERN, args.email.strip()):
         sys.stderr.write("Email không hợp lệ (cần dạng ten@congty.vn).\n")
         return 1
+    if not args.full_name.strip() or not args.code.strip():
+        sys.stderr.write("Họ tên và mã nhân viên không được để trống.\n")
+        return 1
     password = getpass.getpass("Mật khẩu: ")
     if getpass.getpass("Nhập lại mật khẩu: ") != password:
         sys.stderr.write("Mật khẩu nhập lại không khớp.\n")
