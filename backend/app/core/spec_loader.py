@@ -6,7 +6,7 @@ and create_app() lets it propagate so the app never starts on a broken spec.
 """
 
 import re
-from collections.abc import Iterable
+from collections.abc import Hashable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -141,6 +141,8 @@ class _UniqueKeyLoader(yaml.SafeLoader):
         seen: set[Any] = set()
         for key_node, _ in node.value:
             key = self.construct_object(key_node, deep=deep)
+            if not isinstance(key, Hashable):
+                continue  # super() raises a proper ConstructorError for unhashable keys
             if key in seen:
                 raise yaml.constructor.ConstructorError(
                     None, None, f"duplicate key {key!r}", key_node.start_mark
@@ -170,6 +172,8 @@ def _parse[M: BaseModel](spec_dir: Path, file: str, model: type[M]) -> M:
         raw = _read_yaml(path.read_text(encoding="utf-8"))
     except OSError as exc:
         raise SpecError(f"{file}: cannot read {path}: {exc.strerror}") from exc
+    except UnicodeDecodeError as exc:
+        raise SpecError(f"{file}: not valid UTF-8 (byte {exc.start})") from exc
     except yaml.YAMLError as exc:
         raise SpecError(f"{file}: invalid YAML: {exc}") from exc
     try:
