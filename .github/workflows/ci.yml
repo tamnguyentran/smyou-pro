@@ -28,7 +28,7 @@ jobs:
       DATABASE_URL: postgresql+psycopg://smyou:smyou@localhost:5432/smyou_test
       TEST_DATABASE_URL: postgresql+psycopg://smyou:smyou@localhost:5432/smyou_test
       APP_ENV: test
-      JWT_SECRET: ci-only-not-secret
+      JWT_SECRET: ci-only-not-a-real-secret-at-least-32-chars   # production mode enforces >= 32
     defaults: { run: { working-directory: backend } }
     steps:
       - uses: actions/checkout@v4

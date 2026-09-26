@@ -140,7 +140,7 @@ def test_missing_refresh_cookie_also_clears_cookies(api: TestClient) -> None:
         ({"email": "khoa.tran@smyou.vn", "password": ""}, 422),
         ({"email": "khoa.tran@smyou.vn", "password": "x" * 128}, 401),
     ],
-    ids=["empty-email", "empty-password", "128-chars-accepted"],
+    ids=["empty-email", "empty-password", "max-length-password"],
 )
 def test_login_payload_edges(api: TestClient, db: Connection, payload: dict[str, str], status: int) -> None:
     seed(db, KHOA)

@@ -1,0 +1,3 @@
+# Verified false positives only — one exact fingerprint per line (commit:file:rule:line), each with a reason.
+# A pytest case id ("128-chars-accepted") matched generic-api-key; no secret involved. Owner approved 2026-09-26.
+b2af3c707c8cdb0855f79c60f748d57b92bf827d:backend/tests/integration/test_review_m1_01a.py:generic-api-key:136
