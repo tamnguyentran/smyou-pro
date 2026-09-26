@@ -29,3 +29,8 @@ AI đang dùng **giả định mặc định** ở cột phải để không b�
 | Q23 | Đăng nhập / sai mật khẩu / bị khoá có ghi vào Nhật ký hệ thống? | Ghi log ứng dụng ngay; ghi `audit_events` từ M1-05 | Giữ như đề xuất (2026-09-26) | ✅ |
 | Q24 | Tách M1-01 thành M1-01a (backend) + M1-01b (giao diện, E2E)? | Có | Giữ như đề xuất (2026-09-26) | ✅ |
 | Q25 | Đoán sai mật khẩu hiện tại ở màn Đổi mật khẩu (từ phiên bị lấy cắp) có bị giới hạn? | Chung bộ đếm với đăng nhập; 5 lần → khoá 15', đăng xuất mọi thiết bị, 423; đổi thành công → bộ đếm về 0; khoá do đăng nhập sai không đăng xuất phiên đang dùng | Giữ như đề xuất (2026-09-26, sau review bảo mật M1-01a) | ✅ |
+| Q26 | Tách M1-03 thành M1-03a (menu, sidebar, menu trượt, 403/404) và M1-03b (thanh điều hướng dưới đáy, trang Cá nhân)? | Có (~600 dòng giao diện, quá mức ~400/PR) | | ❓ |
+| Q27 | Mục menu mà tính năng chưa làm có hiện không? | Hiện; mở ra trang "Tính năng đang được phát triển." | | ❓ |
+| Q28 | Ô thứ 2 của thanh dưới đáy cho người nhiều vai trò chọn theo thứ tự nào? | Như nút +: TECH_LEAD > SALE > MANAGER > TECHNICIAN | | ❓ |
+| Q29 | Người nhiều vai trò: đầu menu hiện vai trò nào? | Tất cả nhãn vai trò nối bằng " · " (không có "chuyển vai trò") | | ❓ |
+| Q30 | Trang Cá nhân gồm gì? | Thông tin (tên, mã, email, vai trò) + Đổi mật khẩu (tự nguyện) + Đăng xuất; sửa thông tin do Manager làm ở M1-04 | | ❓ |
