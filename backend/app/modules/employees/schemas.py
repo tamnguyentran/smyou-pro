@@ -27,6 +27,9 @@ def _phone(value: str | None) -> str | None:
 
 
 class EmployeeCreate(BaseModel):
+    # Consistent with EmployeeUpdate: unknown fields (e.g. a stray is_active) are rejected, not ignored.
+    model_config = ConfigDict(extra="forbid")
+
     full_name: FullName
     email: Email
     phone: str | None = None
