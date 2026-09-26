@@ -189,15 +189,22 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description problem+json */
+      /** @description problem+json — UNAUTHENTICATED: Vui lòng đăng nhập. */
       401: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
       };
-      /** @description problem+json */
+      /** @description problem+json — VALIDATION_ERROR (current_password / new_password) */
       422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — ACCOUNT_LOCKED: Tài khoản tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút. */
+      423: {
         headers: {
           [name: string]: unknown;
         };

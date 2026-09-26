@@ -175,10 +175,13 @@
             "description": "Successful Response"
           },
           "401": {
-            "description": "problem+json"
+            "description": "problem+json — UNAUTHENTICATED: Vui lòng đăng nhập."
           },
           "422": {
-            "description": "problem+json"
+            "description": "problem+json — VALIDATION_ERROR (current_password / new_password)"
+          },
+          "423": {
+            "description": "problem+json — ACCOUNT_LOCKED: Tài khoản tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút."
           }
         },
         "summary": "Đổi mật khẩu của chính mình",
