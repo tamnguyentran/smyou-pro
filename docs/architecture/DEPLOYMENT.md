@@ -11,7 +11,7 @@
 
 ## 2. Các file (tạo ở backlog M0/M9)
 - `backend/Dockerfile` — multi-stage: `uv` sync → image `python:3.12-slim`, user không phải root, `HEALTHCHECK` gọi `/api/v1/health`.
-- `frontend/Dockerfile` — stage build `node:22-alpine` → stage `nginx:alpine` chứa `dist/` + `nginx.conf` (SPA fallback, gzip, cache asset hash 1 năm, `/api` proxy tới backend, `client_max_body_size 12m`).
+- `frontend/Dockerfile` — stage build `node:22-alpine` → stage `nginx:alpine` chứa `dist/` + `nginx/default.conf.template` (SPA fallback, gzip, cache asset hash 1 năm, `index.html` no-cache, `<BASE_PATH>/api/` proxy tới backend `/api/`, `client_max_body_size 12m`, `server_tokens off`, header bảo mật). `BASE_PATH` là **build-arg** (mặc định `/smyoutask`, Makefile `PROD_BASE_PATH`): cùng giá trị được nướng vào bundle và cấu hình nginx — đổi subpath phải build lại image web.
 Hai bộ file **tách riêng hoàn toàn** (không merge/override lẫn nhau) để không bao giờ lẫn cấu hình dev vào production:
 - `compose.dev.yml` + `.env.dev` — Mac M2: `db` (postgres:17, port host 5442, volume `pgdata`, tạo sẵn DB `smyou_test`), `backend` (build target `dev`, mount source, uvicorn `--reload`, port 8010), `web` (Vite dev server, port 5183).
 - `compose.prod.yml` + `.env.prod` — AlmaLinux: `db` (không publish port), `backend` (`image: smyou-backend:${IMAGE_TAG}`, chạy `alembic upgrade head` rồi uvicorn), `web` (`image: smyou-web:${IMAGE_TAG}`, nginx, port `${WEB_PORT}`); **không có `build:`**; `restart: unless-stopped`; log `json-file` max-size 10m; volume `pgdata`, `uploads`.
@@ -20,7 +20,7 @@ Hai bộ file **tách riêng hoàn toàn** (không merge/override lẫn nhau) đ
 ## 3. Build image production trên Mac M2
 ```bash
 make build-prod TAG=2026.10.01-1          # = docker buildx build --platform linux/amd64 ... --load
-make smoke-prod TAG=2026.10.01-1          # chạy image amd64 qua emulation, gọi /api/v1/health
+make smoke-prod TAG=2026.10.01-1          # chạy image amd64 qua emulation + tests/docker/test_prod_stack.py, rồi dọn stack
 ```
 Lưu ý: emulation amd64 trên M2 chậm (build lần đầu vài phút) — bình thường. CI (runner amd64) cũng build + smoke test cùng Dockerfile nên lỗi kiến trúc bị bắt trước khi deploy.
 
@@ -44,7 +44,7 @@ Server đã có **nginx hệ thống** giữ HTTPS cho `ilabsviet.com` và proxy
 - Container `web` (nginx + SPA) publish **`127.0.0.1:6890`** (cổng 8080/8000/3000/3012/3100/3111/3222/3500/5000/6868/8100/8200/8500 đã bị app khác dùng — kiểm tra lại bằng `ss -ltnp` trước khi deploy).
 - Nginx hệ thống **forward nguyên path, KHÔNG strip `/smyoutask`**. Bên trong container `web`: `/smyoutask/api/` → backend `/api/` (strip prefix ở đây), còn lại → SPA.
 - Ứng dụng biết subpath qua `BASE_PATH=/smyoutask` (.env.prod): Vite build với `base: '/smyoutask/'`, React Router `basename`, cookie `Path=/smyoutask`, API client gọi `/smyoutask/api/v1`. Dev trên Mac: `BASE_PATH` rỗng.
-- HTTPS, chứng chỉ, rate-limit (`limit_req zone=perip`) do nginx hệ thống lo; container không cần TLS. Backend tin header `X-Forwarded-Proto` (uvicorn `--proxy-headers --forwarded-allow-ips=*` vì chỉ nhận kết nối từ 127.0.0.1) để cookie `Secure` đúng.
+- HTTPS, chứng chỉ, rate-limit (`limit_req zone=perip`) do nginx hệ thống lo; container không cần TLS. Backend tin header `X-Forwarded-Proto` (uvicorn `--proxy-headers --forwarded-allow-ips=*` vì chỉ nhận kết nối từ container `web`) để cookie `Secure` đúng. IP khách: nginx hệ thống **ghi đè** `X-Real-IP $remote_addr`; container `web` lấy giá trị đó và **thay thế** (không nối thêm) `X-Forwarded-For` trước khi chuyển cho backend — nếu nối thêm, khách có thể tự gửi `X-Forwarded-For` để giả IP (review M0-03). Vì vậy khối nginx hệ thống bắt buộc có `proxy_set_header X-Real-IP $remote_addr;`. Và `WEB_BIND` phải giữ `127.0.0.1` (không mở 6890 ra ngoài): nếu ai gọi thẳng container, họ có thể tự đặt `X-Real-IP`/`X-Forwarded-Proto`.
 
 Thêm vào file cấu hình nginx của `ilabsviet.com` (cạnh khối TicketSeq), rồi `nginx -t && systemctl reload nginx`:
 ```nginx

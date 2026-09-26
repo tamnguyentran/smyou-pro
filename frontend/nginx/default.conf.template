@@ -1,0 +1,58 @@
+# Rendered at image build time: the BASE_PATH placeholder becomes "" or "/smyoutask" (ADR-014).
+# The host nginx forwards the full path (prefix kept); this container strips it only for the API.
+# Client IP: the host nginx overwrites X-Real-IP with $remote_addr and is the only thing that can reach
+# this container (WEB_BIND must stay 127.0.0.1), so trust that and replace (never append to) X-Forwarded-For — uvicorn trusts its first entry.
+map $http_x_real_ip $client_ip {
+    default $http_x_real_ip;
+    ""      $remote_addr;
+}
+
+map $http_x_forwarded_proto $forwarded_proto {
+    default $http_x_forwarded_proto;
+    ""      $scheme;
+}
+
+server {
+    listen 80;
+    server_name _;
+    server_tokens off;
+    absolute_redirect off;
+    root /usr/share/nginx/html;
+
+    client_max_body_size 12m;
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header X-Frame-Options DENY always;
+
+    #REDIRECT location = __BASE_PATH__ { return 301 __BASE_PATH__/; }
+    #REDIRECT location / { default_type text/plain; return 404 "Not Found\n"; }
+
+    location __BASE_PATH__/api/ {
+        proxy_pass http://backend:8000/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $client_ip;
+        proxy_set_header X-Forwarded-For $client_ip;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_read_timeout 120s;
+    }
+
+    location __BASE_PATH__/assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
+        add_header X-Frame-Options DENY always;
+        try_files $uri =404;
+    }
+
+    location __BASE_PATH__/ {
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
+        add_header X-Frame-Options DENY always;
+        try_files $uri __BASE_PATH__/index.html;
+    }
+}

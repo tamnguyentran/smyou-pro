@@ -1,5 +1,6 @@
 # DEV / TEST stack for the MacBook Pro M2 (arm64). Env: .env.dev (copy of .env.dev.example).
-# Production (AlmaLinux) uses compose.prod.yml + .env.prod. M0-01: database only; backend/web added in M0-03.
+# Production (AlmaLinux) uses compose.prod.yml with its own env file — the two are never combined.
+# Every published port binds 127.0.0.1: nothing here is reachable from the LAN.
 name: smyou-dev
 
 services:
@@ -10,7 +11,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-dev}
       POSTGRES_DB: ${POSTGRES_DB:-smyou}
     ports:
-      - "127.0.0.1:${DB_PORT:-5442}:5432"  # localhost only: never expose the dev DB to the LAN
+      - "127.0.0.1:${DB_PORT:-5442}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/db/init:/docker-entrypoint-initdb.d:ro
@@ -20,5 +21,46 @@ services:
       timeout: 3s
       retries: 20
 
+  backend:
+    build: { context: backend, target: dev }
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Ho_Chi_Minh}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smyou}:${POSTGRES_PASSWORD:-change-me-dev}@db:5432/${POSTGRES_DB:-smyou}
+      JWT_SECRET: ${JWT_SECRET:-change-me-dev-only}
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - ./backend:/app
+      - uploads:/data/uploads
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8010}:8000"
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=4)"]
+      interval: 5s
+      timeout: 5s
+      start_period: 20s
+      retries: 20
+
+  web:
+    build: { context: frontend, target: dev }
+    environment:
+      BACKEND_URL: http://backend:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules    # keep the container's Linux node_modules, not the Mac's
+    ports:
+      - "127.0.0.1:${VITE_PORT:-5183}:5183"
+    depends_on:
+      backend: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5183/"]
+      interval: 5s
+      timeout: 5s
+      start_period: 20s
+      retries: 20
+
 volumes:
   pgdata:
+  uploads:
