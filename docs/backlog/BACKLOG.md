@@ -23,7 +23,8 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [x] **M1-02 `require(capability)` + scope + `/me`** (roles, capabilities, counters); ma trận RBAC sinh tự động. Spec `M1-02-authz-scope-me.md`.
 - [x] **M1-03a AppShell — menu & khung chính**: menu sinh từ YAML, sidebar 2 cấp, drawer mobile, menu từ `/me`, trang 403/404/đang phát triển, route guard. Spec `M1-03a-app-shell.md`.
 - [x] **M1-03b AppShell — bottom nav & Cá nhân**: thanh điều hướng dưới đáy, nút hành động chính, trang Cá nhân, chỗ giữ Thông báo. Spec `M1-03b-bottom-nav-profile.md`.
-- [S] **M1-04 Quản lý nhân viên**: danh sách/tìm/lọc, tạo, sửa, gán nhiều vai trò, khoá/mở, reset mật khẩu; không gỡ Manager cuối cùng. Spec `M1-04-employees.md`.
+- [~] **M1-04a Quản lý nhân viên — API**: danh sách/tìm/lọc, tạo, sửa, gán nhiều vai trò, khoá/mở, cấp lại mật khẩu; không gỡ Manager cuối cùng. Spec `M1-04a-employees-api.md`.
+- [ ] **M1-04b Quản lý nhân viên — giao diện**: trang Nhân sự, form, hộp xác nhận, mật khẩu tạm một lần. Spec `M1-04b-employees-ui.md`.
 - [ ] **M1-05 Audit framework**: ghi `audit_events` qua service chung; trang Nhật ký (Manager) lọc theo thực thể/người/ngày.
 
 ## M2 — Danh mục

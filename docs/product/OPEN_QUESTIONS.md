@@ -34,11 +34,11 @@ AI đang dùng **giả định mặc định** ở cột phải để không b�
 | Q28 | Ô thứ 2 của thanh dưới đáy cho người nhiều vai trò chọn theo thứ tự nào? | Như nút +: TECH_LEAD > SALE > MANAGER > TECHNICIAN | Giữ như đề xuất (2026-09-26) | ✅ |
 | Q29 | Người nhiều vai trò: đầu menu hiện vai trò nào? | Tất cả nhãn vai trò nối bằng " · " (không có "chuyển vai trò") | Giữ như đề xuất (2026-09-26) | ✅ |
 | Q30 | Trang Cá nhân gồm gì? | Thông tin (tên, mã, email, vai trò) + Đổi mật khẩu (tự nguyện) + Đăng xuất; sửa thông tin do Manager làm ở M1-04 | Giữ như đề xuất (2026-09-26) | ✅ |
-| Q31 | Tách M1-04 thành M1-04a (API) và M1-04b (giao diện)? | Có (như M1-01) | | ❓ |
-| Q32 | Mã nhân viên tự sinh hay Manager nhập? | Tự sinh `NV` + số tiếp theo, không sửa được | | ❓ |
-| Q33 | Mật khẩu ban đầu / khi cấp lại do ai đặt? | Hệ thống tạo mật khẩu tạm (10 ký tự dễ đọc), hiện một lần cho Manager; nhân viên buộc đổi lần đầu | | ❓ |
-| Q34 | Khoá tài khoản có đăng xuất ngay trên mọi thiết bị? | Có; đầu việc đang giao xử lý ở M4-02 | | ❓ |
-| Q35 | Manager có được tự khoá chính mình? | Không; được bỏ vai trò Manager của mình nếu còn Manager khác đang hoạt động | | ❓ |
-| Q36 | Quản lý kỹ thuật (`employee.read`) xem được gì? | Danh sách + chi tiết, chỉ đọc, qua `/employees` (menu vẫn chỉ cho Manager) | | ❓ |
-| Q37 | Mở tạm khoá do sai mật khẩu 5 lần thế nào? | "Cấp lại mật khẩu" xoá luôn tạm khoá; không nút riêng | | ❓ |
-| Q38 | Ghi nhật ký thao tác nhân viên? | Log ứng dụng ngay; `audit_events` từ M1-05 (như Q23) | | ❓ |
+| Q31 | Tách M1-04 thành M1-04a (API) và M1-04b (giao diện)? | Có (như M1-01) | Giữ như đề xuất (2026-09-26) | ✅ |
+| Q32 | Mã nhân viên tự sinh hay Manager nhập? | Tự sinh `NV` + số tiếp theo, không sửa được | Giữ như đề xuất (2026-09-26) | ✅ |
+| Q33 | Mật khẩu ban đầu / khi cấp lại do ai đặt? | Hệ thống tạo mật khẩu tạm (10 ký tự dễ đọc), hiện một lần cho Manager; nhân viên buộc đổi lần đầu | Giữ như đề xuất (2026-09-26) | ✅ |
+| Q34 | Khoá tài khoản có đăng xuất ngay trên mọi thiết bị? | Có; đầu việc đang giao xử lý ở M4-02 | Giữ như đề xuất (2026-09-26) | ✅ |
+| Q35 | Manager có được tự khoá chính mình? | Không; được bỏ vai trò Manager của mình nếu còn Manager khác đang hoạt động | Giữ như đề xuất (2026-09-26) | ✅ |
+| Q36 | Quản lý kỹ thuật (`employee.read`) xem được gì? | Danh sách + chi tiết, chỉ đọc, qua `/employees` (menu vẫn chỉ cho Manager) | Giữ như đề xuất (2026-09-26) | ✅ |
+| Q37 | Mở tạm khoá do sai mật khẩu 5 lần thế nào? | "Cấp lại mật khẩu" xoá luôn tạm khoá; không nút riêng | Giữ như đề xuất (2026-09-26) | ✅ |
+| Q38 | Ghi nhật ký thao tác nhân viên? | Log ứng dụng ngay; `audit_events` từ M1-05 (như Q23) | Giữ như đề xuất (2026-09-26) | ✅ |
