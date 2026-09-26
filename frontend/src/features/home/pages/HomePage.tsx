@@ -1,4 +1,4 @@
-import { LogOut, Wrench } from "lucide-react";
+import { Building2, LogOut } from "lucide-react";
 import { BrandHeader } from "../../../components/BrandHeader";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
@@ -26,7 +26,7 @@ export function HomePage({
           <p className="mt-4 text-base font-semibold text-heading">Xin chào, {employeeName}</p>
         ) : null}
         <p className="mt-6 flex items-center gap-2 text-xs font-medium text-muted">
-          <Wrench aria-hidden="true" className="size-4 text-accent" />
+          <Building2 aria-hidden="true" className="size-4 text-accent" />
           Công ty TNHH SMYou
         </p>
         {logoutFailed ? (

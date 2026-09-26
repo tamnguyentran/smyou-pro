@@ -70,9 +70,14 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
     }
   };
   const refreshSession = () => {
-    inflight ??= (locks ? locks.request(REFRESH_LOCK, refreshOnce) : refreshOnce()).finally(() => {
-      inflight = null;
-    });
+    inflight ??= (locks ? locks.request(REFRESH_LOCK, refreshOnce) : refreshOnce())
+      .then((session) => {
+        if (session !== null) onSessionRenewed?.(session); // once per refresh, not per waiting call
+        return session;
+      })
+      .finally(() => {
+        inflight = null;
+      });
     return inflight;
   };
 
@@ -91,7 +96,6 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
         onSessionLost?.();
         return undefined;
       }
-      onSessionRenewed?.(session);
       return doFetch(retry);
     },
   });
