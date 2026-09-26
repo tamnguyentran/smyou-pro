@@ -50,8 +50,9 @@ describe("Review M1-03a — vòng 2", () => {
     );
     markSignedIn();
     renderApp("/dispatch/board");
-    const main = await screen.findByRole("main");
-    expect(await within(main).findByText("Tính năng đang được phát triển.")).toBeInTheDocument();
+    // wait for the shell (the session guard shows its own <main> skeleton first)
+    expect(await screen.findByText("Tính năng đang được phát triển.")).toBeInTheDocument();
+    const main = screen.getByRole("main");
 
     act(() => {
       focusManager.setFocused(false);
