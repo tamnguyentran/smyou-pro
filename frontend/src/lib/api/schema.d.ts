@@ -72,6 +72,110 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/employees": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách nhân viên (tìm, lọc, phân trang) */
+    get: operations["employees_list"];
+    put?: never;
+    /** Thêm nhân viên (mật khẩu tạm hiện một lần) */
+    post: operations["employees_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/employees/{employee_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Chi tiết nhân viên */
+    get: operations["employees_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Sửa thông tin nhân viên */
+    patch: operations["employees_update"];
+    trace?: never;
+  };
+  "/api/v1/employees/{employee_id}/activate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Mở khoá tài khoản */
+    post: operations["employees_activate"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/employees/{employee_id}/deactivate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Khoá tài khoản (đăng xuất khỏi mọi thiết bị) */
+    post: operations["employees_deactivate"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/employees/{employee_id}/reset-password": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cấp lại mật khẩu (mật khẩu tạm hiện một lần) */
+    post: operations["employees_reset_password"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/employees/{employee_id}/roles": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Đặt vai trò */
+    post: operations["employees_set_roles"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/health": {
     parameters: {
       query?: never;
@@ -117,6 +221,65 @@ export interface components {
       /** New Password */
       new_password: string;
     };
+    /** EmployeeCreate */
+    EmployeeCreate: {
+      /**
+       * Department
+       * @enum {string}
+       */
+      department: "MANAGEMENT" | "SALES" | "TECHNICAL";
+      /** Email */
+      email: string;
+      /** Full Name */
+      full_name: string;
+      /** Phone */
+      phone?: string | null;
+      /** Roles */
+      roles: ("MANAGER" | "SALE" | "TECH_LEAD" | "TECHNICIAN")[];
+      /** Title */
+      title?: string | null;
+    };
+    /** EmployeeOut */
+    EmployeeOut: {
+      /** Code */
+      code: string;
+      /** Department */
+      department: string;
+      /** Email */
+      email: string;
+      /** Full Name */
+      full_name: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Is Active */
+      is_active: boolean;
+      /** Is Locked */
+      is_locked: boolean;
+      /** Must Change Password */
+      must_change_password: boolean;
+      /** Phone */
+      phone: string | null;
+      /** Roles */
+      roles: string[];
+      /** Title */
+      title: string | null;
+      /** Version */
+      version: number;
+    };
+    /** EmployeePage */
+    EmployeePage: {
+      /** Items */
+      items: components["schemas"]["EmployeeOut"][];
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+      /** Total */
+      total: number;
+    };
     /** EmployeeSummary */
     EmployeeSummary: {
       /** Code */
@@ -130,6 +293,27 @@ export interface components {
       id: string;
       /** Roles */
       roles: string[];
+    };
+    /** EmployeeUpdate */
+    EmployeeUpdate: {
+      /** Department */
+      department?: ("MANAGEMENT" | "SALES" | "TECHNICAL") | null;
+      /** Email */
+      email?: string | null;
+      /** Full Name */
+      full_name?: string | null;
+      /** Phone */
+      phone?: string | null;
+      /** Title */
+      title?: string | null;
+      /** Version */
+      version: number;
+    };
+    /** EmployeeWithPassword */
+    EmployeeWithPassword: {
+      employee: components["schemas"]["EmployeeOut"];
+      /** Temporary Password */
+      temporary_password: string;
     };
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -196,6 +380,13 @@ export interface components {
       /** Roles */
       roles: string[];
     };
+    /** RolesRequest */
+    RolesRequest: {
+      /** Roles */
+      roles: ("MANAGER" | "SALE" | "TECH_LEAD" | "TECHNICIAN")[];
+      /** Version */
+      version: number;
+    };
     /** ValidationError */
     ValidationError: {
       /** Context */
@@ -208,6 +399,11 @@ export interface components {
       msg: string;
       /** Error Type */
       type: string;
+    };
+    /** VersionRequest */
+    VersionRequest: {
+      /** Version */
+      version: number;
     };
   };
   responses: never;
@@ -357,6 +553,364 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  employees_list: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        role?: ("MANAGER" | "SALE" | "TECH_LEAD" | "TECHNICIAN") | null;
+        is_active?: boolean | null;
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EmployeePage"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  employees_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EmployeeCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EmployeeWithPassword"];
+        };
+      };
+      /** @description problem+json — CONFLICT (email) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  employees_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        employee_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EmployeeOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  employees_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        employee_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EmployeeUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EmployeeOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | LAST_MANAGER | CANNOT_DEACTIVATE_SELF | INVALID_TRANSITION | CONFLICT (email) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  employees_activate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        employee_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VersionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EmployeeOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | LAST_MANAGER | CANNOT_DEACTIVATE_SELF | INVALID_TRANSITION | CONFLICT (email) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  employees_deactivate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        employee_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VersionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EmployeeOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | LAST_MANAGER | CANNOT_DEACTIVATE_SELF | INVALID_TRANSITION | CONFLICT (email) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  employees_reset_password: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        employee_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VersionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EmployeeWithPassword"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | LAST_MANAGER | CANNOT_DEACTIVATE_SELF | INVALID_TRANSITION | CONFLICT (email) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  employees_set_roles: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        employee_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RolesRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EmployeeOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | LAST_MANAGER | CANNOT_DEACTIVATE_SELF | INVALID_TRANSITION | CONFLICT (email) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
       };
     };
   };
