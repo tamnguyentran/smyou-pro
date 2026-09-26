@@ -1,6 +1,6 @@
 # M0-04 — Spec loader & test sinh từ YAML
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M0-04 · **Milestone:** M0
 - **Approval:** kỹ thuật thuần; chủ dự án uỷ quyền triển khai tuần tự M0 (2026-09-25)
 - **Liên quan:** `spec/state_machines.yaml`, `spec/permissions.yaml`; ARCHITECTURE §3, §6; TESTING_STRATEGY §3 (Sinh từ YAML)
