@@ -90,11 +90,12 @@ test: ## All backend tests (needs db) + frontend vitest with coverage thresholds
 	$(call be,uv run pytest -q --cov=app --cov-branch --cov-report=term-missing:skip-covered --cov-fail-under=85)
 	$(call fe,npx vitest run --coverage)
 
-contract: ## Export OpenAPI, regenerate TS types, fail on drift
+contract: ## Export OpenAPI + menu (from spec/permissions.yaml), regenerate TS types, fail on drift
 	$(if $(and $(HAS_BE),$(HAS_FE)),,@echo "⏭  skip contract (needs backend and frontend)")
 	$(if $(and $(HAS_BE),$(HAS_FE)),cd backend && uv run python ../scripts/export_openapi.py ../frontend/src/lib/api/openapi.json)
-	$(if $(and $(HAS_BE),$(HAS_FE)),cd frontend && npx openapi-typescript src/lib/api/openapi.json -o src/lib/api/schema.d.ts && npx prettier --write src/lib/api/)
-	$(if $(and $(HAS_BE),$(HAS_FE)),@git diff --exit-code -- frontend/src/lib/api || (echo "API contract changed: commit regenerated files"; exit 1))
+	$(if $(and $(HAS_BE),$(HAS_FE)),cd backend && uv run python ../scripts/export_menu.py ../frontend/src/app/menu.json)
+	$(if $(and $(HAS_BE),$(HAS_FE)),cd frontend && npx openapi-typescript src/lib/api/openapi.json -o src/lib/api/schema.d.ts && npx prettier --write src/lib/api/ src/app/menu.json)
+	$(if $(and $(HAS_BE),$(HAS_FE)),@git diff --exit-code -- frontend/src/lib/api frontend/src/app/menu.json || (echo "API contract or menu changed: commit regenerated files"; exit 1))
 
 ac: ## Acceptance-criteria → test traceability (writes reports/ac-matrix.md)
 	python3 scripts/check_ac_coverage.py

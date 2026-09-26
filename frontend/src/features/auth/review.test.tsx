@@ -37,7 +37,7 @@ describe("Review M1-01b — phiên", () => {
     );
     markSignedIn();
     const router = renderApp("/?tab=lich-su");
-    expect(await screen.findByText(/Nguyễn Văn An/)).toBeInTheDocument();
+    expect(await screen.findByText("Xin chào, Nguyễn Văn An")).toBeInTheDocument();
 
     await api.GET("/api/v1/health");
 
@@ -79,7 +79,7 @@ describe("Review M1-01b — phiên", () => {
     );
     markSignedIn();
     const router = renderApp("/");
-    expect(await screen.findByText(/Nguyễn Văn An/)).toBeInTheDocument();
+    expect(await screen.findByText("Xin chào, Nguyễn Văn An")).toBeInTheDocument();
 
     await api.GET("/api/v1/health");
 

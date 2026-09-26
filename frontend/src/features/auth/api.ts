@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import type { LoginResponse } from "../../lib/api/client";
 import { clearSignedIn, hasSignedIn, markSignedIn } from "../../lib/sessionHint";
+import { ME_KEY } from "../me/api";
 import { toApiError } from "./errors";
 import type { LoginValues } from "./schemas";
 
@@ -32,6 +33,7 @@ export function useLogin() {
     },
     onSuccess: (session) => {
       markSignedIn();
+      queryClient.removeQueries({ queryKey: ME_KEY }); // another account may have used this tab
       queryClient.setQueryData<Session>(SESSION_KEY, session);
     },
   });
@@ -63,6 +65,7 @@ export function useLogout() {
     // on this (possibly shared) device while the screen claims the user is signed out.
     onSuccess: () => {
       clearSignedIn();
+      queryClient.removeQueries({ queryKey: ME_KEY });
       queryClient.setQueryData<Session>(SESSION_KEY, null);
     },
   });

@@ -1,6 +1,6 @@
 # M1-02 — Phân quyền theo phạm vi (scope) và `GET /me`
 
-- **Status:** Approved
+- **Status:** Done
 - **Approval:** chủ dự án duyệt (2026-09-26)
 - **Backlog:** M1-02 · **Milestone:** M1
 - **Liên quan:** `spec/permissions.yaml` (toàn bộ `capabilities`, `scopes`, `menu[].badge`); `docs/product/PERMISSIONS.md` (nguyên tắc 1–4); ADR-003; ARCHITECTURE §4 (`/me`), §6 (`Actor(id, roles, scopes)`, `apply_scope`); TESTING_STRATEGY §3 (`test_rbac_matrix.py`); M1-01a (`require()` xác thực + capability)

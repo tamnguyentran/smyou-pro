@@ -125,7 +125,7 @@ describe("Trang đăng nhập", () => {
 
     await user.click(screen.getByRole("button", { name: "Đăng nhập" }));
 
-    expect(await screen.findByText(/Nguyễn Văn An/)).toBeInTheDocument();
+    expect(await screen.findByText("Xin chào, Nguyễn Văn An")).toBeInTheDocument();
     expect(router.state.location.pathname).toBe(expected);
   });
 });
@@ -205,7 +205,7 @@ describe("Phiên đăng nhập", () => {
     markSignedIn();
     const router = renderApp("/");
 
-    expect(await screen.findByText(/Nguyễn Văn An/)).toBeInTheDocument();
+    expect(await screen.findByText("Xin chào, Nguyễn Văn An")).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/");
   });
 

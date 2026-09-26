@@ -15,6 +15,12 @@ async function login(page: Page, email: string, password: string) {
   await page.getByRole("button", { name: "Đăng nhập" }).click();
 }
 
+/** M1-03: on phones "Đăng xuất" sits in the slide-out menu (AC-SYS-040). */
+async function openMenuOnPhone(page: Page) {
+  const open = page.getByRole("button", { name: "Mở menu" });
+  if (await open.isVisible()) await open.click();
+}
+
 async function checkPage(page: Page, info: TestInfo, file: string) {
   await page.evaluate(() => document.fonts.ready);
   const results = await new AxeBuilder({ page }).analyze();
@@ -34,6 +40,7 @@ test("AC-AUTH-027 @a11y @screenshot trang chủ đã đăng nhập", async ({ pa
   await page.goto("./dang-nhap");
   await login(page, MANAGER.email, MANAGER.password);
   await expect(page.getByText(`Xin chào, ${MANAGER.name}`)).toBeVisible();
+  await openMenuOnPhone(page);
   await expect(page.getByRole("button", { name: "Đăng xuất" })).toBeVisible();
   await checkPage(page, info, "home-signed-in.png");
 });
@@ -52,8 +59,9 @@ test("AC-AUTH-027 @a11y @screenshot màn đổi mật khẩu lần đầu", asyn
 test("AC-AUTH-026 đăng xuất thu hồi phiên ở server", async ({ page }) => {
   await page.goto("./dang-nhap");
   await login(page, MANAGER.email, MANAGER.password);
-  await expect(page.getByText(MANAGER.name)).toBeVisible();
+  await expect(page.getByText(`Xin chào, ${MANAGER.name}`)).toBeVisible();
 
+  await openMenuOnPhone(page);
   await page.getByRole("button", { name: "Đăng xuất" }).click();
   await expect(page).toHaveURL(/\/smyoutask\/dang-nhap/);
 

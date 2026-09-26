@@ -1,0 +1,193 @@
+{
+  "roles": {
+    "MANAGER": "Quản lý chung",
+    "SALE": "Nhân viên kinh doanh",
+    "TECH_LEAD": "Quản lý kỹ thuật",
+    "TECHNICIAN": "Nhân viên kỹ thuật"
+  },
+  "menu": [
+    {
+      "id": "dashboard",
+      "label": "Tổng quan",
+      "icon": "LayoutDashboard",
+      "path": "/",
+      "capability": "dashboard.read",
+      "badge": null,
+      "children": []
+    },
+    {
+      "id": "my-work",
+      "label": "Việc của tôi",
+      "icon": "ClipboardCheck",
+      "path": "/my-tasks",
+      "capability": "assignment.respond",
+      "badge": "pending_assignments_count",
+      "children": []
+    },
+    {
+      "id": "dispatch",
+      "label": "Điều phối kỹ thuật",
+      "icon": "Wrench",
+      "path": null,
+      "capability": "task.manage",
+      "badge": null,
+      "children": [
+        {
+          "id": "dispatch-queue",
+          "label": "Đơn chờ điều phối",
+          "icon": "Inbox",
+          "path": "/dispatch/queue",
+          "capability": null,
+          "badge": "pending_dispatch_count",
+          "children": []
+        },
+        {
+          "id": "dispatch-board",
+          "label": "Bảng đầu việc",
+          "icon": "KanbanSquare",
+          "path": "/dispatch/board",
+          "capability": null,
+          "badge": null,
+          "children": []
+        },
+        {
+          "id": "dispatch-load",
+          "label": "Lịch & tải việc",
+          "icon": "CalendarRange",
+          "path": "/dispatch/workload",
+          "capability": null,
+          "badge": null,
+          "children": []
+        },
+        {
+          "id": "dispatch-revise",
+          "label": "Đơn cần chỉnh sửa",
+          "icon": "RotateCcw",
+          "path": "/dispatch/revisions",
+          "capability": null,
+          "badge": "revision_count",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "sales",
+      "label": "Đơn hàng",
+      "icon": "ShoppingBag",
+      "path": null,
+      "capability": "order.create",
+      "badge": null,
+      "children": [
+        {
+          "id": "orders",
+          "label": "Danh sách đơn",
+          "icon": "ListOrdered",
+          "path": "/orders",
+          "capability": null,
+          "badge": null,
+          "children": []
+        },
+        {
+          "id": "order-new",
+          "label": "Tạo đơn mới",
+          "icon": "FilePlus2",
+          "path": "/orders/new",
+          "capability": null,
+          "badge": null,
+          "children": []
+        },
+        {
+          "id": "customers",
+          "label": "Khách hàng",
+          "icon": "Users",
+          "path": "/customers",
+          "capability": "customer.manage",
+          "badge": null,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "catalog",
+      "label": "Danh mục",
+      "icon": "Package",
+      "path": null,
+      "capability": "catalog.manage",
+      "badge": null,
+      "children": [
+        {
+          "id": "products",
+          "label": "Sản phẩm",
+          "icon": "Monitor",
+          "path": "/catalog/products",
+          "capability": null,
+          "badge": null,
+          "children": []
+        },
+        {
+          "id": "services",
+          "label": "Dịch vụ",
+          "icon": "Hammer",
+          "path": "/catalog/services",
+          "capability": null,
+          "badge": null,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "employees",
+      "label": "Nhân sự & phân quyền",
+      "icon": "UserCog",
+      "path": "/employees",
+      "capability": "employee.manage",
+      "badge": null,
+      "children": []
+    },
+    {
+      "id": "reports",
+      "label": "Báo cáo KPI",
+      "icon": "BarChart3",
+      "path": "/reports/kpi",
+      "capability": "kpi.read",
+      "badge": null,
+      "children": []
+    },
+    {
+      "id": "audit",
+      "label": "Nhật ký hệ thống",
+      "icon": "History",
+      "path": "/audit",
+      "capability": "audit.read",
+      "badge": null,
+      "children": []
+    }
+  ],
+  "mobile_bottom_nav": {
+    "items": [
+      "dashboard",
+      "my-work|dispatch-board|orders",
+      "primary_action",
+      "notifications",
+      "profile"
+    ],
+    "primary_action": {
+      "TECH_LEAD": {
+        "label": "Tạo đầu việc",
+        "icon": "Plus",
+        "path": "/dispatch/queue"
+      },
+      "SALE": {
+        "label": "Tạo đơn",
+        "icon": "Plus",
+        "path": "/orders/new"
+      },
+      "MANAGER": {
+        "label": "Tạo đơn",
+        "icon": "Plus",
+        "path": "/orders/new"
+      },
+      "TECHNICIAN": null
+    }
+  }
+}

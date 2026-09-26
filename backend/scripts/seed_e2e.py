@@ -13,15 +13,20 @@ from app.core.db import create_db_engine, create_session_factory
 from app.core.security import hash_password
 from app.modules.identity.models import AuthSession, Employee, EmployeeRole
 
-# (email, code, full name, role, password, must change password) — one technician per Playwright
+# (email, code, full name, roles, password, must change password) — one technician per Playwright
 # project so the mobile and desktop runs can each do the first-login password change in parallel.
 ACCOUNTS = [
-    ("an.e2e@smyou.vn", "E2E01", "Nguyễn Văn An", "MANAGER", "E2e@SmYou2026", False),
-    ("khoa.mobile@smyou.vn", "E2E02", "Trần Minh Khoa", "TECHNICIAN", "TamThoi#E2E1", True),
-    ("khoa.desktop@smyou.vn", "E2E03", "Trần Minh Khoa", "TECHNICIAN", "TamThoi#E2E1", True),
+    ("an.e2e@smyou.vn", "E2E01", "Nguyễn Văn An", ("MANAGER",), "E2e@SmYou2026", False),
+    ("khoa.mobile@smyou.vn", "E2E02", "Trần Minh Khoa", ("TECHNICIAN",), "TamThoi#E2E1", True),
+    ("khoa.desktop@smyou.vn", "E2E03", "Trần Minh Khoa", ("TECHNICIAN",), "TamThoi#E2E1", True),
     # Stay in the forced first-login state (never changed by a test): screenshot + a11y evidence.
-    ("tuan.mobile@smyou.vn", "E2E04", "Lê Anh Tuấn", "TECHNICIAN", "TamThoi#E2E1", True),
-    ("tuan.desktop@smyou.vn", "E2E05", "Lê Anh Tuấn", "TECHNICIAN", "TamThoi#E2E1", True),
+    ("tuan.mobile@smyou.vn", "E2E04", "Lê Anh Tuấn", ("TECHNICIAN",), "TamThoi#E2E1", True),
+    ("tuan.desktop@smyou.vn", "E2E05", "Lê Anh Tuấn", ("TECHNICIAN",), "TamThoi#E2E1", True),
+    # App shell (M1-03): one account per role, password already changed.
+    ("hoa.e2e@smyou.vn", "E2E06", "Lê Thị Hoa", ("SALE",), "E2e@SmYou2026", False),
+    ("tuan.lead@smyou.vn", "E2E07", "Phạm Quốc Tuấn", ("TECH_LEAD",), "E2e@SmYou2026", False),
+    ("khoa.shell@smyou.vn", "E2E08", "Trần Minh Khoa", ("TECHNICIAN",), "E2e@SmYou2026", False),
+    ("ha.e2e@smyou.vn", "E2E09", "Phạm Thu Hà", ("SALE", "TECHNICIAN"), "E2e@SmYou2026", False),
 ]
 
 
@@ -35,7 +40,7 @@ def main() -> int:
     )
     now = datetime.now(UTC)
     with factory() as session, session.begin():
-        for email, code, name, role, password, must_change in ACCOUNTS:
+        for email, code, name, roles, password, must_change in ACCOUNTS:
             employee = session.scalars(select(Employee).where(Employee.email == email)).one_or_none()
             if employee is None:
                 employee = Employee(email=email, code=code, full_name=name, department="TECHNICAL")
@@ -46,7 +51,7 @@ def main() -> int:
             employee.failed_login_count = 0
             employee.locked_until = None
             employee.password_changed_at = now
-            employee.roles = [EmployeeRole(role=role)]
+            employee.roles = [EmployeeRole(role=role) for role in roles]
             session.flush()
             session.execute(
                 update(AuthSession)

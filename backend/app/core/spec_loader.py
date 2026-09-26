@@ -282,3 +282,12 @@ def check_guard_registry(specs: Specs, implemented: Iterable[str], pending: Iter
             f"{STATE_MACHINES_FILE}: guards without code "
             f"(add to GUARDS or PENDING_GUARDS): {', '.join(missing)}"
         )
+
+
+def menu_document(permissions: PermissionsSpec) -> dict[str, Any]:
+    """What the frontend needs to draw navigation (frontend/src/app/menu.json, AC-SYS-034)."""
+    return {
+        "roles": {role: spec.label for role, spec in permissions.roles.items()},
+        "menu": [item.model_dump(mode="json") for item in permissions.menu],
+        "mobile_bottom_nav": permissions.mobile_bottom_nav.model_dump(mode="json"),
+    }
