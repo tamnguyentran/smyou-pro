@@ -72,7 +72,13 @@ export function EmployeesPage() {
   const [selected, setSelected] = useState<Employee | "new" | null>(null);
   const debouncedQ = useDebouncedValue(q, 300);
 
-  const filters: EmployeeFilters = { q: debouncedQ, role, is_active: isActive, limit: PAGE_SIZE, offset };
+  const filters: EmployeeFilters = {
+    q: debouncedQ,
+    role,
+    is_active: isActive,
+    limit: PAGE_SIZE,
+    offset,
+  };
   const employees = useEmployees(filters);
 
   if (!me.data && me.isError) {
@@ -141,7 +147,9 @@ export function EmployeesPage() {
         {canManage ? (
           <Button
             icon={<UserPlus aria-hidden="true" className="size-4" />}
-            onClick={() => { setSelected("new"); }}
+            onClick={() => {
+              setSelected("new");
+            }}
           >
             Thêm nhân viên
           </Button>
@@ -170,14 +178,21 @@ export function EmployeesPage() {
       ) : (
         <>
           <EmployeeList items={employees.data.items} onSelect={setSelected} />
-          <Pagination total={employees.data.total} limit={PAGE_SIZE} offset={offset} onOffset={setOffset} />
+          <Pagination
+            total={employees.data.total}
+            limit={PAGE_SIZE}
+            offset={offset}
+            onOffset={setOffset}
+          />
         </>
       )}
 
       {selected ? (
         <EmployeeFormSheet
           key={selected === "new" ? "new" : selected.id}
-          onClose={() => { setSelected(null); }}
+          onClose={() => {
+            setSelected(null);
+          }}
           employee={selected === "new" ? undefined : selected}
           canManage={canManage}
         />

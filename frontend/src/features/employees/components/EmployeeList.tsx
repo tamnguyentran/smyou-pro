@@ -56,7 +56,13 @@ export function EmployeeList({
             <tr key={employee.id} className="hover:bg-sidebar-sub">
               <td className="px-4 py-3 font-medium text-heading">{employee.code}</td>
               <td className="px-4 py-3">
-                <button type="button" onClick={() => { onSelect(employee); }} className={NAME_BUTTON}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelect(employee);
+                  }}
+                  className={NAME_BUTTON}
+                >
                   {employee.full_name}
                 </button>
               </td>
@@ -81,7 +87,9 @@ export function EmployeeList({
         <li key={employee.id}>
           <button
             type="button"
-            onClick={() => { onSelect(employee); }}
+            onClick={() => {
+              onSelect(employee);
+            }}
             className="w-full rounded-2xl border border-line bg-card p-4 text-left shadow-card transition duration-200 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           >
             <div className="flex items-center justify-between gap-2">
