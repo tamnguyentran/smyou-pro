@@ -210,10 +210,10 @@
             "description": "Successful Response"
           },
           "401": {
-            "description": "problem+json (Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại.)"
+            "description": "problem+json — INVALID_CREDENTIALS: Email hoặc mật khẩu không đúng."
           },
           "403": {
-            "description": "problem+json (Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản lý.)"
+            "description": "problem+json — ACCOUNT_DISABLED: Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản lý."
           },
           "422": {
             "content": {
@@ -226,7 +226,7 @@
             "description": "Validation Error"
           },
           "423": {
-            "description": "problem+json (Tài khoản tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút.)"
+            "description": "problem+json — ACCOUNT_LOCKED: Tài khoản tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút."
           }
         },
         "summary": "Đăng nhập bằng email và mật khẩu",
@@ -260,13 +260,7 @@
             "description": "Successful Response"
           },
           "401": {
-            "description": "problem+json (Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại.)"
-          },
-          "403": {
-            "description": "problem+json (Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản lý.)"
-          },
-          "423": {
-            "description": "problem+json (Tài khoản tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút.)"
+            "description": "problem+json — UNAUTHENTICATED: Vui lòng đăng nhập. | SESSION_REVOKED: Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại."
           }
         },
         "summary": "Làm mới phiên đăng nhập (xoay vòng refresh token)",

@@ -227,14 +227,14 @@ export interface operations {
           "application/json": components["schemas"]["LoginResponse"];
         };
       };
-      /** @description problem+json (Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại.) */
+      /** @description problem+json — INVALID_CREDENTIALS: Email hoặc mật khẩu không đúng. */
       401: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
       };
-      /** @description problem+json (Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản lý.) */
+      /** @description problem+json — ACCOUNT_DISABLED: Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản lý. */
       403: {
         headers: {
           [name: string]: unknown;
@@ -250,7 +250,7 @@ export interface operations {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
-      /** @description problem+json (Tài khoản tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút.) */
+      /** @description problem+json — ACCOUNT_LOCKED: Tài khoản tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút. */
       423: {
         headers: {
           [name: string]: unknown;
@@ -295,22 +295,8 @@ export interface operations {
           "application/json": components["schemas"]["LoginResponse"];
         };
       };
-      /** @description problem+json (Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại.) */
+      /** @description problem+json — UNAUTHENTICATED: Vui lòng đăng nhập. | SESSION_REVOKED: Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại. */
       401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description problem+json (Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản lý.) */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description problem+json (Tài khoản tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút.) */
-      423: {
         headers: {
           [name: string]: unknown;
         };
