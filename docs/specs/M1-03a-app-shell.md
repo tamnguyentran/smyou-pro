@@ -1,14 +1,15 @@
-# M1-03 — Khung ứng dụng (AppShell) theo vai trò
+# M1-03a — Khung ứng dụng theo vai trò: menu, sidebar, menu trượt, 403/404
 
-- **Status:** Draft
-- **Backlog:** M1-03 · **Milestone:** M1
+- **Status:** Approved
+- **Approval:** chủ dự án duyệt nội dung + Q26–Q30 theo đề xuất (2026-09-26)
+- **Backlog:** M1-03a · **Milestone:** M1
 - **Liên quan:** `spec/permissions.yaml` (`menu`, `mobile_bottom_nav`, `roles[].label`); PERMISSIONS.md (Menu theo vai trò); UI_GUIDELINES §3 (desktop), §4 (mobile), §6–§8; ARCHITECTURE §4 (`GET /me`), §7; TESTING_STRATEGY §3 (`test_menu_sync`); M1-02 (`/me`), M1-01b (phiên, đăng xuất)
 
 ## 1. Mục tiêu
 Là nhân viên SMYou, sau khi đăng nhập tôi thấy một khung ứng dụng thống nhất: menu chỉ gồm những mục đúng vai trò của mình (Sale thấy Đơn hàng, Quản lý kỹ thuật thấy Điều phối, Kỹ thuật viên thấy Việc của tôi…), trên máy tính là thanh bên trái, trên điện thoại là menu trượt và thanh điều hướng dưới đáy dùng được bằng một tay; vào trang không có quyền thì được báo rõ ràng.
 
 ## 2. Phạm vi
-Đề xuất tách làm 2 phần (Q26) — mỗi phần một PR:
+Tách làm 2 phần (Q26 ✅); spec này là **M1-03a**, phần b ở `M1-03b-bottom-nav-profile.md`:
 
 - **M1-03a — Menu & khung chính:**
   - Dữ liệu menu `frontend/src/app/menu.json` **sinh từ** `spec/permissions.yaml` (`make contract`), test chống lệch.
@@ -24,7 +25,7 @@ Là nhân viên SMYou, sau khi đăng nhập tôi thấy một khung ứng dụn
 ## 3. Acceptance Criteria
 Tài khoản mẫu (seed E2E): **An** [MANAGER], **Hoa** [SALE], **Tuấn** [TECH_LEAD], **Khoa** [TECHNICIAN], **Hà** [SALE, TECHNICIAN].
 
-### M1-03a
+
 | ID | Given | When | Then | Lớp test |
 |---|---|---|---|---|
 | AC-SYS-034 | `spec/permissions.yaml` | `make contract` | sinh `frontend/src/app/menu.json` (menu + `mobile_bottom_nav` + nhãn vai trò) giống hệt YAML; sửa YAML mà không sinh lại → CI `contract` đỏ | generated |
@@ -40,15 +41,6 @@ Tài khoản mẫu (seed E2E): **An** [MANAGER], **Hoa** [SALE], **Tuấn** [TEC
 | AC-SYS-044 | `/me` đang tải / lỗi mạng / trả 401 | mở app | đang tải: khung với Skeleton ở vị trí menu (không spinner toàn trang); lỗi: "Không tải được thông tin tài khoản." + nút "Thử lại"; 401: về trang đăng nhập với `next` (luồng làm mới phiên của M1-01b) | component |
 | AC-SYS-045 | Mọi trang trong khung | — | tiêu đề tab `<Tên trang> · SMYou Pro`; mọi nút chỉ có icon có `aria-label` tiếng Việt; vùng chạm ≥ 44px | component |
 | AC-SYS-046 | An, Hoa, Tuấn, Khoa trên iPhone 13 và 1440px | E2E | 0 vi phạm axe serious/critical (menu mở và đóng); không cuộn ngang ở 360px; ảnh chụp `shell-<vai trò>.png` (mobile có ảnh drawer mở `shell-drawer.png`) | e2e |
-
-### M1-03b
-| ID | Given | When | Then | Lớp test |
-|---|---|---|---|---|
-| AC-SYS-047 | Điện thoại 390px | đăng nhập lần lượt An, Hoa, Tuấn, Khoa, Hà | bottom nav cố định đáy, chừa `safe-area-inset-bottom`: **An**: Tổng quan · Đơn hàng · (+) Tạo đơn · Thông báo · Cá nhân. **Hoa**: như An. **Tuấn**: Tổng quan · Bảng đầu việc · (+) Tạo đầu việc · Thông báo · Cá nhân. **Khoa**: Tổng quan · Việc của tôi · Thông báo · Cá nhân (không có nút +). **Hà**: Tổng quan · Đơn hàng · (+) Tạo đơn · Thông báo · Cá nhân (Q28: ưu tiên TECH_LEAD > SALE > MANAGER > TECHNICIAN cho cả ô 2 và nút +) | component + e2e |
-| AC-SYS-048 | Điện thoại, ở `/orders` | — | mục "Đơn hàng" ở bottom nav đang chọn (`aria-current`); nội dung trang có `pb-24` (không bị che); bottom nav **ẩn** ở ≥1024px | component + e2e |
-| AC-SYS-049 | Đã đăng nhập | chạm "Cá nhân" | trang `/ca-nhan`: tên, mã NV, email, các vai trò; nút "Đổi mật khẩu" (tới `/doi-mat-khau`, lời giới thiệu không nói "lần đầu" khi không bắt buộc, có nút "Huỷ" quay lại) và "Đăng xuất" (Q30) | component + e2e |
-| AC-SYS-050 | Đã đăng nhập | chạm "Thông báo" | trang `/thong-bao` giữ chỗ: "Chưa có thông báo." (nội dung thật ở M7-01) | component |
-| AC-SYS-051 | Như AC-SYS-046, cho bottom nav và trang Cá nhân | E2E | axe 0 serious/critical; không cuộn ngang 360px; ảnh `bottom-nav-<vai trò>.png`, `profile.png` | e2e |
 
 ## 4. API
 Không có endpoint mới. Dùng `GET /api/v1/me` (M1-02). Làm mới `/me` khi cửa sổ được focus lại và sau mỗi lần làm mới phiên (để badge/quyền không cũ).
@@ -70,7 +62,7 @@ Không có. `backend/scripts/seed_e2e.py` thêm tài khoản Hoa (SALE), Tuấn 
 4. (M1-03b) Thanh dưới đáy: KTV không có nút +; Sale có nút "Tạo đơn".
 5. Bấm "Đăng xuất" ở cuối menu → về trang đăng nhập.
 
-## 8. Giả định & câu hỏi (cần chủ dự án trả lời Q26–Q30)
+## 8. Giả định & quyết định (Q26–Q30 ✅ theo đề xuất, 2026-09-26)
 - **Q26** Tách M1-03 thành **M1-03a** (menu, sidebar, drawer, 403/404) và **M1-03b** (bottom nav, trang Cá nhân)? *Đề xuất: có* — ước tính ~600 dòng code giao diện, quá mức ~400 dòng/PR; phần a đã đủ để dùng trên cả điện thoại (qua menu trượt).
 - **Q27** Các mục menu mà tính năng chưa làm (Đơn hàng, Điều phối…) có hiện không? *Đề xuất: hiện*, mở ra trang "Tính năng đang được phát triển." — để chủ dự án duyệt được cấu trúc menu ngay bây giờ; mỗi item sau thay trang giữ chỗ bằng trang thật.
 - **Q28** Ô thứ 2 của bottom nav (`my-work|dispatch-board|orders`) với người nhiều vai trò chọn theo thứ tự nào? *Đề xuất:* cùng thứ tự ưu tiên của nút + trong YAML: TECH_LEAD > SALE > MANAGER > TECHNICIAN (Hà SALE+KTV → "Đơn hàng"; "Việc của tôi" vẫn có trong menu trượt).
