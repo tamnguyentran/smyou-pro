@@ -67,6 +67,7 @@ for (const role of Object.keys(ACCOUNTS) as Role[]) {
     await evidence(page, info, `shell-${role}.png`);
 
     const nav = await menu(page, info);
+    await expect(nav.getByRole("link", { name: "Tổng quan" })).toBeVisible(); // /me loaded
     const labels = await nav
       .locator(":scope > ul > li > :is(a, button) [data-menu-label]")
       .allTextContents();

@@ -138,16 +138,16 @@ function Drawer({ onClose }: { onClose: () => void }) {
     };
   }, [onClose]);
   return (
-    <div role="dialog" aria-modal="true" aria-label="Menu">
+    <div role="dialog" aria-modal="true" aria-label="Menu" className="fixed inset-0 z-40">
       <div
         data-testid="drawer-overlay"
         aria-hidden="true"
         onClick={onClose}
-        className="fixed inset-0 z-40 bg-heading/40"
+        className="absolute inset-0 bg-heading/40"
       />
       <div
         ref={panel}
-        className="fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] animate-[drawer-in_300ms_ease-in-out] bg-card shadow-card-hover motion-reduce:animate-none"
+        className="absolute inset-y-0 left-0 w-80 max-w-[85vw] animate-[drawer-in_300ms_ease-in-out] bg-card shadow-card-hover motion-reduce:animate-none"
       >
         <Panel onNavigate={onClose} />
       </div>
