@@ -22,7 +22,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [x] **M1-01b Xác thực — giao diện**: trang Đăng nhập, Đổi mật khẩu, tự làm mới phiên, E2E + `seed_e2e.py`. Spec `M1-01b-auth-ui.md`.
 - [x] **M1-02 `require(capability)` + scope + `/me`** (roles, capabilities, counters); ma trận RBAC sinh tự động. Spec `M1-02-authz-scope-me.md`.
 - [x] **M1-03a AppShell — menu & khung chính**: menu sinh từ YAML, sidebar 2 cấp, drawer mobile, menu từ `/me`, trang 403/404/đang phát triển, route guard. Spec `M1-03a-app-shell.md`.
-- [R] **M1-03b AppShell — bottom nav & Cá nhân**: thanh điều hướng dưới đáy, nút hành động chính, trang Cá nhân, chỗ giữ Thông báo. Spec `M1-03b-bottom-nav-profile.md`.
+- [x] **M1-03b AppShell — bottom nav & Cá nhân**: thanh điều hướng dưới đáy, nút hành động chính, trang Cá nhân, chỗ giữ Thông báo. Spec `M1-03b-bottom-nav-profile.md`.
 - [ ] **M1-04 Quản lý nhân viên**: danh sách/tìm/lọc, tạo, sửa, gán nhiều vai trò, khoá/mở, reset mật khẩu; không gỡ Manager cuối cùng.
 - [ ] **M1-05 Audit framework**: ghi `audit_events` qua service chung; trang Nhật ký (Manager) lọc theo thực thể/người/ngày.
 
@@ -34,6 +34,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 ## M3 — Khách hàng & Đơn hàng
 - [ ] **M3-01 Khách hàng**: CRUD, tìm theo tên/SĐT/MST, chống trùng SĐT (cảnh báo).
 - [ ] **M3-02 Đơn nháp + dòng hàng + tính tiền** (snapshot, gift, giảm giá, VAT, property test).
+  - Follow-up (review M1-03b): nút + ở thanh dưới đáy thành `Link` thường (không `aria-current`) khi trang Tạo đơn thật thay trang giữ chỗ.
 - [ ] **M3-03 Gửi/thu hồi/huỷ đơn** + danh sách & chi tiết đơn (tab Thông tin/Dòng hàng/Lịch sử), `allowed_commands`.
 - [ ] **M3-04 Sửa liên hệ sau khi gửi; Manager sửa dòng sau khi gửi** (audit diff).
 
@@ -56,6 +57,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 
 ## M7 — Thông báo & Tổng quan
 - [ ] **M7-01 Thông báo in-app** (chuông, badge, đánh dấu đã đọc, polling 30s).
+  - Follow-up (review M1-03b): bọc route `/thong-bao` và `/ca-nhan` bằng kiểm tra capability (`notification.read`, `profile.manage`) như các trang menu.
 - [ ] **M7-02 Dashboard theo vai trò** (Sale: đơn của tôi theo trạng thái; QLKT: chờ điều phối, cần giao lại, quá hạn; KTV: việc hôm nay; Manager: tổng hợp).
 
 ## M8 — KPI

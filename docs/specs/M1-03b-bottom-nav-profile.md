@@ -1,6 +1,6 @@
 # M1-03b — Điều hướng dưới đáy (mobile) & trang Cá nhân
 
-- **Status:** Approved
+- **Status:** Done
 - **Approval:** nội dung đã được duyệt cùng M1-03a (2026-09-26, Q26–Q30); đổi thành Approved khi bắt đầu M1-03b (sau khi M1-03a merge)
 - **Backlog:** M1-03b · **Milestone:** M1
 - **Liên quan:** xem `M1-03a-app-shell.md` (mục tiêu, UI, UAT, Q26–Q30); `spec/permissions.yaml#mobile_bottom_nav`
