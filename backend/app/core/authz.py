@@ -55,6 +55,8 @@ def apply_scope[S: Select[Any]](stmt: S, actor: Actor, rules: ScopeRules) -> S:
     """Restrict a read query to the rows the actor may see. Fails closed: no usable rule → no rows."""
     if "all" in actor.scopes:
         return stmt
+    if not actor.scopes:
+        logger.warning("capability %s: no effective scope; returning no rows", actor.capability)
     conditions = []
     for scope in actor.scopes:
         rule = rules.get(scope)
