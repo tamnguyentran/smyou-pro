@@ -14,7 +14,7 @@ function Slot({ to, label, children }: { to: string; label: string; children: Re
       end={to === "/"}
       className={({ isActive }) =>
         cn(
-          "flex min-h-14 min-w-0 flex-1 flex-col items-center justify-start gap-0.5 rounded-xl pt-1.5 text-center text-xs leading-tight font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+          "flex min-h-14 min-w-0 flex-1 flex-col items-center justify-start gap-0.5 rounded-xl pt-1.5 text-center text-xs leading-tight font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
           isActive ? "font-semibold text-brand" : "text-muted",
         )
       }
