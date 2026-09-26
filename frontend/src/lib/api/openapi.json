@@ -215,6 +215,7 @@
         "type": "object"
       },
       "EmployeeUpdate": {
+        "additionalProperties": false,
         "properties": {
           "department": {
             "anyOf": [
