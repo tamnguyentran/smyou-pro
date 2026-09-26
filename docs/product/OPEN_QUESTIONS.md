@@ -28,3 +28,4 @@ AI đang dùng **giả định mặc định** ở cột phải để không b�
 | Q22 | Manager đầu tiên tạo bằng lệnh CLI có phải đổi mật khẩu lần đầu? | Không | Giữ như đề xuất (2026-09-26) | ✅ |
 | Q23 | Đăng nhập / sai mật khẩu / bị khoá có ghi vào Nhật ký hệ thống? | Ghi log ứng dụng ngay; ghi `audit_events` từ M1-05 | Giữ như đề xuất (2026-09-26) | ✅ |
 | Q24 | Tách M1-01 thành M1-01a (backend) + M1-01b (giao diện, E2E)? | Có | Giữ như đề xuất (2026-09-26) | ✅ |
+| Q25 | Đoán sai mật khẩu hiện tại ở màn Đổi mật khẩu (từ phiên bị lấy cắp) có bị giới hạn? | Chung bộ đếm với đăng nhập; 5 lần → khoá 15', đăng xuất mọi thiết bị, 423; đổi thành công → bộ đếm về 0; khoá do đăng nhập sai không đăng xuất phiên đang dùng | Giữ như đề xuất (2026-09-26, sau review bảo mật M1-01a) | ✅ |

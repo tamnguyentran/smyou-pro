@@ -1,7 +1,7 @@
 # M1-01a — Xác thực (backend): đăng nhập, phiên, đổi mật khẩu, tạo Manager
 
 - **Status:** Approved
-- **Approval:** chủ dự án duyệt nội dung + Q19–Q24 theo đề xuất (2026-09-26)
+- **Approval:** chủ dự án duyệt nội dung + Q19–Q24 theo đề xuất (2026-09-26); AC-AUTH-020 (Q25) duyệt 2026-09-26 sau review bảo mật
 - **Backlog:** M1-01a · **Milestone:** M1
 - **Liên quan:** PRD §4, §6 (Bảo mật); DOMAIN_MODEL §1 (Employee); `spec/permissions.yaml` (`public_routes`, `profile.manage`); ARCHITECTURE §2 (pwdlib argon2, PyJWT, cookie httpOnly, access 15', refresh 7 ngày, rotate); ADR-014 (cookie `Path` theo `BASE_PATH`)
 
@@ -51,6 +51,7 @@ Dữ liệu mẫu: Manager **Nguyễn Văn An**, `an.nguyen@smyou.vn`, mã `NV00
 | AC-AUTH-017 | Khoa | đổi mật khẩu với: mật khẩu hiện tại sai / mới < 8 ký tự / mới trùng mật khẩu hiện tại / mới chứa phần trước `@` của email (`khoa.tran`) | 422, lần lượt `errors[].field`: `current_password` ("Mật khẩu hiện tại không đúng."), `new_password` ("Mật khẩu cần ít nhất 8 ký tự." / "Mật khẩu mới phải khác mật khẩu hiện tại." / "Mật khẩu không được chứa tên email.") (Q21) | integration |
 | AC-AUTH-018 | DB chưa có nhân viên | `python -m app.cli create-manager --email an.nguyen@smyou.vn --full-name "Nguyễn Văn An" --code NV001`, nhập mật khẩu 2 lần (không hiện trên màn hình) | tạo nhân viên vai trò MANAGER, `must_change_password=false` (Q22), thoát 0; chạy lại cùng email → thoát 1 "Email đã tồn tại"; hai lần nhập không khớp hoặc mật khẩu vi phạm Q21 → thoát 1, không tạo gì | integration |
 | AC-AUTH-019 | Mọi luồng trên | kiểm tra DB và log | `password_hash` là argon2id; mật khẩu, token, cookie không xuất hiện trong log hay response lỗi; refresh token chỉ lưu dạng băm SHA-256 | integration |
+| AC-AUTH-020 | Khoa đăng nhập, `failed_login_count=0` (Q25) | gửi `change-password` với mật khẩu hiện tại sai lần 1…5 | lần 1–4: 422 như AC-AUTH-017 và bộ đếm tăng (chung bộ đếm với đăng nhập); lần 5: 423 `ACCOUNT_LOCKED`, `locked_until = now + 15'`, **mọi phiên** của Khoa bị thu hồi, cookie bị xoá; các request đổi mật khẩu đang chờ đồng thời bị từ chối (phiên đã thu hồi) và không đổi được mật khẩu; đổi mật khẩu thành công thì bộ đếm về 0. Khoá do **đăng nhập** sai (AC-AUTH-004) **không** đăng xuất các phiên đang dùng | integration |
 
 ## 4. API
 | Method | Path | Capability | Request | Response | Lỗi |
@@ -58,7 +59,7 @@ Dữ liệu mẫu: Manager **Nguyễn Văn An**, `an.nguyen@smyou.vn`, mã `NV00
 | POST | /api/v1/auth/login | public | `{email, password}` | `LoginResponse` + Set-Cookie | 401, 403, 422, 423 |
 | POST | /api/v1/auth/refresh | public (cookie) | — | `LoginResponse` + Set-Cookie | 401 |
 | POST | /api/v1/auth/logout | public (cookie) | — | 204 | — |
-| POST | /api/v1/auth/change-password | profile.manage (self) | `{current_password, new_password}` | 204 + Set-Cookie | 401, 422 |
+| POST | /api/v1/auth/change-password | profile.manage (self) | `{current_password, new_password}` | 204 + Set-Cookie | 401, 422, 423 |
 
 ## 5. Dữ liệu / Migration
 - `employees` (DOMAIN_MODEL §1) + `password_changed_at timestamptz`, `version`; `email citext unique` (bật extension `citext`); CHECK `phone ~ '^0\d{9}$'`.

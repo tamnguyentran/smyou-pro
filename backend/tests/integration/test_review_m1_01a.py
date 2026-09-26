@@ -1,14 +1,18 @@
 """Review M1-01a: change-password guessing is limited like login; sharper evidence for other ACs."""
 
 import logging
+from datetime import timedelta
 
 import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import Connection, event
+from sqlalchemy import Connection, event, text
+from sqlalchemy.orm import sessionmaker
 from starlette.types import Message, Receive, Scope, Send
 
-from app.core.authz import require
+from app.core.authz import Actor, require
+from app.core.config import Settings
+from app.modules.identity import service
 from tests.integration.conftest import AN, KHOA, FakeClock, employee_row, login, seed
 
 
@@ -185,3 +189,80 @@ def test_transaction_commits_before_the_response_is_sent(app: FastAPI, db: Conne
 
     assert res.status_code == 200
     assert events.index("commit") < events.index("response-start"), events
+
+
+# ---- AC-AUTH-020 (Q25): change-password guessing limit, approved after security review ----
+
+
+def _probe(app: FastAPI) -> None:
+    @app.get("/api/v1/probe-020", dependencies=[Depends(require("order.read"))])
+    def probe() -> dict[str, bool]:
+        return {"ok": True}
+
+
+@pytest.mark.ac("AC-AUTH-020")
+def test_queued_change_after_lockout_is_refused(api: TestClient, db: Connection, clock: FakeClock) -> None:
+    """A request that authenticated before the lock-out committed must not change the password afterwards."""
+    khoa = seed(db, KHOA)
+    login(api, KHOA.email, KHOA.password)
+    family = db.execute(
+        text("SELECT family_id FROM auth_sessions WHERE employee_id = :id"), {"id": khoa}
+    ).scalar_one()
+    # The 5th wrong guess commits: account locked, every session revoked.
+    db.execute(
+        text("UPDATE employees SET locked_until = :until WHERE id = :id"),
+        {"until": clock() + timedelta(minutes=15), "id": khoa},
+    )
+    db.execute(
+        text("UPDATE auth_sessions SET revoked_at = :now WHERE employee_id = :id"),
+        {"now": clock(), "id": khoa},
+    )
+    before = employee_row(db, khoa)["password_hash"]
+
+    session = sessionmaker(bind=db, join_transaction_mode="create_savepoint")()
+    actor = Actor(id=khoa, roles=frozenset({"TECHNICIAN"}), must_change_password=False, session_family=family)
+    with session.begin():
+        result = service.change_password(
+            session,
+            actor,
+            current_password=KHOA.password,
+            new_password="Attacker#Owns1",
+            now=clock(),
+            settings=Settings(),
+            user_agent="queued",
+        )
+
+    assert result == service.Failure.UNAUTHENTICATED
+    assert employee_row(db, khoa)["password_hash"] == before
+
+
+@pytest.mark.ac("AC-AUTH-020")
+def test_login_lockout_does_not_sign_out_sessions_in_use(app: FastAPI, db: Connection) -> None:
+    seed(db, KHOA)
+    _probe(app)
+    phone = TestClient(app, raise_server_exceptions=False)
+    login(phone, KHOA.email, KHOA.password)
+
+    stranger = TestClient(app, raise_server_exceptions=False)
+    assert [login(stranger, KHOA.email, f"sai-{i}").status_code for i in range(5)] == [401] * 5
+
+    assert phone.get("/api/v1/probe-020").status_code == 200
+    assert phone.post("/api/v1/auth/refresh").status_code == 200
+
+
+@pytest.mark.ac("AC-AUTH-020")
+def test_successful_change_resets_the_counter(app: FastAPI, db: Connection) -> None:
+    khoa = seed(db, KHOA)
+    client = TestClient(app, raise_server_exceptions=False)
+    login(client, KHOA.email, KHOA.password)
+    assert guess(client, "doan-1") == 422
+    assert guess(client, "doan-2") == 422
+    body = {"current_password": KHOA.password, "new_password": "Khoa@SmYou9"}
+    assert client.post("/api/v1/auth/change-password", json=body).status_code == 204
+    assert employee_row(db, khoa)["failed_login_count"] == 0
+
+
+@pytest.mark.ac("AC-AUTH-020")
+def test_change_password_documents_423(app: FastAPI) -> None:
+    responses = app.openapi()["paths"]["/api/v1/auth/change-password"]["post"]["responses"]
+    assert {"401", "422", "423"} <= set(responses)

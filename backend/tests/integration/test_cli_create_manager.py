@@ -147,3 +147,20 @@ def test_email_that_could_never_log_in_is_refused(
     args = ["create-manager", "--email", "an.nguyen", "--full-name", "Nguyễn Văn An", "--code", "NV001"]
     assert cli.main(args, session_factory=session_factory) == 1
     assert db.execute(text("SELECT count(*) FROM employees")).scalar_one() == 0
+
+
+@pytest.mark.ac("AC-AUTH-018")
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["create-manager", "--email", "an.nguyen@smyou.vn", "--full-name", "   ", "--code", "NV001"],
+        ["create-manager", "--email", "an.nguyen@smyou.vn", "--full-name", "Nguyễn Văn An", "--code", "  "],
+    ],
+    ids=["blank-name", "blank-code"],
+)
+def test_blank_name_or_code_is_refused(
+    monkeypatch: pytest.MonkeyPatch, db: Connection, session_factory: sessionmaker[Session], args: list[str]
+) -> None:
+    typed(monkeypatch, "SmYou@2026", "SmYou@2026")
+    assert cli.main(args, session_factory=session_factory) == 1
+    assert db.execute(text("SELECT count(*) FROM employees")).scalar_one() == 0
