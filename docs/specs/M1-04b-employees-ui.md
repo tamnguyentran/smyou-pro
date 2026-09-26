@@ -1,6 +1,6 @@
 # M1-04b — Quản lý nhân viên & vai trò: giao diện
 
-- **Status:** Draft
+- **Status:** Approved
 - **Approval:** nội dung đã được duyệt cùng M1-04a (2026-09-26, Q31–Q38); đổi thành Approved khi bắt đầu M1-04b (sau khi M1-04a merge)
 - **Backlog:** M1-04b · **Milestone:** M1
 - **Liên quan:** `M1-04a-employees-api.md` (mục tiêu, API, Q31–Q38); UI_GUIDELINES §3–§6; M1-03a (menu, 403)

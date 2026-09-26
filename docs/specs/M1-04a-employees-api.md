@@ -1,6 +1,6 @@
 # M1-04a — Quản lý nhân viên & vai trò: API
 
-- **Status:** Approved
+- **Status:** Done
 - **Approval:** chủ dự án duyệt nội dung + Q31–Q38 theo đề xuất (2026-09-26). Sửa câu chữ AC-EMP-007/008 cho khớp Q35 (tự khoá luôn là `CANNOT_DEACTIVATE_SELF`; khoá Manager cuối cùng chỉ xảy ra khi hai Manager khoá nhau cùng lúc) — không đổi luật
 - **Backlog:** M1-04a · **Milestone:** M1
 - **Liên quan:** DOMAIN_MODEL §1 (Employee, `employee_roles`, "luôn còn ≥ 1 MANAGER đang hoạt động"); `spec/permissions.yaml` (`employee.read`: MANAGER all, TECH_LEAD all; `employee.manage`: MANAGER all); PRD §4 ("Manager tạo tài khoản, gán nhiều vai trò, khoá tài khoản"); M1-01a (mật khẩu Q21, phiên, `must_change_password`); M1-02 (`require`, scope); M1-03a (menu "Nhân sự & phân quyền" → `/employees`)
