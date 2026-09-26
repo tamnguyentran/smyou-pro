@@ -6,12 +6,14 @@ roles holds the capability. Data scope (own/assigned/self) is applied by queries
 """
 
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.dependencies.models import Dependant
 from fastapi.routing import APIRoute, iter_route_contexts
+from sqlalchemy import ColumnElement, Select
 from sqlalchemy.orm import Session
 from starlette.routing import Route
 
@@ -29,6 +31,28 @@ class Actor:
     must_change_password: bool
     # Refresh-token family of the request's session (None outside a cookie session).
     session_family: uuid.UUID | None = None
+    # Set by require(): the capability checked and the caller's effective scopes for it.
+    capability: str | None = None
+    scopes: tuple[str, ...] = ()
+
+
+ScopeRules = Mapping[str, Callable[[Actor], ColumnElement[bool]]]
+
+
+def effective_scopes(permissions: PermissionsSpec, roles: frozenset[str], capability: str) -> tuple[str, ...]:
+    raise NotImplementedError
+
+
+def apply_scope[S: Select[Any]](stmt: S, actor: Actor, rules: ScopeRules) -> S:
+    raise NotImplementedError
+
+
+def get_in_scope_or_404(session: Session, stmt: Select[Any], actor: Actor, rules: ScopeRules) -> Any:
+    raise NotImplementedError
+
+
+def declared_routes(app: FastAPI) -> list[tuple[str, str, str]]:
+    raise NotImplementedError
 
 
 Authenticator = Callable[[Request, Session], Actor | None]

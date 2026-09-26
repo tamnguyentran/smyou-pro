@@ -1,12 +1,13 @@
 """FastAPI application factory."""
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
 from fastapi import FastAPI
 
 from app.core.config import Settings
+from app.core.counters import CounterProvider
 from app.core.db import create_db_engine, create_session_factory
 from app.core.errors import register_error_handlers
 from app.core.request_id import RequestIdMiddleware
@@ -16,8 +17,13 @@ from app.modules.identity.service import authenticate
 from app.modules.system.router import router as system_router
 from app.modules.workflow.guards import GUARDS, PENDING_GUARDS
 
+# Menu badge counters (GET /me), registered by the modules that own the data (M4-01, M5-01, M6-03).
+COUNTERS: dict[str, CounterProvider] = {}
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+
+def create_app(
+    settings: Settings | None = None, counters: Mapping[str, CounterProvider] | None = None
+) -> FastAPI:
     settings = settings or Settings()
     # A broken spec raises SpecError here, so the process never starts serving (AC-SYS-005).
     specs = load_specs(settings.spec_dir)
