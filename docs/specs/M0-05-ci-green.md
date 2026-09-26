@@ -1,6 +1,6 @@
 # M0-05 — CI xanh
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M0-05 · **Milestone:** M0
 - **Approval:** kỹ thuật thuần; chủ dự án uỷ quyền triển khai tuần tự M0 (2026-09-25)
 - **Liên quan:** QUALITY_GATES §1, §2, §6; `.github/workflows/ci.yml`, `nightly.yml`

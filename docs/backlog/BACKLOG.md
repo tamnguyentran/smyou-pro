@@ -15,10 +15,11 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [x] **M0-02 Scaffold frontend**: Vite React TS strict, `BASE_PATH` cấu hình được (Vite `base`, Router `basename`, API base URL — ADR-014), Tailwind v4 + tokens (UI_GUIDELINES §2), font tự host, ESLint/Prettier/Vitest/Playwright config, trang placeholder dùng token. AC-SYS-002 build ok; AC-SYS-003 không cuộn ngang 360px.
 - [x] **M0-03 Docker & Makefile**: `compose.dev.yml` đầy đủ (hot reload) + `compose.prod.yml`, Dockerfile BE/FE, `make build-prod`/`smoke-prod` chạy được trên Mac M2, `compose.prod.yml` đặt cứng `APP_ENV=production` cho backend (review M0-01), `web` publish `${WEB_BIND:-127.0.0.1}:${WEB_PORT:-6890}` và định tuyến `/smyoutask/api/` → backend (ADR-014), smoke test gọi `http://localhost:6890/smyoutask/api/v1/health`, mọi target Makefile chạy được, pre-commit cài được. AC-SYS-004 `make up` → web + api healthy trên Mac M2.
 - [x] **M0-04 Spec loader & sinh test**: `core/spec_loader.py` đọc 2 YAML (validate bằng Pydantic), test `test_guards_implemented` (skeleton guard trả NotImplemented được phép ở M0 bằng danh sách chờ), `test_routes_declare_capability`. AC-SYS-005 YAML sai cú pháp/thiếu trường → app không khởi động.
-- [R] **M0-05 CI xanh**: `.github/workflows/ci.yml` chạy đủ job trên PR; job `image` build amd64 + smoke.
+- [x] **M0-05 CI xanh**: `.github/workflows/ci.yml` chạy đủ job trên PR; job `image` build amd64 + smoke.
 
 ## M1 — Danh tính & phân quyền
-- [ ] **M1-01 Đăng nhập/đăng xuất/refresh** (cookie httpOnly, argon2, khoá 15' sau 5 lần sai, đổi mật khẩu lần đầu). Seed Manager đầu tiên qua lệnh CLI `python -m app.cli create-manager`.
+- [R] **M1-01a Xác thực — backend**: đăng nhập/đăng xuất/refresh (cookie httpOnly, argon2, khoá 15' sau 5 lần sai, đổi mật khẩu lần đầu), CLI `python -m app.cli create-manager`. Spec `M1-01a-auth-api.md`.
+- [ ] **M1-01b Xác thực — giao diện**: trang Đăng nhập, Đổi mật khẩu, tự làm mới phiên, E2E + `seed_e2e.py`. Spec `M1-01b-auth-ui.md`.
 - [ ] **M1-02 `require(capability)` + scope + `/me`** (roles, capabilities, counters); ma trận RBAC sinh tự động.
 - [ ] **M1-03 AppShell theo vai trò**: sidebar 2 cấp, drawer mobile, bottom nav, menu từ `/me`, trang 403/404, route guard.
 - [ ] **M1-04 Quản lý nhân viên**: danh sách/tìm/lọc, tạo, sửa, gán nhiều vai trò, khoá/mở, reset mật khẩu; không gỡ Manager cuối cùng.

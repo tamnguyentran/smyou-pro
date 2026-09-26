@@ -7,7 +7,8 @@ SHELL := /bin/bash
 COMPOSE := docker compose -f compose.dev.yml $(if $(wildcard .env.dev),--env-file .env.dev)
 # Shell env wins over --env-file in compose interpolation: drop app vars so the smoke run uses the example file only.
 COMPOSE_SMOKE := env -u DATABASE_URL -u TEST_DATABASE_URL -u APP_ENV -u JWT_SECRET -u POSTGRES_USER \
-	-u POSTGRES_PASSWORD -u POSTGRES_DB -u BASE_PATH docker compose -f compose.prod.yml --env-file .env.prod.example -p smyou-smoke
+	-u POSTGRES_PASSWORD -u POSTGRES_DB -u BASE_PATH \
+	JWT_SECRET=smoke-test-only-not-a-real-secret-0123456789 docker compose -f compose.prod.yml --env-file .env.prod.example -p smyou-smoke
 TAG ?= dev
 PLATFORM ?= linux/amd64
 # Subpath baked into the web image (ADR-014).
@@ -123,11 +124,11 @@ verify: check e2e ## Everything; required before saying "done"
 	@echo "✅ make verify passed — write reports/verification.md (see /verify)"
 
 mutation: ## Mutation testing on domain layer (slow; nightly CI)
-	$(call be,uv run mutmut run && uv run mutmut results)
+	$(call be,SPEC_DIR=$(CURDIR)/spec uv run mutmut run && uv run mutmut results)
 
 mutation-changed: ## Mutation testing when domain files changed vs main (paths set in pyproject [tool.mutmut])
 	@if git diff --quiet main...HEAD -- 'backend/app/modules/*/domain.py'; then echo "no domain changes"; \
-	else cd backend && uv run mutmut run && uv run mutmut results; fi
+	else cd backend && SPEC_DIR=$(CURDIR)/spec uv run mutmut run && uv run mutmut results; fi
 
 # ---------- production images (Mac M2 → AlmaLinux x86_64) ----------
 build-prod: ## Build production images for $(PLATFORM): make build-prod TAG=2026.10.01-1

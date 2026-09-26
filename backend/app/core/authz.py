@@ -1,25 +1,52 @@
 """Authorization dependencies (ARCHITECTURE §6). Capabilities come from spec/permissions.yaml.
 
-`require(capability)` marks a route with the capability it needs. Until authentication exists
-(M1-01/M1-02) it fails closed: every protected route answers 401.
+`require(capability)` authenticates the caller through `app.state.authenticator` (set by the
+composition root, so `app.core` never imports feature modules) and checks that one of the caller's
+roles holds the capability. Data scope (own/assigned/self) is applied by queries (M1-02).
 """
 
+import uuid
 from collections.abc import Callable
+from dataclasses import dataclass
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.dependencies.models import Dependant
 from fastapi.routing import APIRoute, iter_route_contexts
+from sqlalchemy.orm import Session
 from starlette.routing import Route
 
+from app.core.db import DbSession
 from app.core.errors import AppError
-from app.core.spec_loader import PermissionsSpec
+from app.core.spec_loader import PermissionsSpec, Specs
 
 CAPABILITY_ATTR = "__capability__"
 
 
-def require(capability: str) -> Callable[[], None]:
-    def dependency() -> None:
-        raise AppError(401, "UNAUTHENTICATED", "Vui lòng đăng nhập.")
+@dataclass(frozen=True)
+class Actor:
+    id: uuid.UUID
+    roles: frozenset[str]
+    must_change_password: bool
+    # Refresh-token family of the request's session (None outside a cookie session).
+    session_family: uuid.UUID | None = None
+
+
+Authenticator = Callable[[Request, Session], Actor | None]
+
+
+def require(capability: str, *, allow_pending_password_change: bool = False) -> Callable[..., Actor]:
+    def dependency(request: Request, session: DbSession) -> Actor:
+        authenticate: Authenticator | None = getattr(request.app.state, "authenticator", None)
+        actor = authenticate(request, session) if authenticate is not None else None
+        if actor is None:
+            raise AppError(401, "UNAUTHENTICATED", "Vui lòng đăng nhập.")
+        if actor.must_change_password and not allow_pending_password_change:
+            raise AppError(403, "PASSWORD_CHANGE_REQUIRED", "Bạn cần đổi mật khẩu trước khi tiếp tục.")
+        specs: Specs = request.app.state.specs
+        grants = specs.permissions.capabilities.get(capability, {})
+        if not actor.roles & grants.keys():
+            raise AppError(403, "FORBIDDEN", "Bạn không có quyền thực hiện thao tác này.")
+        return actor
 
     setattr(dependency, CAPABILITY_ATTR, capability)
     return dependency

@@ -1,6 +1,64 @@
 {
   "components": {
     "schemas": {
+      "ChangePasswordRequest": {
+        "properties": {
+          "current_password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Current Password",
+            "type": "string"
+          },
+          "new_password": {
+            "maxLength": 1024,
+            "title": "New Password",
+            "type": "string"
+          }
+        },
+        "required": ["current_password", "new_password"],
+        "title": "ChangePasswordRequest",
+        "type": "object"
+      },
+      "EmployeeSummary": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Roles",
+            "type": "array"
+          }
+        },
+        "required": ["id", "code", "full_name", "roles"],
+        "title": "EmployeeSummary",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
       "HealthResponse": {
         "properties": {
           "database": {
@@ -21,6 +79,75 @@
         "required": ["status", "database", "version"],
         "title": "HealthResponse",
         "type": "object"
+      },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "maxLength": 254,
+            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": ["email", "password"],
+        "title": "LoginRequest",
+        "type": "object"
+      },
+      "LoginResponse": {
+        "properties": {
+          "employee": {
+            "$ref": "#/components/schemas/EmployeeSummary"
+          },
+          "must_change_password": {
+            "title": "Must Change Password",
+            "type": "boolean"
+          }
+        },
+        "required": ["employee", "must_change_password"],
+        "title": "LoginResponse",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
       }
     }
   },
@@ -30,6 +157,119 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/auth/change-password": {
+      "post": {
+        "operationId": "auth_change_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "problem+json — UNAUTHENTICATED: Vui lòng đăng nhập."
+          },
+          "422": {
+            "description": "problem+json — VALIDATION_ERROR (current_password / new_password)"
+          },
+          "423": {
+            "description": "problem+json — ACCOUNT_LOCKED: Tài khoản tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút."
+          }
+        },
+        "summary": "Đổi mật khẩu của chính mình",
+        "tags": ["auth"]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "auth_login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "problem+json — INVALID_CREDENTIALS: Email hoặc mật khẩu không đúng."
+          },
+          "403": {
+            "description": "problem+json — ACCOUNT_DISABLED: Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản lý."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "423": {
+            "description": "problem+json — ACCOUNT_LOCKED: Tài khoản tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút."
+          }
+        },
+        "summary": "Đăng nhập bằng email và mật khẩu",
+        "tags": ["auth"]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "auth_logout",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Đăng xuất",
+        "tags": ["auth"]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "auth_refresh",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "problem+json — UNAUTHENTICATED: Vui lòng đăng nhập. | SESSION_REVOKED: Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại."
+          }
+        },
+        "summary": "Làm mới phiên đăng nhập (xoay vòng refresh token)",
+        "tags": ["auth"]
+      }
+    },
     "/api/v1/health": {
       "get": {
         "operationId": "system_health",

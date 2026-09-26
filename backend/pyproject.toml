@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "SMYou Pro API"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-  "fastapi>=0.115",
+  "fastapi>=0.141",  # Depends(scope="function") in app/core/db.py
   "uvicorn[standard]>=0.30",
   "pydantic>=2.8",
   "pydantic-settings>=2.4",
@@ -12,6 +12,8 @@ dependencies = [
   "psycopg[binary]>=3.2",
   "alembic>=1.13",
   "pyyaml>=6.0",
+  "pwdlib[argon2]>=0.2",
+  "pyjwt>=2.9",
 ]
 
 [dependency-groups]
@@ -90,7 +92,10 @@ forbidden_modules = ["app.modules"]
 
 # ---------------- mutmut ----------------
 [tool.mutmut]
-paths_to_mutate = ["app/modules/"]
-tests_dir = ["tests/unit/"]
+source_paths = ["app/modules/"]
+# The sandbox needs the rest of the app to import; run with SPEC_DIR=<repo>/spec (Makefile, nightly).
+also_copy = ["app/__init__.py", "app/core/", "app/main.py", "app/cli.py"]
+# Pure domain tests only (tests/unit/domain/): fast, no DB, no repo-relative paths.
+pytest_add_cli_args_test_selection = ["tests/unit/domain/"]
 # Only pure domain logic is mutated (BACKLOG M0 contract); IO layers are covered by integration tests.
-do_not_mutate = ["*/router.py", "*/models.py", "*/schemas.py", "*/service.py", "*/queries.py", "*/__init__.py"]
+do_not_mutate = ["*/router.py", "*/models.py", "*/schemas.py", "*/service.py", "*/queries.py", "*/__init__.py", "*/guards.py"]
