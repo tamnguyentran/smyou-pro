@@ -72,3 +72,15 @@ def test_router_level_require_and_public_route_with_require() -> None:
     assert len(problems) == 1, problems
     assert problems[0].startswith("GET /api/v1/health:")
     assert "public_routes" in problems[0]
+
+
+@pytest.mark.ac("AC-SYS-027")
+def test_docs_allowlist_cannot_be_borrowed_by_other_routes() -> None:
+    permissions = load_specs(REPO_SPEC_DIR).permissions
+    app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None)
+
+    def raw(_: Request) -> PlainTextResponse:
+        return PlainTextResponse("x")
+
+    app.add_route("/docs/oauth2-redirect", raw, methods=["POST"])
+    assert any("/docs/oauth2-redirect" in p for p in undeclared_routes(app, permissions))
