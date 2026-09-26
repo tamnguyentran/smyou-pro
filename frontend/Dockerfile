@@ -23,6 +23,8 @@ RUN BASE_PATH="$BASE_PATH" npm run build
 # ---------- prod ----------
 FROM nginx:1.29-alpine AS prod
 ARG BASE_PATH=/smyoutask
+# Pick up Alpine security fixes released after the base image was built (CI scans this image with trivy).
+RUN apk upgrade --no-cache
 COPY nginx/default.conf.template /tmp/default.conf.template
 RUN if [ -n "$BASE_PATH" ]; then redirect='s|#REDIRECT ||'; else redirect='/#REDIRECT /d'; fi \
     && sed -e "$redirect" -e "s|__BASE_PATH__|$BASE_PATH|g" /tmp/default.conf.template \

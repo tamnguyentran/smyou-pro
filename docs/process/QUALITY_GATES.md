@@ -68,4 +68,4 @@ Các mẫu hành vi AI hay mắc và cơ chế chặn:
 ## 6. Thiết lập một lần trên GitHub (bạn làm)
 1. Branch protection `main`: bắt buộc PR, bắt buộc các check `backend`, `frontend`, `contract`, `traceability`, `e2e`, `security`, `image` xanh; cấm force-push.
 2. Cài Claude GitHub App: trong Claude Code chạy `/install-github-app` (tạo secret `CLAUDE_CODE_OAUTH_TOKEN` hoặc `ANTHROPIC_API_KEY`).
-3. Bật Dependabot cho `pip`/`npm`/`github-actions`/`docker`.
+3. Bật Dependabot cho `uv`/`npm`/`github-actions`/`docker` (đã cấu hình trong `.github/dependabot.yml`, M0-05).
