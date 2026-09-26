@@ -8,7 +8,7 @@ from collections.abc import Callable
 
 from fastapi import FastAPI
 from fastapi.dependencies.models import Dependant
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, iter_route_contexts
 
 from app.core.errors import AppError
 from app.core.spec_loader import PermissionsSpec
@@ -38,10 +38,18 @@ def undeclared_routes(app: FastAPI, permissions: PermissionsSpec) -> list[str]:
     """Routes that are neither public nor guarded by exactly one known capability."""
     public = set(permissions.public_routes)
     problems: list[str] = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute):
+    # FastAPI's own docs/OpenAPI routes (disabled in production) are the only non-API routes allowed.
+    framework = {app.openapi_url, app.docs_url, app.redoc_url, app.swagger_ui_oauth2_redirect_url} - {None}
+    # Walk effective routes: included routers are flattened with their prefix and router-level dependencies.
+    for route in iter_route_contexts(app.routes):
+        if not isinstance(route.original_route, APIRoute):
+            path = route.path or repr(route.original_route)
+            if path not in framework:
+                kind = type(route.original_route).__name__
+                problems.append(f"{path}: {kind} cannot declare a capability; use an APIRoute with require()")
             continue
-        capabilities = _declared(route.dependant)
+        dependant = route.dependant
+        capabilities = _declared(dependant) if isinstance(dependant, Dependant) else []
         for method in sorted(route.methods or ()):
             key = f"{method} {route.path}"
             if key in public:
