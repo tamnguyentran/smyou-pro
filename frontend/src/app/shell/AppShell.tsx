@@ -81,7 +81,7 @@ function Panel({ onNavigate, inDrawer = false }: { onNavigate?: () => void; inDr
         <Link
           to="/ca-nhan"
           onClick={onNavigate}
-          className="flex min-h-11 items-center gap-3 rounded-xl p-1 transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="flex min-h-11 items-center gap-3 rounded-xl p-1 transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
         >
           <div
             aria-hidden="true"
@@ -154,7 +154,7 @@ function Drawer({ onClose }: { onClose: () => void }) {
           type="button"
           aria-label="Đóng menu"
           onClick={onClose}
-          className="absolute top-3 right-2 flex size-11 items-center justify-center rounded-xl text-muted hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="absolute top-3 right-2 flex size-11 items-center justify-center rounded-xl text-muted hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
         >
           <X aria-hidden="true" className="size-5" />
         </button>
@@ -232,7 +232,7 @@ export function AppShell() {
             onClick={() => {
               setDrawerOpen(true);
             }}
-            className="flex size-11 items-center justify-center rounded-xl text-heading hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="flex size-11 items-center justify-center rounded-xl text-heading hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           >
             <MenuIcon aria-hidden="true" className="size-6" />
           </button>
