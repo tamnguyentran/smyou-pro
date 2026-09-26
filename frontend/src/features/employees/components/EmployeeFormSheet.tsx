@@ -97,13 +97,17 @@ function RoleField({
  * roles and account state (khoá/mở/cấp lại mật khẩu, AC-EMP-016) live in the same sheet. */
 export function EmployeeFormSheet({
   onClose,
-  employee,
+  employee: initialEmployee,
   canManage,
 }: {
   onClose: () => void;
   employee?: Employee;
   canManage: boolean;
 }) {
+  // The working copy: updated after every successful command (roles/deactivate/activate/reset),
+  // so a second action in the same open sheet uses the fresh `version`, not the one from open time
+  // (review round 1: otherwise it looked like STALE_VERSION even though nobody else touched the row).
+  const [employee, setEmployee] = useState<Employee | undefined>(initialEmployee);
   const readOnly = employee !== undefined && !canManage;
   const { data: session } = useSession();
   const toast = useToast();
@@ -196,12 +200,14 @@ export function EmployeeFormSheet({
           },
         });
         version = updated.version;
+        setEmployee(updated);
       }
       const rolesChanged =
         selectedRoles.size !== employee.roles.length ||
         !employee.roles.every((role) => selectedRoles.has(role as Role));
       if (rolesChanged) {
-        await setRolesCommand.mutateAsync({ id: employee.id, version, roles });
+        const withRoles = await setRolesCommand.mutateAsync({ id: employee.id, version, roles });
+        setEmployee(withRoles);
       }
       toast("Đã cập nhật.");
       onClose();
@@ -220,15 +226,16 @@ export function EmployeeFormSheet({
     if (!employee) return;
     setConfirmError(null);
     try {
-      if (confirming === "deactivate")
-        await deactivate.mutateAsync({ id: employee.id, version: employee.version });
-      else if (confirming === "activate")
-        await activate.mutateAsync({ id: employee.id, version: employee.version });
-      else if (confirming === "reset") {
+      if (confirming === "deactivate") {
+        setEmployee(await deactivate.mutateAsync({ id: employee.id, version: employee.version }));
+      } else if (confirming === "activate") {
+        setEmployee(await activate.mutateAsync({ id: employee.id, version: employee.version }));
+      } else if (confirming === "reset") {
         const result = await resetPassword.mutateAsync({
           id: employee.id,
           version: employee.version,
         });
+        setEmployee(result.employee);
         setResetPasswordValue(result.temporary_password);
       }
       invalidateList();
@@ -262,7 +269,18 @@ export function EmployeeFormSheet({
 
   return (
     <>
-      <Sheet open onClose={onClose} title={title}>
+      <Sheet
+        open
+        onClose={onClose}
+        title={title}
+        // Esc/overlay must reach only the topmost sheet: while a ConfirmDialog or the reset-password
+        // dialog sits on top, this outer one ignores them — both sheets listen on `document`, independently.
+        dismissible={
+          !(create.isPending || update.isPending || setRolesCommand.isPending) &&
+          confirming === null &&
+          resetPasswordValue === null
+        }
+      >
         {readOnly ? (
           <div className="space-y-4">
             <dl className="divide-y divide-line">

@@ -12,11 +12,15 @@ export function Sheet({
   onClose,
   title,
   children,
+  dismissible = true,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  /** false while a confirmed action is in flight: Esc/overlay/✕ must not abandon it mid-request
+   * (review round 1 — the mutation still completes and its result would surprise a "cancelled" user). */
+  dismissible?: boolean;
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const opener = useRef<Element | null>(null);
@@ -27,7 +31,7 @@ export function Sheet({
     panel.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onClose();
+        if (dismissible) onClose();
         return;
       }
       if (event.key !== "Tab" || !panel.current) return;
@@ -47,7 +51,7 @@ export function Sheet({
       document.removeEventListener("keydown", onKeyDown);
       if (opener.current instanceof HTMLElement) opener.current.focus();
     };
-  }, [open, onClose]);
+  }, [open, onClose, dismissible]);
 
   if (!open) return null;
   return (
@@ -55,7 +59,7 @@ export function Sheet({
       <div
         data-testid="sheet-overlay"
         aria-hidden="true"
-        onClick={onClose}
+        onClick={dismissible ? onClose : undefined}
         className="absolute inset-0 bg-heading/40"
       />
       <div
@@ -71,7 +75,8 @@ export function Sheet({
             type="button"
             aria-label="Đóng hộp thoại"
             onClick={onClose}
-            className="flex size-11 shrink-0 items-center justify-center rounded-xl text-muted transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+            disabled={!dismissible}
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl text-muted transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <X aria-hidden="true" className="size-5" />
           </button>

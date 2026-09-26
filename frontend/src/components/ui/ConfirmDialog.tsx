@@ -23,7 +23,7 @@ export function ConfirmDialog({
   error?: string | null;
 }) {
   return (
-    <Sheet open={open} onClose={onClose} title={title}>
+    <Sheet open={open} onClose={onClose} title={title} dismissible={!loading}>
       <p className="text-sm leading-relaxed text-body">{message}</p>
       {error ? (
         <div className="mt-3">

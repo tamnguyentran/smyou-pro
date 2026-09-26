@@ -515,7 +515,7 @@ describe("Review vòng 1", () => {
     signedInAs(AN, () => HttpResponse.json(page([employee()])));
     server.use(
       http.post("/api/v1/employees/:id/deactivate", async () => {
-        await delay(50);
+        await delay(500); // long enough that the mock hasn't resolved when Esc is pressed below
         return HttpResponse.json(employee({ is_active: false, version: 2 }));
       }),
     );
@@ -527,6 +527,10 @@ describe("Review vòng 1", () => {
     await user.click(within(dialog).getByRole("button", { name: "Khoá tài khoản" }));
     const confirm = await screen.findByRole("dialog", { name: "Khoá tài khoản" });
     await user.click(within(confirm).getByRole("button", { name: "Khoá tài khoản" }));
+    // chờ đúng trạng thái "đang gửi" xuất hiện trên DOM trước khi thử Esc, để không phụ thuộc thời điểm
+    await waitFor(() => {
+      expect(within(confirm).getByRole("button", { name: "Huỷ" })).toBeDisabled();
+    });
 
     await user.keyboard("{Escape}"); // vẫn đang gửi — Esc không được đóng hộp thoại
     expect(screen.getByRole("dialog", { name: "Khoá tài khoản" })).toBeInTheDocument();
