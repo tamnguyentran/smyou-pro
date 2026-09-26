@@ -13,6 +13,7 @@ from starlette.types import Message, Receive, Scope, Send
 from app.core.authz import Actor, require
 from app.core.config import Settings
 from app.modules.identity import service
+from app.modules.identity.models import Employee
 from tests.integration.conftest import AN, KHOA, FakeClock, employee_row, login, seed
 
 
@@ -266,3 +267,33 @@ def test_successful_change_resets_the_counter(app: FastAPI, db: Connection) -> N
 def test_change_password_documents_423(app: FastAPI) -> None:
     responses = app.openapi()["paths"]["/api/v1/auth/change-password"]["post"]["responses"]
     assert {"401", "422", "423"} <= set(responses)
+
+
+@pytest.mark.ac("AC-AUTH-020")
+def test_row_lock_reads_the_committed_counter_even_if_the_employee_is_cached(
+    api: TestClient, db: Connection, clock: FakeClock
+) -> None:
+    """Security review round 3: FOR UPDATE must refresh an Employee already held by the session."""
+    khoa = seed(db, KHOA)
+    login(api, KHOA.email, KHOA.password)
+    family = db.execute(
+        text("SELECT family_id FROM auth_sessions WHERE employee_id = :id"), {"id": khoa}
+    ).scalar_one()
+    session = sessionmaker(bind=db, join_transaction_mode="create_savepoint")()
+    with session.begin():
+        cached = session.get(Employee, khoa)  # e.g. loaded earlier in the same request
+        assert cached is not None
+        db.execute(text("UPDATE employees SET failed_login_count = 4 WHERE id = :id"), {"id": khoa})
+        actor = Actor(
+            id=khoa, roles=frozenset({"TECHNICIAN"}), must_change_password=False, session_family=family
+        )
+        result = service.change_password(
+            session,
+            actor,
+            current_password="doan-sai",
+            new_password="Attacker#Owns1",
+            now=clock(),
+            settings=Settings(),
+            user_agent="cached",
+        )
+    assert result == service.Failure.ACCOUNT_LOCKED
