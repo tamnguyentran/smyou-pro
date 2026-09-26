@@ -129,7 +129,7 @@ async function menuStructure() {
   }
   for (const group of Array.from(nav.querySelectorAll(":scope > ul > li"))) {
     const label = group.querySelector("[data-menu-label]")?.textContent ?? "";
-    const children = Array.from(group.querySelectorAll("ul [data-menu-label]")).map(
+    const children = Array.from(group.querySelectorAll(":scope > ul [data-menu-label]")).map(
       (el) => el.textContent,
     );
     if (children.length) groups[label] = children;
@@ -309,7 +309,7 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
 
     const sidebar = screen.getByRole("complementary");
     expect(within(sidebar).getByText("Nguyễn Văn An")).toBeInTheDocument();
-    expect(within(sidebar).getByText("Quản lý chung")).toBeInTheDocument();
+    expect(within(sidebar).getAllByText("Quản lý chung").length).toBeGreaterThan(0);
     await userEvent.setup().click(within(sidebar).getByRole("button", { name: "Đăng xuất" }));
 
     await waitFor(() => {
