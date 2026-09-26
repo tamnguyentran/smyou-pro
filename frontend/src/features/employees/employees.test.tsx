@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { markSignedIn } from "../../lib/sessionHint";
 import { server } from "../../test/msw";
@@ -469,5 +469,115 @@ describe("AC-EMP-017 phân quyền trang", () => {
     signedInAs(HOA);
     renderApp("/employees");
     expect(await screen.findByText("Bạn không có quyền truy cập trang này.")).toBeInTheDocument();
+  });
+});
+
+describe("Review vòng 1", () => {
+  test("khoá rồi cấp lại mật khẩu trong cùng phiên sheet: không dùng version cũ (giả STALE_VERSION)", async () => {
+    let resetBody: { version: number } | null = null;
+    signedInAs(AN, () => HttpResponse.json(page([employee({ version: 1 })])));
+    server.use(
+      http.post("/api/v1/employees/:id/deactivate", () =>
+        HttpResponse.json(employee({ is_active: false, version: 2 })),
+      ),
+      http.post("/api/v1/employees/:id/reset-password", async ({ request }) => {
+        resetBody = (await request.json()) as { version: number };
+        return HttpResponse.json({
+          employee: employee({ version: 3 }),
+          temporary_password: "Zz9mNpQr2s",
+        });
+      }),
+    );
+    renderApp("/employees");
+    await openMenu();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("Lê Thị Hoa"));
+    const dialog = await screen.findByRole("dialog", { name: "Sửa nhân viên" });
+
+    await user.click(within(dialog).getByRole("button", { name: "Khoá tài khoản" }));
+    const confirm1 = await screen.findByRole("dialog", { name: "Khoá tài khoản" });
+    await user.click(within(confirm1).getByRole("button", { name: "Khoá tài khoản" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Khoá tài khoản" })).not.toBeInTheDocument();
+    });
+    // is_active giờ là false → nút phải đổi thành "Mở khoá" ngay, không cần đóng/mở lại sheet
+    expect(within(dialog).getByRole("button", { name: "Mở khoá" })).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("button", { name: "Cấp lại mật khẩu" }));
+    const confirm2 = await screen.findByRole("dialog", { name: "Cấp lại mật khẩu" });
+    await user.click(within(confirm2).getByRole("button", { name: "Cấp lại mật khẩu" }));
+    await waitFor(() => {
+      expect(resetBody?.version).toBe(2); // version sau khi khoá, không phải version=1 ban đầu
+    });
+  });
+
+  test("hộp xác nhận không đóng bằng Esc khi đang gửi yêu cầu", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([employee()])));
+    server.use(
+      http.post("/api/v1/employees/:id/deactivate", async () => {
+        await delay(50);
+        return HttpResponse.json(employee({ is_active: false, version: 2 }));
+      }),
+    );
+    renderApp("/employees");
+    await openMenu();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("Lê Thị Hoa"));
+    const dialog = await screen.findByRole("dialog", { name: "Sửa nhân viên" });
+    await user.click(within(dialog).getByRole("button", { name: "Khoá tài khoản" }));
+    const confirm = await screen.findByRole("dialog", { name: "Khoá tài khoản" });
+    await user.click(within(confirm).getByRole("button", { name: "Khoá tài khoản" }));
+
+    await user.keyboard("{Escape}"); // vẫn đang gửi — Esc không được đóng hộp thoại
+    expect(screen.getByRole("dialog", { name: "Khoá tài khoản" })).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Khoá tài khoản" })).not.toBeInTheDocument();
+    });
+  });
+
+  test("trạng thái tải: Skeleton (aria-busy), không phải bảng/thẻ trống", async () => {
+    signedInAs(AN, async () => {
+      await delay("infinite");
+      return HttpResponse.json(page([]));
+    });
+    renderApp("/employees");
+    await openMenu();
+    expect(await screen.findByLabelText(/^Đang tải/)).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  test("lỗi 422 gắn đúng vào từng ô (aria-describedby), không phải một dòng chung", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([AN_ROW])));
+    server.use(
+      http.post("/api/v1/employees", () =>
+        HttpResponse.json(
+          {
+            status: 422,
+            code: "VALIDATION_ERROR",
+            detail: "Dữ liệu không hợp lệ.",
+            errors: [
+              { field: "email", code: "string_pattern_mismatch", message: "Email không hợp lệ." },
+            ],
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    renderApp("/employees");
+    await openMenu();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Thêm nhân viên" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm nhân viên" });
+    await user.type(within(dialog).getByLabelText("Họ và tên"), "Lê Thị Hoa");
+    await user.type(within(dialog).getByLabelText("Email"), "hoa.le@smyou.vn");
+    await user.selectOptions(within(dialog).getByLabelText("Bộ phận"), "SALES");
+    await user.click(within(dialog).getByRole("checkbox", { name: "Nhân viên kinh doanh" }));
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+
+    const emailField = within(dialog).getByLabelText("Email");
+    await waitFor(() => {
+      expect(emailField).toHaveAccessibleDescription("Email không hợp lệ.");
+    });
   });
 });

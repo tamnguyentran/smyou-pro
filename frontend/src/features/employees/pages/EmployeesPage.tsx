@@ -17,7 +17,14 @@ import { EmployeeList } from "../components/EmployeeList";
 const PAGE_SIZE = 20;
 
 function Waiting() {
-  return <div aria-busy="true" className="h-64 animate-pulse rounded-2xl bg-sidebar-sub" />;
+  return (
+    <div
+      role="group"
+      aria-busy="true"
+      aria-label="Đang tải danh sách nhân viên"
+      className="h-64 animate-pulse rounded-2xl bg-sidebar-sub"
+    />
+  );
 }
 
 function Pagination({
