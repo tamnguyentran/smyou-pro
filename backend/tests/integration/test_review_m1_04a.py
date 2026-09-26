@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import Connection, text
 
+from app.modules.employees.schemas import EmployeeUpdate
 from tests.integration.conftest import AN, KHOA, Person, employee_row, login, seed
 from tests.integration.test_employees_api import BINH, HOA, NEW_HOA, TUAN, client_as, problem
 
@@ -197,3 +198,37 @@ def test_new_routes_require_a_session(app: FastAPI, db: Connection, people: dict
     problem(anonymous.post("/api/v1/employees", json=NEW_HOA), 401, "UNAUTHENTICATED")
     assert login(anonymous, HOA.email, HOA.password).status_code == 200
     assert TUAN.code == "NV010"
+
+
+@pytest.mark.ac("AC-EMP-012")
+def test_write_commands_apply_the_same_scope_check_as_reads(
+    db: Connection, people: dict[str, uuid.UUID], clock: object
+) -> None:
+    """Defense in depth: write commands must fail closed the same way reads do if `employee.manage`
+    is ever given a role a narrower scope than `all` (today every holder is `all` in the YAML, so
+    this is only reachable by building the Actor directly, as a future permission change would)."""
+    from datetime import UTC, datetime
+
+    from sqlalchemy.orm import Session
+
+    from app.core.authz import Actor
+    from app.core.errors import AppError
+    from app.modules.employees import service
+
+    hoa_id = people["NV005"]
+    narrow_scope_actor = Actor(
+        uuid.uuid4(), frozenset({"MANAGER"}), False, capability="employee.manage", scopes=("assigned",)
+    )
+    now = datetime(2026, 9, 26, 2, 0, tzinfo=UTC)
+    with Session(bind=db) as session:
+        for call in (
+            lambda: service.update_employee(
+                session, narrow_scope_actor, hoa_id, EmployeeUpdate(version=1, title="x"), now=now
+            ),
+            lambda: service.deactivate(session, narrow_scope_actor, hoa_id, version=1, now=now),
+            lambda: service.activate(session, narrow_scope_actor, hoa_id, version=1, now=now),
+            lambda: service.reset_password(session, narrow_scope_actor, hoa_id, version=1, now=now),
+        ):
+            with pytest.raises(AppError) as excinfo:
+                call()
+            assert excinfo.value.status == 404, excinfo.value.code

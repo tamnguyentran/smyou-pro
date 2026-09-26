@@ -65,7 +65,8 @@ def race(engine: Engine, attempt: Callable[[Session, Actor, uuid.UUID], object])
     lock = threading.Lock()
 
     def run(me: uuid.UUID, other: uuid.UUID) -> None:
-        actor = Actor(me, frozenset({"MANAGER"}), False)
+        # capability/scopes as require("employee.manage") would set them (MANAGER: all)
+        actor = Actor(me, frozenset({"MANAGER"}), False, capability="employee.manage", scopes=("all",))
         outcome = "ok"
         barrier.wait()
         try:

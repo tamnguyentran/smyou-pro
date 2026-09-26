@@ -83,8 +83,12 @@ def _flush(session: Session) -> None:
         raise
 
 
-def _locked(session: Session, employee_id: uuid.UUID, version: int) -> Employee:
-    employee = session.get(Employee, employee_id, with_for_update=True, populate_existing=True)
+def _locked(session: Session, actor: Actor, employee_id: uuid.UUID, version: int) -> Employee:
+    # Same scope check as the read path (fails closed): a write must never reach a row a read
+    # could not see, even though every role holding employee.manage is `all` today.
+    stmt = apply_scope(select(Employee).where(Employee.id == employee_id), actor, RULES)
+    stmt = stmt.with_for_update().execution_options(populate_existing=True)
+    employee = session.scalars(stmt).one_or_none()
     if employee is None:
         raise AppError(404, "NOT_FOUND", "Không tìm thấy nhân viên.")
     if employee.version != version:
@@ -183,7 +187,7 @@ def create_employee(
 def update_employee(
     session: Session, actor: Actor, employee_id: uuid.UUID, body: EmployeeUpdate, *, now: datetime
 ) -> EmployeeOut:
-    employee = _locked(session, employee_id, body.version)
+    employee = _locked(session, actor, employee_id, body.version)
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
     if "email" in changes and changes["email"] is not None:
         _ensure_email_free(session, changes["email"], except_id=employee.id)
@@ -203,7 +207,7 @@ def set_roles(
     session: Session, actor: Actor, employee_id: uuid.UUID, *, version: int, roles: list[str], now: datetime
 ) -> EmployeeOut:
     _serialize_manager_changes(session)
-    employee = _locked(session, employee_id, version)
+    employee = _locked(session, actor, employee_id, version)
     wanted = set(roles)
     held = {r.role for r in employee.roles}
     if "MANAGER" in held and "MANAGER" not in wanted and employee.is_active:
@@ -222,7 +226,7 @@ def deactivate(
     if employee_id == actor.id:
         raise AppError(409, "CANNOT_DEACTIVATE_SELF", "Bạn không thể tự khoá tài khoản của mình.")
     _serialize_manager_changes(session)
-    employee = _locked(session, employee_id, version)
+    employee = _locked(session, actor, employee_id, version)
     if not employee.is_active:
         raise AppError(409, "INVALID_TRANSITION", "Tài khoản đã bị khoá.")
     if any(r.role == "MANAGER" for r in employee.roles):
@@ -238,7 +242,7 @@ def deactivate(
 def activate(
     session: Session, actor: Actor, employee_id: uuid.UUID, *, version: int, now: datetime
 ) -> EmployeeOut:
-    employee = _locked(session, employee_id, version)
+    employee = _locked(session, actor, employee_id, version)
     if employee.is_active:
         raise AppError(409, "INVALID_TRANSITION", "Tài khoản đang hoạt động.")
     employee.is_active = True
@@ -251,7 +255,7 @@ def activate(
 def reset_password(
     session: Session, actor: Actor, employee_id: uuid.UUID, *, version: int, now: datetime
 ) -> EmployeeWithPassword:
-    employee = _locked(session, employee_id, version)
+    employee = _locked(session, actor, employee_id, version)
     password = temporary_password(employee.email)
     employee.password_hash = hash_password(password)
     employee.must_change_password = True
