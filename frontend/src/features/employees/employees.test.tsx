@@ -453,7 +453,7 @@ describe("AC-EMP-016 khoá/mở/cấp lại mật khẩu", () => {
 
 describe("AC-EMP-017 phân quyền trang", () => {
   test("QLKT (chỉ đọc): xem được, không có nút Thêm/Sửa/Khoá/Cấp lại", async () => {
-    signedInAs(TUAN, () => HttpResponse.json(page([employee()])));
+    signedInAs(TUAN, () => HttpResponse.json(page([employee({ is_locked: true })])));
     renderApp("/employees");
     await openMenu();
     expect(screen.queryByRole("button", { name: "Thêm nhân viên" })).not.toBeInTheDocument();
@@ -463,6 +463,10 @@ describe("AC-EMP-017 phân quyền trang", () => {
     expect(
       within(dialog).queryByRole("button", { name: "Khoá tài khoản" }),
     ).not.toBeInTheDocument();
+    // Q36: chi tiết cho QLKT phải có đủ Mã và Trạng thái, không chỉ thông tin liên hệ
+    expect(within(dialog).getByText("NV005")).toBeInTheDocument();
+    expect(within(dialog).getByText("Đang hoạt động")).toBeInTheDocument();
+    expect(within(dialog).getByText("Tạm khoá đăng nhập")).toBeInTheDocument();
   });
 
   test("Sale mở /employees trực tiếp → 403", async () => {

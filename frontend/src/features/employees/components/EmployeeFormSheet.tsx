@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { ROLE_LABELS } from "../../../app/menu";
 import { Alert } from "../../../components/ui/Alert";
@@ -33,6 +33,7 @@ import {
   employeeFormSchema,
   type EmployeeFormValues,
 } from "../schemas";
+import { StatusBadges } from "./EmployeeList";
 import { TemporaryPasswordDialog } from "./TemporaryPasswordDialog";
 
 type ConfirmKind = "deactivate" | "activate" | "reset" | null;
@@ -284,18 +285,27 @@ export function EmployeeFormSheet({
         {readOnly ? (
           <div className="space-y-4">
             <dl className="divide-y divide-line">
-              {[
-                ["Họ và tên", employee.full_name],
-                ["Email", employee.email],
-                ["SĐT", employee.phone ?? "—"],
-                ["Bộ phận", DEPARTMENT_LABELS[employee.department] ?? employee.department],
-                ["Chức danh", employee.title ?? "—"],
-              ].map(([label, value]) => (
+              {(
+                [
+                  ["Mã", employee.code],
+                  ["Họ và tên", employee.full_name],
+                  ["Email", employee.email],
+                  ["SĐT", employee.phone ?? "—"],
+                  ["Bộ phận", DEPARTMENT_LABELS[employee.department] ?? employee.department],
+                  ["Chức danh", employee.title ?? "—"],
+                ] as [string, ReactNode][]
+              ).map(([label, value]) => (
                 <div key={label} className="flex justify-between gap-4 py-2 text-sm">
                   <dt className="text-muted">{label}</dt>
                   <dd className="font-medium text-heading">{value}</dd>
                 </div>
               ))}
+              <div className="flex justify-between gap-4 py-2 text-sm">
+                <dt className="text-muted">Trạng thái</dt>
+                <dd>
+                  <StatusBadges employee={employee} />
+                </dd>
+              </div>
             </dl>
             <RoleField selected={selectedRoles} onToggle={toggleRole} readOnly error={null} />
           </div>

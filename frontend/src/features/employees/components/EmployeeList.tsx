@@ -15,7 +15,8 @@ function RoleBadges({ roles }: { roles: string[] }) {
   );
 }
 
-function StatusBadges({ employee }: { employee: Employee }) {
+/** Reused by EmployeeFormSheet's read-only detail view (Q36: TECH_LEAD must see status too). */
+export function StatusBadges({ employee }: { employee: Employee }) {
   return (
     <div className="flex flex-wrap gap-1">
       <Badge tone={employee.is_active ? "completed" : "todo"}>
