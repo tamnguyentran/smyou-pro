@@ -124,11 +124,11 @@ verify: check e2e ## Everything; required before saying "done"
 	@echo "✅ make verify passed — write reports/verification.md (see /verify)"
 
 mutation: ## Mutation testing on domain layer (slow; nightly CI)
-	$(call be,uv run mutmut run && uv run mutmut results)
+	$(call be,SPEC_DIR=$(CURDIR)/spec uv run mutmut run && uv run mutmut results)
 
 mutation-changed: ## Mutation testing when domain files changed vs main (paths set in pyproject [tool.mutmut])
 	@if git diff --quiet main...HEAD -- 'backend/app/modules/*/domain.py'; then echo "no domain changes"; \
-	else cd backend && uv run mutmut run && uv run mutmut results; fi
+	else cd backend && SPEC_DIR=$(CURDIR)/spec uv run mutmut run && uv run mutmut results; fi
 
 # ---------- production images (Mac M2 → AlmaLinux x86_64) ----------
 build-prod: ## Build production images for $(PLATFORM): make build-prod TAG=2026.10.01-1
