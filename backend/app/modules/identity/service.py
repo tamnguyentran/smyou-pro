@@ -142,8 +142,15 @@ def refresh(
 ) -> Issued | Failure:
     if not refresh_token:
         return Failure.UNAUTHENTICATED
+    token_hash = sha256_hex(refresh_token)
+    owner = session.scalar(select(AuthSession.employee_id).where(AuthSession.token_hash == token_hash))
+    if owner is None:
+        return Failure.UNAUTHENTICATED
+    # Lock order everywhere: the employee row, then its sessions (change_password does the same) —
+    # the opposite order deadlocks against a concurrent password change.
+    employee = session.get(Employee, owner, with_for_update=True, populate_existing=True)
     row = session.scalars(
-        select(AuthSession).where(AuthSession.token_hash == sha256_hex(refresh_token)).with_for_update()
+        select(AuthSession).where(AuthSession.token_hash == token_hash).with_for_update()
     ).one_or_none()
     if row is None:
         return Failure.UNAUTHENTICATED
@@ -151,7 +158,6 @@ def refresh(
         _revoke(session, AuthSession.family_id == row.family_id, now=now)
         logger.warning("revoked refresh token reused; session family of %s revoked", row.employee_id)
         return Failure.SESSION_REVOKED
-    employee = session.get(Employee, row.employee_id)
     if (
         row.expires_at <= now
         or employee is None
@@ -187,7 +193,7 @@ def change_password(
     settings: Settings,
     user_agent: str,
 ) -> Issued | Failure | list[tuple[str, str]]:
-    employee = session.get(Employee, actor.id, with_for_update=True)
+    employee = session.get(Employee, actor.id, with_for_update=True, populate_existing=True)
     if employee is None or not _session_live(session, actor.session_family, now):
         # A concurrent request locked the account (and revoked every session) while this one waited.
         return Failure.UNAUTHENTICATED
