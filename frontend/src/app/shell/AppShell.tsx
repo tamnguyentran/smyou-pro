@@ -9,6 +9,7 @@ import { useMe } from "../../features/me/api";
 import { cn } from "../../lib/cn";
 import { useMediaQuery } from "../../lib/useMediaQuery";
 import { primaryAction, roleLabels, visibleMenu } from "../menu";
+import { BottomNav } from "./BottomNav";
 import { MeError } from "./MeError";
 import { NavMenu } from "./NavMenu";
 import { PageTitleContext } from "./pageTitle";
@@ -174,8 +175,10 @@ function PrimaryAction() {
   );
 }
 
-function Content({ children }: { children: ReactNode }) {
-  return <main className="mx-auto w-full max-w-7xl flex-1 p-4 lg:p-8">{children}</main>;
+function Content({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <main className={cn("mx-auto w-full max-w-7xl flex-1 p-4 lg:p-8", className)}>{children}</main>
+  );
 }
 
 /** Role-based app shell (UI_GUIDELINES §3–§4): sidebar ≥ 1024px, header + drawer below. */
@@ -231,9 +234,10 @@ export function AppShell() {
           </button>
           <h1 className="truncate text-lg font-semibold text-heading">{title}</h1>
         </header>
-        <Content>
+        <Content className="pb-24">
           <Outlet />
         </Content>
+        <BottomNav />
       </div>
       {drawerOpen ? <Drawer onClose={closeDrawer} /> : null}
     </PageTitleContext>

@@ -3,6 +3,8 @@ import { RequireSession, SignedOutOnly } from "../features/auth/guards";
 import { ChangePasswordPage } from "../features/auth/pages/ChangePasswordPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { HomeRoute } from "../features/home/pages/HomeRoute";
+import { NotificationsPage } from "../features/notifications/pages/NotificationsPage";
+import { ProfilePage } from "../features/profile/pages/ProfilePage";
 import { menuPages } from "./menu";
 import { AppShell } from "./shell/AppShell";
 import { MenuPage } from "./shell/MenuPage";
@@ -42,6 +44,8 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <HomeRoute /> },
       ...menuRoutes,
+      { path: "/ca-nhan", element: <ProfilePage /> },
+      { path: "/thong-bao", element: <NotificationsPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { KeyRound, LogOut } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { BrandHeader } from "../../../components/BrandHeader";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
@@ -18,6 +18,9 @@ export function ChangePasswordPage() {
   const change = useChangePassword();
   const toast = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Forced first-login change (no way around it) vs. a voluntary change from the profile page.
+  const forced = session?.must_change_password ?? false;
   const { register, handleSubmit, formState } = useForm<ChangePasswordValues>({
     resolver: zodResolver(changePasswordSchema),
   });
@@ -42,11 +45,11 @@ export function ChangePasswordPage() {
       <section className="w-full rounded-2xl border border-line bg-card p-6 shadow-card md:max-w-md md:p-8">
         <BrandHeader />
         <h2 className="mt-6 text-lg font-semibold text-heading lg:text-xl">Đổi mật khẩu</h2>
-        {session?.must_change_password ? (
-          <p className="mt-1 text-sm leading-relaxed text-body">
-            Đây là lần đăng nhập đầu tiên. Hãy đặt mật khẩu mới chỉ bạn biết.
-          </p>
-        ) : null}
+        <p className="mt-1 text-sm leading-relaxed text-body">
+          {forced
+            ? "Đây là lần đăng nhập đầu tiên. Hãy đặt mật khẩu mới chỉ bạn biết."
+            : "Đặt mật khẩu mới cho tài khoản của bạn."}
+        </p>
         <form noValidate onSubmit={(e) => void onSubmit(e)} className="mt-4 space-y-4">
           {formMessage ? <Alert>{formMessage}</Alert> : null}
           <PasswordField
@@ -77,20 +80,35 @@ export function ChangePasswordPage() {
             Đổi mật khẩu
           </Button>
         </form>
-        {signOutFailed ? (
-          <div className="mt-4">
-            <Alert>Không đăng xuất được. Vui lòng thử lại.</Alert>
-          </div>
-        ) : null}
-        <Button
-          variant="secondary"
-          onClick={signOut}
-          loading={signingOut}
-          icon={<LogOut aria-hidden="true" className="size-4" />}
-          className="mt-3 w-full"
-        >
-          Đăng xuất
-        </Button>
+        {forced ? (
+          <>
+            {signOutFailed ? (
+              <div className="mt-4">
+                <Alert>Không đăng xuất được. Vui lòng thử lại.</Alert>
+              </div>
+            ) : null}
+            <Button
+              variant="secondary"
+              onClick={signOut}
+              loading={signingOut}
+              icon={<LogOut aria-hidden="true" className="size-4" />}
+              className="mt-3 w-full"
+            >
+              Đăng xuất
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              // Back to where the user came from (the profile page), or to it on a direct visit.
+              void (location.key === "default" ? navigate("/ca-nhan") : navigate(-1));
+            }}
+            className="mt-3 w-full"
+          >
+            Huỷ
+          </Button>
+        )}
       </section>
     </main>
   );
