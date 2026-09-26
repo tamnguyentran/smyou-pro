@@ -45,3 +45,10 @@
     @apply bg-page font-sans text-body antialiased;
   }
 }
+
+/* App shell drawer (UI_GUIDELINES §4): slides in from the left. */
+@keyframes drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
