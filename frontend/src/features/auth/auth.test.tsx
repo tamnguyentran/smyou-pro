@@ -146,7 +146,9 @@ describe("Đổi mật khẩu lần đầu", () => {
     expect(router.state.location.pathname).toBe("/doi-mat-khau");
 
     await router.navigate("/");
-    await waitFor(() => expect(router.state.location.pathname).toBe("/doi-mat-khau"));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/doi-mat-khau");
+    });
 
     await user.type(screen.getByLabelText("Mật khẩu hiện tại"), "TamThoi#14");
     await user.type(screen.getByLabelText("Mật khẩu mới"), "Khoa@SmYou9");
@@ -154,7 +156,9 @@ describe("Đổi mật khẩu lần đầu", () => {
     await user.click(screen.getByRole("button", { name: "Đổi mật khẩu" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent("Đã đổi mật khẩu.");
-    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/");
+    });
   });
 
   test("AC-AUTH-024 nhập lại không khớp và lỗi mật khẩu hiện tại của server hiện dưới đúng ô", async () => {
@@ -221,7 +225,9 @@ describe("Phiên đăng nhập", () => {
     expect(await screen.findByRole("heading", { name: "Đăng nhập" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/dang-nhap");
     await router.navigate(-1);
-    await waitFor(() => expect(router.state.location.pathname).toBe("/dang-nhap"));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/dang-nhap");
+    });
     expect(within(document.body).queryByText(/Nguyễn Văn An/)).not.toBeInTheDocument();
   });
 });

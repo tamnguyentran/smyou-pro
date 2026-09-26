@@ -16,11 +16,21 @@ export default defineConfig({
   server: {
     port: Number(process.env.VITE_PORT ?? "5183"),
     strictPort: true,
-    // The backend serves /api/v1 at its root; strip BASE_PATH when dev runs under a subpath.
+    // The backend serves /api/v1 at its root; strip BASE_PATH when dev runs under a subpath, and move
+    // its cookies under the subpath too — what a backend configured with BASE_PATH does in production.
+    // (`vite preview`, used by E2E with BASE_PATH=/smyoutask, reuses this proxy.)
     proxy: {
       [`${apiPrefix}/api`]: {
         target: backendUrl,
         rewrite: (path) => path.slice(apiPrefix.length),
+        ...(apiPrefix
+          ? {
+              cookiePathRewrite: {
+                "/": `${apiPrefix}/`,
+                "/api/v1/auth": `${apiPrefix}/api/v1/auth`,
+              },
+            }
+          : {}),
       },
     },
   },
