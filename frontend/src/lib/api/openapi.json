@@ -20,6 +20,7 @@
         "type": "object"
       },
       "EmployeeCreate": {
+        "additionalProperties": false,
         "properties": {
           "department": {
             "enum": ["MANAGEMENT", "SALES", "TECHNICAL"],
