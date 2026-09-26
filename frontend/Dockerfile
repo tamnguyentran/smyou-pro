@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Targets: dev (Vite dev server, source mounted) and prod (static build served by nginx).
-FROM node:22-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
