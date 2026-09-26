@@ -72,6 +72,7 @@ const AN_ROW = employee({
   title: "Quản lý chung",
   roles: ["MANAGER"],
 });
+const AN_ROW_WITH_SALE = employee({ ...AN_ROW, roles: ["MANAGER", "SALE"] });
 
 function page(items: Employee[], total = items.length) {
   return { items, total, limit: 20, offset: 0 };
@@ -137,7 +138,7 @@ describe("AC-EMP-013 danh sách nhân viên", () => {
       expect(within(table).getByText(heading)).toBeInTheDocument();
     }
     expect(within(table).getByText("NV005")).toBeInTheDocument();
-    expect(within(table).getByText("Đang hoạt động")).toBeInTheDocument();
+    expect(within(table).getAllByText("Đang hoạt động").length).toBeGreaterThan(0);
   });
 
   test("điện thoại: thẻ xếp dọc, không phải bảng", async () => {
@@ -344,6 +345,7 @@ describe("AC-EMP-015 sửa nhân viên", () => {
     const user = userEvent.setup();
     await user.click(await screen.findByText("Lê Thị Hoa"));
     const dialog = await screen.findByRole("dialog", { name: "Sửa nhân viên" });
+    await user.type(within(dialog).getByLabelText("Chức danh"), "!");
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
     expect(
       await within(dialog).findByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại."),
@@ -352,7 +354,9 @@ describe("AC-EMP-015 sửa nhân viên", () => {
   });
 
   test("409 LAST_MANAGER hiện đúng thông điệp server", async () => {
-    signedInAs(AN, () => HttpResponse.json(page([AN_ROW])));
+    // AN gỡ vai trò Quản lý chung của chính mình nhưng vẫn còn vai trò khác được chọn (Sale) —
+    // để lỗi đến từ server (luật "còn ≥ 1 Manager"), không phải kiểm ở client (roles rỗng).
+    signedInAs(AN, () => HttpResponse.json(page([AN_ROW_WITH_SALE])));
     server.use(
       http.post("/api/v1/employees/:id/roles", () =>
         HttpResponse.json(
@@ -368,7 +372,8 @@ describe("AC-EMP-015 sửa nhân viên", () => {
     renderApp("/employees");
     await openMenu();
     const user = userEvent.setup();
-    await user.click(await screen.findByText("Nguyễn Văn An"));
+    const main = await screen.findByRole("main");
+    await user.click(await within(main).findByText("Nguyễn Văn An"));
     const dialog = await screen.findByRole("dialog", { name: "Sửa nhân viên" });
     await user.click(within(dialog).getByRole("checkbox", { name: "Quản lý chung" }));
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
@@ -437,7 +442,8 @@ describe("AC-EMP-016 khoá/mở/cấp lại mật khẩu", () => {
     signedInAs(AN, () => HttpResponse.json(page([AN_ROW])));
     renderApp("/employees");
     await openMenu();
-    await userEvent.setup().click(await screen.findByText("Nguyễn Văn An"));
+    const main = await screen.findByRole("main");
+    await userEvent.setup().click(await within(main).findByText("Nguyễn Văn An"));
     const dialog = await screen.findByRole("dialog", { name: "Sửa nhân viên" });
     expect(
       within(dialog).queryByRole("button", { name: "Khoá tài khoản" }),

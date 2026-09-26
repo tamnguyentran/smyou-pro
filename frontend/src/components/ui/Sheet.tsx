@@ -69,7 +69,7 @@ export function Sheet({
           <h2 className="text-lg font-semibold text-heading">{title}</h2>
           <button
             type="button"
-            aria-label="Đóng"
+            aria-label="Đóng hộp thoại"
             onClick={onClose}
             className="flex size-11 shrink-0 items-center justify-center rounded-xl text-muted transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           >

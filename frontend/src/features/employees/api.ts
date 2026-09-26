@@ -17,7 +17,7 @@ export interface EmployeeFilters {
   offset: number;
 }
 
-const EMPLOYEES_KEY = "employees";
+export const EMPLOYEES_KEY = "employees";
 
 /** Paginated, searched, filtered list — kept while the next page loads (no flash back to Skeleton). */
 export function useEmployees(filters: EmployeeFilters) {

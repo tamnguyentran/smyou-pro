@@ -6,9 +6,7 @@ export const employeeFormSchema = z.object({
   full_name: z.string().trim().min(1, "Vui lòng nhập họ tên."),
   email: z.string().trim().min(1, "Vui lòng nhập email.").pipe(z.email("Email không hợp lệ.")),
   phone: z.string().trim().optional(),
-  department: z.enum(["MANAGEMENT", "SALES", "TECHNICAL"], {
-    message: "Vui lòng chọn bộ phận.",
-  }),
+  department: z.string().min(1, "Vui lòng chọn bộ phận."),
   title: z.string().trim().optional(),
 });
 export type EmployeeFormValues = z.infer<typeof employeeFormSchema>;
