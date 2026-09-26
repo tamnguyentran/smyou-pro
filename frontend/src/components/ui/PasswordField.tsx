@@ -15,7 +15,7 @@ export function PasswordField(props: Omit<TextFieldProps, "type" | "trailing">) 
             setVisible((v) => !v);
           }}
           aria-label={visible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-muted hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-muted hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
         >
           {visible ? (
             <EyeOff aria-hidden="true" className="size-5" />

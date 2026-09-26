@@ -1,6 +1,6 @@
 # M1-03a — Khung ứng dụng theo vai trò: menu, sidebar, menu trượt, 403/404
 
-- **Status:** Approved
+- **Status:** Done
 - **Approval:** chủ dự án duyệt nội dung + Q26–Q30 theo đề xuất (2026-09-26)
 - **Backlog:** M1-03a · **Milestone:** M1
 - **Liên quan:** `spec/permissions.yaml` (`menu`, `mobile_bottom_nav`, `roles[].label`); PERMISSIONS.md (Menu theo vai trò); UI_GUIDELINES §3 (desktop), §4 (mobile), §6–§8; ARCHITECTURE §4 (`GET /me`), §7; TESTING_STRATEGY §3 (`test_menu_sync`); M1-02 (`/me`), M1-01b (phiên, đăng xuất)

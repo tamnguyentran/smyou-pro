@@ -9,6 +9,7 @@ import { useMe } from "../../features/me/api";
 import { cn } from "../../lib/cn";
 import { useMediaQuery } from "../../lib/useMediaQuery";
 import { primaryAction, roleLabels, visibleMenu } from "../menu";
+import { BottomNav } from "./BottomNav";
 import { MeError } from "./MeError";
 import { NavMenu } from "./NavMenu";
 import { PageTitleContext } from "./pageTitle";
@@ -77,7 +78,11 @@ function Panel({ onNavigate, inDrawer = false }: { onNavigate?: () => void; inDr
         <MenuBody onNavigate={onNavigate} />
       </div>
       <div className="space-y-3 border-t border-line p-4">
-        <div className="flex items-center gap-3">
+        <Link
+          to="/ca-nhan"
+          onClick={onNavigate}
+          className="flex min-h-11 items-center gap-3 rounded-xl p-1 transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+        >
           <div
             aria-hidden="true"
             className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-light text-sm font-semibold text-brand"
@@ -88,7 +93,7 @@ function Panel({ onNavigate, inDrawer = false }: { onNavigate?: () => void; inDr
             <p className="truncate text-sm font-semibold text-heading">{name}</p>
             <p className="truncate text-xs font-medium text-muted">{roles}</p>
           </div>
-        </div>
+        </Link>
         {failed ? <Alert>Không đăng xuất được. Vui lòng thử lại.</Alert> : null}
         <Button
           variant="secondary"
@@ -149,7 +154,7 @@ function Drawer({ onClose }: { onClose: () => void }) {
           type="button"
           aria-label="Đóng menu"
           onClick={onClose}
-          className="absolute top-3 right-2 flex size-11 items-center justify-center rounded-xl text-muted hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="absolute top-3 right-2 flex size-11 items-center justify-center rounded-xl text-muted hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
         >
           <X aria-hidden="true" className="size-5" />
         </button>
@@ -174,8 +179,10 @@ function PrimaryAction() {
   );
 }
 
-function Content({ children }: { children: ReactNode }) {
-  return <main className="mx-auto w-full max-w-7xl flex-1 p-4 lg:p-8">{children}</main>;
+function Content({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <main className={cn("mx-auto w-full max-w-7xl flex-1 p-4 lg:p-8", className)}>{children}</main>
+  );
 }
 
 /** Role-based app shell (UI_GUIDELINES §3–§4): sidebar ≥ 1024px, header + drawer below. */
@@ -225,15 +232,16 @@ export function AppShell() {
             onClick={() => {
               setDrawerOpen(true);
             }}
-            className="flex size-11 items-center justify-center rounded-xl text-heading hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="flex size-11 items-center justify-center rounded-xl text-heading hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           >
             <MenuIcon aria-hidden="true" className="size-6" />
           </button>
           <h1 className="truncate text-lg font-semibold text-heading">{title}</h1>
         </header>
-        <Content>
+        <Content className="pb-24">
           <Outlet />
         </Content>
+        <BottomNav />
       </div>
       {drawerOpen ? <Drawer onClose={closeDrawer} /> : null}
     </PageTitleContext>
