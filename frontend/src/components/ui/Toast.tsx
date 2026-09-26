@@ -30,7 +30,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {message ? (
           <div
             role="status"
-            className="fixed inset-x-4 bottom-4 z-50 flex items-center gap-2 rounded-xl bg-brand px-4 py-3 text-sm font-medium text-white shadow-card-hover md:left-auto md:right-6 md:w-96"
+            className="fixed inset-x-4 bottom-24 z-50 lg:bottom-4 flex items-center gap-2 rounded-xl bg-brand px-4 py-3 text-sm font-medium text-white shadow-card-hover md:left-auto md:right-6 md:w-96"
           >
             <CheckCircle2 aria-hidden="true" className="size-5 shrink-0 text-accent" />
             {message}

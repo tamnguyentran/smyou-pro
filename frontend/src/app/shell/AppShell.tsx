@@ -78,7 +78,11 @@ function Panel({ onNavigate, inDrawer = false }: { onNavigate?: () => void; inDr
         <MenuBody onNavigate={onNavigate} />
       </div>
       <div className="space-y-3 border-t border-line p-4">
-        <div className="flex items-center gap-3">
+        <Link
+          to="/ca-nhan"
+          onClick={onNavigate}
+          className="flex min-h-11 items-center gap-3 rounded-xl p-1 transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        >
           <div
             aria-hidden="true"
             className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-light text-sm font-semibold text-brand"
@@ -89,7 +93,7 @@ function Panel({ onNavigate, inDrawer = false }: { onNavigate?: () => void; inDr
             <p className="truncate text-sm font-semibold text-heading">{name}</p>
             <p className="truncate text-xs font-medium text-muted">{roles}</p>
           </div>
-        </div>
+        </Link>
         {failed ? <Alert>Không đăng xuất được. Vui lòng thử lại.</Alert> : null}
         <Button
           variant="secondary"

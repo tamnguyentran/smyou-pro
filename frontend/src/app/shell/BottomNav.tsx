@@ -10,11 +10,12 @@ function Slot({ to, label, children }: { to: string; label: string; children: Re
   return (
     <NavLink
       to={to}
-      end
+      // only "/" must match exactly; other slots stay highlighted on their sub-pages
+      end={to === "/"}
       className={({ isActive }) =>
         cn(
           "flex min-h-14 min-w-0 flex-1 flex-col items-center justify-start gap-0.5 rounded-xl pt-1.5 text-center text-xs leading-tight font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
-          isActive ? "text-brand" : "text-muted",
+          isActive ? "font-semibold text-brand" : "text-muted",
         )
       }
     >
@@ -50,17 +51,20 @@ export function BottomNav() {
           <Slot to={second.path} label={second.label}>
             <MenuItemIcon name={second.icon} aria-hidden="true" className="size-6" />
           </Slot>
+        ) : me.isPending ? (
+          // keep the slot's width while /me loads so the bar does not jump
+          <div aria-hidden="true" className="min-h-14 flex-1" />
         ) : null}
         {action ? (
-          <NavLink
-            to={action.path}
-            className="-mt-5 flex min-w-0 flex-1 justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          >
-            <span className="flex size-14 items-center justify-center rounded-full bg-brand shadow-card-hover">
+          <div className="-mt-5 flex min-w-0 flex-1 justify-center">
+            <NavLink
+              to={action.path}
+              className="flex size-14 items-center justify-center rounded-full bg-brand shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+            >
               <Plus aria-hidden="true" className="size-7 text-accent" />
-            </span>
-            <span className="sr-only">{action.label}</span>
-          </NavLink>
+              <span className="sr-only">{action.label}</span>
+            </NavLink>
+          </div>
         ) : null}
         <IconSlot to="/thong-bao" label="Thông báo" icon={Bell} />
         <IconSlot to="/ca-nhan" label="Cá nhân" icon={UserRound} />
