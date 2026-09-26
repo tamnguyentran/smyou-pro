@@ -209,9 +209,7 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
     expect(structure.groups).toEqual({
       "Đơn hàng": ["Danh sách đơn", "Tạo đơn mới", "Khách hàng"],
     });
-    expect(screen.getAllByText("Nhân viên kinh doanh · Nhân viên kỹ thuật").length).toBeGreaterThan(
-      0,
-    );
+    expect(screen.getAllByText("Nhân viên kinh doanh · Nhân viên kỹ thuật")).toHaveLength(2); // header + footer
   });
 
   test("AC-SYS-037 badge từ counters: ẩn khi 0, 99+ khi lớn, có nhãn đọc màn hình", async () => {

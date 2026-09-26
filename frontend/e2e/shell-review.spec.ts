@@ -55,10 +55,13 @@ test("AC-SYS-041 AC-SYS-042 AC-SYS-043 @screenshot trang 403, 404, đang phát t
 
   await page.goto("./khong-co-trang-nay");
   await expect(page.getByText("Không tìm thấy trang.")).toBeVisible();
+  if (!isMobile(info)) await openMenu(page, info); // sidebar loaded, not the skeleton
   await page.screenshot({ path: shot(info, "page-404.png"), fullPage: true });
 
   await page.goto("./my-tasks");
   await expect(page.getByText("Tính năng đang được phát triển.")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1, name: "Việc của tôi" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Về trang chủ" })).toBeVisible();
+  if (!isMobile(info)) await openMenu(page, info);
   await page.screenshot({ path: shot(info, "page-coming-soon.png"), fullPage: true });
 });
