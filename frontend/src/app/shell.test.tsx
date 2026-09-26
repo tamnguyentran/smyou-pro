@@ -309,7 +309,7 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
 
     const sidebar = screen.getByRole("complementary");
     expect(within(sidebar).getByText("Nguyễn Văn An")).toBeInTheDocument();
-    expect(within(sidebar).getAllByText("Quản lý chung").length).toBeGreaterThan(0);
+    expect(within(sidebar).getAllByText("Quản lý chung")).toHaveLength(2); // header + footer
     await userEvent.setup().click(within(sidebar).getByRole("button", { name: "Đăng xuất" }));
 
     await waitFor(() => {

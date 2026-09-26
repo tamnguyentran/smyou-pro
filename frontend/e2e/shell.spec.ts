@@ -64,6 +64,10 @@ for (const role of Object.keys(ACCOUNTS) as Role[]) {
   test(`AC-SYS-035 AC-SYS-046 @a11y @screenshot menu của ${role}`, async ({ page }, info) => {
     await signIn(page, role);
     await expect(page.getByText(`Xin chào, ${ACCOUNTS[role].name}`)).toBeVisible();
+    if (!isMobile(info)) {
+      // desktop: the sidebar menu must be loaded (not the skeleton) before the evidence
+      await expect(page.getByRole("link", { name: "Tổng quan" })).toBeVisible();
+    }
     await evidence(page, info, `shell-${role}.png`);
 
     const nav = await menu(page, info);
