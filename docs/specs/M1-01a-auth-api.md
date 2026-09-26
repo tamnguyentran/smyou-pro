@@ -1,6 +1,6 @@
 # M1-01a — Xác thực (backend): đăng nhập, phiên, đổi mật khẩu, tạo Manager
 
-- **Status:** Approved
+- **Status:** Done
 - **Approval:** chủ dự án duyệt nội dung + Q19–Q24 theo đề xuất (2026-09-26); AC-AUTH-020 (Q25) duyệt 2026-09-26 sau review bảo mật
 - **Backlog:** M1-01a · **Milestone:** M1
 - **Liên quan:** PRD §4, §6 (Bảo mật); DOMAIN_MODEL §1 (Employee); `spec/permissions.yaml` (`public_routes`, `profile.manage`); ARCHITECTURE §2 (pwdlib argon2, PyJWT, cookie httpOnly, access 15', refresh 7 ngày, rotate); ADR-014 (cookie `Path` theo `BASE_PATH`)
