@@ -42,7 +42,7 @@ export function EmployeeList({
   if (desktop) {
     return (
       <table className="w-full overflow-hidden rounded-2xl border border-line bg-card text-left text-sm">
-        <thead className="bg-sidebar-sub text-xs font-semibold text-muted uppercase">
+        <thead className="bg-sidebar-sub text-xs font-semibold text-body uppercase">
           <tr>
             {["Mã", "Họ tên", "Email", "SĐT", "Vai trò", "Trạng thái"].map((heading) => (
               <th key={heading} scope="col" className="px-4 py-3">

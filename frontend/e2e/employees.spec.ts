@@ -67,7 +67,7 @@ test("AC-EMP-014 AC-EMP-018 @a11y @screenshot thêm nhân viên và mật khẩu
   ).toBeVisible();
   await evidence(page, info, "temporary-password.png");
 
-  await passwordDialog.getByRole("button", { name: "Đóng" }).click();
+  await passwordDialog.getByRole("button", { name: "Đóng", exact: true }).click();
   await expect(page.getByText("Đã thêm nhân viên QA Kiểm thử.")).toBeVisible();
 });
 
