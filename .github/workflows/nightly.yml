@@ -16,7 +16,10 @@ jobs:
       - run: uv sync --frozen
       - name: Mutation testing on domain layer (threshold ≥ 80% killed)
         run: |
-          uv run mutmut run || true
+          if ! compgen -G "app/modules/*/domain.py" > /dev/null; then
+            echo "::notice::no app/modules/*/domain.py yet — mutation testing skipped"; exit 0
+          fi
+          uv run mutmut run || true   # survivors give a non-zero exit; the score below decides
           uv run mutmut export-cicd-stats
           python3 - <<'EOF'
           import json
@@ -44,4 +47,9 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with: { python-version: "3.12" }
       - run: uv sync --frozen && uv run alembic upgrade head
-      - run: uv run pytest tests/stateful -q
+      - name: Stateful workflow tests (nightly profile)
+        run: |
+          if [ ! -d tests/stateful ]; then
+            echo "::notice::no tests/stateful yet — stateful tests skipped"; exit 0
+          fi
+          uv run pytest tests/stateful -q
