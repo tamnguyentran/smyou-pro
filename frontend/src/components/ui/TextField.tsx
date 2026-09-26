@@ -37,7 +37,7 @@ export function TextField({
           className={cn(
             "h-11 w-full rounded-xl border border-line bg-card px-3 text-base text-body placeholder:text-placeholder",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
-            error && "border-urgent-border",
+            error && "border-urgent-fg",
             trailing ? "pr-12" : undefined,
             className,
           )}
@@ -45,7 +45,7 @@ export function TextField({
         />
         {trailing}
       </div>
-      {hint && !error ? (
+      {hint ? (
         <p id={`${inputId}-hint`} className="text-xs font-medium text-muted">
           {hint}
         </p>

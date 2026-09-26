@@ -1,14 +1,22 @@
+import type { LoginResponse } from "./client";
 import { createApiClient } from "./client";
 
-let sessionLost: (() => void) | undefined;
+interface SessionHandlers {
+  lost?: () => void;
+  renewed?: (session: LoginResponse) => void;
+}
+let handlers: SessionHandlers = {};
 
-/** The app registers what "session lost" means (clear state → login page); see app/providers.tsx. */
-export function setSessionLostHandler(handler: (() => void) | undefined): void {
-  sessionLost = handler;
+/** The app registers what session changes mean for its state (see app/providers.tsx). */
+export function setSessionHandlers(next: SessionHandlers): void {
+  handlers = next;
 }
 
 export const api = createApiClient({
   onSessionLost: () => {
-    sessionLost?.();
+    handlers.lost?.();
+  },
+  onSessionRenewed: (session) => {
+    handlers.renewed?.(session);
   },
 });

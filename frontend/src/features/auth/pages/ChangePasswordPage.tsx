@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { KeyRound } from "lucide-react";
+import { KeyRound, LogOut } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { BrandHeader } from "../../../components/BrandHeader";
@@ -7,7 +7,9 @@ import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { PasswordField } from "../../../components/ui/PasswordField";
 import { useToast } from "../../../components/ui/Toast";
+import { useDocumentTitle } from "../../../lib/useDocumentTitle";
 import { useChangePassword, useSession } from "../api";
+import { useSignOut } from "../useSignOut";
 import { fieldErrors, formError } from "../errors";
 import { changePasswordSchema, type ChangePasswordValues } from "../schemas";
 
@@ -20,6 +22,9 @@ export function ChangePasswordPage() {
     resolver: zodResolver(changePasswordSchema),
   });
   const server = fieldErrors(change.error);
+  const formMessage = formError(change.error, ["current_password", "new_password"]);
+  const { signOut, pending: signingOut, failed: signOutFailed } = useSignOut();
+  useDocumentTitle("Đổi mật khẩu");
   const onSubmit = handleSubmit(({ current_password, new_password }) => {
     change.mutate(
       { current_password, new_password },
@@ -43,7 +48,7 @@ export function ChangePasswordPage() {
           </p>
         ) : null}
         <form noValidate onSubmit={(e) => void onSubmit(e)} className="mt-4 space-y-4">
-          {formError(change.error) ? <Alert>{formError(change.error)}</Alert> : null}
+          {formMessage ? <Alert>{formMessage}</Alert> : null}
           <PasswordField
             label="Mật khẩu hiện tại"
             autoComplete="current-password"
@@ -72,6 +77,20 @@ export function ChangePasswordPage() {
             Đổi mật khẩu
           </Button>
         </form>
+        {signOutFailed ? (
+          <div className="mt-4">
+            <Alert>Không đăng xuất được. Vui lòng thử lại.</Alert>
+          </div>
+        ) : null}
+        <Button
+          variant="secondary"
+          onClick={signOut}
+          loading={signingOut}
+          icon={<LogOut aria-hidden="true" className="size-4" />}
+          className="mt-3 w-full"
+        >
+          Đăng xuất
+        </Button>
       </section>
     </main>
   );

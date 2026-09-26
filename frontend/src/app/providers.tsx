@@ -2,7 +2,7 @@ import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
 import { ToastProvider } from "../components/ui/Toast";
 import { SESSION_KEY, type Session } from "../features/auth/api";
-import { setSessionLostHandler } from "../lib/api";
+import { setSessionHandlers } from "../lib/api";
 import { clearSignedIn } from "../lib/sessionHint";
 
 export function AppProviders({
@@ -12,14 +12,19 @@ export function AppProviders({
   queryClient: QueryClient;
   children: ReactNode;
 }) {
-  // A refused refresh anywhere means "signed out": the route guards then show the sign-in page.
+  // Refused refresh → signed out (guards show sign-in); silent refresh → keep the session fresh.
   useEffect(() => {
-    setSessionLostHandler(() => {
-      clearSignedIn();
-      queryClient.setQueryData<Session>(SESSION_KEY, null);
+    setSessionHandlers({
+      lost: () => {
+        clearSignedIn();
+        queryClient.setQueryData<Session>(SESSION_KEY, null);
+      },
+      renewed: (session) => {
+        queryClient.setQueryData<Session>(SESSION_KEY, session);
+      },
     });
     return () => {
-      setSessionLostHandler(undefined);
+      setSessionHandlers({});
     };
   }, [queryClient]);
 

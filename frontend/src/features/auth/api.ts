@@ -56,9 +56,12 @@ export function useLogout() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      await api.POST("/api/v1/auth/logout");
+      const { error, response } = await api.POST("/api/v1/auth/logout");
+      if (!response.ok) throw toApiError(response, error);
     },
-    onSettled: () => {
+    // Only once the server revoked the session: otherwise the refresh cookie would still work
+    // on this (possibly shared) device while the screen claims the user is signed out.
+    onSuccess: () => {
       clearSignedIn();
       queryClient.setQueryData<Session>(SESSION_KEY, null);
     },

@@ -6,6 +6,7 @@ import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { PasswordField } from "../../../components/ui/PasswordField";
 import { TextField } from "../../../components/ui/TextField";
+import { useDocumentTitle } from "../../../lib/useDocumentTitle";
 import { useLogin } from "../api";
 import { fieldErrors, formError } from "../errors";
 import { loginSchema, type LoginValues } from "../schemas";
@@ -16,6 +17,8 @@ export function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
   const server = fieldErrors(login.error);
+  const formMessage = formError(login.error, ["email", "password"]);
+  useDocumentTitle("Đăng nhập");
   const onSubmit = handleSubmit((values) => {
     login.mutate(values);
   });
@@ -26,7 +29,7 @@ export function LoginPage() {
         <BrandHeader />
         <h2 className="mt-6 text-lg font-semibold text-heading lg:text-xl">Đăng nhập</h2>
         <form noValidate onSubmit={(e) => void onSubmit(e)} className="mt-4 space-y-4">
-          {formError(login.error) ? <Alert>{formError(login.error)}</Alert> : null}
+          {formMessage ? <Alert>{formMessage}</Alert> : null}
           <TextField
             label="Email"
             type="email"

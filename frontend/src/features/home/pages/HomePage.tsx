@@ -1,16 +1,23 @@
 import { LogOut, Wrench } from "lucide-react";
 import { BrandHeader } from "../../../components/BrandHeader";
+import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 
 interface HomePageProps {
   employeeName?: string;
   onLogout?: () => void;
   loggingOut?: boolean;
+  logoutFailed?: boolean;
 }
 
 /** Placeholder landing page (M0-02); replaced by the role dashboard in M7-02.
  * The sign-out button lives here until the AppShell exists (M1-03). */
-export function HomePage({ employeeName, onLogout, loggingOut = false }: HomePageProps) {
+export function HomePage({
+  employeeName,
+  onLogout,
+  loggingOut = false,
+  logoutFailed = false,
+}: HomePageProps) {
   return (
     <main className="flex min-h-dvh items-center justify-center p-4">
       <section className="w-full rounded-2xl border border-line bg-card p-6 shadow-card md:max-w-md md:p-8">
@@ -22,6 +29,11 @@ export function HomePage({ employeeName, onLogout, loggingOut = false }: HomePag
           <Wrench aria-hidden="true" className="size-4 text-accent" />
           Công ty TNHH SMYou
         </p>
+        {logoutFailed ? (
+          <div className="mt-6">
+            <Alert>Không đăng xuất được. Vui lòng thử lại.</Alert>
+          </div>
+        ) : null}
         {onLogout ? (
           <Button
             variant="secondary"

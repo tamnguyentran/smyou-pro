@@ -19,6 +19,9 @@ ACCOUNTS = [
     ("an.e2e@smyou.vn", "E2E01", "Nguyễn Văn An", "MANAGER", "E2e@SmYou2026", False),
     ("khoa.mobile@smyou.vn", "E2E02", "Trần Minh Khoa", "TECHNICIAN", "TamThoi#E2E1", True),
     ("khoa.desktop@smyou.vn", "E2E03", "Trần Minh Khoa", "TECHNICIAN", "TamThoi#E2E1", True),
+    # Stay in the forced first-login state (never changed by a test): screenshot + a11y evidence.
+    ("tuan.mobile@smyou.vn", "E2E04", "Lê Anh Tuấn", "TECHNICIAN", "TamThoi#E2E1", True),
+    ("tuan.desktop@smyou.vn", "E2E05", "Lê Anh Tuấn", "TECHNICIAN", "TamThoi#E2E1", True),
 ]
 
 

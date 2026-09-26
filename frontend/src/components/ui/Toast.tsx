@@ -25,15 +25,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext value={show}>
       {children}
-      {message ? (
-        <div
-          role="status"
-          className="fixed inset-x-4 bottom-4 z-50 flex items-center gap-2 rounded-xl bg-brand px-4 py-3 text-sm font-medium text-white shadow-card-hover md:left-auto md:right-6 md:w-96"
-        >
-          <CheckCircle2 aria-hidden="true" className="size-5 shrink-0 text-accent" />
-          {message}
-        </div>
-      ) : null}
+      {/* Always-mounted live region: some screen readers ignore regions inserted with their text. */}
+      <div aria-live="polite" aria-atomic="true">
+        {message ? (
+          <div
+            role="status"
+            className="fixed inset-x-4 bottom-4 z-50 flex items-center gap-2 rounded-xl bg-brand px-4 py-3 text-sm font-medium text-white shadow-card-hover md:left-auto md:right-6 md:w-96"
+          >
+            <CheckCircle2 aria-hidden="true" className="size-5 shrink-0 text-accent" />
+            {message}
+          </div>
+        ) : null}
+      </div>
     </ToastContext>
   );
 }
