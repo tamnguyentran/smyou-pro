@@ -1,4 +1,6 @@
-"""Review M1-01a: guessing the current password on change-password is limited like login (AC-AUTH-004/017)."""
+"""Review M1-01a: change-password guessing is limited like login; sharper evidence for other ACs."""
+
+import logging
 
 import pytest
 from fastapi import Depends, FastAPI
@@ -6,7 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Connection
 
 from app.core.authz import require
-from tests.integration.conftest import KHOA, employee_row, login, seed
+from tests.integration.conftest import AN, KHOA, FakeClock, employee_row, login, seed
 
 
 def guess(client: TestClient, current: str) -> int:
@@ -44,3 +46,117 @@ def test_login_and_change_password_failures_share_one_counter(app: FastAPI, db: 
 
     assert guess(client, "doan-1") == 422
     assert guess(client, "doan-2") == 423
+
+
+# ---- test-auditor findings: sharper evidence for existing ACs ----
+
+
+@pytest.mark.ac("AC-AUTH-019")
+def test_new_password_hashes_are_argon2id(app: FastAPI, db: Connection) -> None:
+    khoa = seed(db, KHOA, must_change_password=True)
+    seeded_hash = employee_row(db, khoa)["password_hash"]
+    client = TestClient(app, raise_server_exceptions=False)
+    login(client, KHOA.email, KHOA.password)
+
+    res = client.post(
+        "/api/v1/auth/change-password",
+        json={"current_password": KHOA.password, "new_password": "Khoa@SmYou9"},
+    )
+
+    assert res.status_code == 204
+    new_hash = str(employee_row(db, khoa)["password_hash"])
+    assert new_hash != seeded_hash
+    assert new_hash.startswith("$argon2id$")
+
+
+@pytest.mark.ac("AC-AUTH-019")
+def test_logs_exist_but_hold_no_secret_and_422_bodies_do_not_echo(
+    app: FastAPI, db: Connection, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    seed(db, KHOA, must_change_password=True)
+    client = TestClient(app, raise_server_exceptions=False)
+    login(client, KHOA.email, KHOA.password)
+    body = client.post(
+        "/api/v1/auth/change-password", json={"current_password": KHOA.password, "new_password": "ngan-LEAK"}
+    ).text
+
+    assert "login succeeded" in caplog.text
+    assert "ngan-LEAK" not in body
+    assert KHOA.password not in body
+    assert KHOA.password not in caplog.text
+
+
+@pytest.mark.ac("AC-AUTH-004")
+def test_fifth_failure_body_is_the_generic_one(api: TestClient, db: Connection) -> None:
+    seed(db, KHOA, failed_login_count=4)
+    res = login(api, KHOA.email, "sai")
+    assert res.status_code == 401
+    assert res.json()["code"] == "INVALID_CREDENTIALS"
+    assert res.json()["detail"] == "Email hoặc mật khẩu không đúng."
+
+
+@pytest.mark.ac("AC-AUTH-004")
+def test_successful_login_resets_a_nonzero_counter(api: TestClient, db: Connection, clock: FakeClock) -> None:
+    khoa = seed(db, KHOA, failed_login_count=4)
+    login(api, KHOA.email, "sai")
+    clock.advance(minutes=16)
+    login(api, KHOA.email, "sai")
+    assert employee_row(db, khoa)["failed_login_count"] == 1
+    assert login(api, KHOA.email, KHOA.password).status_code == 200
+    assert employee_row(db, khoa)["failed_login_count"] == 0
+
+
+@pytest.mark.ac("AC-AUTH-016")
+def test_current_session_keeps_working_after_password_change(app: FastAPI, db: Connection) -> None:
+    seed(db, KHOA, must_change_password=True)
+    client = TestClient(app, raise_server_exceptions=False)
+    login(client, KHOA.email, KHOA.password)
+    body = {"current_password": KHOA.password, "new_password": "Khoa@SmYou9"}
+    assert client.post("/api/v1/auth/change-password", json=body).status_code == 204
+    assert client.post("/api/v1/auth/refresh").status_code == 200
+
+
+@pytest.mark.ac("AC-AUTH-010")
+def test_missing_refresh_cookie_also_clears_cookies(api: TestClient) -> None:
+    res = api.post("/api/v1/auth/refresh")
+    assert res.status_code == 401
+    cleared = [h for h in res.headers.get_list("set-cookie") if "max-age=0" in h.lower()]
+    assert len(cleared) == 2
+
+
+@pytest.mark.ac("AC-AUTH-007")
+@pytest.mark.parametrize(
+    ("payload", "status"),
+    [
+        ({"email": "", "password": "x"}, 422),
+        ({"email": "khoa.tran@smyou.vn", "password": ""}, 422),
+        ({"email": "khoa.tran@smyou.vn", "password": "x" * 128}, 401),
+    ],
+    ids=["empty-email", "empty-password", "128-chars-accepted"],
+)
+def test_login_payload_edges(api: TestClient, db: Connection, payload: dict[str, str], status: int) -> None:
+    seed(db, KHOA)
+    assert api.post("/api/v1/auth/login", json=payload).status_code == status
+
+
+@pytest.mark.ac("AC-AUTH-014")
+def test_role_holding_the_capability_passes(app: FastAPI, db: Connection) -> None:
+    seed(db, AN)
+
+    @app.get("/api/v1/probe-catalog", dependencies=[Depends(require("catalog.manage"))])
+    def probe() -> dict[str, bool]:
+        return {"ok": True}
+
+    client = TestClient(app, raise_server_exceptions=False)
+    login(client, AN.email, AN.password)
+    assert client.get("/api/v1/probe-catalog").status_code == 200
+
+
+@pytest.mark.ac("AC-AUTH-015")
+def test_refresh_and_logout_work_while_password_change_is_pending(app: FastAPI, db: Connection) -> None:
+    seed(db, KHOA, must_change_password=True)
+    client = TestClient(app, raise_server_exceptions=False)
+    login(client, KHOA.email, KHOA.password)
+    assert client.post("/api/v1/auth/refresh").status_code == 200
+    assert client.post("/api/v1/auth/logout").status_code == 204

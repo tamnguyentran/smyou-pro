@@ -84,3 +84,42 @@ def test_bad_password_exits_1_without_creating(
 
     assert cli.main(ARGS, session_factory=session_factory) == 1
     assert managers(db) == []
+
+
+@pytest.mark.ac("AC-AUTH-018")
+@pytest.mark.parametrize(
+    "variant",
+    [
+        ["create-manager", "--email", " AN.NGUYEN@smyou.vn ", "--full-name", "Khác", "--code", "NV099"],
+        ["create-manager", "--email", "khac@smyou.vn", "--full-name", "Khác", "--code", "NV001"],
+    ],
+    ids=["same-email-other-case", "same-code"],
+)
+def test_duplicates_are_detected_case_insensitively(
+    monkeypatch: pytest.MonkeyPatch,
+    db: Connection,
+    session_factory: sessionmaker[Session],
+    variant: list[str],
+) -> None:
+    typed(monkeypatch, "SmYou@2026", "SmYou@2026", "Khac@2026x", "Khac@2026x")
+    assert cli.main(ARGS, session_factory=session_factory) == 0
+    assert cli.main(variant, session_factory=session_factory) == 1
+
+
+@pytest.mark.ac("AC-AUTH-018")
+def test_password_containing_email_name_is_refused(
+    monkeypatch: pytest.MonkeyPatch, db: Connection, session_factory: sessionmaker[Session]
+) -> None:
+    typed(monkeypatch, "an.nguyen-2026", "an.nguyen-2026")
+    assert cli.main(ARGS, session_factory=session_factory) == 1
+    assert managers(db) == []
+
+
+@pytest.mark.ac("AC-AUTH-019")
+def test_cli_stores_argon2id(
+    monkeypatch: pytest.MonkeyPatch, db: Connection, session_factory: sessionmaker[Session]
+) -> None:
+    typed(monkeypatch, "SmYou@2026", "SmYou@2026")
+    assert cli.main(ARGS, session_factory=session_factory) == 0
+    stored = db.execute(text("SELECT password_hash FROM employees WHERE code = 'NV001'")).scalar_one()
+    assert stored.startswith("$argon2id$")
