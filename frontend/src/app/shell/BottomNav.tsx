@@ -13,7 +13,7 @@ function Slot({ to, label, children }: { to: string; label: string; children: Re
       end
       className={({ isActive }) =>
         cn(
-          "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+          "flex min-h-14 min-w-0 flex-1 flex-col items-center justify-start gap-0.5 rounded-xl pt-1.5 text-center text-xs leading-tight font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
           isActive ? "text-brand" : "text-muted",
         )
       }
@@ -44,7 +44,7 @@ export function BottomNav() {
       aria-label="Điều hướng nhanh"
       className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-card pb-[env(safe-area-inset-bottom)]"
     >
-      <div className="flex items-end gap-1 px-2 pt-1">
+      <div className="flex items-start gap-1 px-1 pt-1">
         <IconSlot to="/" label="Tổng quan" icon={LayoutDashboard} />
         {second?.path ? (
           <Slot to={second.path} label={second.label}>
@@ -54,7 +54,7 @@ export function BottomNav() {
         {action ? (
           <NavLink
             to={action.path}
-            className="-mt-5 flex flex-1 justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="-mt-5 flex min-w-0 flex-1 justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             <span className="flex size-14 items-center justify-center rounded-full bg-brand shadow-card-hover">
               <Plus aria-hidden="true" className="size-7 text-accent" />
