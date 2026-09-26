@@ -19,8 +19,8 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 
 ## M1 — Danh tính & phân quyền
 - [x] **M1-01a Xác thực — backend**: đăng nhập/đăng xuất/refresh (cookie httpOnly, argon2, khoá 15' sau 5 lần sai, đổi mật khẩu lần đầu), CLI `python -m app.cli create-manager`. Spec `M1-01a-auth-api.md`.
-- [R] **M1-01b Xác thực — giao diện**: trang Đăng nhập, Đổi mật khẩu, tự làm mới phiên, E2E + `seed_e2e.py`. Spec `M1-01b-auth-ui.md`.
-- [ ] **M1-02 `require(capability)` + scope + `/me`** (roles, capabilities, counters); ma trận RBAC sinh tự động.
+- [x] **M1-01b Xác thực — giao diện**: trang Đăng nhập, Đổi mật khẩu, tự làm mới phiên, E2E + `seed_e2e.py`. Spec `M1-01b-auth-ui.md`.
+- [R] **M1-02 `require(capability)` + scope + `/me`** (roles, capabilities, counters); ma trận RBAC sinh tự động. Spec `M1-02-authz-scope-me.md`.
 - [ ] **M1-03 AppShell theo vai trò**: sidebar 2 cấp, drawer mobile, bottom nav, menu từ `/me`, trang 403/404, route guard.
 - [ ] **M1-04 Quản lý nhân viên**: danh sách/tìm/lọc, tạo, sửa, gán nhiều vai trò, khoá/mở, reset mật khẩu; không gỡ Manager cuối cùng.
 - [ ] **M1-05 Audit framework**: ghi `audit_events` qua service chung; trang Nhật ký (Manager) lọc theo thực thể/người/ngày.

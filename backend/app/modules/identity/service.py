@@ -5,6 +5,7 @@ Security events are logged by employee id only — never email, password or toke
 
 import logging
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
@@ -13,8 +14,9 @@ from fastapi import Request
 from sqlalchemy import ColumnElement, exists, select, update
 from sqlalchemy.orm import Session
 
-from app.core.authz import Actor
+from app.core.authz import Actor, effective_scopes
 from app.core.config import Settings
+from app.core.counters import CounterProvider, compute_counters
 from app.core.security import (
     AccessClaims,
     decode_access_token,
@@ -26,8 +28,10 @@ from app.core.security import (
     verify_dummy,
     verify_password,
 )
+from app.core.spec_loader import PermissionsSpec
 from app.modules.identity.domain import is_locked, password_problems, register_failure
 from app.modules.identity.models import AuthSession, Employee, EmployeeRole
+from app.modules.identity.schemas import MeEmployee, MeResponse
 
 logger = logging.getLogger(__name__)
 
@@ -276,4 +280,28 @@ def authenticate(request: Request, session: Session) -> Actor | None:
         frozenset(r.role for r in employee.roles),
         employee.must_change_password,
         claims.session_family,
+    )
+
+
+def me(
+    session: Session, actor: Actor, permissions: PermissionsSpec, counters: Mapping[str, CounterProvider]
+) -> MeResponse:
+    employee = session.get_one(Employee, actor.id)
+    capabilities = {
+        capability: list(scopes)
+        for capability in permissions.capabilities
+        if (scopes := effective_scopes(permissions, actor.roles, capability))
+    }
+    return MeResponse(
+        employee=MeEmployee(
+            id=employee.id,
+            code=employee.code,
+            full_name=employee.full_name,
+            email=employee.email,
+            title=employee.title,
+            department=employee.department,
+        ),
+        roles=[role for role in permissions.roles if role in actor.roles],
+        capabilities=capabilities,
+        counters=compute_counters(session, actor, permissions, counters),
     )

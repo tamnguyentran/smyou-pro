@@ -113,6 +113,79 @@
         "title": "LoginResponse",
         "type": "object"
       },
+      "MeEmployee": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "department": {
+            "title": "Department",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": ["id", "code", "full_name", "email", "title", "department"],
+        "title": "MeEmployee",
+        "type": "object"
+      },
+      "MeResponse": {
+        "properties": {
+          "capabilities": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "counters": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counters",
+            "type": "object"
+          },
+          "employee": {
+            "$ref": "#/components/schemas/MeEmployee"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Roles",
+            "type": "array"
+          }
+        },
+        "required": ["employee", "roles", "capabilities", "counters"],
+        "title": "MeResponse",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -290,6 +363,31 @@
         },
         "summary": "Kiểm tra tình trạng dịch vụ và cơ sở dữ liệu",
         "tags": ["system"]
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "operationId": "me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "problem+json — UNAUTHENTICATED: Vui lòng đăng nhập."
+          },
+          "403": {
+            "description": "problem+json — PASSWORD_CHANGE_REQUIRED | FORBIDDEN"
+          }
+        },
+        "summary": "Thông tin, vai trò, quyền và bộ đếm của người đang đăng nhập",
+        "tags": ["me"]
       }
     }
   }

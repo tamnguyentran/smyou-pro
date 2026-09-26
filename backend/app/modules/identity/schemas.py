@@ -32,3 +32,21 @@ class ChangePasswordRequest(BaseModel):
     # Length rules are checked by the domain so the user gets the Vietnamese message (AC-AUTH-017);
     # this cap only stops absurd payloads from reaching argon2.
     new_password: Annotated[str, StringConstraints(max_length=1024)]
+
+
+class MeEmployee(BaseModel):
+    id: uuid.UUID
+    code: str
+    full_name: str
+    email: str
+    title: str | None
+    department: str
+
+
+class MeResponse(BaseModel):
+    employee: MeEmployee
+    roles: list[str]
+    # capability → effective scopes (a person with several roles can hold two scopes, e.g. own + self).
+    capabilities: dict[str, list[str]]
+    # menu badge key → count; only badges on menu items the caller can see.
+    counters: dict[str, int]
