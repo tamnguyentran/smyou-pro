@@ -5,7 +5,8 @@ import logging
 import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import Connection
+from sqlalchemy import Connection, event
+from starlette.types import Message, Receive, Scope, Send
 
 from app.core.authz import require
 from tests.integration.conftest import AN, KHOA, FakeClock, employee_row, login, seed
@@ -160,3 +161,27 @@ def test_refresh_and_logout_work_while_password_change_is_pending(app: FastAPI, 
     login(client, KHOA.email, KHOA.password)
     assert client.post("/api/v1/auth/refresh").status_code == 200
     assert client.post("/api/v1/auth/logout").status_code == 204
+
+
+# ---- code-review findings ----
+
+
+@pytest.mark.ac("AC-AUTH-016")
+def test_transaction_commits_before_the_response_is_sent(app: FastAPI, db: Connection) -> None:
+    """Else a client acting on new cookies races the commit, or keeps cookies the DB never saved."""
+    seed(db, KHOA)
+    events: list[str] = []
+    event.listen(app.state.session_factory, "after_commit", lambda _session: events.append("commit"))
+
+    async def recording(scope: Scope, receive: Receive, send: Send) -> None:
+        async def spy(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                events.append("response-start")
+            await send(message)
+
+        await app(scope, receive, spy)
+
+    res = login(TestClient(recording), KHOA.email, KHOA.password)
+
+    assert res.status_code == 200
+    assert events.index("commit") < events.index("response-start"), events

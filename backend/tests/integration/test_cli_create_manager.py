@@ -123,3 +123,27 @@ def test_cli_stores_argon2id(
     assert cli.main(ARGS, session_factory=session_factory) == 0
     stored = db.execute(text("SELECT password_hash FROM employees WHERE code = 'NV001'")).scalar_one()
     assert stored.startswith("$argon2id$")
+
+
+@pytest.mark.ac("AC-AUTH-018")
+def test_code_with_spaces_is_a_duplicate_not_a_crash(
+    monkeypatch: pytest.MonkeyPatch,
+    db: Connection,
+    session_factory: sessionmaker[Session],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    typed(monkeypatch, "SmYou@2026", "SmYou@2026", "Moi@2026xyz", "Moi@2026xyz")
+    assert cli.main(ARGS, session_factory=session_factory) == 0
+    variant = ["create-manager", "--email", "khac@smyou.vn", "--full-name", "Khác", "--code", " NV001 "]
+    assert cli.main(variant, session_factory=session_factory) == 1
+    assert "Mã nhân viên đã tồn tại" in capsys.readouterr().err
+
+
+@pytest.mark.ac("AC-AUTH-018")
+def test_email_that_could_never_log_in_is_refused(
+    monkeypatch: pytest.MonkeyPatch, db: Connection, session_factory: sessionmaker[Session]
+) -> None:
+    typed(monkeypatch, "SmYou@2026", "SmYou@2026")
+    args = ["create-manager", "--email", "an.nguyen", "--full-name", "Nguyễn Văn An", "--code", "NV001"]
+    assert cli.main(args, session_factory=session_factory) == 1
+    assert db.execute(text("SELECT count(*) FROM employees")).scalar_one() == 0
