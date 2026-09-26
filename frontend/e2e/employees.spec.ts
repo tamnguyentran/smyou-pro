@@ -27,7 +27,17 @@ async function evidence(page: Page, info: TestInfo, file: string) {
       .filter((v) => v.impact === "serious" || v.impact === "critical")
       .map((v) => v.id),
   ).toEqual([]);
+  // screenshot at the project size (390 / 1440) first, then the 360px overflow check
   await page.screenshot({ path: shot(info, file), fullPage: true });
+  const size = page.viewportSize();
+  for (const width of [size?.width ?? 390, 360]) {
+    await page.setViewportSize({ width, height: size?.height ?? 780 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+  }
 }
 
 test("AC-EMP-013 AC-EMP-018 @a11y @screenshot danh sách Nhân sự (Manager)", async ({
@@ -36,12 +46,7 @@ test("AC-EMP-013 AC-EMP-018 @a11y @screenshot danh sách Nhân sự (Manager)", 
   await signIn(page, MANAGER);
   await expect(page.getByRole("heading", { level: 1, name: "Nhân sự & phân quyền" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Thêm nhân viên" })).toBeVisible();
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
-    ),
-  ).toBe(true);
-  await evidence(page, info, "employees.png");
+  await evidence(page, info, "employees.png"); // includes the 360px no-scroll check
 });
 
 test("AC-EMP-014 AC-EMP-018 @a11y @screenshot thêm nhân viên và mật khẩu tạm", async ({
@@ -69,6 +74,49 @@ test("AC-EMP-014 AC-EMP-018 @a11y @screenshot thêm nhân viên và mật khẩu
 
   await passwordDialog.getByRole("button", { name: "Đóng", exact: true }).click();
   await expect(page.getByText("Đã thêm nhân viên QA Kiểm thử.")).toBeVisible();
+});
+
+test("AC-EMP-016 khoá tài khoản, cấp lại mật khẩu, mở khoá (backend thật)", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER);
+  // Tạo riêng một nhân viên cho test này — không đụng các tài khoản seed dùng chung với spec khác.
+  await page.getByRole("button", { name: "Thêm nhân viên" }).click();
+  const createForm = page.getByRole("dialog", { name: "Thêm nhân viên" });
+  const name = "QA Khoá Mở";
+  const email = `qa.lock.${info.project.name}.${String(Date.now())}@smyou.vn`;
+  await createForm.getByLabel("Họ và tên").fill(name);
+  await createForm.getByLabel("Email").fill(email);
+  await createForm.getByLabel("Bộ phận").selectOption("TECHNICAL");
+  await createForm.getByRole("checkbox", { name: "Nhân viên kỹ thuật" }).check();
+  await createForm.getByRole("button", { name: "Lưu" }).click();
+  await page
+    .getByRole("dialog", { name: "Mật khẩu tạm" })
+    .getByRole("button", { name: "Đóng", exact: true })
+    .click();
+  await expect(page.getByText(`Đã thêm nhân viên ${name}.`)).toBeVisible();
+
+  await page.getByText(name).first().click();
+  const editDialog = page.getByRole("dialog", { name: "Sửa nhân viên" });
+
+  await editDialog.getByRole("button", { name: "Khoá tài khoản" }).click();
+  const lockConfirm = page.getByRole("dialog", { name: "Khoá tài khoản" });
+  await expect(lockConfirm.getByText("Nhân viên sẽ bị đăng xuất khỏi mọi thiết bị.")).toBeVisible();
+  await lockConfirm.getByRole("button", { name: "Khoá tài khoản" }).click();
+  await expect(editDialog.getByRole("button", { name: "Mở khoá" })).toBeVisible();
+
+  await editDialog.getByRole("button", { name: "Cấp lại mật khẩu" }).click();
+  const resetConfirm = page.getByRole("dialog", { name: "Cấp lại mật khẩu" });
+  await expect(resetConfirm.getByText("Mật khẩu cũ sẽ không dùng được nữa.")).toBeVisible();
+  await resetConfirm.getByRole("button", { name: "Cấp lại mật khẩu" }).click();
+  const passwordDialog = page.getByRole("dialog", { name: "Mật khẩu tạm" });
+  await expect(passwordDialog).toBeVisible();
+  await passwordDialog.getByRole("button", { name: "Đóng", exact: true }).click();
+
+  await editDialog.getByRole("button", { name: "Mở khoá" }).click();
+  const unlockConfirm = page.getByRole("dialog", { name: "Mở khoá" });
+  await unlockConfirm.getByRole("button", { name: "Mở khoá" }).click();
+  await expect(editDialog.getByRole("button", { name: "Khoá tài khoản" })).toBeVisible();
 });
 
 test("AC-EMP-017 QLKT chỉ đọc: không có nút quản lý", async ({ page }) => {
