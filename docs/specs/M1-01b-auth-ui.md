@@ -1,7 +1,7 @@
 # M1-01b — Xác thực (giao diện): trang Đăng nhập, Đổi mật khẩu, tự làm mới phiên
 
 - **Status:** Approved
-- **Approval:** nội dung đã được duyệt (2026-09-26); Approved khi bắt đầu M1-01b (M1-01a đã merge). AC đánh số lại 021–027 vì AC-AUTH-020 đã dùng cho luật Q25 ở M1-01a
+- **Approval:** nội dung đã được duyệt (2026-09-26); Approved khi bắt đầu M1-01b (M1-01a đã merge). AC đánh số lại 021–027 vì số 020 đã dùng cho luật Q25 ở M1-01a
 - **Backlog:** M1-01b · **Milestone:** M1
 - **Liên quan:** PRD §4, §6 (Bảo mật); DOMAIN_MODEL §1 (Employee); `spec/permissions.yaml` (`public_routes`, `profile.manage`); ARCHITECTURE §2 (pwdlib argon2, PyJWT, cookie httpOnly, access 15', refresh 7 ngày, rotate); ADR-014 (cookie `Path` theo `BASE_PATH`)
 
