@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from app.core.authz import Actor, require
 from app.core.config import Settings
 from app.core.db import DbSession
-from app.core.errors import AppError, problem_response
+from app.core.errors import problem_response
 from app.modules.identity import service
 from app.modules.identity.schemas import ChangePasswordRequest, EmployeeSummary, LoginRequest, LoginResponse
 from app.modules.identity.service import ACCESS_COOKIE, Failure, Issued
@@ -171,9 +171,12 @@ def change_password(
         settings=settings,
         user_agent=_user_agent(request),
     )
+    if isinstance(result, Failure):
+        return _failure(request, result, clear_cookies=True)
     if isinstance(result, list):
+        # Returned, not raised, so the failed-attempt counter is committed.
         errors = [{"field": field, "code": "invalid", "message": message} for field, message in result]
-        raise AppError(422, "VALIDATION_ERROR", "Dữ liệu không hợp lệ.", errors=errors)
+        return problem_response(request, 422, "VALIDATION_ERROR", "Dữ liệu không hợp lệ.", errors=errors)
     response = Response(status_code=204)
     _set_session_cookies(response, settings, result)
     return response

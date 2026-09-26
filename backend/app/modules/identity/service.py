@@ -170,11 +170,23 @@ def change_password(
     now: datetime,
     settings: Settings,
     user_agent: str,
-) -> Issued | list[tuple[str, str]]:
+) -> Issued | Failure | list[tuple[str, str]]:
     employee = session.get(Employee, actor.id, with_for_update=True)
     if employee is None:  # deleted between authentication and this call
         return [("current_password", "Mật khẩu hiện tại không đúng.")]
     if not verify_password(current_password, employee.password_hash):
+        # Same counter as login: a stolen session must not allow unlimited guessing (review M1-01a).
+        employee.failed_login_count, locked_until = register_failure(
+            employee.failed_login_count,
+            now,
+            max_failed=settings.login_max_failed,
+            lock_minutes=settings.login_lock_minutes,
+        )
+        if locked_until is not None:
+            employee.locked_until = locked_until
+            _revoke(session, AuthSession.employee_id == employee.id, now=now)
+            logger.warning("account %s locked after repeated wrong current passwords", employee.id)
+            return Failure.ACCOUNT_LOCKED
         return [("current_password", "Mật khẩu hiện tại không đúng.")]
     problems = password_problems(new_password, current_password=current_password, email=employee.email)
     if problems:
@@ -229,6 +241,7 @@ def authenticate(request: Request, session: Session) -> Actor | None:
     if (
         employee is None
         or not employee.is_active
+        or is_locked(employee.locked_until, now)
         or password_stamp(employee.password_changed_at) != claims.password_stamp
     ):
         return None
