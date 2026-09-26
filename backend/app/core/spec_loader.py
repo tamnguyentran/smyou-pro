@@ -282,3 +282,7 @@ def check_guard_registry(specs: Specs, implemented: Iterable[str], pending: Iter
             f"{STATE_MACHINES_FILE}: guards without code "
             f"(add to GUARDS or PENDING_GUARDS): {', '.join(missing)}"
         )
+
+
+def menu_document(permissions: PermissionsSpec) -> dict[str, Any]:
+    raise NotImplementedError

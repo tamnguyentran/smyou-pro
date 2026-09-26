@@ -23,6 +23,12 @@ async function noHorizontalScroll(page: Page) {
   ).toBe(true);
 }
 
+/** M1-03: on phones "Đăng xuất" sits in the slide-out menu (AC-SYS-040). */
+async function openMenuOnPhone(page: Page) {
+  const open = page.getByRole("button", { name: "Mở menu" });
+  if (await open.isVisible()) await open.click();
+}
+
 function shot(info: TestInfo, name: string) {
   return resolve(import.meta.dirname, "../../reports/screenshots", info.project.name, name);
 }
@@ -39,10 +45,10 @@ test("AC-AUTH-023 đăng nhập thật qua API dưới /smyoutask → về trang
   await page.goto("./dang-nhap?next=%2F");
   await login(page, MANAGER.email, MANAGER.password);
   await expect(page).toHaveURL(/\/smyoutask\/$/);
-  await expect(page.getByText(MANAGER.name)).toBeVisible();
+  await expect(page.getByText(`Xin chào, ${MANAGER.name}`)).toBeVisible();
 
   await page.reload();
-  await expect(page.getByText(MANAGER.name)).toBeVisible(); // session restored via refresh cookie
+  await expect(page.getByText(`Xin chào, ${MANAGER.name}`)).toBeVisible(); // session restored via refresh cookie
 });
 
 test("AC-AUTH-024 KTV lần đầu phải đổi mật khẩu rồi mới vào được trang chủ", async ({
@@ -69,8 +75,9 @@ test("AC-AUTH-026 đăng xuất → trang đăng nhập; quay lại không mở 
 }) => {
   await page.goto("./dang-nhap");
   await login(page, MANAGER.email, MANAGER.password);
-  await expect(page.getByText(MANAGER.name)).toBeVisible();
+  await expect(page.getByText(`Xin chào, ${MANAGER.name}`)).toBeVisible();
 
+  await openMenuOnPhone(page);
   await page.getByRole("button", { name: "Đăng xuất" }).click();
   await expect(page).toHaveURL(/\/smyoutask\/dang-nhap/);
   await page.goBack();
@@ -88,7 +95,7 @@ test("AC-AUTH-027 @a11y @screenshot đăng nhập và đổi mật khẩu: axe, 
     if (file === "change-password.png") {
       await page.goto("./dang-nhap");
       await login(page, MANAGER.email, MANAGER.password);
-      await expect(page.getByText(MANAGER.name)).toBeVisible();
+      await expect(page.getByText(`Xin chào, ${MANAGER.name}`)).toBeVisible();
     }
     await page.goto(path);
     await page.evaluate(() => document.fonts.ready);
