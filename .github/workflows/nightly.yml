@@ -5,6 +5,9 @@ on:
     - cron: "0 19 * * *"   # 02:00 Asia/Ho_Chi_Minh
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   mutation:
     runs-on: ubuntu-latest
