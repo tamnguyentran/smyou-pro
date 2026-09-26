@@ -86,6 +86,41 @@ test("AC-EMP-014 AC-EMP-018 @a11y @screenshot thêm nhân viên và mật khẩu
   await expect(page.getByText("Đã thêm nhân viên QA Kiểm thử.")).toBeVisible();
 });
 
+test("AC-EMP-018 không cuộn ngang ở 360px (danh sách, form thêm, mật khẩu tạm)", async ({
+  page,
+}, info) => {
+  // Chạy toàn bộ ở đúng 360px ngay từ đầu — không cắt ngang mốc 1024px, vì AppShell remount
+  // outlet (sidebar ↔ menu trượt) ở mốc đó và làm mất sheet đang mở giữa chừng.
+  await page.setViewportSize({ width: 360, height: 780 });
+  const noHorizontalScroll = async () => {
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+  };
+
+  await signIn(page, MANAGER);
+  await expect(page.getByRole("button", { name: "Thêm nhân viên" })).toBeVisible();
+  await noHorizontalScroll(); // danh sách
+
+  await page.getByRole("button", { name: "Thêm nhân viên" }).click();
+  const form = page.getByRole("dialog", { name: "Thêm nhân viên" });
+  await expect(form).toBeVisible();
+  const email = `qa.360.${info.project.name}.${String(Date.now())}@smyou.vn`;
+  await form.getByLabel("Họ và tên").fill("QA 360px");
+  await form.getByLabel("Email").fill(email);
+  await form.getByLabel("Bộ phận").selectOption("SALES");
+  await form.getByRole("checkbox", { name: "Nhân viên kinh doanh" }).check();
+  await noHorizontalScroll(); // form thêm nhân viên
+
+  await form.getByRole("button", { name: "Lưu" }).click();
+  const passwordDialog = page.getByRole("dialog", { name: "Mật khẩu tạm" });
+  await expect(passwordDialog).toBeVisible();
+  await noHorizontalScroll(); // mật khẩu tạm
+  await passwordDialog.getByRole("button", { name: "Đóng", exact: true }).click();
+});
+
 test("AC-EMP-016 khoá tài khoản, cấp lại mật khẩu, mở khoá (backend thật)", async ({
   page,
 }, info) => {
