@@ -22,3 +22,9 @@ AI đang dùng **giả định mặc định** ở cột phải để không b�
 | Q16 | Dòng có giá cố định có được giảm giá không? | Không | **Có** — giảm giá áp dụng cho mọi dòng; giá cố định chỉ khoá đơn giá | ✅ |
 | Q17 | Được đánh dấu "tặng kèm" (giá 0) cho mọi sản phẩm, kể cả giá cố định? | Có | **Có** | ✅ |
 | Q18 | Các mức VAT được phép? | 0, 5, 8, 10 | Chọn nhanh **0 / 8 / 10%** hoặc **nhập giá trị khác** (0–100, tối đa 2 số thập phân) | ✅ |
+| Q19 | Khi tài khoản bị khoá tạm (5 lần sai), có báo rõ "tạm khoá 15 phút"? | Có — chỉ hiện sau khi đã sai 5 lần | | ⏳ |
+| Q20 | Tài khoản bị vô hiệu hoá nhập **đúng** mật khẩu: báo "đã bị vô hiệu hoá, liên hệ quản lý"? | Có; nhập sai vẫn chỉ báo "Email hoặc mật khẩu không đúng" | | ⏳ |
+| Q21 | Quy tắc mật khẩu? | ≥ 8 ký tự, ≤ 128, khác mật khẩu hiện tại, không chứa phần tên của email; không bắt buộc chữ hoa/ký tự đặc biệt | | ⏳ |
+| Q22 | Manager đầu tiên tạo bằng lệnh CLI có phải đổi mật khẩu lần đầu? | Không | | ⏳ |
+| Q23 | Đăng nhập / sai mật khẩu / bị khoá có ghi vào Nhật ký hệ thống? | Ghi log ứng dụng ngay; ghi `audit_events` từ M1-05 | | ⏳ |
+| Q24 | Tách M1-01 thành M1-01a (backend) + M1-01b (giao diện, E2E)? | Có | | ⏳ |
