@@ -93,12 +93,37 @@ async def _http_error(request: Request, exc: Exception) -> JSONResponse:
     return problem_response(request, exc.status_code, code, detail, headers=exc.headers)
 
 
+def _vietnamese_message(field: str, err: Mapping[str, Any]) -> str:
+    """User-facing Vietnamese text for a validation error (CLAUDE.md #10); falls back to a generic one."""
+    kind = str(err["type"])
+    ctx = err.get("ctx") or {}
+    if kind == "value_error" and "error" in ctx:
+        return str(ctx["error"])  # our own validators raise ValueError with Vietnamese text
+    if kind == "string_pattern_mismatch" and field.rsplit(".", 1)[-1] == "email":
+        return "Email không hợp lệ."
+    if kind == "string_too_short":
+        minimum = int(ctx.get("min_length", 1))
+        return "Không được để trống." if minimum <= 1 else f"Cần ít nhất {minimum} ký tự."
+    if kind == "string_too_long":
+        return f"Tối đa {ctx.get('max_length')} ký tự."
+    if kind == "too_short":
+        return "Cần chọn ít nhất một mục."
+    return _MESSAGES.get(kind, "Giá trị không hợp lệ.")
+
+
+_MESSAGES = {
+    "missing": "Bắt buộc nhập.",
+    "extra_forbidden": "Trường này không được phép.",
+    "string_pattern_mismatch": "Định dạng không hợp lệ.",
+}
+
+
 async def _validation_error(request: Request, exc: Exception) -> JSONResponse:
     exc = cast(RequestValidationError, exc)
-    errors = [
-        {"field": _field_name(tuple(err["loc"])), "code": str(err["type"]), "message": str(err["msg"])}
-        for err in exc.errors()
-    ]
+    errors = []
+    for err in exc.errors():
+        field = _field_name(tuple(err["loc"]))
+        errors.append({"field": field, "code": str(err["type"]), "message": _vietnamese_message(field, err)})
     return problem_response(request, 422, "VALIDATION_ERROR", "Dữ liệu không hợp lệ.", errors=errors)
 
 

@@ -158,16 +158,15 @@ def refresh(
     ).one_or_none()
     if row is None:
         return Failure.UNAUTHENTICATED
+    # A disabled account or a changed password (also when a Manager revoked the sessions for it)
+    # is a plain sign-out (AC-AUTH-011), not token theft — so check it before reuse detection.
+    if employee is None or not employee.is_active or employee.password_changed_at != row.password_changed_at:
+        return Failure.UNAUTHENTICATED
     if row.revoked_at is not None:
         _revoke(session, AuthSession.family_id == row.family_id, now=now)
         logger.warning("revoked refresh token reused; session family of %s revoked", row.employee_id)
         return Failure.SESSION_REVOKED
-    if (
-        row.expires_at <= now
-        or employee is None
-        or not employee.is_active
-        or employee.password_changed_at != row.password_changed_at
-    ):
+    if row.expires_at <= now:
         return Failure.UNAUTHENTICATED
     issued, new_row = _issue(
         session, employee, family_id=row.family_id, now=now, settings=settings, user_agent=user_agent
@@ -175,6 +174,11 @@ def refresh(
     row.revoked_at = now
     row.replaced_by_id = new_row.id
     return issued
+
+
+def revoke_all_sessions(session: Session, employee_id: uuid.UUID, *, now: datetime) -> None:
+    """Sign an employee out on every device (used by employee management, M1-04a)."""
+    _revoke(session, AuthSession.employee_id == employee_id, now=now)
 
 
 def logout(session: Session, *, refresh_token: str | None, now: datetime) -> None:
