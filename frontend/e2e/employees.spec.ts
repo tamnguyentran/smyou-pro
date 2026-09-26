@@ -19,7 +19,15 @@ function shot(info: TestInfo, file: string) {
   return resolve(import.meta.dirname, "../../reports/screenshots", info.project.name, file);
 }
 
-async function evidence(page: Page, info: TestInfo, file: string) {
+/** `checkOverflow` toggles the 360px resize check: only safe when nothing needs to survive it —
+ * crossing the 1024px breakpoint remounts AppShell's outlet (desktop sidebar ↔ mobile header/drawer),
+ * which would drop any open Sheet/dialog state even though the viewport is restored afterward. */
+async function evidence(
+  page: Page,
+  info: TestInfo,
+  file: string,
+  { checkOverflow = false }: { checkOverflow?: boolean } = {},
+) {
   await page.evaluate(() => document.fonts.ready);
   const results = await new AxeBuilder({ page }).analyze();
   expect(
@@ -27,8 +35,8 @@ async function evidence(page: Page, info: TestInfo, file: string) {
       .filter((v) => v.impact === "serious" || v.impact === "critical")
       .map((v) => v.id),
   ).toEqual([]);
-  // screenshot at the project size (390 / 1440) first, then the 360px overflow check
   await page.screenshot({ path: shot(info, file), fullPage: true });
+  if (!checkOverflow) return;
   const size = page.viewportSize();
   for (const width of [size?.width ?? 390, 360]) {
     await page.setViewportSize({ width, height: size?.height ?? 780 });
@@ -38,6 +46,7 @@ async function evidence(page: Page, info: TestInfo, file: string) {
       ),
     ).toBe(true);
   }
+  if (size) await page.setViewportSize(size);
 }
 
 test("AC-EMP-013 AC-EMP-018 @a11y @screenshot danh sách Nhân sự (Manager)", async ({
@@ -46,7 +55,8 @@ test("AC-EMP-013 AC-EMP-018 @a11y @screenshot danh sách Nhân sự (Manager)", 
   await signIn(page, MANAGER);
   await expect(page.getByRole("heading", { level: 1, name: "Nhân sự & phân quyền" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Thêm nhân viên" })).toBeVisible();
-  await evidence(page, info, "employees.png"); // includes the 360px no-scroll check
+  // no further interaction after this — safe to also check the 360px breakpoint
+  await evidence(page, info, "employees.png", { checkOverflow: true });
 });
 
 test("AC-EMP-014 AC-EMP-018 @a11y @screenshot thêm nhân viên và mật khẩu tạm", async ({
