@@ -1,7 +1,7 @@
 # M1-04a — Quản lý nhân viên & vai trò: API
 
 - **Status:** Approved
-- **Approval:** chủ dự án duyệt nội dung + Q31–Q38 theo đề xuất (2026-09-26)
+- **Approval:** chủ dự án duyệt nội dung + Q31–Q38 theo đề xuất (2026-09-26). Sửa câu chữ AC-EMP-007/008 cho khớp Q35 (tự khoá luôn là `CANNOT_DEACTIVATE_SELF`; khoá Manager cuối cùng chỉ xảy ra khi hai Manager khoá nhau cùng lúc) — không đổi luật
 - **Backlog:** M1-04a · **Milestone:** M1
 - **Liên quan:** DOMAIN_MODEL §1 (Employee, `employee_roles`, "luôn còn ≥ 1 MANAGER đang hoạt động"); `spec/permissions.yaml` (`employee.read`: MANAGER all, TECH_LEAD all; `employee.manage`: MANAGER all); PRD §4 ("Manager tạo tài khoản, gán nhiều vai trò, khoá tài khoản"); M1-01a (mật khẩu Q21, phiên, `must_change_password`); M1-02 (`require`, scope); M1-03a (menu "Nhân sự & phân quyền" → `/employees`)
 
@@ -26,8 +26,8 @@ Dữ liệu mẫu: **An** NV001 [MANAGER]; **Bình** NV002 [MANAGER]; **Hoa** NV
 | AC-EMP-004 | An | tạo với: email đã tồn tại (khác hoa thường) / email sai định dạng / SĐT không phải 10 số bắt đầu 0 / `roles` rỗng hoặc vai trò lạ / `full_name` rỗng / `department` lạ | lần lượt 409 `CONFLICT` field `email` "Email đã được dùng cho nhân viên khác." / 422 với `errors[].field` đúng tên trường, thông điệp tiếng Việt | integration |
 | AC-EMP-005 | An, Hoa có `version=1` | `PATCH /employees/{hoa} {version:1, full_name, phone, department, title, email}` | 200, `version=2`; sửa lại với `version:1` → 409 `STALE_VERSION`; đổi email trùng người khác → 409 `CONFLICT` | integration |
 | AC-EMP-006 | An | `POST /employees/{hoa}/roles {version, roles:["SALE","TECHNICIAN"]}` | 200; Hoa có 2 vai trò; `/me` của Hoa phản ánh ngay ở request kế tiếp (không phải đăng nhập lại) | integration |
-| AC-EMP-007 | An và Bình là 2 Manager đang hoạt động | An bỏ vai trò MANAGER của Bình → 200. Sau đó An (Manager cuối cùng) bỏ MANAGER của chính mình, **hoặc** khoá chính mình | 409 `LAST_MANAGER` "Phải còn ít nhất một Quản lý chung đang hoạt động."; dữ liệu không đổi | integration |
-| AC-EMP-008 | An, Bình cùng là Manager | hai request đồng thời: An bỏ MANAGER của Bình **và** Bình bỏ MANAGER của An | đúng một request thành công, request kia 409 `LAST_MANAGER` (khoá dòng, không bao giờ còn 0 Manager) | integration |
+| AC-EMP-007 | An và Bình là 2 Manager đang hoạt động | An bỏ vai trò MANAGER của Bình → 200. Sau đó An (Manager cuối cùng) bỏ MANAGER của chính mình | 409 `LAST_MANAGER` "Phải còn ít nhất một Quản lý chung đang hoạt động."; dữ liệu không đổi | integration |
+| AC-EMP-008 | An, Bình cùng là Manager | hai request đồng thời: An bỏ MANAGER của Bình **và** Bình bỏ MANAGER của An; **hoặc** An khoá Bình **và** Bình khoá An | mỗi cặp: đúng một request thành công, request kia 409 `LAST_MANAGER` (tuần tự hoá bằng khoá, không bao giờ còn 0 Manager đang hoạt động) | integration |
 | AC-EMP-009 | An; Khoa đang đăng nhập trên điện thoại | `POST /employees/{khoa}/deactivate {version}` | 200 `is_active=false`; **mọi phiên** của Khoa bị thu hồi (request kế tiếp của Khoa → 401); Khoa đăng nhập đúng mật khẩu → 403 `ACCOUNT_DISABLED` (M1-01a). An tự khoá chính mình → 409 `CANNOT_DEACTIVATE_SELF` "Bạn không thể tự khoá tài khoản của mình." (Q35) | integration |
 | AC-EMP-010 | Khoa đang bị khoá | `POST /employees/{khoa}/activate {version}` | 200 `is_active=true`; Khoa đăng nhập lại được bằng mật khẩu cũ. Khoá người đã khoá / mở người đang mở → 409 `INVALID_TRANSITION` | integration |
 | AC-EMP-011 | Khoa quên mật khẩu, đang bị tạm khoá do sai 5 lần | An `POST /employees/{khoa}/reset-password {version}` | 200 `{temporary_password}` (một lần); `must_change_password=true`; bộ đếm sai và `locked_until` về rỗng (Q37); mọi phiên cũ của Khoa bị thu hồi; mật khẩu cũ không còn dùng được | integration |
