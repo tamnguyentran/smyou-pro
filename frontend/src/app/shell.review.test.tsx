@@ -135,12 +135,13 @@ describe("Review M1-03a", () => {
     markSignedIn();
     renderApp("/dispatch/queue");
 
-    const main = await screen.findByRole("main");
+    // wait for the shell (the session guard shows its own <main> skeleton first)
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Đơn chờ điều phối" }),
+    ).toBeInTheDocument();
+    const main = screen.getByRole("main");
     expect(
       await within(main).findByText("Không tải được thông tin tài khoản."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Đơn chờ điều phối" }),
     ).toBeInTheDocument();
 
     await userEvent.setup().click(within(main).getByRole("button", { name: "Thử lại" }));
