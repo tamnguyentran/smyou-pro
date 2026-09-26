@@ -131,7 +131,8 @@ mutation-changed: ## Mutation testing when domain files changed vs main (paths s
 
 # ---------- production images (Mac M2 → AlmaLinux x86_64) ----------
 build-prod: ## Build production images for $(PLATFORM): make build-prod TAG=2026.10.01-1
-	docker buildx build --platform $(PLATFORM) -t smyou-backend:$(TAG) --target prod --load backend
+	docker buildx build --platform $(PLATFORM) -t smyou-backend:$(TAG) --target prod --load \
+		--build-context spec=spec backend
 	docker buildx build --platform $(PLATFORM) -t smyou-web:$(TAG) --target prod --load \
 		--build-arg BASE_PATH=$(PROD_BASE_PATH) frontend
 
