@@ -1,6 +1,7 @@
 """Review M1-01a: change-password guessing is limited like login; sharper evidence for other ACs."""
 
 import logging
+from collections.abc import Callable
 from datetime import timedelta
 
 import pytest
@@ -297,3 +298,51 @@ def test_row_lock_reads_the_committed_counter_even_if_the_employee_is_cached(
             user_agent="cached",
         )
     assert result == service.Failure.ACCOUNT_LOCKED
+
+
+# ---- code review round 3: one lock order everywhere (employees before auth_sessions) ----
+
+
+def _locked_tables(db: Connection, run: Callable[[], object]) -> list[str]:
+    statements: list[str] = []
+
+    def spy(_conn: object, _cursor: object, statement: str, *_args: object) -> None:
+        if "FOR UPDATE" in statement:
+            statements.append("employees" if "FROM employees" in statement else "auth_sessions")
+
+    event.listen(db, "before_cursor_execute", spy)
+    try:
+        run()
+    finally:
+        event.remove(db, "before_cursor_execute", spy)
+    return statements
+
+
+@pytest.mark.ac("AC-AUTH-020")
+def test_refresh_locks_the_employee_before_the_session_row(api: TestClient, db: Connection) -> None:
+    """refresh ↔ change-password took the same rows in opposite order → Postgres deadlock (500)."""
+    seed(db, KHOA)
+    login(api, KHOA.email, KHOA.password)
+
+    order = _locked_tables(db, lambda: api.post("/api/v1/auth/refresh"))
+
+    assert order[:1] == ["employees"], order
+
+
+@pytest.mark.ac("AC-AUTH-020")
+def test_fifth_wrong_guess_signs_out_every_device_and_clears_cookies(app: FastAPI, db: Connection) -> None:
+    seed(db, KHOA)
+    phone = TestClient(app, raise_server_exceptions=False)
+    laptop = TestClient(app, raise_server_exceptions=False)
+    login(phone, KHOA.email, KHOA.password)
+    login(laptop, KHOA.email, KHOA.password)
+
+    for i in range(4):
+        assert guess(phone, f"doan-{i}") == 422
+    body = {"current_password": "doan-5", "new_password": "Attacker#2026x"}
+    res = phone.post("/api/v1/auth/change-password", json=body)
+
+    assert res.status_code == 423
+    cleared = [h for h in res.headers.get_list("set-cookie") if "max-age=0" in h.lower()]
+    assert len(cleared) == 2
+    assert laptop.post("/api/v1/auth/refresh").status_code == 401
