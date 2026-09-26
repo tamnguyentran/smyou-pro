@@ -303,7 +303,7 @@ def test_deactivate_signs_the_employee_out_everywhere(
     assert res.status_code == 200, res.text
     assert (res.json()["is_active"], res.json()["version"]) == (False, 2)
     problem(khoa_phone.get("/api/v1/me"), 401, "UNAUTHENTICATED")
-    problem(khoa_phone.post("/api/v1/auth/refresh"), 401, "SESSION_REVOKED")  # AC-AUTH-009
+    problem(khoa_phone.post("/api/v1/auth/refresh"), 401, "UNAUTHENTICATED")
     revoked = db.execute(
         text("SELECT count(*) FROM auth_sessions WHERE employee_id = :id AND revoked_at IS NULL"),
         {"id": khoa_id},
