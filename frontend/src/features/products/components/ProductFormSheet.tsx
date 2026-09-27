@@ -14,6 +14,7 @@ import { formatCurrency } from "../../../lib/format";
 import { ApiError, formError } from "../../auth/errors";
 import {
   PRODUCTS_KEY,
+  productImageUrl,
   useActivateProduct,
   useCreateProduct,
   useDeactivateProduct,
@@ -33,6 +34,7 @@ import {
   type ProductFormValues,
   type Unit,
 } from "../schemas";
+import { ImageUploadField } from "./ImageUploadField";
 import { StatusBadge } from "./ProductList";
 
 type ConfirmKind = "deactivate" | "activate" | null;
@@ -182,34 +184,43 @@ export function ProductFormSheet({
         dismissible={!(create.isPending || update.isPending) && confirming === null}
       >
         {readOnly ? (
-          <dl className="divide-y divide-line">
-            {(
-              [
-                ["Mã hàng", product.sku],
-                ["Danh mục", CATEGORY_LABELS[product.category as Category]],
-                ["Hãng", product.brand ?? "—"],
-                ["Đơn vị tính", UNIT_LABELS[product.unit as Unit]],
-                ["Đơn giá", formatCurrency(product.price)],
-                ["VAT", `${product.vat_rate}%`],
+          <div className="space-y-4">
+            {product.image_attachment_id ? (
+              <img
+                src={productImageUrl(product.image_attachment_id)}
+                alt="Ảnh sản phẩm"
+                className="size-20 rounded-xl border border-line object-cover"
+              />
+            ) : null}
+            <dl className="divide-y divide-line">
+              {(
                 [
-                  "Bảo hành",
-                  product.warranty_months ? `${String(product.warranty_months)} tháng` : "—",
-                ],
-                ["Cấu hình", product.specs ?? "—"],
-              ] as [string, ReactNode][]
-            ).map(([label, value]) => (
-              <div key={label} className="flex justify-between gap-4 py-2 text-sm">
-                <dt className="text-muted">{label}</dt>
-                <dd className="font-medium text-heading">{value}</dd>
+                  ["Mã hàng", product.sku],
+                  ["Danh mục", CATEGORY_LABELS[product.category as Category]],
+                  ["Hãng", product.brand ?? "—"],
+                  ["Đơn vị tính", UNIT_LABELS[product.unit as Unit]],
+                  ["Đơn giá", formatCurrency(product.price)],
+                  ["VAT", `${product.vat_rate}%`],
+                  [
+                    "Bảo hành",
+                    product.warranty_months ? `${String(product.warranty_months)} tháng` : "—",
+                  ],
+                  ["Cấu hình", product.specs ?? "—"],
+                ] as [string, ReactNode][]
+              ).map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-4 py-2 text-sm">
+                  <dt className="text-muted">{label}</dt>
+                  <dd className="font-medium text-heading">{value}</dd>
+                </div>
+              ))}
+              <div className="flex justify-between gap-4 py-2 text-sm">
+                <dt className="text-muted">Trạng thái</dt>
+                <dd>
+                  <StatusBadge product={product} />
+                </dd>
               </div>
-            ))}
-            <div className="flex justify-between gap-4 py-2 text-sm">
-              <dt className="text-muted">Trạng thái</dt>
-              <dd>
-                <StatusBadge product={product} />
-              </dd>
-            </div>
-          </dl>
+            </dl>
+          </div>
         ) : (
           <form noValidate onSubmit={(event) => void onSubmit(event)} className="space-y-4">
             {formMessage ? <Alert>{formMessage}</Alert> : null}
@@ -230,6 +241,15 @@ export function ProductFormSheet({
                 <span className="text-muted">Trạng thái:</span>
                 <StatusBadge product={product} />
               </div>
+            ) : null}
+            {product ? (
+              <ImageUploadField
+                product={product}
+                onUploaded={(imageAttachmentId) => {
+                  setProduct({ ...product, image_attachment_id: imageAttachmentId });
+                  invalidateList();
+                }}
+              />
             ) : null}
             {!product ? (
               <Select
