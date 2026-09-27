@@ -291,7 +291,7 @@ describe("AC-CAT-013 thêm sản phẩm", () => {
     expect(await screen.findByRole("dialog", { name: "Sửa sản phẩm" })).toBeInTheDocument();
   });
 
-  test("422 hiện dưới đúng ô (vat_rate ngoài khoảng)", async () => {
+  test("422 từ server (không phải client) hiện dưới đúng ô — brand không có kiểm ở client", async () => {
     signedInAs(AN, () => HttpResponse.json(page([])));
     server.use(
       http.post("/api/v1/products", () =>
@@ -300,9 +300,7 @@ describe("AC-CAT-013 thêm sản phẩm", () => {
             status: 422,
             code: "VALIDATION_ERROR",
             detail: "Dữ liệu không hợp lệ.",
-            errors: [
-              { field: "vat_rate", code: "value_error", message: "VAT phải trong khoảng 0-100." },
-            ],
+            errors: [{ field: "brand", code: "string_too_long", message: "Tối đa 60 ký tự." }],
           },
           { status: 422 },
         ),
@@ -318,12 +316,11 @@ describe("AC-CAT-013 thêm sản phẩm", () => {
     await user.selectOptions(within(dialog).getByLabelText("Danh mục"), "PC");
     await user.selectOptions(within(dialog).getByLabelText("Đơn vị tính"), "CAI");
     await user.type(within(dialog).getByLabelText("Đơn giá"), "1000");
-    const vatField = within(dialog).getByLabelText("VAT (%)");
-    await user.clear(vatField);
-    await user.type(vatField, "150");
+    await user.type(within(dialog).getByLabelText("Hãng"), "Một hãng nào đó");
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+    const brandField = within(dialog).getByLabelText("Hãng");
     await waitFor(() => {
-      expect(vatField).toHaveAccessibleDescription("VAT phải trong khoảng 0-100.");
+      expect(brandField).toHaveAccessibleDescription("Tối đa 60 ký tự.");
     });
   });
 });
