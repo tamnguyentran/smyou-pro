@@ -85,7 +85,8 @@ Bảng mới `audit_events` (append-only, không `updated_at`):
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
 | id | uuid PK | |
-| occurred_at | timestamptz NOT NULL DEFAULT now() | UTC |
+| seq | bigint IDENTITY, unique | thứ tự ghi — phân định các sự kiện cùng một request (review M1-05) |
+| occurred_at | timestamptz NOT NULL DEFAULT clock_timestamp() | UTC; `clock_timestamp()` chứ không `now()` (now() = lúc bắt đầu transaction, mọi sự kiện một request trùng giờ) |
 | actor_id | uuid NULL FK → employees.id | null = hệ thống/chưa xác thực |
 | entity_type | text NOT NULL | enum tầng ứng dụng |
 | entity_id | uuid NOT NULL | |
@@ -95,13 +96,13 @@ Bảng mới `audit_events` (append-only, không `updated_at`):
 | data | jsonb NULL | trường thay đổi / lý do — không bao giờ chứa mật khẩu |
 | request_id | text NULL | khớp header `X-Request-Id` (`core/request_id.py`) |
 
-Index: `(entity_type, entity_id)`, `(actor_id)`, `(occurred_at DESC)`.
+Index: `(entity_type, entity_id)`, `(actor_id)`, `(occurred_at DESC, seq DESC)`. Danh sách sắp `occurred_at DESC, seq DESC`.
 Module mới `backend/app/modules/audit/` (`domain.py`, `models.py`, `service.py`, `schemas.py`, `router.py`) theo cấu trúc ARCHITECTURE §3. `employees/service.py` và `identity/service.py` gọi `audit.service.record(...)` (module khác gọi qua service public — như `identity.service.revoke_all_sessions` đã làm).
 
 ## 6. UI
 - Trang `/audit` (menu "Nhật ký hệ thống", đã khai báo ở M1-03a, chỉ Manager thấy).
 - Bộ lọc trên cùng: chọn "Loại đối tượng" (hiện tại chỉ có "Nhân viên"), chọn "Người thực hiện" (ô tìm nhân viên, dùng lại danh sách từ `employee.read`), "Từ ngày"/"Đến ngày", nút "Xoá lọc".
-- Desktop (`lg:`): bảng, cột Thời gian (giờ VN) · Người thực hiện (tên + mã, "Hệ thống" nếu null) · Đối tượng (nhãn loại + mã/tên nếu tra được) · Hành động (nhãn tiếng Việt) · Trước → Sau (badge trạng thái nếu có, "—" nếu không).
+- Desktop (`lg:`): bảng, cột Thời gian (giờ VN) · Người thực hiện (tên + mã, "Hệ thống" nếu null) · Đối tượng (nhãn loại + mã/tên nếu tra được — v1 tra ở client từ danh sách nhân viên trang đã tải, tối đa 100; API §4 không đổi) · Hành động (nhãn tiếng Việt) · Trước → Sau (badge trạng thái nếu có, "—" nếu không).
 - Mobile (< `lg:`): thẻ xếp dọc, mỗi thẻ: Hành động + Đối tượng ở dòng đầu, Người thực hiện + Thời gian ở dòng phụ.
 - Nhãn hành động (Việt hoá cho các action đã nối ở item này): `create`→"Tạo", `update`→"Cập nhật", `roles`→"Đổi vai trò", `deactivate`→"Khoá", `activate`→"Mở khoá", `reset-password`→"Cấp lại mật khẩu", `login`→"Đăng nhập", `login_failed`→"Đăng nhập sai", `account_locked`→"Tạm khoá", `login_refused`→"Từ chối đăng nhập", `password_changed`→"Đổi mật khẩu".
 - Empty state: "Chưa có nhật ký nào khớp với bộ lọc."
