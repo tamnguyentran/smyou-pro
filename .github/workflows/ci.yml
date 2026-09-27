@@ -45,7 +45,7 @@ jobs:
         run: uv run alembic upgrade head && uv run alembic downgrade -1 && uv run alembic upgrade head && uv run alembic check
       - name: Tests (unit, generated, stateful, integration, contract) + coverage
         run: uv run pytest -q --cov=app --cov-branch --cov-report=xml --cov-fail-under=85 --junitxml=../reports/junit-backend.xml
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with: { name: backend-reports, path: reports/ }
 
@@ -82,7 +82,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 scripts/check_ac_coverage.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with: { name: ac-matrix, path: reports/ac-matrix.md }
 
@@ -101,7 +101,7 @@ jobs:
       - run: make e2e
       - if: failure()
         run: mkdir -p reports && docker compose -f compose.dev.yml --env-file .env.dev logs --no-color > reports/compose.log 2>&1 || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: e2e-report-and-screenshots
