@@ -1,6 +1,6 @@
 # M2-01a — Danh mục sản phẩm: API
 
-- **Status:** Draft
+- **Status:** Approved
 - **Backlog:** M2-01a · **Milestone:** M2
 - **Liên quan:** DOMAIN_MODEL §2 (Product), §11 (Attachment); `spec/permissions.yaml` (`catalog.read`: MANAGER/SALE/TECH_LEAD all; `catalog.manage`: MANAGER all); ARCHITECTURE §5 (`code_sequences`, dùng làm ví dụ đối chiếu — sản phẩm **không** dùng bảng này, xem Q44); M1-04a (mẫu CRUD + optimistic lock + guard "không xoá, chỉ đổi trạng thái")
 
