@@ -150,13 +150,13 @@ def test_deactivate_then_activate_audits_status_transitions(app: FastAPI, db: Co
     activate = client.post(f"/api/v1/employees/{khoa}/activate", json={"version": 2})
     assert activate.status_code == 200, activate.text
 
-    rows = audit_rows(db, khoa)
-    assert len(rows) == 2
-    by_action = {row.action: row for row in rows}
-    assert by_action["deactivate"].from_status == "ACTIVE"
-    assert by_action["deactivate"].to_status == "INACTIVE"
-    assert by_action["activate"].from_status == "INACTIVE"
-    assert by_action["activate"].to_status == "ACTIVE"
+    first, second = audit_rows(db, khoa)
+    assert first.action == "deactivate"
+    assert first.from_status == "ACTIVE"
+    assert first.to_status == "INACTIVE"
+    assert second.action == "activate"
+    assert second.from_status == "INACTIVE"
+    assert second.to_status == "ACTIVE"
 
 
 @pytest.mark.ac("AC-SYS-061")
