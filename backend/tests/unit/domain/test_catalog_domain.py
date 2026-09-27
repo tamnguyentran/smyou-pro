@@ -14,6 +14,6 @@ def test_valid_vat_rates(value: Decimal) -> None:
 
 
 @pytest.mark.ac("AC-CAT-004")
-@pytest.mark.parametrize("value", [Decimal("-0.01"), Decimal("100.01"), Decimal("8.123")])
-def test_invalid_vat_rates(value: Decimal) -> None:
+@pytest.mark.parametrize("value", [Decimal("-0.01"), Decimal("100.01"), Decimal("8.123"), None])
+def test_invalid_vat_rates(value: Decimal | None) -> None:
     assert vat_rate_problem(value) is not None

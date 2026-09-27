@@ -30,7 +30,7 @@ Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max
 Brand = Annotated[str, StringConstraints(strip_whitespace=True, max_length=60)]
 
 
-def _check_vat_rate(value: Decimal) -> Decimal:
+def _check_vat_rate(value: Decimal | None) -> Decimal | None:
     problem = vat_rate_problem(value)
     if problem is not None:
         raise ValueError(problem)

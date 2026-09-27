@@ -3,8 +3,10 @@
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 
-def vat_rate_problem(value: Decimal) -> str | None:
+def vat_rate_problem(value: Decimal | None) -> str | None:
     """None if `value` is a valid VAT rate (0-100, <= 2 decimal places); else a Vietnamese error."""
+    if value is None:
+        return "Thuế VAT không được để trống."
     if value < 0 or value > 100:
         return "VAT phải trong khoảng 0-100."
     try:
