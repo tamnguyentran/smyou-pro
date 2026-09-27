@@ -40,10 +40,16 @@ const vatRateSchema = z.coerce
   .number("Vui lòng nhập VAT.")
   .min(0, "VAT phải trong khoảng 0-100.")
   .max(100, "VAT phải trong khoảng 0-100.");
+// Kept as a raw string (no transform) so the schema's input/output types match — converted to
+// number|null by hand in ProductFormSheet's submit handler, same as employees does for `phone`.
 const warrantyMonthsSchema = z
-  .union([z.literal(""), z.coerce.number().int().min(0, "Số tháng bảo hành phải ≥ 0.")])
-  .optional()
-  .transform((value) => (value === "" || value === undefined ? undefined : value));
+  .string()
+  .trim()
+  .refine(
+    (value) => value === "" || (/^\d+$/.test(value) && Number(value) >= 0),
+    "Số tháng bảo hành phải là số nguyên ≥ 0.",
+  )
+  .optional();
 
 /** Client-side checks before the server's (AC-CAT-013/AC-CAT-004); `sku`/`category`/`unit` are only
  * required on create — locked after that (AC-CAT-014, §4). */

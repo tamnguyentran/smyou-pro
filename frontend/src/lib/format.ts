@@ -16,7 +16,9 @@ export function formatDateTime(iso: string): string {
   return `${part.day}/${part.month}/${part.year} ${part.hour}:${part.minute}`;
 }
 
+const CURRENCY = new Intl.NumberFormat("vi-VN");
+
 /** VND integer → `12.500.000 ₫` (UI_GUIDELINES §6, CLAUDE.md #6: tiền là số nguyên VND). */
 export function formatCurrency(amount: number): string {
-  throw new Error(`not implemented: ${String(amount)}`);
+  return `${CURRENCY.format(amount)} ₫`;
 }
