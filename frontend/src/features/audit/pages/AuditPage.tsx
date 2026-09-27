@@ -8,9 +8,8 @@ import { EmptyState } from "../../../components/ui/EmptyState";
 import { Pagination } from "../../../components/ui/Pagination";
 import { Select } from "../../../components/ui/Select";
 import { TextField } from "../../../components/ui/TextField";
-import { useEmployees } from "../../employees/api";
 import { useMe } from "../../me/api";
-import { useAuditEvents, type AuditEventFilters } from "../api";
+import { useAuditEvents, useEmployeeDirectory, type AuditEventFilters } from "../api";
 import { AuditEventList, type EntityNames } from "../components/AuditEventList";
 
 const PAGE_SIZE = 20;
@@ -39,15 +38,16 @@ export function AuditPage() {
   usePageTitle("Nhật ký hệ thống");
   const me = useMe();
   const [filters, setFilters] = useState<AuditEventFilters>(EMPTY_FILTERS);
-  const employees = useEmployees({ q: "", role: "", is_active: "", limit: 100, offset: 0 });
+  const employees = useEmployeeDirectory();
   // Checked here so a reversed range never reaches the API (whose 422 would read as a load error).
   const rangeInvalid =
     filters.occurredFrom !== "" &&
     filters.occurredTo !== "" &&
     filters.occurredFrom > filters.occurredTo;
   const events = useAuditEvents(filters, { enabled: !rangeInvalid });
+  const stale = rangeInvalid || (events.isPlaceholderData && events.isFetching);
   const names: EntityNames = new Map(
-    (employees.data?.items ?? []).map((e) => [e.id, `${e.full_name} (${e.code})`]),
+    (employees.data ?? []).map((e) => [e.id, `${e.full_name} (${e.code})`]),
   );
 
   if (!me.data && me.isError) {
@@ -87,7 +87,7 @@ export function AuditPage() {
           }}
         >
           <option value="">Tất cả</option>
-          {(employees.data?.items ?? []).map((employee) => (
+          {(employees.data ?? []).map((employee) => (
             <option key={employee.id} value={employee.id}>
               {employee.full_name} ({employee.code})
             </option>
@@ -120,7 +120,7 @@ export function AuditPage() {
         Xoá lọc
       </Button>
 
-      {events.isPending ? (
+      {rangeInvalid && !events.data ? null : events.isPending ? (
         <Waiting />
       ) : events.isError ? (
         <EmptyState
@@ -141,7 +141,13 @@ export function AuditPage() {
         <EmptyState icon={History} message="Chưa có nhật ký nào khớp với bộ lọc." />
       ) : (
         <>
-          <AuditEventList items={events.data.items} names={names} />
+          {/* Stale rows while a new filter loads (or a reversed range is shown) must not read as a match. */}
+          <div
+            aria-busy={stale || undefined}
+            className={stale ? "opacity-50 transition-opacity" : "transition-opacity"}
+          >
+            <AuditEventList items={events.data.items} names={names} />
+          </div>
           <Pagination
             total={events.data.total}
             limit={PAGE_SIZE}

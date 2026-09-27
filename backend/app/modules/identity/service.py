@@ -264,7 +264,7 @@ def change_password(
             logger.warning("account %s locked after repeated wrong current passwords", employee.id)
             audit.record(
                 session,
-                actor_id=None,
+                actor_id=employee.id,  # signed in here, unlike the login path — not a "Hệ thống" action
                 entity_type="EMPLOYEE",
                 entity_id=employee.id,
                 action="account_locked",

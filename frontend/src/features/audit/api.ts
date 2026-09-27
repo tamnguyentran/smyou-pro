@@ -4,7 +4,7 @@ import type { components } from "../../lib/api/schema";
 import { toApiError } from "../auth/errors";
 
 export type AuditEventOut = components["schemas"]["AuditEventOut"];
-export type EntityType = "EMPLOYEE";
+export type EntityType = components["schemas"]["EntityType"];
 
 export interface AuditEventFilters {
   entityType: EntityType | "";
@@ -39,5 +39,26 @@ export function useAuditEvents(filters: AuditEventFilters, { enabled = true } = 
       return data;
     },
     placeholderData: (previous) => previous,
+  });
+}
+
+export type EmployeeSummary = components["schemas"]["EmployeeOut"];
+
+/** Every employee, all pages (the API caps a page at 100): the log names who was acted on and the
+ * actor filter lists everyone — newest employees included, which sort last by code. */
+export function useEmployeeDirectory() {
+  return useQuery({
+    queryKey: [AUDIT_EVENTS_KEY, "employee-directory"],
+    queryFn: async () => {
+      const all: EmployeeSummary[] = [];
+      for (;;) {
+        const { data, error, response } = await api.GET("/api/v1/employees", {
+          params: { query: { limit: 100, offset: all.length } },
+        });
+        if (!data) throw toApiError(response, error);
+        all.push(...data.items);
+        if (data.items.length === 0 || all.length >= data.total) return all;
+      }
+    },
   });
 }
