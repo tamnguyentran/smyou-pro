@@ -1,5 +1,6 @@
 import { Monitor } from "lucide-react";
 import { Badge } from "../../../components/ui/Badge";
+import { cn } from "../../../lib/cn";
 import { formatCurrency } from "../../../lib/format";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
 import { productImageUrl, type Product } from "../api";
@@ -14,20 +15,43 @@ export function StatusBadge({ product }: { product: Product }) {
   );
 }
 
-function Thumbnail({ product }: { product: Product }) {
-  if (product.image_attachment_id) {
+/** Image or a placeholder icon — shared by the list thumbnail, the read-only detail view, and
+ * ImageUploadField's preview (which needs a local blob URL too, hence `src` rather than `product`). */
+export function ProductImage({
+  src,
+  alt = "",
+  size = "size-12",
+}: {
+  src: string | null;
+  alt?: string;
+  size?: string;
+}) {
+  if (src) {
     return (
       <img
-        src={productImageUrl(product.image_attachment_id)}
-        alt=""
-        className="size-12 shrink-0 rounded-xl border border-line object-cover"
+        src={src}
+        alt={alt}
+        className={cn(size, "shrink-0 rounded-xl border border-line object-cover")}
       />
     );
   }
   return (
-    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-line bg-sidebar-sub">
+    <div
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-xl border border-line bg-sidebar-sub",
+        size,
+      )}
+    >
       <Monitor aria-hidden="true" className="size-5 text-muted" />
     </div>
+  );
+}
+
+function Thumbnail({ product }: { product: Product }) {
+  return (
+    <ProductImage
+      src={product.image_attachment_id ? productImageUrl(product.image_attachment_id) : null}
+    />
   );
 }
 

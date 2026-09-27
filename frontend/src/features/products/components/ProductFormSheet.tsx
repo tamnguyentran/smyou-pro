@@ -35,7 +35,7 @@ import {
   type Unit,
 } from "../schemas";
 import { ImageUploadField } from "./ImageUploadField";
-import { StatusBadge } from "./ProductList";
+import { ProductImage, StatusBadge } from "./ProductList";
 
 type ConfirmKind = "deactivate" | "activate" | null;
 // Every field that renders its own error — formError() suppresses the Alert when every reported
@@ -185,13 +185,13 @@ export function ProductFormSheet({
       >
         {readOnly ? (
           <div className="space-y-4">
-            {product.image_attachment_id ? (
-              <img
-                src={productImageUrl(product.image_attachment_id)}
-                alt="Ảnh sản phẩm"
-                className="size-20 rounded-xl border border-line object-cover"
-              />
-            ) : null}
+            <ProductImage
+              src={
+                product.image_attachment_id ? productImageUrl(product.image_attachment_id) : null
+              }
+              alt="Ảnh sản phẩm"
+              size="size-20"
+            />
             <dl className="divide-y divide-line">
               {(
                 [
