@@ -205,6 +205,20 @@ def test_update_optimistic_lock_and_sku_immutable(
     )
 
 
+@pytest.mark.ac("AC-CAT-005")
+def test_update_vat_rate_null_is_validation_error_not_crash(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], products: dict[str, uuid.UUID]
+) -> None:
+    product_id = products["LCD1137"]
+    an = client_as(app, AN)
+    body = problem(
+        an.patch(f"/api/v1/products/{product_id}", json={"version": 1, "vat_rate": None}),
+        422,
+        "VALIDATION_ERROR",
+    )
+    assert body["errors"][0]["field"] == "vat_rate"
+
+
 @pytest.mark.ac("AC-CAT-006")
 def test_deactivate_activate_invalid_transition(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID], products: dict[str, uuid.UUID]
