@@ -19,6 +19,13 @@ from app.modules.employees import service
 from tests.conftest import TEST_DATABASE_URL
 
 NOW = datetime(2026, 9, 26, 2, 0, tzinfo=UTC)
+# Committed rows need explicit cleanup — including the audit_events they write (M1-05), which
+# reference the employee by entity_id (no FK), so deleting the employee alone leaves them behind.
+CLEANUP = (
+    "DELETE FROM audit_events"
+    " WHERE entity_id IN (SELECT id FROM employees WHERE email LIKE '%@race.smyou.vn')",
+    "DELETE FROM employees WHERE email LIKE '%@race.smyou.vn'",
+)
 
 
 @pytest.fixture
@@ -28,14 +35,16 @@ def engine(migrated: None) -> Iterator[Engine]:
         yield engine
     finally:
         with engine.begin() as conn:
-            conn.execute(text("DELETE FROM employees WHERE email LIKE '%@race.smyou.vn'"))
+            for statement in CLEANUP:
+                conn.execute(text(statement))
         engine.dispose()
 
 
 def two_managers(engine: Engine) -> tuple[uuid.UUID, uuid.UUID]:
     ids = (uuid.uuid4(), uuid.uuid4())
     with engine.begin() as conn:
-        conn.execute(text("DELETE FROM employees WHERE email LIKE '%@race.smyou.vn'"))
+        for statement in CLEANUP:
+            conn.execute(text(statement))
         for n, employee_id in enumerate(ids, start=1):
             conn.execute(
                 text(

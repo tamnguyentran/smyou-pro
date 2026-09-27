@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 
 from app.core.authz import Actor, require
 from app.core.db import DbSession
+from app.core.request_id import get_request_id
 from app.modules.employees import service
 from app.modules.employees.schemas import (
     EmployeeCreate,
@@ -86,7 +87,9 @@ def create_employee(
     body: EmployeeCreate, request: Request, response: Response, session: DbSession, actor: Manager
 ) -> EmployeeWithPassword:
     response.headers["Cache-Control"] = NO_STORE
-    return service.create_employee(session, actor, body, now=_now(request))
+    return service.create_employee(
+        session, actor, body, now=_now(request), request_id=get_request_id(request)
+    )
 
 
 @router.patch(
@@ -99,7 +102,9 @@ def create_employee(
 def update_employee(
     employee_id: uuid.UUID, body: EmployeeUpdate, request: Request, session: DbSession, actor: Manager
 ) -> EmployeeOut:
-    return service.update_employee(session, actor, employee_id, body, now=_now(request))
+    return service.update_employee(
+        session, actor, employee_id, body, now=_now(request), request_id=get_request_id(request)
+    )
 
 
 @router.post(
@@ -113,7 +118,13 @@ def set_roles(
     employee_id: uuid.UUID, body: RolesRequest, request: Request, session: DbSession, actor: Manager
 ) -> EmployeeOut:
     return service.set_roles(
-        session, actor, employee_id, version=body.version, roles=list(body.roles), now=_now(request)
+        session,
+        actor,
+        employee_id,
+        version=body.version,
+        roles=list(body.roles),
+        now=_now(request),
+        request_id=get_request_id(request),
     )
 
 
@@ -127,7 +138,14 @@ def set_roles(
 def deactivate(
     employee_id: uuid.UUID, body: VersionRequest, request: Request, session: DbSession, actor: Manager
 ) -> EmployeeOut:
-    return service.deactivate(session, actor, employee_id, version=body.version, now=_now(request))
+    return service.deactivate(
+        session,
+        actor,
+        employee_id,
+        version=body.version,
+        now=_now(request),
+        request_id=get_request_id(request),
+    )
 
 
 @router.post(
@@ -140,7 +158,14 @@ def deactivate(
 def activate(
     employee_id: uuid.UUID, body: VersionRequest, request: Request, session: DbSession, actor: Manager
 ) -> EmployeeOut:
-    return service.activate(session, actor, employee_id, version=body.version, now=_now(request))
+    return service.activate(
+        session,
+        actor,
+        employee_id,
+        version=body.version,
+        now=_now(request),
+        request_id=get_request_id(request),
+    )
 
 
 @router.post(
@@ -159,4 +184,11 @@ def reset_password(
     actor: Manager,
 ) -> EmployeeWithPassword:
     response.headers["Cache-Control"] = NO_STORE
-    return service.reset_password(session, actor, employee_id, version=body.version, now=_now(request))
+    return service.reset_password(
+        session,
+        actor,
+        employee_id,
+        version=body.version,
+        now=_now(request),
+        request_id=get_request_id(request),
+    )

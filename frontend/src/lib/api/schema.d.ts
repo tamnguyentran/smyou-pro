@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+  "/api/v1/audit-events": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Nhật ký hệ thống (lọc theo thực thể / người thực hiện / khoảng ngày) */
+    get: operations["audit_events_list"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/auth/change-password": {
     parameters: {
       query?: never;
@@ -214,6 +231,60 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** ActorSummary */
+    ActorSummary: {
+      /** Code */
+      code: string;
+      /** Full Name */
+      full_name: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+    };
+    /** AuditEventOut */
+    AuditEventOut: {
+      /** Action */
+      action: string;
+      actor: components["schemas"]["ActorSummary"] | null;
+      /** Data */
+      data: {
+        [key: string]: unknown;
+      } | null;
+      /**
+       * Entity Id
+       * Format: uuid
+       */
+      entity_id: string;
+      /** Entity Type */
+      entity_type: string;
+      /** From Status */
+      from_status: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Occurred At
+       * Format: date-time
+       */
+      occurred_at: string;
+      /** To Status */
+      to_status: string | null;
+    };
+    /** AuditEventPage */
+    AuditEventPage: {
+      /** Items */
+      items: components["schemas"]["AuditEventOut"][];
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+      /** Total */
+      total: number;
+    };
     /** ChangePasswordRequest */
     ChangePasswordRequest: {
       /** Current Password */
@@ -315,6 +386,11 @@ export interface components {
       /** Temporary Password */
       temporary_password: string;
     };
+    /**
+     * EntityType
+     * @enum {string}
+     */
+    EntityType: "EMPLOYEE";
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -414,6 +490,42 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  audit_events_list: {
+    parameters: {
+      query?: {
+        entity_type?: components["schemas"]["EntityType"] | null;
+        actor_id?: string | null;
+        occurred_from?: string | null;
+        occurred_to?: string | null;
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AuditEventPage"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   auth_change_password: {
     parameters: {
       query?: never;
