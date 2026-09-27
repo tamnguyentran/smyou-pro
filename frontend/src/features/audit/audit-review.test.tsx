@@ -245,3 +245,18 @@ describe("AC-SYS-072 tra tên đối tượng qua mọi trang danh sách nhân v
     ).toBeInTheDocument();
   });
 });
+
+describe("AC-SYS-074 khoảng ngày ngược trước khi tải xong (review vòng 2)", () => {
+  test("không kẹt ở khung đang tải: hiện lỗi ở ô Đến ngày", async () => {
+    signedInAs(AN, async () => {
+      await new Promise(() => undefined); // first page never arrives
+      return HttpResponse.json({});
+    });
+    renderApp("/audit");
+    fireEvent.change(await screen.findByLabelText("Từ ngày"), { target: { value: "2026-09-20" } });
+    fireEvent.change(screen.getByLabelText("Đến ngày"), { target: { value: "2026-09-19" } });
+
+    expect(await screen.findByText("Từ ngày không được sau Đến ngày.")).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Đang tải nhật ký" })).not.toBeInTheDocument();
+  });
+});

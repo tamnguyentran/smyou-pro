@@ -136,3 +136,28 @@ def test_limit_and_offset_slice_the_newest_first_list(app: FastAPI, db: Connecti
     assert [i["action"] for i in body["items"]] == ["c", "b"]
     for bad in ({"limit": "0"}, {"offset": "-1"}):
         assert client.get("/api/v1/audit-events", params=bad).status_code == 422
+
+
+@pytest.mark.ac("AC-SYS-065")
+def test_change_password_lockout_names_the_signed_in_employee_as_actor(app: FastAPI, db: Connection) -> None:
+    """Round 2: the employee is authenticated on this path, so the lock is not a "Hệ thống" action."""
+    khoa = seed(
+        db,
+        Person("khoa.tran@smyou.vn", "TamThoi#14", ("TECHNICIAN",), "NV014", "Trần Minh Khoa", "TECHNICAL"),
+    )
+    client = client_as(
+        app, Person("khoa.tran@smyou.vn", "TamThoi#14", ("TECHNICIAN",), "NV014", "", "TECHNICAL")
+    )
+    body = {"new_password": "Attacker#2026x"}
+    statuses = [
+        client.post(
+            "/api/v1/auth/change-password", json={**body, "current_password": f"doan-{i}"}
+        ).status_code
+        for i in range(5)
+    ]
+    assert statuses[-1] == 423
+    actor = db.execute(
+        text("SELECT actor_id FROM audit_events WHERE entity_id = :id AND action = 'account_locked'"),
+        {"id": khoa},
+    ).scalar_one()
+    assert actor == khoa
