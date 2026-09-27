@@ -432,6 +432,11 @@
         "title": "EmployeeWithPassword",
         "type": "object"
       },
+      "EntityType": {
+        "enum": ["EMPLOYEE"],
+        "title": "EntityType",
+        "type": "string"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -658,8 +663,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "const": "EMPLOYEE",
-                  "type": "string"
+                  "$ref": "#/components/schemas/EntityType"
                 },
                 {
                   "type": "null"

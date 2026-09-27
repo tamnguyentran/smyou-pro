@@ -40,7 +40,11 @@ test("AC-SYS-072 AC-SYS-073 @a11y @screenshot Nhật ký hệ thống: bảng (m
   await signIn(page, MANAGER);
   await expect(page.getByRole("heading", { level: 1, name: "Nhật ký hệ thống" })).toBeVisible();
   // Signing in itself just audited a "login" row (AC-SYS-062) — always at least one row to show.
-  await expect(page.getByText("Đăng nhập").first()).toBeVisible();
+  const log =
+    info.project.name === "desktop"
+      ? page.getByRole("table", { name: "Nhật ký hệ thống" })
+      : page.getByRole("list", { name: "Nhật ký hệ thống" });
+  await expect(log.getByText("Đăng nhập", { exact: true }).first()).toBeVisible();
   await evidence(page, info, "audit-log.png");
 });
 

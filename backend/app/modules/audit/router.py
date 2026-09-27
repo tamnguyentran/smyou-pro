@@ -2,13 +2,14 @@
 
 import uuid
 from datetime import date
-from typing import Annotated, Literal
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
 from app.core.authz import Actor, require
 from app.core.db import DbSession
 from app.modules.audit import service
+from app.modules.audit.domain import EntityType
 from app.modules.audit.schemas import AuditEventPage
 
 router = APIRouter(prefix="/api/v1/audit-events", tags=["audit"])
@@ -24,7 +25,7 @@ Reader = Annotated[Actor, Depends(require("audit.read"))]
 def list_events(
     session: DbSession,
     actor: Reader,
-    entity_type: Literal["EMPLOYEE"] | None = None,
+    entity_type: EntityType | None = None,
     actor_id: uuid.UUID | None = None,
     occurred_from: date | None = None,
     occurred_to: date | None = None,

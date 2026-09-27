@@ -21,12 +21,23 @@ const ENTITY_TYPE_LABELS: Record<string, string> = {
   EMPLOYEE: "Nhân viên",
 };
 
+// Same labels and tones as the employees list (EmployeeList StatusBadges).
+const STATUS: Record<string, { label: string; tone: "completed" | "todo" }> = {
+  ACTIVE: { label: "Đang hoạt động", tone: "completed" },
+  INACTIVE: { label: "Đã khoá", tone: "todo" },
+};
+
+/** entity_id → "Name (CODE)" for the entities the page could look up (spec §6: "nếu tra được"). */
+export type EntityNames = ReadonlyMap<string, string>;
+
 function actionLabel(action: string): string {
   return ACTION_LABELS[action] ?? action;
 }
 
-function entityLabel(entityType: string): string {
-  return ENTITY_TYPE_LABELS[entityType] ?? entityType;
+function entityText(event: AuditEventOut, names: EntityNames): string {
+  const type = ENTITY_TYPE_LABELS[event.entity_type] ?? event.entity_type;
+  const name = names.get(event.entity_id);
+  return name ? `${type} · ${name}` : type;
 }
 
 function ActorText({ actor }: { actor: AuditEventOut["actor"] }) {
@@ -38,22 +49,34 @@ function ActorText({ actor }: { actor: AuditEventOut["actor"] }) {
   );
 }
 
+function StatusBadge({ status }: { status: string | null }) {
+  if (!status) return <span>—</span>;
+  const known = STATUS[status];
+  return <Badge tone={known?.tone ?? "neutral"}>{known?.label ?? status}</Badge>;
+}
+
 function Transition({ event }: { event: AuditEventOut }) {
   if (!event.from_status && !event.to_status) return <span>—</span>;
   return (
-    <span>
-      {event.from_status ?? "—"} → {event.to_status ?? "—"}
+    <span className="inline-flex flex-wrap items-center gap-1">
+      <StatusBadge status={event.from_status} />
+      <span aria-hidden="true">→</span>
+      <span className="sr-only">thành</span>
+      <StatusBadge status={event.to_status} />
     </span>
   );
 }
 
 /** AC-SYS-072/073: table on desktop, cards on mobile — same data as the employees list pattern. */
-export function AuditEventList({ items }: { items: AuditEventOut[] }) {
+export function AuditEventList({ items, names }: { items: AuditEventOut[]; names: EntityNames }) {
   const desktop = useMediaQuery("(min-width: 1024px)", true);
 
   if (desktop) {
     return (
-      <table className="w-full overflow-hidden rounded-2xl border border-line bg-card text-left text-sm">
+      <table
+        aria-label="Nhật ký hệ thống"
+        className="w-full overflow-hidden rounded-2xl border border-line bg-card text-left text-sm shadow-card"
+      >
         <thead className="bg-sidebar-sub text-xs font-semibold text-body uppercase">
           <tr>
             {["Thời gian", "Người thực hiện", "Đối tượng", "Hành động", "Trước → Sau"].map(
@@ -68,11 +91,13 @@ export function AuditEventList({ items }: { items: AuditEventOut[] }) {
         <tbody className="divide-y divide-line">
           {items.map((event) => (
             <tr key={event.id} className="hover:bg-sidebar-sub">
-              <td className="px-4 py-3 text-body">{formatDateTime(event.occurred_at)}</td>
+              <td className="px-4 py-3 whitespace-nowrap text-body">
+                {formatDateTime(event.occurred_at)}
+              </td>
               <td className="px-4 py-3 text-body">
                 <ActorText actor={event.actor} />
               </td>
-              <td className="px-4 py-3 text-body">{entityLabel(event.entity_type)}</td>
+              <td className="px-4 py-3 text-body">{entityText(event, names)}</td>
               <td className="px-4 py-3">
                 <Badge tone="neutral">{actionLabel(event.action)}</Badge>
               </td>
@@ -87,17 +112,24 @@ export function AuditEventList({ items }: { items: AuditEventOut[] }) {
   }
 
   return (
-    <ul className="space-y-3">
+    <ul aria-label="Nhật ký hệ thống" className="space-y-3">
       {items.map((event) => (
         <li key={event.id} className="rounded-2xl border border-line bg-card p-4 shadow-card">
           <div className="flex items-center justify-between gap-2">
             <Badge tone="neutral">{actionLabel(event.action)}</Badge>
-            <span className="text-xs font-medium text-muted">{entityLabel(event.entity_type)}</span>
+            <span className="text-xs font-medium text-muted">
+              {formatDateTime(event.occurred_at)}
+            </span>
           </div>
-          <p className="mt-2 text-sm text-body">
+          <p className="mt-2 text-sm font-semibold text-heading">{entityText(event, names)}</p>
+          {event.from_status || event.to_status ? (
+            <div className="mt-1 text-sm text-body">
+              <Transition event={event} />
+            </div>
+          ) : null}
+          <p className="mt-1 text-sm text-body">
             <ActorText actor={event.actor} />
           </p>
-          <p className="mt-1 text-xs text-muted">{formatDateTime(event.occurred_at)}</p>
         </li>
       ))}
     </ul>

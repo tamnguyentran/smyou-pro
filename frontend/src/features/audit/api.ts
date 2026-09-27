@@ -17,8 +17,10 @@ export interface AuditEventFilters {
 
 export const AUDIT_EVENTS_KEY = "audit-events";
 
-export function useAuditEvents(filters: AuditEventFilters) {
+/** `enabled: false` keeps showing the last result (placeholderData) without sending a request. */
+export function useAuditEvents(filters: AuditEventFilters, { enabled = true } = {}) {
   return useQuery({
+    enabled,
     queryKey: [AUDIT_EVENTS_KEY, filters],
     queryFn: async () => {
       const { data, error, response } = await api.GET("/api/v1/audit-events", {

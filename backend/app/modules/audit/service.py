@@ -111,7 +111,7 @@ def list_events(
         query = query.where(AuditEvent.occurred_at < _vn_day_start_utc(occurred_to) + timedelta(days=1))
 
     total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
-    ordered = query.order_by(AuditEvent.occurred_at.desc(), AuditEvent.id.desc())
+    ordered = query.order_by(AuditEvent.occurred_at.desc(), AuditEvent.seq.desc())
     rows = session.execute(ordered.limit(limit).offset(offset)).all()
     items = [_out(event, employee) for event, employee in rows]
     return AuditEventPage(items=items, total=total, limit=limit, offset=offset)

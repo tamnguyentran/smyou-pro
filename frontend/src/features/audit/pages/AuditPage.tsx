@@ -11,7 +11,7 @@ import { TextField } from "../../../components/ui/TextField";
 import { useEmployees } from "../../employees/api";
 import { useMe } from "../../me/api";
 import { useAuditEvents, type AuditEventFilters } from "../api";
-import { AuditEventList } from "../components/AuditEventList";
+import { AuditEventList, type EntityNames } from "../components/AuditEventList";
 
 const PAGE_SIZE = 20;
 const EMPTY_FILTERS: AuditEventFilters = {
@@ -40,7 +40,15 @@ export function AuditPage() {
   const me = useMe();
   const [filters, setFilters] = useState<AuditEventFilters>(EMPTY_FILTERS);
   const employees = useEmployees({ q: "", role: "", is_active: "", limit: 100, offset: 0 });
-  const events = useAuditEvents(filters);
+  // Checked here so a reversed range never reaches the API (whose 422 would read as a load error).
+  const rangeInvalid =
+    filters.occurredFrom !== "" &&
+    filters.occurredTo !== "" &&
+    filters.occurredFrom > filters.occurredTo;
+  const events = useAuditEvents(filters, { enabled: !rangeInvalid });
+  const names: EntityNames = new Map(
+    (employees.data?.items ?? []).map((e) => [e.id, `${e.full_name} (${e.code})`]),
+  );
 
   if (!me.data && me.isError) {
     return (
@@ -97,6 +105,7 @@ export function AuditPage() {
           type="date"
           label="Đến ngày"
           value={filters.occurredTo}
+          error={rangeInvalid ? "Từ ngày không được sau Đến ngày." : undefined}
           onChange={(event) => {
             setFilter("occurredTo", event.target.value);
           }}
@@ -132,7 +141,7 @@ export function AuditPage() {
         <EmptyState icon={History} message="Chưa có nhật ký nào khớp với bộ lọc." />
       ) : (
         <>
-          <AuditEventList items={events.data.items} />
+          <AuditEventList items={events.data.items} names={names} />
           <Pagination
             total={events.data.total}
             limit={PAGE_SIZE}

@@ -386,6 +386,11 @@ export interface components {
       /** Temporary Password */
       temporary_password: string;
     };
+    /**
+     * EntityType
+     * @enum {string}
+     */
+    EntityType: "EMPLOYEE";
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -488,7 +493,7 @@ export interface operations {
   audit_events_list: {
     parameters: {
       query?: {
-        entity_type?: "EMPLOYEE" | null;
+        entity_type?: components["schemas"]["EntityType"] | null;
         actor_id?: string | null;
         occurred_from?: string | null;
         occurred_to?: string | null;

@@ -207,12 +207,12 @@ def update_employee(
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
     if "email" in changes and changes["email"] is not None:
         _ensure_email_free(session, changes["email"], except_id=employee.id)
-    for field in ("full_name", "email", "department"):
-        if changes.get(field) is not None:
-            setattr(employee, field, changes[field])
-    for field in ("phone", "title"):
-        if field in changes:
-            setattr(employee, field, changes[field] or None)
+    # Required fields sent as null are ignored; optional ones sent empty are cleared.
+    wanted = {f: changes[f] for f in ("full_name", "email", "department") if changes.get(f) is not None}
+    wanted |= {f: changes[f] or None for f in ("phone", "title") if f in changes}
+    changed_fields = sorted(f for f, value in wanted.items() if getattr(employee, f) != value)
+    for field in changed_fields:
+        setattr(employee, field, wanted[field])
     employee.version += 1
     _flush(session)
     _log("update", employee, actor)
@@ -222,7 +222,7 @@ def update_employee(
         entity_type="EMPLOYEE",
         entity_id=employee.id,
         action="update",
-        data={"changed_fields": sorted(changes)},
+        data={"changed_fields": changed_fields},
         request_id=request_id,
     )
     return _out(employee, now)
