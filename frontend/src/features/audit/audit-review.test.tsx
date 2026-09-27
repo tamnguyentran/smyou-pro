@@ -201,3 +201,47 @@ describe("AC-SYS-076 mục menu Nhật ký hệ thống chỉ dành cho Manager"
     expect(within(nav).queryByRole("link", { name: "Nhật ký hệ thống" })).not.toBeInTheDocument();
   });
 });
+
+describe("AC-SYS-072 tra tên đối tượng qua mọi trang danh sách nhân viên (review vòng 2)", () => {
+  test("nhân viên thứ 101 (mới tạo, mã lớn nhất) vẫn hiện tên trong nhật ký và trong bộ lọc", async () => {
+    desktop();
+    const filler = Array.from({ length: 100 }, (_, n) => ({
+      ...KHOA_EMPLOYEE,
+      id: `f0000000-0000-4000-8000-${String(n).padStart(12, "0")}`,
+      code: `NV${String(n).padStart(3, "0")}`,
+      full_name: `Nhân viên ${String(n)}`,
+    }));
+    const newest = {
+      ...KHOA_EMPLOYEE,
+      id: "f0000000-0000-4000-8000-999999999999",
+      code: "NV101",
+      full_name: "Đỗ Minh Tâm",
+    };
+    signedInAs(AN, () =>
+      HttpResponse.json({
+        items: [
+          event({ entity_id: newest.id, action: "create", from_status: null, to_status: null }),
+        ],
+        total: 1,
+        limit: 20,
+        offset: 0,
+      }),
+    );
+    server.use(
+      http.get("/api/v1/employees", ({ request }) => {
+        const offset = Number(new URL(request.url).searchParams.get("offset") ?? "0");
+        const items = offset === 0 ? filler : [newest];
+        return HttpResponse.json({ items, total: 101, limit: 100, offset });
+      }),
+    );
+    renderApp("/audit");
+
+    const table = await screen.findByRole("table", { name: "Nhật ký hệ thống" });
+    expect(await within(table).findByText("Nhân viên · Đỗ Minh Tâm (NV101)")).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Người thực hiện")).getByRole("option", {
+        name: "Đỗ Minh Tâm (NV101)",
+      }),
+    ).toBeInTheDocument();
+  });
+});
