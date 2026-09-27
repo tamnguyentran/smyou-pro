@@ -45,3 +45,6 @@ AI đang dùng **giả định mặc định** ở cột phải để không b�
 | Q39 | `audit_events.data.changed_fields` khi sửa nhân viên lưu theo thứ tự nào? | Thứ tự trường trong request | Lưu theo alphabet (đã code + test sẵn); sửa lại chữ ví dụ ở AC-SYS-058 cho khớp | Giữ theo alphabet (2026-09-27) | ✅ |
 | Q40 | `PATCH /employees/{id}` không đổi giá trị nào (chỉ gửi `version`) có nên vẫn tăng `version` và ghi audit `action="update", changed_fields=[]`? | Có (hành vi kế thừa từ M1-04a) | Giữ như hiện tại — không thuộc phạm vi M1-05 | Giữ như đề xuất (2026-09-27) | ✅ |
 | Q41 | Spec M1-05 đã Approved bị sửa sau khi duyệt (thêm cột `seq`/`clock_timestamp()` để chống trùng giờ event, mở rộng tra tên nhân viên ra mọi trang thay vì 100 dòng đầu) — không đổi AC nào. Chủ dự án xác nhận các sửa này chưa? | — | Xác nhận, chấp nhận thay đổi (2026-09-27) | ✅ |
+| Q42 | Tách M2-01 thành M2-01a (API) và M2-01b (giao diện)? | Có (như M1-04) | Giữ như đề xuất (2026-09-27) | ✅ |
+| Q43 | Ảnh sản phẩm cần bảng `attachments` chung (dự kiến M6-01, chưa làm) — xây ngay cho M2-01 hay bỏ ảnh khỏi item này? | Xây tối thiểu bảng `attachments` ngay, chỉ `kind=PRODUCT_IMAGE`; M6-01 mở rộng sau | Giữ như đề xuất (2026-09-27) | ✅ |
+| Q44 | Mã hàng (`sku`) do Manager tự gõ hay hệ thống tự sinh (khác mã nhân viên Q32)? | Manager tự gõ, hệ thống chỉ kiểm trùng | *(chờ duyệt cùng spec M2-01a)* | ⏳ |
