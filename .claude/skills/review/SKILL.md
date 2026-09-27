@@ -13,9 +13,9 @@ argument-hint: <backlog-ID>
    - `test-auditor`
    - `security-auditor` (always when routes/queries/auth/uploads/config changed; otherwise skip and say so)
    - `ui-reviewer` (only if `frontend/src` changed)
-3. Consolidate findings into one table: severity, source agent, file:line, finding, your assessment (Confirmed / Disputed + reason). Verify disputed ones yourself by reading code or running a test — do not dismiss without evidence.
+3. As each report arrives, reduce it to its findings (don't restate it). Consolidate findings into one table: severity, source agent, file:line, finding, your assessment (Confirmed / Disputed + reason). Verify disputed ones yourself by reading code or running a test — do not dismiss without evidence.
 4. Fix every Confirmed Critical/High/Medium finding. For bugs: first add a failing test that reproduces it (commit `test($ARGUMENTS): reproduce …`), then fix. Low findings: fix if trivial, else list them.
-5. Run `/verify`. If any fix was non-trivial, re-run only the agent(s) whose findings you fixed (max 3 review rounds in total).
+5. Run `/verify`. Re-run only the agent(s) with a fixed Confirmed Medium+ finding, and only if that fix was non-trivial (max 3 review rounds in total). Low-only fixes need no new round.
 6. Write `reports/review-$ARGUMENTS.md` with the table and resolutions. Reply with the summary; flag anything unresolved or disputed for the user's decision.
 
 Also available for a second opinion: the built-in `/code-review` and `/security-review` commands.

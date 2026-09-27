@@ -18,4 +18,5 @@ argument-hint: <backlog-ID>
    - Review resolutions summary
    - Screenshots (list of files in `reports/screenshots/`; they are also uploaded as CI artifacts)
    - New assumptions / open questions
-6. Reply with the PR URL and what the owner should look at (checklist in QUALITY_GATES §4).
+6. If the CI job "Claude PR Review" fails, report it — never re-run it without asking (each run is billed to the owner's API key; one run here cost $3).
+7. Reply with the PR URL and what the owner should look at (checklist in QUALITY_GATES §4).
