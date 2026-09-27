@@ -42,3 +42,6 @@ AI đang dùng **giả định mặc định** ở cột phải để không b�
 | Q36 | Quản lý kỹ thuật (`employee.read`) xem được gì? | Danh sách + chi tiết, chỉ đọc, qua `/employees` (menu vẫn chỉ cho Manager) | Giữ như đề xuất (2026-09-26) | ✅ |
 | Q37 | Mở tạm khoá do sai mật khẩu 5 lần thế nào? | "Cấp lại mật khẩu" xoá luôn tạm khoá; không nút riêng | Giữ như đề xuất (2026-09-26) | ✅ |
 | Q38 | Ghi nhật ký thao tác nhân viên? | Log ứng dụng ngay; `audit_events` từ M1-05 (như Q23) | Giữ như đề xuất (2026-09-26) | ✅ |
+| Q39 | `audit_events.data.changed_fields` khi sửa nhân viên lưu theo thứ tự nào? | Thứ tự trường trong request | Lưu theo alphabet (đã code + test sẵn); sửa lại chữ ví dụ ở AC-SYS-058 cho khớp | Giữ theo alphabet (2026-09-27) | ✅ |
+| Q40 | `PATCH /employees/{id}` không đổi giá trị nào (chỉ gửi `version`) có nên vẫn tăng `version` và ghi audit `action="update", changed_fields=[]`? | Có (hành vi kế thừa từ M1-04a) | Giữ như hiện tại — không thuộc phạm vi M1-05 | Giữ như đề xuất (2026-09-27) | ✅ |
+| Q41 | Spec M1-05 đã Approved bị sửa sau khi duyệt (thêm cột `seq`/`clock_timestamp()` để chống trùng giờ event, mở rộng tra tên nhân viên ra mọi trang thay vì 100 dòng đầu) — không đổi AC nào. Chủ dự án xác nhận các sửa này chưa? | — | Xác nhận, chấp nhận thay đổi (2026-09-27) | ✅ |
