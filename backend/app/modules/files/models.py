@@ -24,5 +24,5 @@ class Attachment(Base):
     sha256: Mapped[str] = mapped_column(String(64))
     width: Mapped[int | None] = mapped_column(Integer)
     height: Mapped[int | None] = mapped_column(Integer)
-    uploaded_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("employees.id"))
+    uploaded_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("employees.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

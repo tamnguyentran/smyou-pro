@@ -2,6 +2,9 @@
 
 ALLOWED_IMAGE_MIME_TYPES = ("image/jpeg", "image/png", "image/webp", "image/heic")
 
+# ISO-BMFF major/compatible brands used by HEIC/HEIF; other ftyp boxes (MP4, MOV, AVIF, ...) must not match.
+HEIC_BRANDS = (b"heic", b"heix", b"heim", b"heis", b"hevc", b"hevx", b"mif1", b"msf1")
+
 
 class ImageError(Exception):
     def __init__(self, code: str, detail: str) -> None:
@@ -18,7 +21,7 @@ def sniff_image_mime(data: bytes) -> str | None:
         return "image/png"
     if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
         return "image/webp"
-    if data[4:8] == b"ftyp":
+    if data[4:8] == b"ftyp" and data[8:12] in HEIC_BRANDS:
         return "image/heic"
     return None
 

@@ -207,9 +207,22 @@ def test_update_optimistic_lock_and_sku_immutable(
 ) -> None:
     product_id = products["LCD1137"]
     an = client_as(app, AN)
-    res = an.patch(f"/api/v1/products/{product_id}", json={"version": 1, "name": "Màn hình Dell 22in FHD"})
+    edits = {
+        "name": "Màn hình Dell 22in FHD",
+        "brand": "Dell Vietnam",
+        "price": 3_100_000,
+        "vat_rate": 10,
+        "price_fixed": True,
+        "warranty_months": 12,
+        "specs": "FHD IPS",
+    }
+    res = an.patch(f"/api/v1/products/{product_id}", json={"version": 1, **edits})
     assert res.status_code == 200, res.text
-    assert res.json()["version"] == 2
+    body = res.json()
+    assert body["version"] == 2
+    for field, value in edits.items():
+        expected = "10.00" if field == "vat_rate" else value
+        assert body[field] == expected, (field, body)
 
     problem(
         an.patch(f"/api/v1/products/{product_id}", json={"version": 1, "name": "Khác"}), 409, "STALE_VERSION"
@@ -317,8 +330,22 @@ def test_serve_attachment_forbidden_and_not_found(
     ).json()["image_attachment_id"]
 
     khoa = client_as(app, KHOA)
-    assert khoa.get(f"/api/v1/attachments/{attachment_id}").status_code == 403
+    problem(khoa.get(f"/api/v1/attachments/{attachment_id}"), 403, "FORBIDDEN")
     problem(an.get(f"/api/v1/attachments/{uuid.uuid4()}"), 404, "NOT_FOUND")
+
+
+@pytest.mark.ac("AC-CAT-005")
+def test_unknown_product_id_is_not_found(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    an = client_as(app, AN)
+    missing = uuid.uuid4()
+    problem(an.patch(f"/api/v1/products/{missing}", json={"version": 1}), 404, "NOT_FOUND")
+    problem(an.post(f"/api/v1/products/{missing}/deactivate", json={"version": 1}), 404, "NOT_FOUND")
+    problem(an.post(f"/api/v1/products/{missing}/activate", json={"version": 1}), 404, "NOT_FOUND")
+    problem(
+        an.post(f"/api/v1/products/{missing}/image", files={"file": ("a.jpg", JPEG_BYTES, "image/jpeg")}),
+        404,
+        "NOT_FOUND",
+    )
 
 
 @pytest.mark.ac("AC-CAT-011")
@@ -338,6 +365,31 @@ def test_upload_replaces_image_keeps_old_file(
     assert second != first
     assert an.get(f"/api/v1/products/{product_id}").json()["image_attachment_id"] == second
     assert an.get(f"/api/v1/attachments/{first}").status_code == 200
+
+
+def test_mutations_write_audit_events(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    """CLAUDE.md rule 8: every state-changing command appends to audit_events."""
+    an = client_as(app, AN)
+    created = an.post("/api/v1/products", json={**MAYBO, "sku": "MAYBO9001"}).json()
+    product_id = created["id"]
+
+    updated = an.patch(f"/api/v1/products/{product_id}", json={"version": 1, "name": "Đổi tên"}).json()
+    an.post(f"/api/v1/products/{product_id}/deactivate", json={"version": updated["version"]})
+    an.post(f"/api/v1/products/{product_id}/activate", json={"version": updated["version"] + 1})
+    an.post(f"/api/v1/products/{product_id}/image", files={"file": ("a.jpg", JPEG_BYTES, "image/jpeg")})
+
+    actions = (
+        db.execute(
+            text(
+                "SELECT action FROM audit_events WHERE entity_type = 'PRODUCT' AND entity_id = :id"
+                " ORDER BY occurred_at, seq"
+            ),
+            {"id": product_id},
+        )
+        .scalars()
+        .all()
+    )
+    assert actions == ["create", "update", "deactivate", "activate", "image"]
 
 
 @pytest.mark.ac("AC-CAT-007")

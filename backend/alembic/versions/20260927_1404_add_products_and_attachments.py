@@ -41,6 +41,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_attachments")),
     )
     op.create_index(op.f("ix_attachments_owner_id"), "attachments", ["owner_id"], unique=False)
+    op.create_index(op.f("ix_attachments_uploaded_by"), "attachments", ["uploaded_by"], unique=False)
     op.create_table(
         "products",
         sa.Column("id", sa.Uuid(), server_default=sa.text("gen_random_uuid()"), nullable=False),
@@ -91,6 +92,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_products_is_active"), table_name="products")
     op.drop_index(op.f("ix_products_category"), table_name="products")
     op.drop_table("products")
+    op.drop_index(op.f("ix_attachments_uploaded_by"), table_name="attachments")
     op.drop_index(op.f("ix_attachments_owner_id"), table_name="attachments")
     op.drop_table("attachments")
     # ### end Alembic commands ###

@@ -7,12 +7,22 @@ from app.modules.files.domain import ImageError, sniff_image_mime, validate_imag
 JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF" + b"\x00" * 20
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 20
 WEBP = b"RIFF" + b"\x00" * 4 + b"WEBP" + b"\x00" * 20
+HEIC = b"\x00\x00\x00\x18ftypheic" + b"\x00" * 20
+MP4_NOT_HEIC = b"\x00\x00\x00\x18ftypisom" + b"\x00" * 20  # ISO-BMFF but not a HEIC brand
 NOT_AN_IMAGE = b"plain text, not a picture"
 
 
 @pytest.mark.ac("AC-CAT-009")
 @pytest.mark.parametrize(
-    ("data", "mime"), [(JPEG, "image/jpeg"), (PNG, "image/png"), (WEBP, "image/webp"), (NOT_AN_IMAGE, None)]
+    ("data", "mime"),
+    [
+        (JPEG, "image/jpeg"),
+        (PNG, "image/png"),
+        (WEBP, "image/webp"),
+        (HEIC, "image/heic"),
+        (MP4_NOT_HEIC, None),
+        (NOT_AN_IMAGE, None),
+    ],
 )
 def test_sniff_image_mime(data: bytes, mime: str | None) -> None:
     assert sniff_image_mime(data) == mime
