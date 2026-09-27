@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+  "/api/v1/attachments/{attachment_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Tải tệp đính kèm (ảnh sản phẩm) */
+    get: operations["attachments_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/audit-events": {
     parameters: {
       query?: never;
@@ -227,6 +244,93 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/products": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách sản phẩm (tìm, lọc, phân trang) */
+    get: operations["products_list"];
+    put?: never;
+    /** Thêm sản phẩm */
+    post: operations["products_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/products/{product_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Chi tiết sản phẩm */
+    get: operations["products_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Sửa thông tin sản phẩm */
+    patch: operations["products_update"];
+    trace?: never;
+  };
+  "/api/v1/products/{product_id}/activate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Mở lại kinh doanh */
+    post: operations["products_activate"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/products/{product_id}/deactivate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Ngừng kinh doanh */
+    post: operations["products_deactivate"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/products/{product_id}/image": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Tải ảnh sản phẩm */
+    post: operations["products_upload_image"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -284,6 +388,11 @@ export interface components {
       offset: number;
       /** Total */
       total: number;
+    };
+    /** Body_products_upload_image */
+    Body_products_upload_image: {
+      /** File */
+      file: string;
     };
     /** ChangePasswordRequest */
     ChangePasswordRequest: {
@@ -390,7 +499,7 @@ export interface components {
      * EntityType
      * @enum {string}
      */
-    EntityType: "EMPLOYEE";
+    EntityType: "EMPLOYEE" | "PRODUCT";
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -410,6 +519,14 @@ export interface components {
       status: "ok";
       /** Version */
       version: string;
+    };
+    /** ImageUploaded */
+    ImageUploaded: {
+      /**
+       * Image Attachment Id
+       * Format: uuid
+       */
+      image_attachment_id: string;
     };
     /** LoginRequest */
     LoginRequest: {
@@ -456,6 +573,119 @@ export interface components {
       /** Roles */
       roles: string[];
     };
+    /** ProductCreate */
+    ProductCreate: {
+      /** Brand */
+      brand?: string | null;
+      /**
+       * Category
+       * @enum {string}
+       */
+      category:
+        | "PC"
+        | "LAPTOP"
+        | "MONITOR"
+        | "PRINTER"
+        | "SCANNER"
+        | "PRINTER_SUPPLY"
+        | "CAMERA"
+        | "RECORDER"
+        | "STORAGE"
+        | "NETWORK"
+        | "ACCESSORY"
+        | "MATERIAL"
+        | "SOFTWARE"
+        | "OTHER";
+      /** Name */
+      name: string;
+      /** Price */
+      price: number;
+      /**
+       * Price Fixed
+       * @default false
+       */
+      price_fixed: boolean;
+      /** Sku */
+      sku: string;
+      /** Specs */
+      specs?: string | null;
+      /**
+       * Unit
+       * @enum {string}
+       */
+      unit: "CAI" | "MAY" | "BO" | "MET" | "CUON" | "HOP" | "LICENSE";
+      /**
+       * Vat Rate
+       * @default 8
+       */
+      vat_rate: number | string;
+      /** Warranty Months */
+      warranty_months?: number | null;
+    };
+    /** ProductOut */
+    ProductOut: {
+      /** Brand */
+      brand: string | null;
+      /** Category */
+      category: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Image Attachment Id */
+      image_attachment_id: string | null;
+      /** Is Active */
+      is_active: boolean;
+      /** Name */
+      name: string;
+      /** Price */
+      price: number;
+      /** Price Fixed */
+      price_fixed: boolean;
+      /** Sku */
+      sku: string;
+      /** Specs */
+      specs: string | null;
+      /** Unit */
+      unit: string;
+      /** Vat Rate */
+      vat_rate: string;
+      /** Version */
+      version: number;
+      /** Warranty Months */
+      warranty_months: number | null;
+    };
+    /** ProductPage */
+    ProductPage: {
+      /** Items */
+      items: components["schemas"]["ProductOut"][];
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+      /** Total */
+      total: number;
+    };
+    /** ProductUpdate */
+    ProductUpdate: {
+      /** Brand */
+      brand?: string | null;
+      /** Name */
+      name?: string | null;
+      /** Price */
+      price?: number | null;
+      /** Price Fixed */
+      price_fixed?: boolean | null;
+      /** Specs */
+      specs?: string | null;
+      /** Vat Rate */
+      vat_rate?: number | string | null;
+      /** Version */
+      version: number;
+      /** Warranty Months */
+      warranty_months?: number | null;
+    };
     /** RolesRequest */
     RolesRequest: {
       /** Roles */
@@ -490,6 +720,44 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  attachments_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        attachment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   audit_events_list: {
     parameters: {
       query?: {
@@ -1080,6 +1348,324 @@ export interface operations {
       };
       /** @description problem+json — PASSWORD_CHANGE_REQUIRED | FORBIDDEN */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  products_list: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        category?:
+          | (
+              | "PC"
+              | "LAPTOP"
+              | "MONITOR"
+              | "PRINTER"
+              | "SCANNER"
+              | "PRINTER_SUPPLY"
+              | "CAMERA"
+              | "RECORDER"
+              | "STORAGE"
+              | "NETWORK"
+              | "ACCESSORY"
+              | "MATERIAL"
+              | "SOFTWARE"
+              | "OTHER"
+            )
+          | null;
+        brand?: string | null;
+        is_active?: boolean | null;
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProductPage"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  products_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ProductCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProductOut"];
+        };
+      };
+      /** @description problem+json — CONFLICT (sku) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  products_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        product_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProductOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  products_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        product_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ProductUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProductOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku) | INVALID_TRANSITION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  products_activate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        product_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VersionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProductOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku) | INVALID_TRANSITION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  products_deactivate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        product_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VersionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProductOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku) | INVALID_TRANSITION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  products_upload_image: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        product_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_products_upload_image"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ImageUploaded"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — INVALID_FILE_TYPE | FILE_TOO_LARGE | UNSUPPORTED_MEDIA_TYPE */
+      422: {
         headers: {
           [name: string]: unknown;
         };

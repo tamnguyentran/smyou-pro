@@ -13,7 +13,9 @@ from app.core.errors import register_error_handlers
 from app.core.request_id import RequestIdMiddleware
 from app.core.spec_loader import check_guard_registry, load_specs
 from app.modules.audit.router import router as audit_router
+from app.modules.catalog.router import router as catalog_router
 from app.modules.employees.router import router as employees_router
+from app.modules.files.router import router as files_router
 from app.modules.identity.router import me_router
 from app.modules.identity.router import router as auth_router
 from app.modules.identity.service import authenticate
@@ -65,6 +67,8 @@ def create_app(
     app.include_router(me_router)
     app.include_router(employees_router)
     app.include_router(audit_router)
+    app.include_router(catalog_router)
+    app.include_router(files_router)
     return app
 
 

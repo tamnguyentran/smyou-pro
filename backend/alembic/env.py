@@ -8,6 +8,8 @@ from sqlalchemy import create_engine, pool
 # Import every module's models here so autogenerate/check see all tables.
 import app.core.sequences  # registers tables on Base.metadata
 import app.modules.audit.models  # registers tables on Base.metadata
+import app.modules.catalog.models  # registers tables on Base.metadata
+import app.modules.files.models  # registers tables on Base.metadata
 import app.modules.identity.models  # noqa: F401  # registers tables on Base.metadata
 from app.core.config import Settings
 from app.core.db import Base
