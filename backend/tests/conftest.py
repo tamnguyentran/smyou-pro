@@ -1,5 +1,6 @@
 import os
 from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
@@ -21,9 +22,14 @@ UNREACHABLE_DATABASE_URL = "postgresql+psycopg://smyou:super-secret-pw@127.0.0.1
 
 
 @pytest.fixture
-def make_app() -> Callable[..., FastAPI]:
+def make_app(tmp_path: Path) -> Callable[..., FastAPI]:
     def _make(**overrides: str) -> FastAPI:
-        values = {"app_env": "test", "database_url": TEST_DATABASE_URL, **overrides}
+        values = {
+            "app_env": "test",
+            "database_url": TEST_DATABASE_URL,
+            "upload_dir": tmp_path / "uploads",
+            **overrides,
+        }
         return create_app(Settings(**values))
 
     return _make

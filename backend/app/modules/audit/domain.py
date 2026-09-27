@@ -9,3 +9,4 @@ from enum import StrEnum
 
 class EntityType(StrEnum):
     EMPLOYEE = "EMPLOYEE"
+    PRODUCT = "PRODUCT"

@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     login_lock_minutes: int = 15
     # URL prefix the app is served under ("" in dev, "/smyoutask" in production — ADR-014).
     base_path: str = ""
+    # Attachment storage (DOMAIN_MODEL §11); volume mounted by compose.*.yml.
+    upload_dir: Path = Path("/data/uploads")
+    upload_max_mb: int = 10
 
     @field_validator("base_path")
     @classmethod
