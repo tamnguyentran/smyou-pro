@@ -137,6 +137,20 @@ def test_list_search_filter_and_page(
     res = an.get("/api/v1/products", params={"limit": 200})
     assert res.status_code == 422, res.text
 
+    # q against name: case- and diacritic-insensitive ("man hinh" ~ "Màn hình")
+    res = an.get("/api/v1/products", params={"q": "MAN HINH"})
+    assert res.status_code == 200, res.text
+    assert [i["sku"] for i in res.json()["items"]] == ["LCD1137"]
+
+    res = an.get("/api/v1/products", params={"brand": "Dell"})
+    assert res.status_code == 200, res.text
+    assert [i["sku"] for i in res.json()["items"]] == ["LCD1137"]
+
+    # ordered by sku ascending across multiple active items
+    res = an.get("/api/v1/products", params={"is_active": True})
+    assert res.status_code == 200, res.text
+    assert [i["sku"] for i in res.json()["items"]] == ["LCD1137", "MAYBO3551"]
+
 
 @pytest.mark.ac("AC-CAT-002")
 def test_read_scope_sale_techlead_ok_technician_forbidden(
@@ -149,8 +163,8 @@ def test_read_scope_sale_techlead_ok_technician_forbidden(
         assert client.get(f"/api/v1/products/{product_id}").status_code == 200
 
     khoa = client_as(app, KHOA)
-    assert khoa.get("/api/v1/products").status_code == 403
-    assert khoa.get(f"/api/v1/products/{product_id}").status_code == 403
+    problem(khoa.get("/api/v1/products"), 403, "FORBIDDEN")
+    problem(khoa.get(f"/api/v1/products/{product_id}"), 403, "FORBIDDEN")
 
 
 @pytest.mark.ac("AC-CAT-003")
@@ -165,7 +179,7 @@ def test_create_product(app: FastAPI, db: Connection, people: dict[str, uuid.UUI
 
     for person in (HOA, TUAN):
         forbidden = client_as(app, person).post("/api/v1/products", json={**body, "sku": "MAYBO3553"})
-        assert forbidden.status_code == 403
+        problem(forbidden, 403, "FORBIDDEN")
 
 
 @pytest.mark.ac("AC-CAT-004")
@@ -175,16 +189,16 @@ def test_create_validation_and_conflict(app: FastAPI, db: Connection, people: di
 
     problem(an.post("/api/v1/products", json={**LCD, "sku": "maybo3551"}), 409, "CONFLICT")
 
-    for bad in (
-        {**LCD, "price": -1},
-        {**LCD, "vat_rate": 101},
-        {**LCD, "vat_rate": 8.123},
-        {**LCD, "category": "NOT_A_CATEGORY"},
-        {**LCD, "unit": "NOT_A_UNIT"},
-        {**LCD, "name": ""},
+    for bad, field in (
+        ({**LCD, "price": -1}, "price"),
+        ({**LCD, "vat_rate": 101}, "vat_rate"),
+        ({**LCD, "vat_rate": 8.123}, "vat_rate"),
+        ({**LCD, "category": "NOT_A_CATEGORY"}, "category"),
+        ({**LCD, "unit": "NOT_A_UNIT"}, "unit"),
+        ({**LCD, "name": ""}, "name"),
     ):
-        res = an.post("/api/v1/products", json=bad)
-        assert res.status_code == 422, (bad, res.text)
+        body = problem(an.post("/api/v1/products", json=bad), 422, "VALIDATION_ERROR")
+        assert body["errors"][0]["field"] == field, (bad, body)
 
 
 @pytest.mark.ac("AC-CAT-005")

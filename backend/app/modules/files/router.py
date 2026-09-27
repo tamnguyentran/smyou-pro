@@ -28,4 +28,9 @@ def get_attachment(
 ) -> Response:
     attachment = service.get_or_404(session, attachment_id)
     settings = request.app.state.settings
-    return Response(content=service.read_bytes(attachment, settings), media_type=attachment.mime_type)
+    filename = attachment.original_filename.replace('"', "").replace("\r", "").replace("\n", "")
+    return Response(
+        content=service.read_bytes(attachment, settings),
+        media_type=attachment.mime_type,
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
