@@ -52,6 +52,15 @@ Nếu tài liệu mâu thuẫn: `spec/*.yaml` > `docs/specs/<feature>.md` đã A
 - [ ] UI thay đổi → có screenshot 390px và 1440px trong `reports/screenshots/`
 - [ ] Cập nhật `docs/backlog/BACKLOG.md` (trạng thái) và docs liên quan nếu hành vi thay đổi
 
+## Tiết kiệm token (bắt buộc — context dài làm MỌI lượt sau đắt hơn)
+- `/clear` giữa các backlog item **và** giữa các giai đoạn của item lớn: `/spec` | `/implement` | `/review` + `/ship`. Trạng thái nằm trong file (spec, commit, `reports/`), không cần giữ trong context.
+- Item nào đụng cả backend + sửa module cũ + UI (~>400 dòng không tính test) → tách `<ID>a`/`<ID>b` ngay lúc `/spec`.
+- Output lệnh vào context phải gọn: test → `| grep -E "FAILED|ERROR|passed|failed|^E "` hoặc `-q ... | tail -5`; không `tail -150`, không dán log dài. Đọc file theo đoạn cần (offset/limit), không đọc lại file vừa sửa.
+- Thêm import **trong cùng lần sửa** với chỗ dùng đầu tiên (hook format tự xoá import chưa dùng).
+- Vòng sửa lỗi: chạy lệnh test nhỏ nhất liên quan; `make verify` chỉ chạy **một lần** khi xong.
+- Subagent review chạy model `sonnet` (khai báo trong `.claude/agents/`); vòng review sau chỉ chạy lại agent có finding ≥ Medium đã sửa.
+- Không chạy lại job CI "Claude PR Review" (tốn tiền API) khi chưa hỏi người dùng.
+
 ## Cách làm việc với Claude Code
 - Luồng chuẩn: `/spec <ID>` → người duyệt → `/implement <ID>` → `/review` → `/ship`. Chi tiết: `docs/process/WORKFLOW.md`.
 - Việc nhiều file: bật plan mode, trình bày kế hoạch trước khi sửa.
