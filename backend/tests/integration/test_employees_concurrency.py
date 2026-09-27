@@ -22,7 +22,8 @@ NOW = datetime(2026, 9, 26, 2, 0, tzinfo=UTC)
 # Committed rows need explicit cleanup — including the audit_events they write (M1-05), which
 # reference the employee by entity_id (no FK), so deleting the employee alone leaves them behind.
 CLEANUP = (
-    "DELETE FROM audit_events WHERE entity_id IN (SELECT id FROM employees WHERE email LIKE '%@race.smyou.vn')",
+    "DELETE FROM audit_events"
+    " WHERE entity_id IN (SELECT id FROM employees WHERE email LIKE '%@race.smyou.vn')",
     "DELETE FROM employees WHERE email LIKE '%@race.smyou.vn'",
 )
 
