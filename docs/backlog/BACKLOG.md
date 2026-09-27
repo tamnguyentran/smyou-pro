@@ -28,7 +28,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [x] **M1-05 Audit framework**: ghi `audit_events` qua service chung; trang Nhật ký (Manager) lọc theo thực thể/người/ngày.
 
 ## M2 — Danh mục
-- [R] **M2-01a Sản phẩm — API**: CRUD, tìm theo mã/tên, lọc danh mục, ngừng kinh doanh, module `attachments` tối thiểu (ảnh sản phẩm). Spec `M2-01a-products-api.md`.
+- [x] **M2-01a Sản phẩm — API**: CRUD, tìm theo mã/tên, lọc danh mục, ngừng kinh doanh, module `attachments` tối thiểu (ảnh sản phẩm). Spec `M2-01a-products-api.md`.
 - [S] **M2-01b Sản phẩm — giao diện**: trang Danh mục sản phẩm, form, chọn & xem trước ảnh. Spec `M2-01b-products-ui.md`.
 - [ ] **M2-02 Dịch vụ**: CRUD, `default_estimated_hours`.
 - [ ] **M2-03 Import danh mục** từ CSV/XLSX (xem trước, báo lỗi từng dòng, không import nửa chừng) — Q15.
