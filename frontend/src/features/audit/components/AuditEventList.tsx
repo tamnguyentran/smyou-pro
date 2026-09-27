@@ -33,7 +33,7 @@ function ActorText({ actor }: { actor: AuditEventOut["actor"] }) {
   if (!actor) return <span>Hệ thống</span>;
   return (
     <span>
-      {actor.full_name} <span className="text-xs text-muted">({actor.code})</span>
+      {actor.full_name} <span className="text-xs font-medium text-body">({actor.code})</span>
     </span>
   );
 }
