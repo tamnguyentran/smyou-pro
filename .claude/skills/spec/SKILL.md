@@ -18,5 +18,6 @@ Goal: turn backlog item `$ARGUMENTS` into a spec the owner can approve in ~10 mi
    - Tag each AC with test layer(s): unit / integration / generated / stateful / component / e2e.
 4. Do not invent business rules. Anything not covered by the docs → add to §8 and append a row to `docs/product/OPEN_QUESTIONS.md` (this file is permission-protected; the user will be asked) with a proposed default.
 5. If the item needs a change to `spec/*.yaml`, show the proposed YAML diff in §8 — do not edit the YAML yet.
-6. Update the backlog marker to `[S]`.
-7. Reply to the user in Vietnamese with: link to the spec, number of ACs, the list of assumptions/questions needing their decision, and: "Duyệt bằng cách sửa `Status: Approved` (hoặc bảo tôi đổi) rồi chạy `/implement $ARGUMENTS`."
+6. If the item will likely exceed ~400 lines of non-test code (e.g. backend + retrofitting existing modules + UI), propose splitting it into `<ID>a`/`<ID>b` (like M1-04) before writing ACs.
+7. Update the backlog marker to `[S]`.
+8. Reply to the user in Vietnamese with: link to the spec, number of ACs, the list of assumptions/questions needing their decision, and: "Duyệt bằng cách sửa `Status: Approved` (hoặc bảo tôi đổi) rồi chạy `/implement $ARGUMENTS`."

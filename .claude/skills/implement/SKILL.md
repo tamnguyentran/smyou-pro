@@ -29,14 +29,15 @@ Enter plan mode and present: files to add/change; migration(s); endpoints (metho
 ## 4. GREEN — implement
 - Migration → models → domain (pure) → service (transaction, lock, guards, effects, audit) → router → `make contract` (OpenAPI + TS types) → frontend api hooks → components/pages.
 - Follow `docs/architecture/ARCHITECTURE.md` and `docs/design/UI_GUIDELINES.md`. New dependency → stop and ask.
-- Loop: smallest relevant test command after each meaningful edit; `make check-fast` regularly.
+- Loop: smallest relevant test command after each meaningful edit (one file/test, output piped through `grep -E "FAILED|ERROR|passed|failed|^E "`); `make check-fast` regularly.
+- Add an import in the same edit as its first use — the format hook deletes unused imports.
 - Commit in small steps: `feat($ARGUMENTS): …`.
 
 ## 5. REFACTOR
 Remove duplication/dead code; keep tests green.
 
 ## 6. Verify
-Run `/verify`. Everything must pass. If after 3 honest attempts something still fails, stop and report exactly what fails with output — never weaken tests.
+Run `/verify` once, at the end (not after every fix). Everything must pass. If after 3 honest attempts something still fails, stop and report exactly what fails with output — never weaken tests.
 
 ## 7. Hand-off
-Tell the user (Vietnamese): what was built, `make verify` summary, AC matrix path, screenshots path, any new assumptions. Suggest next step: `/review`.
+Tell the user (Vietnamese): what was built, `make verify` summary, AC matrix path, screenshots path, any new assumptions. Then stop and suggest `/clear` followed by `/review <ID>` (review needs a fresh context anyway).

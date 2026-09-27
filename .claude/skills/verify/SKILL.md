@@ -8,7 +8,7 @@ argument-hint: "[backlog-ID]"
 
 1. Make sure the Docker stack is up (`make up`; wait for health).
 2. Run `make verify` (= `make check` + `make e2e` + screenshots). Capture output.
-3. If something fails: fix the cause (never the test's expectations), rerun. Max 3 cycles; then stop and report.
+3. Keep the log out of context: `make verify > /tmp/verify.log 2>&1`, then `grep -nE "passed|failed|Error|coverage|AC traceability"`. If something fails: fix the cause (never the test's expectations), rerun **only the failing target** (e.g. `make lint`, one pytest file) until green, then one final `make verify`. Max 3 cycles; then stop and report.
 4. Write `reports/verification.md`:
    ```
    # Verification — <ID> — <date/time>
