@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select, update
 
+import app.modules.files.models  # noqa: F401  # registers `attachments` for Product.image_attachment_id's FK
 from app.core.config import Settings
 from app.core.db import create_db_engine, create_session_factory
 from app.core.security import hash_password
