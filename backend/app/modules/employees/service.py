@@ -15,6 +15,7 @@ from app.core.authz import Actor, ScopeRules, apply_scope, get_in_scope_or_404
 from app.core.errors import AppError
 from app.core.security import hash_password
 from app.core.sequences import next_value
+from app.modules.audit import service as audit
 from app.modules.employees.domain import employee_code, last_code_number, temporary_password
 from app.modules.employees.schemas import (
     EmployeeCreate,
@@ -157,7 +158,7 @@ def get_employee(session: Session, actor: Actor, employee_id: uuid.UUID, *, now:
 
 
 def create_employee(
-    session: Session, actor: Actor, body: EmployeeCreate, *, now: datetime
+    session: Session, actor: Actor, body: EmployeeCreate, *, now: datetime, request_id: str | None = None
 ) -> EmployeeWithPassword:
     _ensure_email_free(session, body.email)
     codes = list(session.scalars(select(Employee.code)))
@@ -181,11 +182,26 @@ def create_employee(
     session.add(employee)
     _flush(session)
     _log("create", employee, actor)
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="EMPLOYEE",
+        entity_id=employee.id,
+        action="create",
+        data={"roles": list(body.roles)},
+        request_id=request_id,
+    )
     return EmployeeWithPassword(employee=_out(employee, now), temporary_password=password)
 
 
 def update_employee(
-    session: Session, actor: Actor, employee_id: uuid.UUID, body: EmployeeUpdate, *, now: datetime
+    session: Session,
+    actor: Actor,
+    employee_id: uuid.UUID,
+    body: EmployeeUpdate,
+    *,
+    now: datetime,
+    request_id: str | None = None,
 ) -> EmployeeOut:
     employee = _locked(session, actor, employee_id, body.version)
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
@@ -200,11 +216,27 @@ def update_employee(
     employee.version += 1
     _flush(session)
     _log("update", employee, actor)
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="EMPLOYEE",
+        entity_id=employee.id,
+        action="update",
+        data={"changed_fields": sorted(changes)},
+        request_id=request_id,
+    )
     return _out(employee, now)
 
 
 def set_roles(
-    session: Session, actor: Actor, employee_id: uuid.UUID, *, version: int, roles: list[str], now: datetime
+    session: Session,
+    actor: Actor,
+    employee_id: uuid.UUID,
+    *,
+    version: int,
+    roles: list[str],
+    now: datetime,
+    request_id: str | None = None,
 ) -> EmployeeOut:
     _serialize_manager_changes(session)
     employee = _locked(session, actor, employee_id, version)
@@ -217,11 +249,26 @@ def set_roles(
     employee.version += 1
     session.flush()
     _log(f"roles {sorted(wanted)}", employee, actor)
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="EMPLOYEE",
+        entity_id=employee.id,
+        action="roles",
+        data={"roles_before": sorted(held), "roles_after": sorted(wanted)},
+        request_id=request_id,
+    )
     return _out(employee, now)
 
 
 def deactivate(
-    session: Session, actor: Actor, employee_id: uuid.UUID, *, version: int, now: datetime
+    session: Session,
+    actor: Actor,
+    employee_id: uuid.UUID,
+    *,
+    version: int,
+    now: datetime,
+    request_id: str | None = None,
 ) -> EmployeeOut:
     if employee_id == actor.id:
         raise AppError(409, "CANNOT_DEACTIVATE_SELF", "Bạn không thể tự khoá tài khoản của mình.")
@@ -236,11 +283,27 @@ def deactivate(
     revoke_all_sessions(session, employee.id, now=now)  # signed out on every device (Q34)
     session.flush()
     _log("deactivate", employee, actor)
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="EMPLOYEE",
+        entity_id=employee.id,
+        action="deactivate",
+        from_status="ACTIVE",
+        to_status="INACTIVE",
+        request_id=request_id,
+    )
     return _out(employee, now)
 
 
 def activate(
-    session: Session, actor: Actor, employee_id: uuid.UUID, *, version: int, now: datetime
+    session: Session,
+    actor: Actor,
+    employee_id: uuid.UUID,
+    *,
+    version: int,
+    now: datetime,
+    request_id: str | None = None,
 ) -> EmployeeOut:
     employee = _locked(session, actor, employee_id, version)
     if employee.is_active:
@@ -249,11 +312,27 @@ def activate(
     employee.version += 1
     session.flush()
     _log("activate", employee, actor)
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="EMPLOYEE",
+        entity_id=employee.id,
+        action="activate",
+        from_status="INACTIVE",
+        to_status="ACTIVE",
+        request_id=request_id,
+    )
     return _out(employee, now)
 
 
 def reset_password(
-    session: Session, actor: Actor, employee_id: uuid.UUID, *, version: int, now: datetime
+    session: Session,
+    actor: Actor,
+    employee_id: uuid.UUID,
+    *,
+    version: int,
+    now: datetime,
+    request_id: str | None = None,
 ) -> EmployeeWithPassword:
     employee = _locked(session, actor, employee_id, version)
     password = temporary_password(employee.email)
@@ -266,4 +345,12 @@ def reset_password(
     revoke_all_sessions(session, employee.id, now=now)
     session.flush()
     _log("reset-password", employee, actor)
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="EMPLOYEE",
+        entity_id=employee.id,
+        action="reset-password",
+        request_id=request_id,
+    )
     return EmployeeWithPassword(employee=_out(employee, now), temporary_password=password)

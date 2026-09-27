@@ -61,7 +61,8 @@ def test_record_participates_in_the_callers_transaction_and_carries_the_request_
 def test_failed_create_writes_no_audit_row(app: FastAPI, db: Connection) -> None:
     seed(db, AN)
     seed(db, HOA)
-    client = client_as(app, AN)
+    client = client_as(app, AN)  # logging in itself audits a "login" row (AC-SYS-062)
+    baseline = audit_count(db)
 
     res = client.post(
         "/api/v1/employees",
@@ -74,7 +75,7 @@ def test_failed_create_writes_no_audit_row(app: FastAPI, db: Connection) -> None
     )
 
     assert res.status_code == 409, res.text
-    assert audit_count(db) == 0
+    assert audit_count(db) == baseline
 
 
 @pytest.mark.ac("AC-SYS-057")
@@ -149,13 +150,13 @@ def test_deactivate_then_activate_audits_status_transitions(app: FastAPI, db: Co
     activate = client.post(f"/api/v1/employees/{khoa}/activate", json={"version": 2})
     assert activate.status_code == 200, activate.text
 
-    first, second = audit_rows(db, khoa)
-    assert first.action == "deactivate"
-    assert first.from_status == "ACTIVE"
-    assert first.to_status == "INACTIVE"
-    assert second.action == "activate"
-    assert second.from_status == "INACTIVE"
-    assert second.to_status == "ACTIVE"
+    rows = audit_rows(db, khoa)
+    assert len(rows) == 2
+    by_action = {row.action: row for row in rows}
+    assert by_action["deactivate"].from_status == "ACTIVE"
+    assert by_action["deactivate"].to_status == "INACTIVE"
+    assert by_action["activate"].from_status == "INACTIVE"
+    assert by_action["activate"].to_status == "ACTIVE"
 
 
 @pytest.mark.ac("AC-SYS-061")
@@ -170,9 +171,9 @@ def test_reset_password_audit_never_contains_a_password(app: FastAPI, db: Connec
 
     [row] = audit_rows(db, khoa)
     assert row.action == "reset-password"
+    assert row.data is None
     dumped = json.dumps(dict(row._mapping), default=str)
     assert temporary_password not in dumped
-    assert "password" not in dumped.lower()
 
 
 @pytest.mark.ac("AC-SYS-055")

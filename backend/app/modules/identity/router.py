@@ -10,6 +10,7 @@ from app.core.authz import Actor, require
 from app.core.config import Settings
 from app.core.db import DbSession
 from app.core.errors import problem_response
+from app.core.request_id import get_request_id
 from app.modules.identity import service
 from app.modules.identity.schemas import (
     ChangePasswordRequest,
@@ -124,6 +125,7 @@ def login(
         now=_now(request),
         settings=settings,
         user_agent=_user_agent(request),
+        request_id=get_request_id(request),
     )
     if isinstance(result, Failure):
         return _failure(request, result)
@@ -186,6 +188,7 @@ def change_password(
         now=_now(request),
         settings=settings,
         user_agent=_user_agent(request),
+        request_id=get_request_id(request),
     )
     if isinstance(result, Failure):
         return _failure(request, result, clear_cookies=True)

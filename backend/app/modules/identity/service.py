@@ -29,6 +29,7 @@ from app.core.security import (
     verify_password,
 )
 from app.core.spec_loader import PermissionsSpec
+from app.modules.audit import service as audit
 from app.modules.identity.domain import is_locked, password_problems, register_failure
 from app.modules.identity.models import AuthSession, Employee, EmployeeRole
 from app.modules.identity.schemas import MeEmployee, MeResponse
@@ -106,7 +107,14 @@ def _session_live(session: Session, family_id: uuid.UUID | None, now: datetime) 
 
 
 def login(
-    session: Session, *, email: str, password: str, now: datetime, settings: Settings, user_agent: str
+    session: Session,
+    *,
+    email: str,
+    password: str,
+    now: datetime,
+    settings: Settings,
+    user_agent: str,
+    request_id: str | None = None,
 ) -> Issued | Failure:
     employee = session.scalars(
         select(Employee).where(Employee.email == email).with_for_update()
@@ -114,6 +122,7 @@ def login(
     if employee is None:
         verify_dummy(password)
         logger.info("login failed: unknown account")
+        # No Employee row to attach an audit_events entity_id to (Q23) — app log only.
         return Failure.INVALID_CREDENTIALS
     if is_locked(employee.locked_until, now):
         logger.info("login refused: account %s is locked", employee.id)
@@ -125,16 +134,51 @@ def login(
             max_failed=settings.login_max_failed,
             lock_minutes=settings.login_lock_minutes,
         )
+        audit.record(
+            session,
+            actor_id=None,
+            entity_type="EMPLOYEE",
+            entity_id=employee.id,
+            action="login_failed",
+            data={"reason": "invalid_password"},
+            request_id=request_id,
+        )
         if locked_until is not None:
             employee.locked_until = locked_until
             logger.warning("account %s locked after repeated failed logins", employee.id)
+            audit.record(
+                session,
+                actor_id=None,
+                entity_type="EMPLOYEE",
+                entity_id=employee.id,
+                action="account_locked",
+                data={"failed_login_count": settings.login_max_failed, "source": "login"},
+                request_id=request_id,
+            )
         return Failure.INVALID_CREDENTIALS
     if not employee.is_active:
         logger.info("login refused: account %s is disabled", employee.id)
+        audit.record(
+            session,
+            actor_id=None,
+            entity_type="EMPLOYEE",
+            entity_id=employee.id,
+            action="login_refused",
+            data={"reason": "account_disabled"},
+            request_id=request_id,
+        )
         return Failure.ACCOUNT_DISABLED
     employee.failed_login_count = 0
     employee.locked_until = None
     logger.info("login succeeded for %s", employee.id)
+    audit.record(
+        session,
+        actor_id=employee.id,
+        entity_type="EMPLOYEE",
+        entity_id=employee.id,
+        action="login",
+        request_id=request_id,
+    )
     issued, _ = _issue(
         session, employee, family_id=uuid.uuid4(), now=now, settings=settings, user_agent=user_agent
     )
@@ -200,6 +244,7 @@ def change_password(
     now: datetime,
     settings: Settings,
     user_agent: str,
+    request_id: str | None = None,
 ) -> Issued | Failure | list[tuple[str, str]]:
     employee = session.get(Employee, actor.id, with_for_update=True, populate_existing=True)
     if employee is None or not _session_live(session, actor.session_family, now):
@@ -217,6 +262,15 @@ def change_password(
             employee.locked_until = locked_until
             _revoke(session, AuthSession.employee_id == employee.id, now=now)
             logger.warning("account %s locked after repeated wrong current passwords", employee.id)
+            audit.record(
+                session,
+                actor_id=None,
+                entity_type="EMPLOYEE",
+                entity_id=employee.id,
+                action="account_locked",
+                data={"failed_login_count": settings.login_max_failed, "source": "change_password"},
+                request_id=request_id,
+            )
             return Failure.ACCOUNT_LOCKED
         return [("current_password", "Mật khẩu hiện tại không đúng.")]
     problems = password_problems(new_password, current_password=current_password, email=employee.email)
@@ -230,6 +284,14 @@ def change_password(
     employee.version += 1
     _revoke(session, AuthSession.employee_id == employee.id, now=now)
     logger.info("password changed for %s; other sessions revoked", employee.id)
+    audit.record(
+        session,
+        actor_id=employee.id,
+        entity_type="EMPLOYEE",
+        entity_id=employee.id,
+        action="password_changed",
+        request_id=request_id,
+    )
     issued, _ = _issue(
         session, employee, family_id=uuid.uuid4(), now=now, settings=settings, user_agent=user_agent
     )

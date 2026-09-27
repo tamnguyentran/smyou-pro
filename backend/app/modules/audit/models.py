@@ -20,7 +20,11 @@ class AuditEvent(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    actor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("employees.id"), index=True)
+    # SET NULL, not RESTRICT: employees are never hard-deleted in production (only deactivated), but
+    # a test or an admin script that does delete one must not be blocked by its own audit history.
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("employees.id", ondelete="SET NULL"), index=True
+    )
     entity_type: Mapped[str] = mapped_column(String(40))
     entity_id: Mapped[uuid.UUID] = mapped_column(Uuid)
     action: Mapped[str] = mapped_column(String(60))

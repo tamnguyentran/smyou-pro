@@ -56,17 +56,19 @@ def test_list_shape_sorted_desc_and_limit_validation(api: TestClient, db: Connec
         db, occurred_at=datetime(2026, 1, 2, tzinfo=UTC), actor_id=None, entity_id=hoa, action="update"
     )
     insert_event(db, occurred_at=datetime(2026, 1, 3, tzinfo=UTC), actor_id=an, entity_id=hoa, action="roles")
-    login_as(api, AN)
+    login_as(api, AN)  # this itself audits a "login" row for `an`, sorted first (most recent)
 
     res = api.get("/api/v1/audit-events?limit=20&offset=0")
     assert res.status_code == 200, res.text
     body = res.json()
-    assert body["total"] == 3
+    assert body["total"] == 4
     assert body["limit"] == 20
     assert body["offset"] == 0
-    actions = [item["action"] for item in body["items"]]
+    assert body["items"][0]["action"] == "login"
+    seeded = body["items"][1:]
+    actions = [item["action"] for item in seeded]
     assert actions == ["roles", "update", "create"]
-    assert set(body["items"][0]) == {
+    assert set(seeded[0]) == {
         "id",
         "occurred_at",
         "actor",
@@ -77,8 +79,8 @@ def test_list_shape_sorted_desc_and_limit_validation(api: TestClient, db: Connec
         "to_status",
         "data",
     }
-    assert body["items"][0]["actor"] == {"id": str(an), "code": "NV001", "full_name": "Nguyễn Văn An"}
-    assert body["items"][1]["actor"] is None
+    assert seeded[0]["actor"] == {"id": str(an), "code": "NV001", "full_name": "Nguyễn Văn An"}
+    assert seeded[1]["actor"] is None
 
     too_big = api.get("/api/v1/audit-events?limit=101")
     assert too_big.status_code == 422

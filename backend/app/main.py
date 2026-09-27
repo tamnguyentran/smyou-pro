@@ -12,6 +12,7 @@ from app.core.db import create_db_engine, create_session_factory
 from app.core.errors import register_error_handlers
 from app.core.request_id import RequestIdMiddleware
 from app.core.spec_loader import check_guard_registry, load_specs
+from app.modules.audit.router import router as audit_router
 from app.modules.employees.router import router as employees_router
 from app.modules.identity.router import me_router
 from app.modules.identity.router import router as auth_router
@@ -63,6 +64,7 @@ def create_app(
     app.include_router(auth_router)
     app.include_router(me_router)
     app.include_router(employees_router)
+    app.include_router(audit_router)
     return app
 
 
