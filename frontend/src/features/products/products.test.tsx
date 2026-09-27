@@ -429,11 +429,16 @@ describe("AC-CAT-015 ngừng/mở kinh doanh", () => {
 
 describe("AC-CAT-016 ảnh sản phẩm", () => {
   test("chọn ảnh hợp lệ: xem trước, nén, tiến trình, tải xong → hiện ảnh", async () => {
+    // jsdom/vitest's built-in URL.createObjectURL chokes on a File built via `new File(...)`.
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:mock-preview");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
     vi.mocked(validateImageFile).mockReturnValue(null);
     vi.mocked(compressImage).mockResolvedValue(new Blob(["x"], { type: "image/jpeg" }));
     vi.mocked(uploadProductImage).mockImplementation(async (_id, _blob, onProgress) => {
       onProgress(50);
-      await Promise.resolve();
+      // Real delay (not just a microtask tick) so "Đang tải ảnh…" is observable before it clears —
+      // a fully synchronous mock resolves faster than findByText's polling interval can catch it.
+      await new Promise((resolve) => setTimeout(resolve, 20));
       onProgress(100);
       return { image_attachment_id: "attach-1" };
     });
