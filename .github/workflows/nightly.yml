@@ -16,7 +16,7 @@ jobs:
       SPEC_DIR: ${{ github.workspace }}/spec   # the mutmut sandbox cannot find ../spec on its own
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
         with: { python-version: "3.12" }
       - run: uv sync --frozen
       - name: Mutation testing on domain layer (threshold ≥ 80% killed)
@@ -49,7 +49,7 @@ jobs:
       HYPOTHESIS_PROFILE: nightly   # many more examples than the PR profile
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
         with: { python-version: "3.12" }
       - run: uv sync --frozen && uv run alembic upgrade head
       - name: Stateful workflow tests (nightly profile)
