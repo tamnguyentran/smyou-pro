@@ -49,5 +49,5 @@ jobs:
             sandbox needs separate approval for that and there is no one to grant it. Pipe output straight into
             the next command instead (e.g. `gh pr diff 22 | sed -n '1,200p'`), or use the Read/Grep/Glob tools.
           claude_args: |
-            --max-turns 30
+            --max-turns 50
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git status:*),Bash(git ls-files:*),Bash(git fetch:*),Bash(git grep:*),Bash(git blame:*),Bash(ls:*),Bash(find:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(awk:*),Read,Grep,Glob"
