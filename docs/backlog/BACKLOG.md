@@ -35,7 +35,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [ ] **M2-03b Import danh mục — giao diện**: màn tải file/xem trước/xác nhận. Spec chưa viết.
 
 ## M3 — Khách hàng & Đơn hàng
-- [~] **M3-01 Khách hàng**: CRUD, tìm theo tên/SĐT/MST, chống trùng SĐT (cảnh báo). Spec `M3-01-customers.md`.
+- [R] **M3-01 Khách hàng**: CRUD, tìm theo tên/SĐT/MST, chống trùng SĐT (cảnh báo). Spec `M3-01-customers.md`.
 - [ ] **M3-02 Đơn nháp + dòng hàng + tính tiền** (snapshot, gift, giảm giá, VAT, property test).
   - Follow-up (review M1-03b): nút + ở thanh dưới đáy thành `Link` thường (không `aria-current`) khi trang Tạo đơn thật thay trang giữ chỗ.
 - [ ] **M3-03 Gửi/thu hồi/huỷ đơn** + danh sách & chi tiết đơn (tab Thông tin/Dòng hàng/Lịch sử), `allowed_commands`.
