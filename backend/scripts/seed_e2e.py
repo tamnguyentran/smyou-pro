@@ -12,7 +12,7 @@ import app.modules.files.models  # noqa: F401  # registers `attachments` for Pro
 from app.core.config import Settings
 from app.core.db import create_db_engine, create_session_factory
 from app.core.security import hash_password
-from app.modules.catalog.models import Product
+from app.modules.catalog.models import Product, Service
 from app.modules.identity.models import AuthSession, Employee, EmployeeRole
 
 # (email, code, full name, roles, password, must change password) — one technician per Playwright
@@ -36,6 +36,13 @@ ACCOUNTS = [
 PRODUCTS = [
     ("E2E-MON-001", "Màn hình Dell 22 inch E2E", "MONITOR", "Dell", "CAI", 2_800_000, True),
     ("E2E-PRN-001", "Hộp mực Canon E2E", "PRINTER_SUPPLY", "Canon", "HOP", 850_000, False),
+]
+
+# (code, name, category, unit, price, is_active) — M2-02: stable data for the services list
+# screenshot/e2e, independent of test execution order (upsert by code, not created by a test itself).
+SERVICES = [
+    ("E2E-DV-001", "Lắp đặt camera E2E", "NETWORK_CABLING", "DIEM", 300_000, True),
+    ("E2E-DV-002", "Sửa chữa PC E2E", "REPAIR", "LAN", 100_000, False),
 ]
 
 
@@ -76,7 +83,17 @@ def main() -> int:
             product.brand = brand
             product.price = price
             product.is_active = is_active
-    sys.stdout.write(f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products\n")
+        for code, name, category, unit, price, is_active in SERVICES:
+            service = session.scalars(select(Service).where(Service.code == code)).one_or_none()
+            if service is None:
+                service = Service(code=code, category=category, unit=unit)
+                session.add(service)
+            service.name = name
+            service.price = price
+            service.is_active = is_active
+    sys.stdout.write(
+        f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products, {len(SERVICES)} E2E services\n"
+    )
     return 0
 
 

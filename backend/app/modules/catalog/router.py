@@ -1,4 +1,7 @@
-"""/api/v1/products — thin HTTP layer (M2-01a). State changes are named commands, never a PATCH of status."""
+"""/api/v1/products, /api/v1/services — thin HTTP layer (M2-01a, M2-02).
+
+State changes are named commands, never a PATCH of status.
+"""
 
 import uuid
 from datetime import datetime
@@ -17,10 +20,17 @@ from app.modules.catalog.schemas import (
     ProductOut,
     ProductPage,
     ProductUpdate,
+    ServiceCategory,
+    ServiceCreate,
+    ServiceOut,
+    ServicePage,
+    ServiceUnit,
+    ServiceUpdate,
     VersionRequest,
 )
 
 router = APIRouter(prefix="/api/v1/products", tags=["products"])
+services_router = APIRouter(prefix="/api/v1/services", tags=["services"])
 Reader = Annotated[Actor, Depends(require("catalog.read"))]
 Manager = Annotated[Actor, Depends(require("catalog.manage"))]
 
@@ -30,7 +40,7 @@ def _docs(*lines: tuple[int, str]) -> dict[int | str, dict[str, Any]]:
 
 
 NOT_FOUND = (404, "NOT_FOUND")
-CONFLICTS = (409, "STALE_VERSION | CONFLICT (sku) | INVALID_TRANSITION")
+CONFLICTS = (409, "STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION")
 
 
 def _now(request: Request) -> datetime:
@@ -154,3 +164,90 @@ def upload_image(
         request_id=get_request_id(request),
     )
     return ImageUploaded(image_attachment_id=attachment_id)
+
+
+@services_router.get(
+    "",
+    operation_id="services_list",
+    summary="Danh sách dịch vụ (tìm, lọc, phân trang)",
+    response_model=ServicePage,
+)
+def list_services(
+    session: DbSession,
+    actor: Reader,
+    q: Annotated[str | None, Query(max_length=100)] = None,
+    category: ServiceCategory | None = None,
+    unit: ServiceUnit | None = None,
+    is_active: bool | None = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> ServicePage:
+    return service.list_services(
+        session, actor, q=q, category=category, unit=unit, is_active=is_active, limit=limit, offset=offset
+    )
+
+
+@services_router.get(
+    "/{service_id}",
+    operation_id="services_get",
+    summary="Chi tiết dịch vụ",
+    response_model=ServiceOut,
+    responses=_docs(NOT_FOUND),
+)
+def get_service(service_id: uuid.UUID, session: DbSession, actor: Reader) -> ServiceOut:
+    return service.get_service(session, actor, service_id)
+
+
+@services_router.post(
+    "",
+    operation_id="services_create",
+    summary="Thêm dịch vụ",
+    status_code=201,
+    response_model=ServiceOut,
+    responses=_docs((409, "CONFLICT (code)")),
+)
+def create_service(body: ServiceCreate, request: Request, session: DbSession, actor: Manager) -> ServiceOut:
+    return service.create_service(session, actor, body, request_id=get_request_id(request))
+
+
+@services_router.patch(
+    "/{service_id}",
+    operation_id="services_update",
+    summary="Sửa thông tin dịch vụ",
+    response_model=ServiceOut,
+    responses=_docs(NOT_FOUND, CONFLICTS),
+)
+def update_service(
+    service_id: uuid.UUID, body: ServiceUpdate, request: Request, session: DbSession, actor: Manager
+) -> ServiceOut:
+    return service.update_service(session, actor, service_id, body, request_id=get_request_id(request))
+
+
+@services_router.post(
+    "/{service_id}/deactivate",
+    operation_id="services_deactivate",
+    summary="Ngừng kinh doanh",
+    response_model=ServiceOut,
+    responses=_docs(NOT_FOUND, CONFLICTS),
+)
+def deactivate_service(
+    service_id: uuid.UUID, body: VersionRequest, request: Request, session: DbSession, actor: Manager
+) -> ServiceOut:
+    return service.deactivate_service(
+        session, actor, service_id, version=body.version, request_id=get_request_id(request)
+    )
+
+
+@services_router.post(
+    "/{service_id}/activate",
+    operation_id="services_activate",
+    summary="Mở lại kinh doanh",
+    response_model=ServiceOut,
+    responses=_docs(NOT_FOUND, CONFLICTS),
+)
+def activate_service(
+    service_id: uuid.UUID, body: VersionRequest, request: Request, session: DbSession, actor: Manager
+) -> ServiceOut:
+    return service.activate_service(
+        session, actor, service_id, version=body.version, request_id=get_request_id(request)
+    )

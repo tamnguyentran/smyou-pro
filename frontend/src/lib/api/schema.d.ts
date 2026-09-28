@@ -331,6 +331,76 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/services": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách dịch vụ (tìm, lọc, phân trang) */
+    get: operations["services_list"];
+    put?: never;
+    /** Thêm dịch vụ */
+    post: operations["services_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/services/{service_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Chi tiết dịch vụ */
+    get: operations["services_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Sửa thông tin dịch vụ */
+    patch: operations["services_update"];
+    trace?: never;
+  };
+  "/api/v1/services/{service_id}/activate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Mở lại kinh doanh */
+    post: operations["services_activate"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/services/{service_id}/deactivate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Ngừng kinh doanh */
+    post: operations["services_deactivate"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -499,7 +569,7 @@ export interface components {
      * EntityType
      * @enum {string}
      */
-    EntityType: "EMPLOYEE" | "PRODUCT";
+    EntityType: "EMPLOYEE" | "PRODUCT" | "SERVICE";
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -690,6 +760,104 @@ export interface components {
     RolesRequest: {
       /** Roles */
       roles: ("MANAGER" | "SALE" | "TECH_LEAD" | "TECHNICIAN")[];
+      /** Version */
+      version: number;
+    };
+    /** ServiceCreate */
+    ServiceCreate: {
+      /**
+       * Category
+       * @enum {string}
+       */
+      category:
+        | "INSTALLATION"
+        | "REPAIR"
+        | "MAINTENANCE"
+        | "REFILL"
+        | "SOFTWARE"
+        | "NETWORK_CABLING"
+        | "OTHER";
+      /** Code */
+      code: string;
+      /** Default Estimated Hours */
+      default_estimated_hours?: number | string | null;
+      /** Description */
+      description?: string | null;
+      /** Name */
+      name: string;
+      /** Price */
+      price: number;
+      /**
+       * Price Fixed
+       * @default false
+       */
+      price_fixed: boolean;
+      /**
+       * Unit
+       * @enum {string}
+       */
+      unit: "CAI" | "MAY" | "BO" | "MET" | "CUON" | "HOP" | "LICENSE" | "LAN" | "DIEM" | "GIO";
+      /**
+       * Vat Rate
+       * @default 8
+       */
+      vat_rate: number | string;
+    };
+    /** ServiceOut */
+    ServiceOut: {
+      /** Category */
+      category: string;
+      /** Code */
+      code: string;
+      /** Default Estimated Hours */
+      default_estimated_hours: string | null;
+      /** Description */
+      description: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Is Active */
+      is_active: boolean;
+      /** Name */
+      name: string;
+      /** Price */
+      price: number;
+      /** Price Fixed */
+      price_fixed: boolean;
+      /** Unit */
+      unit: string;
+      /** Vat Rate */
+      vat_rate: string;
+      /** Version */
+      version: number;
+    };
+    /** ServicePage */
+    ServicePage: {
+      /** Items */
+      items: components["schemas"]["ServiceOut"][];
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+      /** Total */
+      total: number;
+    };
+    /** ServiceUpdate */
+    ServiceUpdate: {
+      /** Default Estimated Hours */
+      default_estimated_hours?: number | string | null;
+      /** Description */
+      description?: string | null;
+      /** Name */
+      name?: string | null;
+      /** Price */
+      price?: number | null;
+      /** Price Fixed */
+      price_fixed?: boolean | null;
+      /** Vat Rate */
+      vat_rate?: number | string | null;
       /** Version */
       version: number;
     };
@@ -1517,7 +1685,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description problem+json — STALE_VERSION | CONFLICT (sku) | INVALID_TRANSITION */
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION */
       409: {
         headers: {
           [name: string]: unknown;
@@ -1566,7 +1734,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description problem+json — STALE_VERSION | CONFLICT (sku) | INVALID_TRANSITION */
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION */
       409: {
         headers: {
           [name: string]: unknown;
@@ -1615,7 +1783,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description problem+json — STALE_VERSION | CONFLICT (sku) | INVALID_TRANSITION */
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION */
       409: {
         headers: {
           [name: string]: unknown;
@@ -1670,6 +1838,279 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  services_list: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        category?:
+          | (
+              | "INSTALLATION"
+              | "REPAIR"
+              | "MAINTENANCE"
+              | "REFILL"
+              | "SOFTWARE"
+              | "NETWORK_CABLING"
+              | "OTHER"
+            )
+          | null;
+        unit?:
+          | ("CAI" | "MAY" | "BO" | "MET" | "CUON" | "HOP" | "LICENSE" | "LAN" | "DIEM" | "GIO")
+          | null;
+        is_active?: boolean | null;
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ServicePage"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  services_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ServiceCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ServiceOut"];
+        };
+      };
+      /** @description problem+json — CONFLICT (code) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  services_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        service_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ServiceOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  services_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        service_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ServiceUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ServiceOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  services_activate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        service_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VersionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ServiceOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  services_deactivate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        service_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VersionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ServiceOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
       };
     };
   };

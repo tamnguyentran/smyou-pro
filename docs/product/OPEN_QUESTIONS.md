@@ -48,3 +48,4 @@ AI đang dùng **giả định mặc định** ở cột phải để không b�
 | Q42 | Tách M2-01 thành M2-01a (API) và M2-01b (giao diện)? | Có (như M1-04) | Giữ như đề xuất (2026-09-27) | ✅ |
 | Q43 | Ảnh sản phẩm cần bảng `attachments` chung (dự kiến M6-01, chưa làm) — xây ngay cho M2-01 hay bỏ ảnh khỏi item này? | Xây tối thiểu bảng `attachments` ngay, chỉ `kind=PRODUCT_IMAGE`; M6-01 mở rộng sau | Giữ như đề xuất (2026-09-27) | ✅ |
 | Q44 | Mã hàng (`sku`) do Manager tự gõ hay hệ thống tự sinh (khác mã nhân viên Q32)? | Manager tự gõ, hệ thống chỉ kiểm trùng | Giữ như đề xuất (duyệt cùng spec M2-01a, 2026-09-27) | ✅ |
+| Q45 | Copy hiển thị khi giá dịch vụ = 0 (DOMAIN_MODEL §3: "tính thực tế khi thi công") trong danh sách/chi tiết dịch vụ là gì? | Hiện "Liên hệ báo giá" | Giữ như đề xuất (2026-09-28) | ✅ |
