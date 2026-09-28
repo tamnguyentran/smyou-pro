@@ -132,9 +132,7 @@ def _validate_one(
     for col in columns:
         value = (raw.get(col) or "").strip()
         data[col] = value or None
-        if col in required:
-            kwargs[col] = value
-        elif col in defaultable:
+        if col in required or col in defaultable:
             if value:
                 kwargs[col] = value
         else:
