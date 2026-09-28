@@ -404,4 +404,6 @@ def test_routes_declare_capability(app: FastAPI) -> None:
         ("POST", "/api/v1/products/{product_id}/activate", "catalog.manage"),
         ("POST", "/api/v1/products/{product_id}/image", "catalog.manage"),
         ("GET", "/api/v1/attachments/{attachment_id}", "catalog.read"),
+        ("POST", "/api/v1/products/import/preview", "catalog.manage"),
+        ("POST", "/api/v1/products/import/commit", "catalog.manage"),
     }

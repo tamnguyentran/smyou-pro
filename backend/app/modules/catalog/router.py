@@ -13,9 +13,12 @@ from app.core.authz import Actor, require
 from app.core.db import DbSession
 from app.core.request_id import get_request_id
 from app.modules.catalog import service
+from app.modules.catalog.import_csv import MAX_FILE_BYTES
 from app.modules.catalog.schemas import (
     Category,
     ImageUploaded,
+    ImportCommitResult,
+    ImportPreview,
     ProductCreate,
     ProductOut,
     ProductPage,
@@ -166,6 +169,37 @@ def upload_image(
     return ImageUploaded(image_attachment_id=attachment_id)
 
 
+@router.post(
+    "/import/preview",
+    operation_id="products_import_preview",
+    summary="Xem trước import sản phẩm từ CSV",
+    response_model=ImportPreview,
+    responses=_docs((422, "EMPTY_FILE | MISSING_COLUMNS | TOO_MANY_ROWS | INVALID_FILE | FILE_TOO_LARGE")),
+)
+def import_products_preview(
+    session: DbSession, actor: Manager, file: Annotated[UploadFile, File()]
+) -> ImportPreview:
+    file_bytes = file.file.read(MAX_FILE_BYTES + 1)
+    return service.import_products_preview(session, actor, file_bytes)
+
+
+@router.post(
+    "/import/commit",
+    operation_id="products_import_commit",
+    summary="Xác nhận import sản phẩm từ CSV",
+    status_code=201,
+    response_model=ImportCommitResult,
+    responses=_docs(
+        (422, "EMPTY_FILE|MISSING_COLUMNS|TOO_MANY_ROWS|INVALID_FILE|FILE_TOO_LARGE|IMPORT_HAS_ERRORS")
+    ),
+)
+def import_products_commit(
+    request: Request, session: DbSession, actor: Manager, file: Annotated[UploadFile, File()]
+) -> ImportCommitResult:
+    file_bytes = file.file.read(MAX_FILE_BYTES + 1)
+    return service.import_products_commit(session, actor, file_bytes, request_id=get_request_id(request))
+
+
 @services_router.get(
     "",
     operation_id="services_list",
@@ -251,3 +285,34 @@ def activate_service(
     return service.activate_service(
         session, actor, service_id, version=body.version, request_id=get_request_id(request)
     )
+
+
+@services_router.post(
+    "/import/preview",
+    operation_id="services_import_preview",
+    summary="Xem trước import dịch vụ từ CSV",
+    response_model=ImportPreview,
+    responses=_docs((422, "EMPTY_FILE | MISSING_COLUMNS | TOO_MANY_ROWS | INVALID_FILE | FILE_TOO_LARGE")),
+)
+def import_services_preview(
+    session: DbSession, actor: Manager, file: Annotated[UploadFile, File()]
+) -> ImportPreview:
+    file_bytes = file.file.read(MAX_FILE_BYTES + 1)
+    return service.import_services_preview(session, actor, file_bytes)
+
+
+@services_router.post(
+    "/import/commit",
+    operation_id="services_import_commit",
+    summary="Xác nhận import dịch vụ từ CSV",
+    status_code=201,
+    response_model=ImportCommitResult,
+    responses=_docs(
+        (422, "EMPTY_FILE|MISSING_COLUMNS|TOO_MANY_ROWS|INVALID_FILE|FILE_TOO_LARGE|IMPORT_HAS_ERRORS")
+    ),
+)
+def import_services_commit(
+    request: Request, session: DbSession, actor: Manager, file: Annotated[UploadFile, File()]
+) -> ImportCommitResult:
+    file_bytes = file.file.read(MAX_FILE_BYTES + 1)
+    return service.import_services_commit(session, actor, file_bytes, request_id=get_request_id(request))

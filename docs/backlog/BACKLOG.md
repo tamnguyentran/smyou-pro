@@ -30,8 +30,9 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 ## M2 — Danh mục
 - [x] **M2-01a Sản phẩm — API**: CRUD, tìm theo mã/tên, lọc danh mục, ngừng kinh doanh, module `attachments` tối thiểu (ảnh sản phẩm). Spec `M2-01a-products-api.md`.
 - [x] **M2-01b Sản phẩm — giao diện**: trang Danh mục sản phẩm, form, chọn & xem trước ảnh. Spec `M2-01b-products-ui.md`.
-- [R] **M2-02 Dịch vụ**: CRUD, `default_estimated_hours`. Spec `M2-02-services.md`.
-- [ ] **M2-03 Import danh mục** từ CSV/XLSX (xem trước, báo lỗi từng dòng, không import nửa chừng) — Q15.
+- [x] **M2-02 Dịch vụ**: CRUD, `default_estimated_hours`. Spec `M2-02-services.md`.
+- [R] **M2-03a Import danh mục — API**: import CSV cho Sản phẩm + Dịch vụ, xem trước (dry-run) → xác nhận, báo lỗi từng dòng, không import nửa chừng. Spec `M2-03a-catalog-import-api.md`. Q15.
+- [ ] **M2-03b Import danh mục — giao diện**: màn tải file/xem trước/xác nhận. Spec chưa viết.
 
 ## M3 — Khách hàng & Đơn hàng
 - [ ] **M3-01 Khách hàng**: CRUD, tìm theo tên/SĐT/MST, chống trùng SĐT (cảnh báo).

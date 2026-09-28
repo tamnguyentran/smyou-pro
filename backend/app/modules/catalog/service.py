@@ -4,6 +4,7 @@ import logging
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import cast
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -13,8 +14,11 @@ from app.core.authz import Actor, ScopeRules, apply_scope, get_in_scope_or_404
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.modules.audit import service as audit
+from app.modules.catalog import import_csv
 from app.modules.catalog.models import Product, Service
 from app.modules.catalog.schemas import (
+    ImportCommitResult,
+    ImportPreview,
     ProductCreate,
     ProductOut,
     ProductPage,
@@ -460,3 +464,59 @@ def activate_service(
         request_id=request_id,
     )
     return _out_service(service)
+
+
+def _import_products(session: Session, file_bytes: bytes) -> list[import_csv.RowResult]:
+    rows = import_csv.read_rows(file_bytes, "product")
+    results = import_csv.validate_rows("product", rows)
+    import_csv.mark_taken(session, "product", results, taken_message=SKU_TAKEN)
+    return results
+
+
+def import_products_preview(session: Session, actor: Actor, file_bytes: bytes) -> ImportPreview:
+    results = _import_products(session, file_bytes)
+    return ImportPreview(**import_csv.build_preview(results))
+
+
+def import_products_commit(
+    session: Session, actor: Actor, file_bytes: bytes, *, request_id: str | None = None
+) -> ImportCommitResult:
+    results = _import_products(session, file_bytes)
+    preview = import_csv.build_preview(results)
+    if preview["invalid_count"] > 0:
+        raise AppError(422, "IMPORT_HAS_ERRORS", "Còn dòng lỗi, chưa nhập được dữ liệu nào.", extra=preview)
+    created = 0
+    for result in results:
+        if result.parsed is None:
+            continue
+        create_product(session, actor, cast(ProductCreate, result.parsed), request_id=request_id)
+        created += 1
+    return ImportCommitResult(created=created)
+
+
+def _import_services(session: Session, file_bytes: bytes) -> list[import_csv.RowResult]:
+    rows = import_csv.read_rows(file_bytes, "service")
+    results = import_csv.validate_rows("service", rows)
+    import_csv.mark_taken(session, "service", results, taken_message=CODE_TAKEN)
+    return results
+
+
+def import_services_preview(session: Session, actor: Actor, file_bytes: bytes) -> ImportPreview:
+    results = _import_services(session, file_bytes)
+    return ImportPreview(**import_csv.build_preview(results))
+
+
+def import_services_commit(
+    session: Session, actor: Actor, file_bytes: bytes, *, request_id: str | None = None
+) -> ImportCommitResult:
+    results = _import_services(session, file_bytes)
+    preview = import_csv.build_preview(results)
+    if preview["invalid_count"] > 0:
+        raise AppError(422, "IMPORT_HAS_ERRORS", "Còn dòng lỗi, chưa nhập được dữ liệu nào.", extra=preview)
+    created = 0
+    for result in results:
+        if result.parsed is None:
+            continue
+        create_service(session, actor, cast(ServiceCreate, result.parsed), request_id=request_id)
+        created += 1
+    return ImportCommitResult(created=created)

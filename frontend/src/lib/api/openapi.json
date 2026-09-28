@@ -131,6 +131,30 @@
         "title": "AuditEventPage",
         "type": "object"
       },
+      "Body_products_import_commit": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": ["file"],
+        "title": "Body_products_import_commit",
+        "type": "object"
+      },
+      "Body_products_import_preview": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": ["file"],
+        "title": "Body_products_import_preview",
+        "type": "object"
+      },
       "Body_products_upload_image": {
         "properties": {
           "file": {
@@ -141,6 +165,30 @@
         },
         "required": ["file"],
         "title": "Body_products_upload_image",
+        "type": "object"
+      },
+      "Body_services_import_commit": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": ["file"],
+        "title": "Body_services_import_commit",
+        "type": "object"
+      },
+      "Body_services_import_preview": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": ["file"],
+        "title": "Body_services_import_preview",
         "type": "object"
       },
       "ChangePasswordRequest": {
@@ -493,6 +541,92 @@
         },
         "required": ["image_attachment_id"],
         "title": "ImageUploaded",
+        "type": "object"
+      },
+      "ImportCommitResult": {
+        "properties": {
+          "created": {
+            "title": "Created",
+            "type": "integer"
+          }
+        },
+        "required": ["created"],
+        "title": "ImportCommitResult",
+        "type": "object"
+      },
+      "ImportPreview": {
+        "properties": {
+          "invalid_count": {
+            "title": "Invalid Count",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ImportRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "valid_count": {
+            "title": "Valid Count",
+            "type": "integer"
+          }
+        },
+        "required": ["total", "valid_count", "invalid_count", "rows"],
+        "title": "ImportPreview",
+        "type": "object"
+      },
+      "ImportRow": {
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportRowError"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errors"
+          },
+          "line": {
+            "title": "Line",
+            "type": "integer"
+          }
+        },
+        "required": ["line", "data", "errors"],
+        "title": "ImportRow",
+        "type": "object"
+      },
+      "ImportRowError": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": ["field", "code", "message"],
+        "title": "ImportRowError",
         "type": "object"
       },
       "LoginRequest": {
@@ -2271,6 +2405,70 @@
         "tags": ["products"]
       }
     },
+    "/api/v1/products/import/commit": {
+      "post": {
+        "operationId": "products_import_commit",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_products_import_commit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportCommitResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "problem+json — EMPTY_FILE|MISSING_COLUMNS|TOO_MANY_ROWS|INVALID_FILE|FILE_TOO_LARGE|IMPORT_HAS_ERRORS"
+          }
+        },
+        "summary": "Xác nhận import sản phẩm từ CSV",
+        "tags": ["products"]
+      }
+    },
+    "/api/v1/products/import/preview": {
+      "post": {
+        "operationId": "products_import_preview",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_products_import_preview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "problem+json — EMPTY_FILE | MISSING_COLUMNS | TOO_MANY_ROWS | INVALID_FILE | FILE_TOO_LARGE"
+          }
+        },
+        "summary": "Xem trước import sản phẩm từ CSV",
+        "tags": ["products"]
+      }
+    },
     "/api/v1/products/{product_id}": {
       "get": {
         "operationId": "products_get",
@@ -2708,6 +2906,70 @@
           }
         },
         "summary": "Thêm dịch vụ",
+        "tags": ["services"]
+      }
+    },
+    "/api/v1/services/import/commit": {
+      "post": {
+        "operationId": "services_import_commit",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_services_import_commit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportCommitResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "problem+json — EMPTY_FILE|MISSING_COLUMNS|TOO_MANY_ROWS|INVALID_FILE|FILE_TOO_LARGE|IMPORT_HAS_ERRORS"
+          }
+        },
+        "summary": "Xác nhận import dịch vụ từ CSV",
+        "tags": ["services"]
+      }
+    },
+    "/api/v1/services/import/preview": {
+      "post": {
+        "operationId": "services_import_preview",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_services_import_preview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "problem+json — EMPTY_FILE | MISSING_COLUMNS | TOO_MANY_ROWS | INVALID_FILE | FILE_TOO_LARGE"
+          }
+        },
+        "summary": "Xem trước import dịch vụ từ CSV",
         "tags": ["services"]
       }
     },

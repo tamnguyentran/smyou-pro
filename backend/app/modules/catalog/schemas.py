@@ -2,7 +2,7 @@
 
 import uuid
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
@@ -159,3 +159,26 @@ class ServicePage(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class ImportRowError(BaseModel):
+    field: str
+    code: str
+    message: str
+
+
+class ImportRow(BaseModel):
+    line: int
+    data: dict[str, Any]
+    errors: list[ImportRowError] | None
+
+
+class ImportPreview(BaseModel):
+    total: int
+    valid_count: int
+    invalid_count: int
+    rows: list[ImportRow]
+
+
+class ImportCommitResult(BaseModel):
+    created: int

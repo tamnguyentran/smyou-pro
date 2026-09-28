@@ -49,3 +49,7 @@ AI đang dùng **giả định mặc định** ở cột phải để không b�
 | Q43 | Ảnh sản phẩm cần bảng `attachments` chung (dự kiến M6-01, chưa làm) — xây ngay cho M2-01 hay bỏ ảnh khỏi item này? | Xây tối thiểu bảng `attachments` ngay, chỉ `kind=PRODUCT_IMAGE`; M6-01 mở rộng sau | Giữ như đề xuất (2026-09-27) | ✅ |
 | Q44 | Mã hàng (`sku`) do Manager tự gõ hay hệ thống tự sinh (khác mã nhân viên Q32)? | Manager tự gõ, hệ thống chỉ kiểm trùng | Giữ như đề xuất (duyệt cùng spec M2-01a, 2026-09-27) | ✅ |
 | Q45 | Copy hiển thị khi giá dịch vụ = 0 (DOMAIN_MODEL §3: "tính thực tế khi thi công") trong danh sách/chi tiết dịch vụ là gì? | Hiện "Liên hệ báo giá" | Giữ như đề xuất (2026-09-28) | ✅ |
+| Q46 | Import CSV (M2-03a) áp dụng cho Sản phẩm, Dịch vụ, hay cả hai? | Cả hai, 2 endpoint riêng theo entity | Giữ như đề xuất (duyệt cùng spec M2-03a, 2026-09-28) | ✅ |
+| Q47 | Backlog M2-03 ghi "CSV/XLSX" nhưng XLSX cần thêm thư viện (`openpyxl`, chưa có trong ARCHITECTURE §2, cần ADR nếu thêm) — làm cả 2 định dạng hay chỉ CSV trước? | M2-03a chỉ làm CSV (module chuẩn, không thêm dependency); XLSX để sau nếu cần | Giữ như đề xuất (duyệt cùng spec M2-03a, 2026-09-28) | ✅ |
+| Q48 | Import gặp mã (sku/code) đã tồn tại trong DB: báo lỗi hay tự cập nhật (upsert)? | Báo lỗi (`taken`), không tự sửa | Giữ như đề xuất (duyệt cùng spec M2-03a, 2026-09-28) | ✅ |
+| Q49 | Giới hạn file import (số dòng, dung lượng, mã hoá)? | ≤500 dòng dữ liệu, ≤2MB, UTF-8, phân tách bằng dấu phẩy | Giữ như đề xuất (duyệt cùng spec M2-03a, 2026-09-28) | ✅ |

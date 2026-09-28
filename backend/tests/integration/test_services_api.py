@@ -319,4 +319,6 @@ def test_routes_declare_capability(app: FastAPI) -> None:
         ("PATCH", "/api/v1/services/{service_id}", "catalog.manage"),
         ("POST", "/api/v1/services/{service_id}/deactivate", "catalog.manage"),
         ("POST", "/api/v1/services/{service_id}/activate", "catalog.manage"),
+        ("POST", "/api/v1/services/import/preview", "catalog.manage"),
+        ("POST", "/api/v1/services/import/commit", "catalog.manage"),
     }
