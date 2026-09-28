@@ -196,6 +196,20 @@ def test_preview_too_many_rows(app: FastAPI, db: Connection, people: dict[str, u
     )
 
 
+@pytest.mark.ac("AC-CAT-041")
+def test_preview_exactly_max_rows_succeeds(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    header = "sku,name,category,brand,unit,price,vat_rate,price_fixed,warranty_months,specs\n"
+    rows = "\n".join(f"SKU{i},Sản phẩm {i},PC,SMYOU,BO,100000,8,true,12," for i in range(500))
+    res = an.post("/api/v1/products/import/preview", files=csv_file(header + rows + "\n"))
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["total"] == 500
+    assert body["invalid_count"] == 0
+
+
 @pytest.mark.ac("AC-CAT-042")
 def test_preview_invalid_file_and_file_too_large(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
@@ -215,6 +229,38 @@ def test_preview_invalid_file_and_file_too_large(
     )
 
 
+@pytest.mark.ac("AC-CAT-039")
+@pytest.mark.ac("AC-CAT-040")
+@pytest.mark.ac("AC-CAT-042")
+def test_services_preview_file_level_errors(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    problem(an.post("/api/v1/services/import/preview", files=csv_file(SERVICES_HEADER)), 422, "EMPTY_FILE")
+
+    missing_price = (
+        "code,name,category,unit,vat_rate,price_fixed,default_estimated_hours,description\n"
+        "DV-CAIDAT,Cài đặt máy in,INSTALLATION,LAN,8,true,1,\n"
+    )
+    body = problem(
+        an.post("/api/v1/services/import/preview", files=csv_file(missing_price)), 422, "MISSING_COLUMNS"
+    )
+    assert "price" in body["detail"]
+
+    not_utf8 = b"\x80\x81\x82\x83" * 20
+    problem(
+        an.post("/api/v1/services/import/preview", files={"file": ("bad.csv", not_utf8, "text/csv")}),
+        422,
+        "INVALID_FILE",
+    )
+    too_big = b"x" * (2 * 1024 * 1024 + 10)
+    problem(
+        an.post("/api/v1/services/import/preview", files={"file": ("big.csv", too_big, "text/csv")}),
+        422,
+        "FILE_TOO_LARGE",
+    )
+
+
 @pytest.mark.ac("AC-CAT-043")
 def test_import_forbidden_for_sale_and_tech_lead(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
@@ -228,6 +274,16 @@ def test_import_forbidden_for_sale_and_tech_lead(
         )
         problem(
             client.post("/api/v1/products/import/commit", files=csv_file(PRODUCTS_OK_CSV)),
+            403,
+            "FORBIDDEN",
+        )
+        problem(
+            client.post("/api/v1/services/import/preview", files=csv_file(SERVICES_HEADER)),
+            403,
+            "FORBIDDEN",
+        )
+        problem(
+            client.post("/api/v1/services/import/commit", files=csv_file(SERVICES_HEADER)),
             403,
             "FORBIDDEN",
         )
