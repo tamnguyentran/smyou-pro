@@ -1,6 +1,6 @@
 # M3-01 — Khách hàng
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M3-01 · **Milestone:** M3
 - **Liên quan:** DOMAIN_MODEL §4 (Customer); `spec/permissions.yaml` (`customer.read`: MANAGER/SALE/TECH_LEAD all; `customer.manage`: MANAGER/SALE all — không có scope `own`, sổ khách hàng dùng chung); menu `customers` (`M1-03a`, capability `customer.manage`, path `/customers`); ARCHITECTURE §5 (`code_sequences` — đã có bảng + hàm `next_value`, dùng lại như M1-04a, scope mới `customer`); M1-04a/M2-01a/M2-02 (mẫu CRUD danh mục — module này cùng khuôn, không có ảnh/trạng thái hoạt động)
 
