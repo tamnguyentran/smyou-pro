@@ -112,12 +112,12 @@ def test_list_search_filter_and_page(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID], services: dict[str, uuid.UUID]
 ) -> None:
     an = client_as(app, AN)
-    res = an.get("/api/v1/services", params={"q": "bom", "category": "REFILL", "is_active": False})
+    res = an.get("/api/v1/services", params={"q": "sua", "category": "REPAIR", "is_active": False})
     assert res.status_code == 200, res.text
     body = res.json()
     assert body["total"] == 1
     assert set(body["items"][0]) == ITEM_KEYS
-    assert body["items"][0]["code"] == "DV-BOMMUC"
+    assert body["items"][0]["code"] == "DV-SUAPC"
 
     res = an.get("/api/v1/services", params={"limit": 200})
     assert res.status_code == 422, res.text
@@ -233,9 +233,12 @@ def test_update_optimistic_lock_and_code_immutable(
     body = res.json()
     assert body["version"] == 2
     for field, value in edits.items():
-        expected = (
-            "10.00" if field == "vat_rate" else ("3.00" if field == "default_estimated_hours" else value)
-        )
+        if field == "vat_rate":
+            expected: object = "10.00"
+        elif field == "default_estimated_hours":
+            expected = str(value)
+        else:
+            expected = value
         assert body[field] == expected, (field, body)
 
     problem(
