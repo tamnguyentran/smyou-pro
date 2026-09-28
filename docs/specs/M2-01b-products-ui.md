@@ -1,6 +1,6 @@
 # M2-01b — Danh mục sản phẩm: giao diện
 
-- **Status:** Draft
+- **Status:** Approved
 - **Backlog:** M2-01b · **Milestone:** M2
 - **Liên quan:** `M2-01a-products-api.md` (mục tiêu, API, Q42–Q44); UI_GUIDELINES §3–§6 (dòng 71: mẫu tải ảnh nén phía client); M1-03a (menu, 403); M1-04b (mẫu trang danh sách + form + optimistic lock)
 
@@ -40,3 +40,5 @@ Không có.
 
 ## 8. Giả định
 Theo Q42–Q44 (OPEN_QUESTIONS, xem M2-01a §8).
+- **"Điều hướng sang trang chi tiết" (AC-CAT-013)**: app chưa có route theo id nào (kể cả `/employees`, M1-04b) — mọi nơi dùng Sheet. Hiểu là: tạo xong, cùng Sheet chuyển sang chế độ sửa cho sản phẩm vừa tạo (đã có `id`, phần ảnh xuất hiện), không mở URL riêng `/catalog/products/:id`. Nhất quán với M1-04b.
+- **Copy nút "Mở lại kinh doanh"**: spec chỉ cho câu xác nhận khi ngừng. Dùng câu đối xứng: "Sản phẩm sẽ hiện lại khi tạo đơn mới."

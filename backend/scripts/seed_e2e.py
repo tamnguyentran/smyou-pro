@@ -8,9 +8,11 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select, update
 
+import app.modules.files.models  # noqa: F401  # registers `attachments` for Product.image_attachment_id's FK
 from app.core.config import Settings
 from app.core.db import create_db_engine, create_session_factory
 from app.core.security import hash_password
+from app.modules.catalog.models import Product
 from app.modules.identity.models import AuthSession, Employee, EmployeeRole
 
 # (email, code, full name, roles, password, must change password) — one technician per Playwright
@@ -27,6 +29,13 @@ ACCOUNTS = [
     ("tuan.lead@smyou.vn", "E2E07", "Phạm Quốc Tuấn", ("TECH_LEAD",), "E2e@SmYou2026", False),
     ("khoa.shell@smyou.vn", "E2E08", "Trần Minh Khoa", ("TECHNICIAN",), "E2e@SmYou2026", False),
     ("ha.e2e@smyou.vn", "E2E09", "Phạm Thu Hà", ("SALE", "TECHNICIAN"), "E2e@SmYou2026", False),
+]
+
+# (sku, name, category, brand, unit, price, is_active) — M2-01b: stable data for the products list
+# screenshot/e2e, independent of test execution order (upsert by sku, not created by a test itself).
+PRODUCTS = [
+    ("E2E-MON-001", "Màn hình Dell 22 inch E2E", "MONITOR", "Dell", "CAI", 2_800_000, True),
+    ("E2E-PRN-001", "Hộp mực Canon E2E", "PRINTER_SUPPLY", "Canon", "HOP", 850_000, False),
 ]
 
 
@@ -58,7 +67,16 @@ def main() -> int:
                 .where(AuthSession.employee_id == employee.id, AuthSession.revoked_at.is_(None))
                 .values(revoked_at=now)
             )
-    sys.stdout.write(f"seeded {len(ACCOUNTS)} E2E accounts\n")
+        for sku, name, category, brand, unit, price, is_active in PRODUCTS:
+            product = session.scalars(select(Product).where(Product.sku == sku)).one_or_none()
+            if product is None:
+                product = Product(sku=sku, category=category, unit=unit)
+                session.add(product)
+            product.name = name
+            product.brand = brand
+            product.price = price
+            product.is_active = is_active
+    sys.stdout.write(f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products\n")
     return 0
 
 
