@@ -131,6 +131,11 @@ def test_list_search_filter_and_page(
     assert res.status_code == 200, res.text
     assert [i["code"] for i in res.json()["items"]] == ["DV-LAPCAM"]
 
+    # q without diacritics still matches an accented name (DOMAIN_MODEL: "không phân biệt ... dấu")
+    res = an.get("/api/v1/services", params={"q": "sua chua", "is_active": False})
+    assert res.status_code == 200, res.text
+    assert [i["code"] for i in res.json()["items"]] == ["DV-SUAPC"]
+
 
 @pytest.mark.ac("AC-CAT-020")
 def test_read_scope_sale_techlead_ok_technician_forbidden(
@@ -233,13 +238,13 @@ def test_update_optimistic_lock_and_code_immutable(
     body = res.json()
     assert body["version"] == 2
     for field, value in edits.items():
-        if field == "vat_rate":
-            expected: object = "10.00"
-        elif field == "default_estimated_hours":
-            expected = str(value)
-        else:
-            expected = value
+        expected: object = (
+            "10.00" if field == "vat_rate" else "3.00" if field == "default_estimated_hours" else value
+        )
         assert body[field] == expected, (field, body)
+
+    refetched = an.get(f"/api/v1/services/{service_id}").json()
+    assert refetched["default_estimated_hours"] == body["default_estimated_hours"]
 
     problem(
         an.patch(f"/api/v1/services/{service_id}", json={"version": 1, "name": "Khác"}), 409, "STALE_VERSION"
