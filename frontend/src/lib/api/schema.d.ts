@@ -262,6 +262,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/products/import/commit": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Xác nhận import sản phẩm từ CSV */
+    post: operations["products_import_commit"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/products/import/preview": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Xem trước import sản phẩm từ CSV */
+    post: operations["products_import_preview"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/products/{product_id}": {
     parameters: {
       query?: never;
@@ -343,6 +377,40 @@ export interface paths {
     put?: never;
     /** Thêm dịch vụ */
     post: operations["services_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/services/import/commit": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Xác nhận import dịch vụ từ CSV */
+    post: operations["services_import_commit"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/services/import/preview": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Xem trước import dịch vụ từ CSV */
+    post: operations["services_import_preview"];
     delete?: never;
     options?: never;
     head?: never;
@@ -459,8 +527,28 @@ export interface components {
       /** Total */
       total: number;
     };
+    /** Body_products_import_commit */
+    Body_products_import_commit: {
+      /** File */
+      file: string;
+    };
+    /** Body_products_import_preview */
+    Body_products_import_preview: {
+      /** File */
+      file: string;
+    };
     /** Body_products_upload_image */
     Body_products_upload_image: {
+      /** File */
+      file: string;
+    };
+    /** Body_services_import_commit */
+    Body_services_import_commit: {
+      /** File */
+      file: string;
+    };
+    /** Body_services_import_preview */
+    Body_services_import_preview: {
       /** File */
       file: string;
     };
@@ -597,6 +685,42 @@ export interface components {
        * Format: uuid
        */
       image_attachment_id: string;
+    };
+    /** ImportCommitResult */
+    ImportCommitResult: {
+      /** Created */
+      created: number;
+    };
+    /** ImportPreview */
+    ImportPreview: {
+      /** Invalid Count */
+      invalid_count: number;
+      /** Rows */
+      rows: components["schemas"]["ImportRow"][];
+      /** Total */
+      total: number;
+      /** Valid Count */
+      valid_count: number;
+    };
+    /** ImportRow */
+    ImportRow: {
+      /** Data */
+      data: {
+        [key: string]: unknown;
+      };
+      /** Errors */
+      errors: components["schemas"]["ImportRowError"][] | null;
+      /** Line */
+      line: number;
+    };
+    /** ImportRowError */
+    ImportRowError: {
+      /** Code */
+      code: string;
+      /** Field */
+      field: string;
+      /** Message */
+      message: string;
     };
     /** LoginRequest */
     LoginRequest: {
@@ -1616,6 +1740,68 @@ export interface operations {
       };
     };
   };
+  products_import_commit: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_products_import_commit"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ImportCommitResult"];
+        };
+      };
+      /** @description problem+json — EMPTY_FILE|MISSING_COLUMNS|TOO_MANY_ROWS|INVALID_FILE|FILE_TOO_LARGE|IMPORT_HAS_ERRORS */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  products_import_preview: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_products_import_preview"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ImportPreview"];
+        };
+      };
+      /** @description problem+json — EMPTY_FILE | MISSING_COLUMNS | TOO_MANY_ROWS | INVALID_FILE | FILE_TOO_LARGE */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   products_get: {
     parameters: {
       query?: never;
@@ -1926,6 +2112,68 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+    };
+  };
+  services_import_commit: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_services_import_commit"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ImportCommitResult"];
+        };
+      };
+      /** @description problem+json — EMPTY_FILE|MISSING_COLUMNS|TOO_MANY_ROWS|INVALID_FILE|FILE_TOO_LARGE|IMPORT_HAS_ERRORS */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  services_import_preview: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_services_import_preview"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ImportPreview"];
+        };
+      };
+      /** @description problem+json — EMPTY_FILE | MISSING_COLUMNS | TOO_MANY_ROWS | INVALID_FILE | FILE_TOO_LARGE */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
