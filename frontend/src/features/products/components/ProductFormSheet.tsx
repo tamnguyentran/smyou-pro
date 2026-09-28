@@ -80,6 +80,7 @@ export function ProductFormSheet({
   const [showReload, setShowReload] = useState(false);
   const [confirming, setConfirming] = useState<ConfirmKind>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
 
   const { register, handleSubmit, formState } = useForm<ProductFormValues>({
     resolver: zodResolver(
@@ -94,7 +95,7 @@ export function ProductFormSheet({
       price: product?.price ?? 0,
       vat_rate: product ? Number(product.vat_rate) : 8,
       price_fixed: product?.price_fixed ?? false,
-      warranty_months: product?.warranty_months ? String(product.warranty_months) : "",
+      warranty_months: product?.warranty_months != null ? String(product.warranty_months) : "",
       specs: product?.specs ?? "",
     },
   });
@@ -181,7 +182,9 @@ export function ProductFormSheet({
         open
         onClose={onClose}
         title={title}
-        dismissible={!(create.isPending || update.isPending) && confirming === null}
+        dismissible={
+          !(create.isPending || update.isPending || imageUploading) && confirming === null
+        }
       >
         {readOnly ? (
           <div className="space-y-4">
@@ -203,7 +206,9 @@ export function ProductFormSheet({
                   ["VAT", `${product.vat_rate}%`],
                   [
                     "Bảo hành",
-                    product.warranty_months ? `${String(product.warranty_months)} tháng` : "—",
+                    product.warranty_months != null
+                      ? `${String(product.warranty_months)} tháng`
+                      : "—",
                   ],
                   ["Cấu hình", product.specs ?? "—"],
                 ] as [string, ReactNode][]
@@ -249,6 +254,7 @@ export function ProductFormSheet({
                   setProduct({ ...product, image_attachment_id: imageAttachmentId });
                   invalidateList();
                 }}
+                onBusyChange={setImageUploading}
               />
             ) : null}
             {!product ? (
@@ -280,7 +286,7 @@ export function ProductFormSheet({
             ) : null}
             <TextField
               label="Đơn giá"
-              inputMode="decimal"
+              inputMode="numeric"
               error={formState.errors.price?.message ?? serverErrors.price}
               {...register("price")}
             />

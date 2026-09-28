@@ -66,10 +66,28 @@ export function ImageUploadField({
               type="file"
               accept="image/*"
               className="sr-only"
+              disabled={progress !== null}
               onChange={(event) => void onChange(event)}
             />
           </label>
-          {progress !== null ? <p className="text-xs text-muted">Đang tải ảnh…</p> : null}
+          {progress !== null ? (
+            <div className="w-32">
+              <div
+                role="progressbar"
+                aria-label="Đang tải ảnh"
+                aria-valuenow={progress}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                className="h-1.5 overflow-hidden rounded-full bg-line"
+              >
+                <div
+                  className="h-full rounded-full bg-brand transition-[width]"
+                  style={{ width: `${String(progress)}%` }}
+                />
+              </div>
+              <p className="mt-1 text-xs text-muted">Đang tải ảnh… {progress}%</p>
+            </div>
+          ) : null}
         </div>
       </div>
       {error ? <Alert>{error}</Alert> : null}

@@ -452,7 +452,8 @@ describe("AC-CAT-016 ảnh sản phẩm", () => {
     const input = within(dialog).getByLabelText("Chọn ảnh", { exact: false });
     await user.upload(input, file("photo.jpg", "image/jpeg"));
 
-    expect(await within(dialog).findByText("Đang tải ảnh…")).toBeInTheDocument();
+    expect(await within(dialog).findByText("Đang tải ảnh… 50%")).toBeInTheDocument();
+    expect(within(dialog).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
     await waitFor(() => {
       expect(uploadProductImage).toHaveBeenCalled();
     });
