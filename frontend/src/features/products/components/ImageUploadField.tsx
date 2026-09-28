@@ -1,6 +1,7 @@
 import { Upload } from "lucide-react";
 import { useState, type ChangeEvent } from "react";
 import { Alert } from "../../../components/ui/Alert";
+import { ApiError } from "../../auth/errors";
 import { productImageUrl, type Product } from "../api";
 import { compressImage, validateImageFile } from "../imageCompression";
 import { uploadProductImage } from "../upload";
@@ -40,8 +41,12 @@ export function ImageUploadField({
       const uploaded = await uploadProductImage(product.id, blob, setProgress);
       onUploaded(uploaded.image_attachment_id);
       setPreview(null);
-    } catch {
-      setError("Không thực hiện được. Vui lòng thử lại.");
+    } catch (error) {
+      setError(
+        error instanceof ApiError
+          ? (error.problem.detail ?? "Không thực hiện được. Vui lòng thử lại.")
+          : "Không thực hiện được. Vui lòng thử lại.",
+      );
       setPreview(null);
     } finally {
       setProgress(null);
