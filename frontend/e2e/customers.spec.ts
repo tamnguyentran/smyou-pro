@@ -76,8 +76,11 @@ test("AC-CUS-010 AC-CUS-013 @a11y @screenshot thêm khách hàng, cảnh báo tr
   await expect(page.getByText("Đã thêm khách hàng Khách hàng QA E2E.")).toBeVisible();
   // Cùng Sheet chuyển sang chế độ sửa cho khách hàng vừa tạo (như M2-01b/M2-02)
   await expect(page.getByRole("dialog", { name: "Sửa khách hàng" })).toBeVisible();
+  // Không đòi hỏi khớp toàn bộ chuỗi: các lần chạy trước (mobile/desktop, hoặc chạy lại cục bộ) có
+  // thể đã để lại khách hàng khác cùng SĐT — banner liệt kê thêm tên, KH00001 luôn đứng đầu vì sắp
+  // theo mã và "E2E-" < "KH" (bảng chữ cái).
   await expect(
-    page.getByText("SĐT này đã dùng cho: Cty Sáng Tạo Mới E2E (E2E-KH-001)."),
+    page.getByText("SĐT này đã dùng cho: Cty Sáng Tạo Mới E2E (E2E-KH-001)", { exact: false }),
   ).toBeVisible();
 });
 
