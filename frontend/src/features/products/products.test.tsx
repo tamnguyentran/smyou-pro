@@ -435,14 +435,19 @@ describe("AC-CAT-016 ảnh sản phẩm", () => {
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
     vi.mocked(validateImageFile).mockReturnValue(null);
     vi.mocked(compressImage).mockResolvedValue(new Blob(["x"], { type: "image/jpeg" }));
-    vi.mocked(uploadProductImage).mockImplementation(async (_id, _blob, onProgress) => {
-      onProgress(50);
-      // Real delay (not just a microtask tick) so "Đang tải ảnh…" is observable before it clears —
-      // a fully synchronous mock resolves faster than findByText's polling interval can catch it.
-      await new Promise((resolve) => setTimeout(resolve, 20));
-      onProgress(100);
-      return { image_attachment_id: "attach-1" };
-    });
+    // A promise the test resolves explicitly (not a real timer) — so the intermediate 50% state is
+    // observed deterministically instead of racing a fixed delay against CI scheduling jitter.
+    let finishUpload: (() => void) | undefined;
+    vi.mocked(uploadProductImage).mockImplementation(
+      (_id, _blob, onProgress) =>
+        new Promise((resolve) => {
+          onProgress(50);
+          finishUpload = () => {
+            onProgress(100);
+            resolve({ image_attachment_id: "attach-1" });
+          };
+        }),
+    );
     signedInAs(AN, () => HttpResponse.json(page([LCD])));
     renderApp("/catalog/products");
     await openMenu();
@@ -455,9 +460,8 @@ describe("AC-CAT-016 ảnh sản phẩm", () => {
 
     expect(await within(dialog).findByText("Đang tải ảnh… 50%")).toBeInTheDocument();
     expect(within(dialog).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
-    await waitFor(() => {
-      expect(uploadProductImage).toHaveBeenCalled();
-    });
+    expect(uploadProductImage).toHaveBeenCalled();
+    finishUpload?.();
     await waitFor(() => {
       expect(within(dialog).getByAltText("Ảnh sản phẩm").getAttribute("src")).toContain("attach-1");
     });
