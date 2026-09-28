@@ -3,6 +3,7 @@ import { AuditPage } from "../features/audit/pages/AuditPage";
 import { RequireSession, SignedOutOnly } from "../features/auth/guards";
 import { ChangePasswordPage } from "../features/auth/pages/ChangePasswordPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
+import { CustomersPage } from "../features/customers/pages/CustomersPage";
 import { EmployeesPage } from "../features/employees/pages/EmployeesPage";
 import { HomeRoute } from "../features/home/pages/HomeRoute";
 import { NotificationsPage } from "../features/notifications/pages/NotificationsPage";
@@ -21,7 +22,16 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/catalog/products" is real (M2-01b) and checks catalog.read itself — narrower than the menu
 // entry's catalog.manage (AC-CAT-017: Sale reads it without seeing the "Danh mục" menu item).
 // "/catalog/services" is real (M2-02), same reasoning (AC-CAT-031).
-const REAL_PAGES = new Set(["/", "/employees", "/audit", "/catalog/products", "/catalog/services"]);
+// "/customers" is real (M3-01) and checks customer.read itself — narrower than the menu entry's
+// customer.manage (AC-CUS-012: TECH_LEAD reads it without seeing the "Khách hàng" menu item).
+const REAL_PAGES = new Set([
+  "/",
+  "/employees",
+  "/audit",
+  "/catalog/products",
+  "/catalog/services",
+  "/customers",
+]);
 const menuRoutes: RouteObject[] = menuPages()
   .filter(({ item }) => !REAL_PAGES.has(item.path ?? ""))
   .map(({ item, capabilities }) => ({
@@ -59,6 +69,7 @@ export const routes: RouteObject[] = [
       { path: "/audit", element: <AuditPage /> },
       { path: "/catalog/products", element: <ProductsPage /> },
       { path: "/catalog/services", element: <ServicesPage /> },
+      { path: "/customers", element: <CustomersPage /> },
       { path: "/ca-nhan", element: <ProfilePage /> },
       { path: "/thong-bao", element: <NotificationsPage /> },
       { path: "*", element: <NotFoundPage /> },
