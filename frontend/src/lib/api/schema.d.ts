@@ -106,6 +106,42 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/customers": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách khách hàng (tìm theo tên/SĐT/MST, lọc, phân trang) */
+    get: operations["customers_list"];
+    put?: never;
+    /** Thêm khách hàng (cảnh báo không chặn nếu trùng SĐT) */
+    post: operations["customers_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/customers/{customer_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Chi tiết khách hàng */
+    get: operations["customers_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Sửa thông tin khách hàng */
+    patch: operations["customers_update"];
+    trace?: never;
+  };
   "/api/v1/employees": {
     parameters: {
       query?: never;
@@ -559,6 +595,145 @@ export interface components {
       /** New Password */
       new_password: string;
     };
+    /** CustomerCreate */
+    CustomerCreate: {
+      /** Address */
+      address?: string | null;
+      /** Contact Person */
+      contact_person?: string | null;
+      /** Email */
+      email?: string | null;
+      /** Name */
+      name: string;
+      /** Note */
+      note?: string | null;
+      /** Phone */
+      phone: string;
+      /** Tax Code */
+      tax_code?: string | null;
+      /**
+       * Type
+       * @enum {string}
+       */
+      type: "COMPANY" | "INDIVIDUAL";
+    };
+    /**
+     * CustomerMatchOut
+     * @description One other customer sharing a phone number (a warning, not an error — spec §4).
+     */
+    CustomerMatchOut: {
+      /** Code */
+      code: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      /** Phone */
+      phone: string;
+    };
+    /** CustomerOut */
+    CustomerOut: {
+      /** Address */
+      address: string | null;
+      /** Code */
+      code: string;
+      /** Contact Person */
+      contact_person: string | null;
+      /**
+       * Created By
+       * Format: uuid
+       */
+      created_by: string;
+      /** Email */
+      email: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      /** Note */
+      note: string | null;
+      /** Phone */
+      phone: string;
+      /** Tax Code */
+      tax_code: string | null;
+      /** Type */
+      type: string;
+      /** Version */
+      version: number;
+    };
+    /** CustomerPage */
+    CustomerPage: {
+      /** Items */
+      items: components["schemas"]["CustomerOut"][];
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+      /** Total */
+      total: number;
+    };
+    /** CustomerUpdate */
+    CustomerUpdate: {
+      /** Address */
+      address?: string | null;
+      /** Contact Person */
+      contact_person?: string | null;
+      /** Email */
+      email?: string | null;
+      /** Name */
+      name?: string | null;
+      /** Note */
+      note?: string | null;
+      /** Phone */
+      phone?: string | null;
+      /** Tax Code */
+      tax_code?: string | null;
+      /** Type */
+      type?: ("COMPANY" | "INDIVIDUAL") | null;
+      /** Version */
+      version: number;
+    };
+    /** CustomerWritten */
+    CustomerWritten: {
+      /** Address */
+      address: string | null;
+      /** Code */
+      code: string;
+      /** Contact Person */
+      contact_person: string | null;
+      /**
+       * Created By
+       * Format: uuid
+       */
+      created_by: string;
+      /** Duplicate Phone Matches */
+      duplicate_phone_matches: components["schemas"]["CustomerMatchOut"][];
+      /** Email */
+      email: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      /** Note */
+      note: string | null;
+      /** Phone */
+      phone: string;
+      /** Tax Code */
+      tax_code: string | null;
+      /** Type */
+      type: string;
+      /** Version */
+      version: number;
+    };
     /** EmployeeCreate */
     EmployeeCreate: {
       /**
@@ -657,7 +832,7 @@ export interface components {
      * EntityType
      * @enum {string}
      */
-    EntityType: "EMPLOYEE" | "PRODUCT" | "SERVICE";
+    EntityType: "EMPLOYEE" | "PRODUCT" | "SERVICE" | "CUSTOMER";
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -1225,6 +1400,160 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  customers_list: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        type?: ("COMPANY" | "INDIVIDUAL") | null;
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CustomerPage"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  customers_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CustomerCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CustomerWritten"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  customers_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        customer_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CustomerOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  customers_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        customer_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CustomerUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CustomerWritten"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | CONFLICT (code) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
       };
     };
   };

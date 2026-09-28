@@ -9,6 +9,7 @@ from sqlalchemy import create_engine, pool
 import app.core.sequences  # registers tables on Base.metadata
 import app.modules.audit.models  # registers tables on Base.metadata
 import app.modules.catalog.models  # registers tables on Base.metadata
+import app.modules.customers.models  # registers tables on Base.metadata
 import app.modules.files.models  # registers tables on Base.metadata
 import app.modules.identity.models  # noqa: F401  # registers tables on Base.metadata
 from app.core.config import Settings
