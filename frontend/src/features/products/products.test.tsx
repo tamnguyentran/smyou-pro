@@ -5,6 +5,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { markSignedIn } from "../../lib/sessionHint";
 import { server } from "../../test/msw";
 import { renderApp } from "../../test/renderApp";
+import { ApiError } from "../auth/errors";
 import type { Product } from "./api";
 import { compressImage, validateImageFile } from "./imageCompression";
 import { uploadProductImage } from "./upload";
@@ -500,6 +501,27 @@ describe("AC-CAT-016 ảnh sản phẩm", () => {
     expect(await within(dialog).findByText("Ảnh vượt quá 10MB.")).toBeInTheDocument();
     expect(compressImage).not.toHaveBeenCalled();
     expect(uploadProductImage).not.toHaveBeenCalled();
+  });
+
+  test("server từ chối ảnh (vd. 10MB thật sau khi nén) → hiện đúng thông báo lỗi của server", async () => {
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:mock-preview");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    vi.mocked(validateImageFile).mockReturnValue(null);
+    vi.mocked(compressImage).mockResolvedValue(new Blob(["x"], { type: "image/jpeg" }));
+    vi.mocked(uploadProductImage).mockRejectedValue(
+      new ApiError({ status: 422, code: "FILE_TOO_LARGE", detail: "Ảnh vượt quá 10MB." }),
+    );
+    signedInAs(AN, () => HttpResponse.json(page([LCD])));
+    renderApp("/catalog/products");
+    await openMenu();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("Màn hình Dell 22 inch"));
+    const dialog = await screen.findByRole("dialog", { name: "Sửa sản phẩm" });
+
+    const input = within(dialog).getByLabelText("Chọn ảnh", { exact: false });
+    await user.upload(input, file("photo.jpg", "image/jpeg"));
+
+    expect(await within(dialog).findByText("Ảnh vượt quá 10MB.")).toBeInTheDocument();
   });
 
   test("không hiện ô chọn ảnh khi đang tạo mới (chưa có id)", async () => {
