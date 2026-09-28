@@ -13,6 +13,7 @@ from app.core.config import Settings
 from app.core.db import create_db_engine, create_session_factory
 from app.core.security import hash_password
 from app.modules.catalog.models import Product, Service
+from app.modules.customers.models import Customer
 from app.modules.identity.models import AuthSession, Employee, EmployeeRole
 
 # (email, code, full name, roles, password, must change password) — one technician per Playwright
@@ -43,6 +44,13 @@ PRODUCTS = [
 SERVICES = [
     ("E2E-DV-001", "Lắp đặt camera E2E", "NETWORK_CABLING", "DIEM", 300_000, True),
     ("E2E-DV-002", "Sửa chữa PC E2E", "REPAIR", "LAN", 100_000, False),
+]
+
+# (code, type, name, phone, tax_code) — M3-01: stable data for the customers list screenshot/e2e,
+# independent of test execution order (upsert by code, not created by a test itself).
+CUSTOMERS = [
+    ("E2E-KH-001", "COMPANY", "Cty Sáng Tạo Mới E2E", "0909123456", "0312345678"),
+    ("E2E-KH-002", "INDIVIDUAL", "Anh Ngọc E2E - Grand Hotel", "0918234567", None),
 ]
 
 
@@ -91,8 +99,18 @@ def main() -> int:
             service.name = name
             service.price = price
             service.is_active = is_active
+        creator_id = session.scalars(select(Employee.id).where(Employee.email == "an.e2e@smyou.vn")).one()
+        for code, customer_type, name, phone, tax_code in CUSTOMERS:
+            customer = session.scalars(select(Customer).where(Customer.code == code)).one_or_none()
+            if customer is None:
+                customer = Customer(code=code, type=customer_type, phone=phone, created_by=creator_id)
+                session.add(customer)
+            customer.name = name
+            customer.phone = phone
+            customer.tax_code = tax_code
     sys.stdout.write(
-        f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products, {len(SERVICES)} E2E services\n"
+        f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products, {len(SERVICES)} E2E services,"
+        f" {len(CUSTOMERS)} E2E customers\n"
     )
     return 0
 
