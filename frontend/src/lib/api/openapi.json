@@ -445,7 +445,7 @@
         "type": "object"
       },
       "EntityType": {
-        "enum": ["EMPLOYEE", "PRODUCT"],
+        "enum": ["EMPLOYEE", "PRODUCT", "SERVICE"],
         "title": "EntityType",
         "type": "string"
       },
@@ -955,6 +955,295 @@
         },
         "required": ["version", "roles"],
         "title": "RolesRequest",
+        "type": "object"
+      },
+      "ServiceCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "enum": [
+              "INSTALLATION",
+              "REPAIR",
+              "MAINTENANCE",
+              "REFILL",
+              "SOFTWARE",
+              "NETWORK_CABLING",
+              "OTHER"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "code": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "default_estimated_hours": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Estimated Hours"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "price": {
+            "minimum": 0.0,
+            "title": "Price",
+            "type": "integer"
+          },
+          "price_fixed": {
+            "default": false,
+            "title": "Price Fixed",
+            "type": "boolean"
+          },
+          "unit": {
+            "enum": ["CAI", "MAY", "BO", "MET", "CUON", "HOP", "LICENSE", "LAN", "DIEM", "GIO"],
+            "title": "Unit",
+            "type": "string"
+          },
+          "vat_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "8",
+            "title": "Vat Rate"
+          }
+        },
+        "required": ["code", "name", "category", "unit", "price"],
+        "title": "ServiceCreate",
+        "type": "object"
+      },
+      "ServiceOut": {
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "default_estimated_hours": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Estimated Hours"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "price": {
+            "title": "Price",
+            "type": "integer"
+          },
+          "price_fixed": {
+            "title": "Price Fixed",
+            "type": "boolean"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "vat_rate": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Vat Rate",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "category",
+          "unit",
+          "price",
+          "vat_rate",
+          "price_fixed",
+          "default_estimated_hours",
+          "description",
+          "is_active",
+          "version"
+        ],
+        "title": "ServiceOut",
+        "type": "object"
+      },
+      "ServicePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": ["items", "total", "limit", "offset"],
+        "title": "ServicePage",
+        "type": "object"
+      },
+      "ServiceUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "default_estimated_hours": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Estimated Hours"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "price_fixed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Fixed"
+          },
+          "vat_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vat Rate"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["version"],
+        "title": "ServiceUpdate",
         "type": "object"
       },
       "ValidationError": {
@@ -2064,7 +2353,7 @@
             "description": "problem+json — NOT_FOUND"
           },
           "409": {
-            "description": "problem+json — STALE_VERSION | CONFLICT (sku) | INVALID_TRANSITION"
+            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION"
           },
           "422": {
             "content": {
@@ -2121,7 +2410,7 @@
             "description": "problem+json — NOT_FOUND"
           },
           "409": {
-            "description": "problem+json — STALE_VERSION | CONFLICT (sku) | INVALID_TRANSITION"
+            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION"
           },
           "422": {
             "content": {
@@ -2178,7 +2467,7 @@
             "description": "problem+json — NOT_FOUND"
           },
           "409": {
-            "description": "problem+json — STALE_VERSION | CONFLICT (sku) | INVALID_TRANSITION"
+            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION"
           },
           "422": {
             "content": {
@@ -2240,6 +2529,399 @@
         },
         "summary": "Tải ảnh sản phẩm",
         "tags": ["products"]
+      }
+    },
+    "/api/v1/services": {
+      "get": {
+        "operationId": "services_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "INSTALLATION",
+                    "REPAIR",
+                    "MAINTENANCE",
+                    "REFILL",
+                    "SOFTWARE",
+                    "NETWORK_CABLING",
+                    "OTHER"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "unit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "CAI",
+                    "MAY",
+                    "BO",
+                    "MET",
+                    "CUON",
+                    "HOP",
+                    "LICENSE",
+                    "LAN",
+                    "DIEM",
+                    "GIO"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Unit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "is_active",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Active"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServicePage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Danh sách dịch vụ (tìm, lọc, phân trang)",
+        "tags": ["services"]
+      },
+      "post": {
+        "operationId": "services_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "problem+json — CONFLICT (code)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Thêm dịch vụ",
+        "tags": ["services"]
+      }
+    },
+    "/api/v1/services/{service_id}": {
+      "get": {
+        "operationId": "services_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chi tiết dịch vụ",
+        "tags": ["services"]
+      },
+      "patch": {
+        "operationId": "services_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Sửa thông tin dịch vụ",
+        "tags": ["services"]
+      }
+    },
+    "/api/v1/services/{service_id}/activate": {
+      "post": {
+        "operationId": "services_activate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mở lại kinh doanh",
+        "tags": ["services"]
+      }
+    },
+    "/api/v1/services/{service_id}/deactivate": {
+      "post": {
+        "operationId": "services_deactivate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ngừng kinh doanh",
+        "tags": ["services"]
       }
     }
   }

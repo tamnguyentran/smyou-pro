@@ -40,7 +40,7 @@ def _docs(*lines: tuple[int, str]) -> dict[int | str, dict[str, Any]]:
 
 
 NOT_FOUND = (404, "NOT_FOUND")
-CONFLICTS = (409, "STALE_VERSION | CONFLICT (sku) | INVALID_TRANSITION")
+CONFLICTS = (409, "STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION")
 
 
 def _now(request: Request) -> datetime:
