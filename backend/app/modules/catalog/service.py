@@ -3,6 +3,7 @@
 import logging
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -273,6 +274,7 @@ def upload_image(
 
 
 def _out_service(service: Service) -> ServiceOut:
+    hours = service.default_estimated_hours
     return ServiceOut(
         id=service.id,
         code=service.code,
@@ -282,7 +284,7 @@ def _out_service(service: Service) -> ServiceOut:
         price=service.price,
         vat_rate=service.vat_rate,
         price_fixed=service.price_fixed,
-        default_estimated_hours=service.default_estimated_hours,
+        default_estimated_hours=hours if hours is None else hours.quantize(Decimal("0.01")),
         description=service.description,
         is_active=service.is_active,
         version=service.version,
