@@ -1,6 +1,6 @@
 # M2-03a — Import danh mục từ CSV: API
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M2-03a · **Milestone:** M2
 - **Liên quan:** DOMAIN_MODEL §2 (Product), §3 (Service); `spec/permissions.yaml` (`catalog.manage`: MANAGER all — như tạo tay); M2-01a (mẫu `ProductCreate`, lỗi 409 `sku`/422 field), M2-02 (mẫu `ServiceCreate`); OPEN_QUESTIONS Q15 (import CSV/XLSX)
 
