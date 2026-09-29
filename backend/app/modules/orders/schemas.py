@@ -9,6 +9,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationInfo, field_validator
 
 from app.modules.catalog.domain import vat_rate_problem
+from app.modules.catalog.schemas import ServiceUnit
 from app.modules.identity.schemas import Email
 
 Division = Literal["OFFICE_EQUIPMENT", "SECURITY", "GENERAL"]
@@ -95,7 +96,7 @@ class OrderLineCreate(BaseModel):
     product_id: uuid.UUID | None = None
     service_id: uuid.UUID | None = None
     name: Name | None = None
-    unit: str | None = None
+    unit: ServiceUnit | None = None
     specs: str | None = None
     warranty_months: Annotated[int, Field(ge=0)] | None = None
     quantity: Annotated[Decimal, Field(gt=0)]

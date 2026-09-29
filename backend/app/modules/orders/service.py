@@ -356,10 +356,10 @@ def update_order(
         resolved = _resolve_customer(
             session,
             effective_customer_id,
-            changes.get("customer_name"),
-            changes.get("customer_phone"),
-            changes.get("customer_email"),
-            changes.get("customer_tax_code"),
+            changes.get("customer_name", order.customer_name),
+            changes.get("customer_phone", order.customer_phone),
+            changes.get("customer_email", order.customer_email),
+            changes.get("customer_tax_code", order.customer_tax_code),
         )
         for field, value in zip(CUSTOMER_FIELDS, resolved, strict=True):
             if getattr(order, field) != value:
@@ -411,7 +411,7 @@ def add_line(
     )
     line = OrderLine(
         order_id=order.id,
-        position=len(order.lines) + 1,
+        position=max((line.position for line in order.lines), default=0) + 1,
         item_type=body.item_type,
         product_id=snapshot.product_id,
         service_id=snapshot.service_id,
