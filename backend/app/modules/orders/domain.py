@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 
 @dataclass(frozen=True)
@@ -22,16 +22,24 @@ class OrderTotals:
 
 
 def round_half_up(value: Decimal) -> int:
-    raise NotImplementedError
+    return int(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
 def price_line(quantity: Decimal, unit_price: int, vat_rate: Decimal, line_discount: int) -> LineTotals:
-    raise NotImplementedError
+    line_gross = round_half_up(quantity * unit_price)
+    line_vat = round_half_up((line_gross - line_discount) * vat_rate / 100)
+    line_total = line_gross - line_discount + line_vat
+    return LineTotals(line_gross, line_discount, line_vat, line_total)
 
 
 def sum_order(lines: Sequence[LineTotals]) -> OrderTotals:
-    raise NotImplementedError
+    return OrderTotals(
+        subtotal=sum(line.line_gross for line in lines),
+        discount_amount=sum(line.line_discount for line in lines),
+        vat_amount=sum(line.line_vat for line in lines),
+        total=sum(line.line_total for line in lines),
+    )
 
 
 def order_code(period: str, number: int) -> str:
-    raise NotImplementedError
+    return f"DH{period}-{number:04d}"

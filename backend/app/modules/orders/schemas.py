@@ -53,7 +53,7 @@ class OrderCreate(BaseModel):
     priority: Priority = "NORMAL"
     requested_date: date | None = None
     payment_status: PaymentStatus = "UNPAID"
-    payment_method: PaymentMethod | None = None
+    payment_method: PaymentMethod | None = Field(default=None, validate_default=True)
 
     _check_payment_method = field_validator("payment_method")(_check_payment_method)
 
@@ -73,7 +73,7 @@ class OrderUpdate(BaseModel):
     priority: Priority | None = None
     requested_date: date | None = None
     payment_status: PaymentStatus | None = None
-    payment_method: PaymentMethod | None = None
+    payment_method: PaymentMethod | None = Field(default=None, validate_default=True)
 
     _check_payment_method = field_validator("payment_method")(_check_payment_method)
 
