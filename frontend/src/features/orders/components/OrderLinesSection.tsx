@@ -6,7 +6,13 @@ import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
 import { formatCurrency } from "../../../lib/format";
-import { useRemoveLine, useUpdateLine, type Order, type OrderLine } from "../api";
+import {
+  useRemoveLine,
+  useUpdateLine,
+  type Order,
+  type OrderLine,
+  type OrderLineUpdateBody,
+} from "../api";
 import { computeLineTotal } from "../pricing";
 import { discountFieldSchema, quantityFieldSchema } from "../schemas";
 import { VatChipField } from "./VatChipField";
@@ -68,7 +74,7 @@ function OrderLineRow({
     isGift: draft.isGift,
   });
 
-  function commit(patch: Record<string, unknown>) {
+  function commit(patch: Omit<OrderLineUpdateBody, "version">) {
     void updateLine.mutateAsync({
       id: order.id,
       lineId: line.id,
