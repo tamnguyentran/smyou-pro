@@ -214,6 +214,26 @@ describe("AC-ORD-025 tìm khách hoặc Khách lẻ", () => {
     expect(screen.getByLabelText("Tên khách hàng")).toBeInTheDocument();
     expect(screen.getByLabelText("Số điện thoại")).toBeInTheDocument();
   });
+
+  test("mở lại đơn đã có khách hàng hiện đúng tên trong ô tìm, không rơi vào Khách lẻ", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(
+          order({
+            customer_id: customerId,
+            customer_name: "Cty Sáng Tạo Mới",
+            customer_phone: "0909123456",
+          }),
+        ),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+
+    expect(screen.getByLabelText("Tìm khách hàng")).toHaveValue("Cty Sáng Tạo Mới");
+    expect(screen.getByText("0909123456")).toBeInTheDocument();
+  });
 });
 
 describe("AC-ORD-034 lưu nháp", () => {

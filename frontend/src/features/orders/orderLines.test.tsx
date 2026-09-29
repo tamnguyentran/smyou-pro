@@ -290,6 +290,10 @@ describe("AC-ORD-028 giảm giá và VAT theo dòng", () => {
     const vatOther = within(row).getByLabelText("VAT khác (%)");
     await user.type(vatOther, "150");
     expect(await within(row).findByText("VAT phải trong khoảng 0-100.")).toBeInTheDocument();
+
+    await user.clear(vatOther);
+    await user.type(vatOther, "8.567");
+    expect(await within(row).findByText("VAT tối đa 2 chữ số thập phân.")).toBeInTheDocument();
   });
 });
 
@@ -440,6 +444,61 @@ describe("AC-ORD-032 xoá dòng", () => {
     expect(await screen.findByText("Đã xoá dòng hàng.")).toBeInTheDocument();
     expect(screen.queryByTestId(`order-line-${dellLineId}`)).not.toBeInTheDocument();
     expect(screen.getByText("Chưa có dòng hàng nào.")).toBeInTheDocument();
+  });
+
+  test("xoá dòng thất bại hiện lỗi, không xoá khỏi màn hình", async () => {
+    signedInAsHoa();
+    server.use(
+      http.post("/api/v1/orders/:id/lines/:lineId/remove", () =>
+        HttpResponse.json(
+          { status: 409, code: "ORDER_NOT_DRAFT", detail: "Đơn không còn ở trạng thái nháp." },
+          { status: 409 },
+        ),
+      ),
+    );
+    await openExisting(order());
+    const row = screen.getByTestId(`order-line-${dellLineId}`);
+    const user = userEvent.setup();
+
+    await user.click(within(row).getByRole("button", { name: "Xoá dòng Màn hình Dell 22 inch" }));
+    const dialog = await screen.findByRole("dialog", { name: "Xoá dòng hàng" });
+    await user.click(within(dialog).getByRole("button", { name: "Xoá" }));
+
+    expect(await within(row).findByText("Đơn không còn ở trạng thái nháp.")).toBeInTheDocument();
+    expect(screen.getByTestId(`order-line-${dellLineId}`)).toBeInTheDocument();
+  });
+});
+
+describe("AC-ORD-027/028 lỗi sửa dòng không bị nuốt thầm", () => {
+  test("PATCH giảm giá thất bại (409 STALE_VERSION) hiện lỗi và khôi phục giá trị cũ", async () => {
+    signedInAsHoa();
+    server.use(
+      http.patch("/api/v1/orders/:id/lines/:lineId", () =>
+        HttpResponse.json(
+          {
+            status: 409,
+            code: "STALE_VERSION",
+            detail: "Thông tin đã bị người khác thay đổi. Vui lòng tải lại.",
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    await openExisting(order());
+    const row = screen.getByTestId(`order-line-${dellLineId}`);
+    const user = userEvent.setup();
+
+    const discount = within(row).getByLabelText("Giảm giá");
+    await user.clear(discount);
+    await user.type(discount, "100000");
+    await user.tab();
+
+    expect(
+      await within(row).findByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại."),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(within(row).getByLabelText("Giảm giá")).toHaveValue(0);
+    });
   });
 });
 
