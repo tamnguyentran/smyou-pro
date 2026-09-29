@@ -19,6 +19,8 @@ function shot(info: TestInfo, file: string) {
   return resolve(import.meta.dirname, "../../reports/screenshots", info.project.name, file);
 }
 
+const isMobile = (info: TestInfo) => info.project.name === "mobile";
+
 async function evidence(
   page: Page,
   info: TestInfo,
@@ -105,7 +107,9 @@ test("AC-ORD-024 AC-ORD-025 AC-ORD-026 AC-ORD-030 AC-ORD-032 AC-ORD-034 AC-ORD-0
   await expect(page.getByText("Công tháo dỡ tủ mạng cũ")).toHaveCount(0);
 });
 
-test("AC-ORD-037 Hà (SALE khác) chỉ xem đơn của Hoa; An (MANAGER) sửa được", async ({ page }) => {
+test("AC-ORD-037 Hà (SALE khác) chỉ xem đơn của Hoa; An (MANAGER) sửa được", async ({
+  page,
+}, info) => {
   await signIn(page, SALE);
   await page.getByLabel("Tìm khách hàng").fill("Sáng Tạo Mới");
   await page.getByRole("option", { name: /Cty Sáng Tạo Mới E2E/ }).click();
@@ -122,6 +126,9 @@ test("AC-ORD-037 Hà (SALE khác) chỉ xem đơn của Hoa; An (MANAGER) sửa 
   // (flaky — "Email" never appears) instead of showing it for the next sign-in.
   await page.context().clearCookies();
   await signIn(page, OTHER_SALE, orderPath);
+  // AC-ORD-038: reopening a saved order starts with Section 1 collapsed on mobile — expand it before
+  // checking the read-only customer field it contains.
+  if (isMobile(info)) await page.getByRole("button", { name: "Thông tin đơn" }).click();
   await expect(page.getByText("Cty Sáng Tạo Mới E2E")).toBeVisible();
   await expect(page.getByRole("button", { name: "Thêm dòng hàng" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Lưu nháp" })).toHaveCount(0);
