@@ -359,6 +359,18 @@ describe("AC-ORD-037 phân quyền own/all trên đơn nháp", () => {
   });
 });
 
+function mockViewport(desktop: boolean) {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => ({
+      matches: desktop,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
 describe("AC-ORD-038 bố cục 390px/1440px", () => {
   test("nút Lưu nháp dính đáy; khung 2 cột luôn có sẵn trong DOM cho breakpoint lg", async () => {
     signedInAs(hoaId, HOA);
@@ -367,5 +379,45 @@ describe("AC-ORD-038 bố cục 390px/1440px", () => {
 
     expect(screen.getByTestId("draft-order-save-bar").className).toMatch(/sticky/);
     expect(screen.getByTestId("draft-order-layout").className).toMatch(/lg:grid-cols-2/);
+  });
+
+  test("mobile: tạo đơn mới mặc định mở Section 1", async () => {
+    mockViewport(false);
+    signedInAs(hoaId, HOA);
+    renderApp("/orders/new");
+    await openForm();
+
+    expect(screen.getByLabelText("Địa chỉ thi công")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Thông tin đơn" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
+
+  test("mobile: mở lại đơn đã lưu mặc định thu gọn Section 1, bấm để mở", async () => {
+    mockViewport(false);
+    signedInAs(hoaId, HOA);
+    server.use(http.get("/api/v1/orders/:id", () => HttpResponse.json(order())));
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+
+    const toggle = screen.getByRole("button", { name: "Thông tin đơn" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByLabelText("Địa chỉ thi công")).not.toBeVisible();
+
+    const user = userEvent.setup();
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText("Địa chỉ thi công")).toBeVisible();
+  });
+
+  test("desktop: Section 1 luôn hiện, không phụ thuộc trạng thái accordion", async () => {
+    mockViewport(true);
+    signedInAs(hoaId, HOA);
+    server.use(http.get("/api/v1/orders/:id", () => HttpResponse.json(order())));
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+
+    expect(screen.getByLabelText("Địa chỉ thi công")).toBeVisible();
   });
 });
