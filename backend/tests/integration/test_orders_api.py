@@ -297,6 +297,32 @@ def test_update_switch_to_walk_in_and_stale_version(
     problem(stale, 409, "STALE_VERSION")
 
 
+@pytest.mark.ac("AC-ORD-007")
+def test_update_walk_in_partial_patch_keeps_other_customer_fields(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post(
+        "/api/v1/orders",
+        json={
+            "customer_name": "Anh Long",
+            "customer_phone": "0977888999",
+            "customer_tax_code": "0311111111",
+        },
+    ).json()
+
+    res = hoa.patch(
+        f"/api/v1/orders/{order['id']}",
+        json={"version": order["version"], "customer_phone": "0900000000"},
+    )
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["customer_phone"] == "0900000000"
+    assert body["customer_name"] == "Anh Long"
+    assert body["customer_tax_code"] == "0311111111"
+
+
 @pytest.mark.ac("AC-ORD-008")
 def test_add_line_product_fixed_price(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID], catalog: dict[str, uuid.UUID]
@@ -658,6 +684,41 @@ def test_remove_line(
         404,
         "NOT_FOUND",
     )
+
+
+@pytest.mark.ac("AC-ORD-018")
+def test_add_line_position_not_reused_after_remove(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], catalog: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+
+    def add_line(version: int) -> dict:
+        return hoa.post(
+            f"/api/v1/orders/{order['id']}/lines",
+            json={
+                "version": version,
+                "item_type": "PRODUCT",
+                "product_id": str(catalog["LCD-DELL22"]),
+                "quantity": "1",
+                "unit_price": 2_500_000,
+                "vat_rate": "8",
+            },
+        ).json()
+
+    first = add_line(order["version"])
+    second = add_line(first["version"])
+    first_line_id = second["lines"][0]["id"]
+
+    after_remove = hoa.post(
+        f"/api/v1/orders/{order['id']}/lines/{first_line_id}/remove",
+        json={"version": second["version"]},
+    ).json()
+
+    third = add_line(after_remove["version"])
+
+    positions = sorted(line["position"] for line in third["lines"])
+    assert positions == sorted(set(positions)), positions
 
 
 @pytest.mark.ac("AC-ORD-019")
