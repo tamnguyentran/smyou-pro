@@ -32,11 +32,12 @@ ACCOUNTS = [
     ("ha.e2e@smyou.vn", "E2E09", "Phạm Thu Hà", ("SALE", "TECHNICIAN"), "E2e@SmYou2026", False),
 ]
 
-# (sku, name, category, brand, unit, price, is_active) — M2-01b: stable data for the products list
-# screenshot/e2e, independent of test execution order (upsert by sku, not created by a test itself).
+# (sku, name, category, brand, unit, price, is_active, price_fixed) — M2-01b: stable data for the
+# products list screenshot/e2e, independent of test execution order (upsert by sku, not created by
+# a test itself). E2E-MON-001 is price_fixed=True — M3-02b's draft-order e2e needs a locked-price line.
 PRODUCTS = [
-    ("E2E-MON-001", "Màn hình Dell 22 inch E2E", "MONITOR", "Dell", "CAI", 2_800_000, True),
-    ("E2E-PRN-001", "Hộp mực Canon E2E", "PRINTER_SUPPLY", "Canon", "HOP", 850_000, False),
+    ("E2E-MON-001", "Màn hình Dell 22 inch E2E", "MONITOR", "Dell", "CAI", 2_800_000, True, True),
+    ("E2E-PRN-001", "Hộp mực Canon E2E", "PRINTER_SUPPLY", "Canon", "HOP", 850_000, False, False),
 ]
 
 # (code, name, category, unit, price, is_active) — M2-02: stable data for the services list
@@ -82,7 +83,7 @@ def main() -> int:
                 .where(AuthSession.employee_id == employee.id, AuthSession.revoked_at.is_(None))
                 .values(revoked_at=now)
             )
-        for sku, name, category, brand, unit, price, is_active in PRODUCTS:
+        for sku, name, category, brand, unit, price, is_active, price_fixed in PRODUCTS:
             product = session.scalars(select(Product).where(Product.sku == sku)).one_or_none()
             if product is None:
                 product = Product(sku=sku, category=category, unit=unit)
@@ -91,6 +92,7 @@ def main() -> int:
             product.brand = brand
             product.price = price
             product.is_active = is_active
+            product.price_fixed = price_fixed
         for code, name, category, unit, price, is_active in SERVICES:
             service = session.scalars(select(Service).where(Service.code == code)).one_or_none()
             if service is None:
