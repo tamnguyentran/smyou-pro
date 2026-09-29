@@ -197,7 +197,7 @@ describe("AC-ORD-026 thêm dòng sản phẩm từ tìm kiếm", () => {
 });
 
 describe("AC-ORD-027 dòng giá cố định", () => {
-  test("đơn giá khoá readonly + icon Lock; đổi số lượng cập nhật tổng ngay", async () => {
+  test("đơn giá khoá readonly + icon Lock; đổi số lượng cập nhật tổng ngay theo response server", async () => {
     signedInAsHoa();
     server.use(
       http.patch("/api/v1/orders/:id/lines/:lineId", () =>
@@ -206,9 +206,11 @@ describe("AC-ORD-027 dòng giá cố định", () => {
             lines: [
               orderLine({
                 quantity: "2",
+                // Cố ý khác con số client tự tính (5.000.000 gross · 8% VAT = 5.400.000) để chứng
+                // minh dòng hiện đúng số server trả về, không phải chỉ hiện lại preview của chính nó.
                 line_gross: 5_000_000,
-                line_vat: 400_000,
-                line_total: 5_400_000,
+                line_vat: 400_500,
+                line_total: 5_400_500,
               }),
             ],
           }),
@@ -226,7 +228,8 @@ describe("AC-ORD-027 dòng giá cố định", () => {
     const qty = within(row).getByLabelText("Số lượng");
     await user.clear(qty);
     await user.type(qty, "2");
-    expect(within(row).getByText("5.400.000 ₫")).toBeInTheDocument();
+    await user.tab();
+    expect(await within(row).findByText("5.400.500 ₫")).toBeInTheDocument();
   });
 });
 
@@ -259,8 +262,10 @@ describe("AC-ORD-028 giảm giá và VAT theo dòng", () => {
                   ...pcLine,
                   vat_rate: "8",
                   line_discount: 180_000,
-                  line_vat: 944_000,
-                  line_total: 12_744_000,
+                  // Cố ý lệch với số client tự tính (11.800.000 × 8% = 944.000 → 12.744.000) để chứng
+                  // minh dòng hiện đúng số server trả về, không phải chỉ hiện lại preview client.
+                  line_vat: 944_500,
+                  line_total: 12_744_500,
                 },
               ],
             }),
@@ -268,7 +273,8 @@ describe("AC-ORD-028 giảm giá và VAT theo dòng", () => {
         }
         return HttpResponse.json(
           order({
-            lines: [{ ...pcLine, line_discount: 180_000, line_total: 11_800_000 }],
+            // Cố ý lệch với số client tự tính (11.980.000 - 180.000 = 11.800.000).
+            lines: [{ ...pcLine, line_discount: 180_000, line_total: 11_800_500 }],
           }),
         );
       }),
@@ -281,10 +287,10 @@ describe("AC-ORD-028 giảm giá và VAT theo dòng", () => {
     await user.clear(discount);
     await user.type(discount, "180000");
     await user.tab();
-    expect(await within(row).findByText("11.800.000 ₫")).toBeInTheDocument();
+    expect(await within(row).findByText("11.800.500 ₫")).toBeInTheDocument();
 
     await user.click(within(row).getByRole("radio", { name: "8%" }));
-    expect(await within(row).findByText("12.744.000 ₫")).toBeInTheDocument();
+    expect(await within(row).findByText("12.744.500 ₫")).toBeInTheDocument();
 
     await user.click(within(row).getByRole("radio", { name: "Khác" }));
     const vatOther = within(row).getByLabelText("VAT khác (%)");
@@ -569,5 +575,38 @@ describe("AC-ORD-033 zod chặn trước, lỗi 422 hiện đúng ô", () => {
     ).toBeInTheDocument();
     expect(within(sheet).getByLabelText("Tên")).toHaveValue("Công lắp đặt");
     expect(within(sheet).getByLabelText("Đơn giá")).toHaveValue(999000);
+  });
+
+  test("lỗi 409 không gắn với ô nào (STALE_VERSION) vẫn hiện ở đầu Sheet, không bị nuốt thầm", async () => {
+    signedInAsHoa();
+    server.use(
+      http.post("/api/v1/orders/:id/lines", () =>
+        HttpResponse.json(
+          {
+            status: 409,
+            code: "STALE_VERSION",
+            detail: "Thông tin đã bị người khác thay đổi. Vui lòng tải lại.",
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    await openExisting(order({ lines: [] }));
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Thêm dòng hàng" }));
+    const sheet = await screen.findByRole("dialog", { name: "Thêm dòng hàng" });
+    await user.click(within(sheet).getByRole("tab", { name: "Tự do" }));
+    await user.type(within(sheet).getByLabelText("Tên"), "Công lắp đặt");
+    await user.clear(within(sheet).getByLabelText("Số lượng"));
+    await user.type(within(sheet).getByLabelText("Số lượng"), "1");
+    await user.type(within(sheet).getByLabelText("Đơn giá"), "999000");
+    await user.click(within(sheet).getByRole("radio", { name: "8%" }));
+    await user.click(within(sheet).getByRole("button", { name: "Thêm" }));
+
+    expect(
+      await within(sheet).findByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại."),
+    ).toBeInTheDocument();
+    expect(within(sheet).getByLabelText("Tên")).toHaveValue("Công lắp đặt");
   });
 });
