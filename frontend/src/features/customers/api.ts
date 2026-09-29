@@ -18,10 +18,13 @@ export interface CustomerFilters {
 
 export const CUSTOMERS_KEY = "customers";
 
-/** Paginated, searched, filtered list — kept while the next page loads (no flash back to Skeleton). */
-export function useCustomers(filters: CustomerFilters) {
+/** Paginated, searched, filtered list — kept while the next page loads (no flash back to Skeleton).
+ * `enabled` (default true) lets a caller like the order form's customer picker skip fetching while
+ * "Khách lẻ" mode hides the search box entirely. */
+export function useCustomers(filters: CustomerFilters, enabled = true) {
   return useQuery({
     queryKey: [CUSTOMERS_KEY, filters],
+    enabled,
     queryFn: async () => {
       const { data, error, response } = await api.GET("/api/v1/customers", {
         params: {
