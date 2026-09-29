@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { usePageTitle } from "../../../app/shell/pageTitle";
@@ -29,6 +29,7 @@ import { AddLineSheet } from "./AddLineSheet";
 import { CustomerPicker } from "./CustomerPicker";
 import { OrderLinesSection } from "./OrderLinesSection";
 import { OrderTotalsSection } from "./OrderTotalsSection";
+import { useOrderWriteQueue } from "./writeQueue";
 
 const BLANK_VALUES: OrderInfoFormValues = {
   customerMode: "search",
@@ -94,11 +95,22 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
   const navigate = useNavigate();
   const toast = useToast();
   const me = useMe();
-  const [id, setId] = useState(orderId);
+  const [id, setIdState] = useState(orderId);
+  // A ref alongside the state: queued write steps (see writeQueue.ts) run later, asynchronously, and
+  // must see the id a *just-finished* step set — not the value their own closure was created with.
+  const idRef = useRef(id);
+  function setId(newId: string) {
+    idRef.current = newId;
+    setIdState(newId);
+  }
   const orderQuery = useOrder(id);
   const order = orderQuery.data;
   const createOrder = useCreateOrder();
   const updateOrder = useUpdateOrder();
+  // Serializes this save against every line edit (see writeQueue.ts) — a "Giảm giá" blur and "Lưu
+  // nháp" both PATCH with the order's current `version`, and firing both at once would make
+  // whichever lands second fail with a spurious STALE_VERSION, since it wasn't really a different actor.
+  const { enqueue, currentOrder, runWrite } = useOrderWriteQueue(() => idRef.current);
 
   const [staleVersion, setStaleVersion] = useState(false);
   const [reloadConfirmOpen, setReloadConfirmOpen] = useState(false);
@@ -122,8 +134,9 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
 
   usePageTitle(!id ? "Tạo đơn mới" : (order?.code ?? "Đơn hàng"));
 
-  async function ensureOrder(): Promise<Order> {
-    if (order) return order;
+  /** Creates the draft if it doesn't exist yet, using whatever Section 1 currently holds (spec §8),
+   * queued behind any other pending order write. */
+  async function createDraft(): Promise<Order> {
     const created = await createOrder.mutateAsync({
       ...buildOrderFields(getValues()),
       payment_status: "UNPAID",
@@ -133,24 +146,37 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
     return created;
   }
 
-  const onSave = handleSubmit(async (values) => {
-    setFormError(null);
-    try {
-      const saved = order
-        ? await updateOrder.mutateAsync({
-            id: order.id,
-            body: { version: order.version, ...buildOrderFields(values) },
-          })
-        : await ensureOrder();
-      toast(`Đã lưu nháp ${saved.code}.`);
-    } catch (err) {
-      if (err instanceof ApiError && err.problem.code === "STALE_VERSION") {
-        setStaleVersion(true);
-      } else {
-        setFormError("Không thực hiện được. Vui lòng thử lại.");
+  /** Passed to AddLineSheet: run `task` against the order, creating it first if this is the very
+   * first line — both steps count as one queued write. */
+  function runWriteOrCreate(task: (current: Order) => Promise<Order>): Promise<Order> {
+    return enqueue(async () => task(currentOrder() ?? (await createDraft())));
+  }
+
+  // react-hook-form's handleSubmit must be constructed at render time (that's its documented API);
+  // the ref inside `enqueue` (via useOrderWriteQueue) is only ever dereferenced later, inside the
+  // async callback the resulting handler runs on submit — never synchronously during this render.
+  // eslint-disable-next-line react-hooks/refs -- see comment above
+  const onSave = handleSubmit((values) =>
+    enqueue(async () => {
+      setFormError(null);
+      try {
+        const current = currentOrder();
+        const saved = current
+          ? await updateOrder.mutateAsync({
+              id: current.id,
+              body: { version: current.version, ...buildOrderFields(values) },
+            })
+          : await createDraft();
+        toast(`Đã lưu nháp ${saved.code}.`);
+      } catch (err) {
+        if (err instanceof ApiError && err.problem.code === "STALE_VERSION") {
+          setStaleVersion(true);
+        } else {
+          setFormError("Không thực hiện được. Vui lòng thử lại.");
+        }
       }
-    }
-  });
+    }),
+  );
 
   async function doReload() {
     const fresh = await orderQuery.refetch();
@@ -287,6 +313,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
         <OrderLinesSection
           order={order}
           canEdit={canEdit}
+          runWrite={runWrite}
           onAddLine={() => {
             setAddLineOpen(true);
           }}
@@ -299,7 +326,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
           onClose={() => {
             setAddLineOpen(false);
           }}
-          ensureOrder={ensureOrder}
+          runOrderWrite={runWriteOrCreate}
         />
       ) : null}
       <ConfirmDialog

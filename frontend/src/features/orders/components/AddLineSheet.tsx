@@ -15,9 +15,10 @@ import { productImageUrl, useProducts, type Product } from "../../products/api";
 import { ProductImage } from "../../products/components/ProductList";
 import { useServices, type Service } from "../../services/api";
 import { UNIT_LABELS, UNIT_ORDER } from "../../services/schemas";
-import { useAddLine, type Order, type OrderLineCreateBody } from "../api";
+import { useAddLine, type OrderLineCreateBody } from "../api";
 import { fieldErrors } from "../errors";
 import { customLineSchema, type CustomLineFormValues } from "../schemas";
+import type { RunOrderWrite } from "./writeQueue";
 import { VatChipField } from "./VatChipField";
 
 type Tab = "PRODUCT" | "SERVICE" | "CUSTOM";
@@ -196,13 +197,14 @@ function CustomLineForm({
 }
 
 /** AC-ORD-026/030/033: 3-tab Sheet to add a line — products/services add on click, "Tự do" needs the
- * form below submitted. `ensureOrder` silently creates the draft on the very first line (spec §8). */
+ * form below submitted. `runOrderWrite` silently creates the draft on the very first line (spec §8)
+ * and queues this add behind any other in-flight order write (see writeQueue.ts). */
 export function AddLineSheet({
   onClose,
-  ensureOrder,
+  runOrderWrite,
 }: {
   onClose: () => void;
-  ensureOrder: () => Promise<Order>;
+  runOrderWrite: RunOrderWrite;
 }) {
   const [tab, setTab] = useState<Tab>("PRODUCT");
   const [error, setError] = useState<string | null>(null);
@@ -212,8 +214,9 @@ export function AddLineSheet({
   async function addCatalogLine(body: Omit<OrderLineCreateBody, "version">) {
     setError(null);
     try {
-      const order = await ensureOrder();
-      await addLine.mutateAsync({ id: order.id, body: { ...body, version: order.version } });
+      await runOrderWrite((order) =>
+        addLine.mutateAsync({ id: order.id, body: { ...body, version: order.version } }),
+      );
       onClose();
     } catch (err) {
       setError(err instanceof ApiError ? (err.problem.detail ?? null) : null);
@@ -224,21 +227,22 @@ export function AddLineSheet({
   async function addCustomLine(values: CustomLineFormValues) {
     setServerErrors({});
     try {
-      const order = await ensureOrder();
-      await addLine.mutateAsync({
-        id: order.id,
-        body: {
-          version: order.version,
-          item_type: "CUSTOM",
-          name: values.name,
-          unit: values.unit as OrderLineCreateBody["unit"],
-          quantity: values.quantity,
-          unit_price: values.unit_price,
-          vat_rate: values.vat_rate,
-          is_gift: false,
-          line_discount: 0,
-        },
-      });
+      await runOrderWrite((order) =>
+        addLine.mutateAsync({
+          id: order.id,
+          body: {
+            version: order.version,
+            item_type: "CUSTOM",
+            name: values.name,
+            unit: values.unit as OrderLineCreateBody["unit"],
+            quantity: values.quantity,
+            unit_price: values.unit_price,
+            vat_rate: values.vat_rate,
+            is_gift: false,
+            line_discount: 0,
+          },
+        }),
+      );
       onClose();
     } catch (err) {
       if (err instanceof ApiError) setServerErrors(fieldErrors(err));

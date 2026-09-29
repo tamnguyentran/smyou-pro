@@ -15,6 +15,7 @@ import {
 } from "../api";
 import { computeLineTotal } from "../pricing";
 import { discountFieldSchema, quantityFieldSchema } from "../schemas";
+import type { RunOrderWrite } from "./writeQueue";
 import { VatChipField } from "./VatChipField";
 
 interface Draft {
@@ -36,13 +37,13 @@ function toDraft(line: OrderLine): Draft {
 }
 
 function OrderLineRow({
-  order,
   line,
   canEdit,
+  runWrite,
 }: {
-  order: Order;
   line: OrderLine;
   canEdit: boolean;
+  runWrite: RunOrderWrite;
 }) {
   // Re-derive the editable draft when the server's own fields change (a mutation settling, or a
   // background refetch) — done during render (React's documented pattern for "adjusting state when
@@ -75,11 +76,13 @@ function OrderLineRow({
   });
 
   function commit(patch: Omit<OrderLineUpdateBody, "version">) {
-    void updateLine.mutateAsync({
-      id: order.id,
-      lineId: line.id,
-      body: { version: order.version, ...patch },
-    });
+    void runWrite((order) =>
+      updateLine.mutateAsync({
+        id: order.id,
+        lineId: line.id,
+        body: { version: order.version, ...patch },
+      }),
+    );
   }
 
   const readOnlyPrice = line.price_fixed || draft.isGift;
@@ -220,12 +223,12 @@ function OrderLineRow({
           confirmLabel="Xoá"
           loading={removeLine.isPending}
           onConfirm={() => {
-            void removeLine
-              .mutateAsync({ id: order.id, lineId: line.id, version: order.version })
-              .then(() => {
-                setConfirmOpen(false);
-                toast("Đã xoá dòng hàng.");
-              });
+            void runWrite((order) =>
+              removeLine.mutateAsync({ id: order.id, lineId: line.id, version: order.version }),
+            ).then(() => {
+              setConfirmOpen(false);
+              toast("Đã xoá dòng hàng.");
+            });
           }}
         />
       ) : null}
@@ -238,10 +241,12 @@ export function OrderLinesSection({
   order,
   canEdit,
   onAddLine,
+  runWrite,
 }: {
   order: Order | undefined;
   canEdit: boolean;
   onAddLine: () => void;
+  runWrite: RunOrderWrite;
 }) {
   return (
     <section className="space-y-3">
@@ -260,7 +265,7 @@ export function OrderLinesSection({
       ) : (
         <ul className="space-y-3">
           {order.lines.map((line) => (
-            <OrderLineRow key={line.id} order={order} line={line} canEdit={canEdit} />
+            <OrderLineRow key={line.id} line={line} canEdit={canEdit} runWrite={runWrite} />
           ))}
         </ul>
       )}
