@@ -1,6 +1,6 @@
 # M3-02b — Đơn nháp + dòng hàng + tính tiền: giao diện
 
-- **Status:** Draft
+- **Status:** Approved
 - **Backlog:** M3-02b · **Milestone:** M3
 - **Liên quan:** `M3-02a-draft-orders-api.md` (API dùng ở item này); `docs/design/UI_GUIDELINES.md` §5 hàng "Tạo/sửa đơn" (mô tả thiết kế màn hình — nguồn chính cho item này); `spec/permissions.yaml` menu `order-new` (`order.create`, path `/orders/new`, đã khai ở M1-03a nhưng route hiện là trang giữ chỗ); M3-01 (trang Khách hàng — tái dùng cách tìm/tạo nhanh khách); M2-01b/M2-02 (mẫu Sheet chọn item từ danh mục)
 
