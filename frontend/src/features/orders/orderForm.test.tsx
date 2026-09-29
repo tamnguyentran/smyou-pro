@@ -226,6 +226,9 @@ describe("AC-ORD-034 lưu nháp", () => {
         posts += 1;
         return HttpResponse.json(order(), { status: 201 });
       }),
+      // react-query's background refetch for the id we just navigated to (same order route, no
+      // remount) must agree with the POST/PATCH responses below, not a stale/empty draft.
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order())),
       http.patch("/api/v1/orders/:id", async ({ request }) => {
         patches += 1;
         const body = (await request.json()) as { service_address?: string; version: number };

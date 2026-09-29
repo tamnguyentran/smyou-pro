@@ -172,6 +172,10 @@ describe("AC-ORD-026 thêm dòng sản phẩm từ tìm kiếm", () => {
         return HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 });
       }),
       http.post("/api/v1/orders/:id/lines", () => HttpResponse.json(order(), { status: 201 })),
+      // react-query's background refetch for the freshly-created id, once the URL swaps from
+      // "/orders/new" to "/orders/:id" — must agree with the POST responses above, not the empty
+      // draft, or a refetch that lands after addLine's response would wipe the line back out.
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order())),
     );
     renderApp("/orders/new");
     await screen.findByRole("heading", { level: 1, name: "Tạo đơn mới" });
@@ -255,8 +259,8 @@ describe("AC-ORD-028 giảm giá và VAT theo dòng", () => {
                   ...pcLine,
                   vat_rate: "8",
                   line_discount: 180_000,
-                  line_vat: 942_400,
-                  line_total: 12_742_400,
+                  line_vat: 944_000,
+                  line_total: 12_744_000,
                 },
               ],
             }),
@@ -280,7 +284,7 @@ describe("AC-ORD-028 giảm giá và VAT theo dòng", () => {
     expect(await within(row).findByText("11.800.000 ₫")).toBeInTheDocument();
 
     await user.click(within(row).getByRole("radio", { name: "8%" }));
-    expect(await within(row).findByText("12.742.400 ₫")).toBeInTheDocument();
+    expect(await within(row).findByText("12.744.000 ₫")).toBeInTheDocument();
 
     await user.click(within(row).getByRole("radio", { name: "Khác" }));
     const vatOther = within(row).getByLabelText("VAT khác (%)");
