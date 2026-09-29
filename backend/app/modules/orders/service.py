@@ -433,7 +433,6 @@ def add_line(
         note=body.note,
     )
     order.lines.append(line)
-    session.flush()
     _recompute_order_totals(order)
     _bump(order)
     session.flush()
