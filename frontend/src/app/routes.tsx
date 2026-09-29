@@ -7,6 +7,7 @@ import { CustomersPage } from "../features/customers/pages/CustomersPage";
 import { EmployeesPage } from "../features/employees/pages/EmployeesPage";
 import { HomeRoute } from "../features/home/pages/HomeRoute";
 import { NotificationsPage } from "../features/notifications/pages/NotificationsPage";
+import { DraftOrderPage } from "../features/orders/pages/DraftOrderPage";
 import { ProductsPage } from "../features/products/pages/ProductsPage";
 import { ProfilePage } from "../features/profile/pages/ProfilePage";
 import { ServicesPage } from "../features/services/pages/ServicesPage";
@@ -24,6 +25,8 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/catalog/services" is real (M2-02), same reasoning (AC-CAT-031).
 // "/customers" is real (M3-01) and checks customer.read itself — narrower than the menu entry's
 // customer.manage (AC-CUS-012: TECH_LEAD reads it without seeing the "Khách hàng" menu item).
+// "/orders/new" is real (M3-02b) and checks order.create itself, same shape as the menu entry.
+// "/orders" (list) stays a placeholder — no list endpoint until M3-03.
 const REAL_PAGES = new Set([
   "/",
   "/employees",
@@ -31,6 +34,7 @@ const REAL_PAGES = new Set([
   "/catalog/products",
   "/catalog/services",
   "/customers",
+  "/orders/new",
 ]);
 const menuRoutes: RouteObject[] = menuPages()
   .filter(({ item }) => !REAL_PAGES.has(item.path ?? ""))
@@ -70,6 +74,11 @@ export const routes: RouteObject[] = [
       { path: "/catalog/products", element: <ProductsPage /> },
       { path: "/catalog/services", element: <ServicesPage /> },
       { path: "/customers", element: <CustomersPage /> },
+      // One route object (not two) for "/orders/new" and "/orders/:id": creating the first line
+      // silently saves the draft and navigate()s from "new" to the real id — same route match, same
+      // DraftOrderPage instance, so that in-flight state (the open add-line Sheet) survives the URL
+      // change instead of losing it to an unmount/remount.
+      { path: "/orders/:id", element: <DraftOrderPage /> },
       { path: "/ca-nhan", element: <ProfilePage /> },
       { path: "/thong-bao", element: <NotificationsPage /> },
       { path: "*", element: <NotFoundPage /> },
