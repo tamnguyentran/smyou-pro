@@ -49,6 +49,10 @@ HEADER_FIELDS = (
     "payment_status",
     "payment_method",
 )
+# These two columns are NOT NULL (default "") — OrderCreate already coerces None to "" for them
+# (`body.service_address or ""` below); OrderUpdate's schema is nullable the same way (so a client
+# can clear the field), so PATCH needs the same coercion or `null` here trips the DB constraint.
+NON_NULL_TEXT_FIELDS = {"service_address", "work_description"}
 
 # order.edit_draft genuinely grants SALE only `own` (unlike customers/audit's empty `{}`, which is
 # safe only because every role holding those capabilities gets `all`). `assigned` (TECHNICIAN) has
@@ -368,9 +372,12 @@ def update_order(
 
     for field in HEADER_FIELDS:
         if field in changes:
-            if getattr(order, field) != changes[field]:
+            value = changes[field]
+            if field in NON_NULL_TEXT_FIELDS and value is None:
+                value = ""
+            if getattr(order, field) != value:
                 changed_fields.append(field)
-            setattr(order, field, changes[field])
+            setattr(order, field, value)
 
     _bump(order)
     session.flush()

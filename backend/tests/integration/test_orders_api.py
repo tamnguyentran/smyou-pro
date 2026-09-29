@@ -323,6 +323,31 @@ def test_update_walk_in_partial_patch_keeps_other_customer_fields(
     assert body["customer_tax_code"] == "0311111111"
 
 
+@pytest.mark.ac("AC-ORD-034")
+def test_update_clears_optional_text_fields_without_500(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    """The UI (M3-02b) sends `null` for a Section 1 field the user left blank — service_address and
+    work_description are NOT NULL columns (default ""), so PATCH must coerce null to "" instead of
+    letting it hit the DB as a literal NULL (regression: this 500'd before this fix)."""
+    hoa = client_as(app, HOA)
+    order = hoa.post(
+        "/api/v1/orders",
+        json={"service_address": "12 Lê Lợi, Q1", "work_description": "Lắp máy in"},
+    ).json()
+    assert order["service_address"] == "12 Lê Lợi, Q1"
+
+    res = hoa.patch(
+        f"/api/v1/orders/{order['id']}",
+        json={"version": order["version"], "service_address": None, "work_description": None},
+    )
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["service_address"] == ""
+    assert body["work_description"] == ""
+
+
 @pytest.mark.ac("AC-ORD-008")
 def test_add_line_product_fixed_price(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID], catalog: dict[str, uuid.UUID]
