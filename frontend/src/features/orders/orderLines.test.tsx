@@ -222,7 +222,9 @@ describe("AC-ORD-027 dòng giá cố định", () => {
 
     const priceInput = within(row).getByLabelText("Đơn giá");
     expect(priceInput).toHaveAttribute("readonly");
-    expect(within(row).getByTitle("Giá cố định")).toBeInTheDocument();
+    // "Giá cố định" appears twice on purpose: next to the item name, and on the price field itself
+    // (AC-ORD-027's "ô 'Đơn giá' ... icon Lock + tooltip 'Giá cố định'").
+    expect(within(row).getAllByTitle("Giá cố định")).toHaveLength(2);
 
     const user = userEvent.setup();
     const qty = within(row).getByLabelText("Số lượng");
@@ -335,7 +337,66 @@ describe("AC-ORD-029 Tặng kèm", () => {
     });
     expect(priceInput).toHaveAttribute("readonly");
     expect(within(row).queryByLabelText("Giảm giá")).not.toBeInTheDocument();
-    expect(within(row).getByText("Tặng kèm")).toBeInTheDocument();
+    // "Tặng kèm" appears twice on purpose: the checkbox's own visible text label, and a badge next
+    // to the item name (spec's "nhãn 'Tặng kèm' hiện cạnh tên dòng trong bảng").
+    expect(within(row).getAllByText("Tặng kèm")).toHaveLength(2);
+  });
+
+  test("tắt Tặng kèm trên dòng giá cố định khôi phục lại đúng giá catalog, không kẹt lỗi PRICE_FIXED", async () => {
+    signedInAsHoa();
+    let lastBody: { is_gift?: boolean; unit_price?: number } | undefined;
+    server.use(
+      http.patch("/api/v1/orders/:id/lines/:lineId", async ({ request }) => {
+        lastBody = (await request.json()) as typeof lastBody;
+        if (lastBody?.is_gift) {
+          return HttpResponse.json(
+            order({
+              lines: [
+                orderLine({
+                  is_gift: true,
+                  unit_price: 0,
+                  line_gross: 0,
+                  line_vat: 0,
+                  line_total: 0,
+                }),
+              ],
+            }),
+          );
+        }
+        // Server would reject unit_price=0 on a price-fixed line with 422 PRICE_FIXED — proves the
+        // fix actually resends the catalog price, not just that the mock happens to accept anything.
+        if (lastBody?.unit_price !== 2_500_000) {
+          return HttpResponse.json(
+            {
+              status: 422,
+              code: "PRICE_FIXED",
+              detail: "Đơn giá của dòng này cố định theo danh mục.",
+            },
+            { status: 422 },
+          );
+        }
+        return HttpResponse.json(order({ lines: [orderLine()] }));
+      }),
+    );
+    await openExisting(order());
+    const row = screen.getByTestId(`order-line-${dellLineId}`);
+    const user = userEvent.setup();
+
+    const giftToggle = within(row).getByLabelText("Tặng kèm");
+    await user.click(giftToggle);
+    await waitFor(() => {
+      expect(giftToggle).toBeChecked();
+    });
+
+    await user.click(giftToggle);
+
+    await waitFor(() => {
+      expect(giftToggle).not.toBeChecked();
+    });
+    expect(within(row).queryByText(/PRICE_FIXED|cố định theo danh mục/)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(within(row).getByLabelText("Đơn giá")).toHaveValue("2.500.000 ₫");
+    });
   });
 });
 
