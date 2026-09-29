@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
@@ -12,6 +13,7 @@ import { Textarea } from "../../../components/ui/Textarea";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
 import { formatCurrency } from "../../../lib/format";
+import { useMediaQuery } from "../../../lib/useMediaQuery";
 import { ApiError } from "../../auth/errors";
 import { useMe } from "../../me/api";
 import { useCreateOrder, useOrder, useUpdateOrder, type Order, type OrderCreateBody } from "../api";
@@ -30,6 +32,10 @@ import { CustomerPicker } from "./CustomerPicker";
 import { OrderLinesSection } from "./OrderLinesSection";
 import { OrderTotalsSection } from "./OrderTotalsSection";
 import { useOrderWriteQueue } from "./writeQueue";
+
+// Matches Tailwind's `lg:` breakpoint (and AppShell's own desktop/mobile split) — AC-ORD-038's
+// accordion is mobile-only, Section 1 is always expanded at this width and above.
+const DESKTOP = "(min-width: 1024px)";
 
 const BLANK_VALUES: OrderInfoFormValues = {
   customerMode: "search",
@@ -116,6 +122,13 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
   const [reloadConfirmOpen, setReloadConfirmOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [addLineOpen, setAddLineOpen] = useState(false);
+  // AC-ORD-038: on mobile, Section 1 collapses into an accordion (never "Dòng hàng"). Open by
+  // default when starting a brand-new order (there's nothing to collapse yet); collapsed by default
+  // when reopening an already-saved one, since the focus there is usually "Dòng hàng". Keyed off the
+  // route's own `orderId` prop, not the mutable `id` state, so the first autosave-on-add-line
+  // (new → real id, same session) doesn't yank this shut mid-edit.
+  const [section1Open, setSection1Open] = useState(() => !orderId);
+  const isDesktop = useMediaQuery(DESKTOP, true);
 
   const { register, handleSubmit, watch, setValue, getValues, reset, formState, control } =
     useForm<OrderInfoFormValues>({
@@ -211,6 +224,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
     !order ||
     scopes.includes("all") ||
     (scopes.includes("own") && order.created_by === me.data?.employee.id);
+  const showSection1 = isDesktop || section1Open;
   // Read during render, not only inside the "Tải lại" callback below — react-hook-form's formState
   // is a Proxy that only stays reactive for fields it saw accessed while rendering.
   const isDirty = formState.isDirty;
@@ -240,70 +254,92 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
           </div>
         ) : null}
 
-        {canEdit ? (
-          <>
-            <CustomerPicker
-              register={register}
-              watch={watch}
-              setValue={setValue}
-              errors={formState.errors}
-            />
-            <Select
-              label="Phòng phụ trách"
-              error={formState.errors.division?.message}
-              {...register("division")}
-            >
-              <option value="">—</option>
-              {DIVISION_ORDER.map((division) => (
-                <option key={division} value={division}>
-                  {DIVISION_LABELS[division]}
-                </option>
-              ))}
-            </Select>
-            <TextField
-              label="Địa chỉ thi công"
-              error={formState.errors.service_address?.message}
-              {...register("service_address")}
-            />
-            <Textarea
-              label="Mô tả công việc"
-              error={formState.errors.work_description?.message}
-              {...register("work_description")}
-            />
-            <ChipGroup
-              label="Độ ưu tiên"
-              value={priority}
-              options={PRIORITY_ORDER.map((priority) => ({
-                value: priority,
-                label: PRIORITY_LABELS[priority],
-              }))}
-              onChange={(value) => {
-                setValue("priority", value, { shouldDirty: true });
-              }}
-            />
-            <TextField
-              label="Ngày hẹn"
-              type="date"
-              error={formState.errors.requested_date?.message}
-              {...register("requested_date")}
-            />
-          </>
-        ) : (
-          // canEdit is false only when `order` exists (see its definition above) and the actor's
-          // scope doesn't cover it — never for a not-yet-created draft.
-          <div className="space-y-4">
-            <ReadOnlyField label="Khách hàng" value={order.customer_name ?? "Khách lẻ"} />
-            <ReadOnlyField
-              label="Phòng phụ trách"
-              value={order.division ? DIVISION_LABELS[order.division as Division] : ""}
-            />
-            <ReadOnlyField label="Địa chỉ thi công" value={order.service_address} />
-            <ReadOnlyField label="Mô tả công việc" value={order.work_description} />
-            <ReadOnlyField label="Độ ưu tiên" value={PRIORITY_LABELS[order.priority as Priority]} />
-            <ReadOnlyField label="Ngày hẹn" value={order.requested_date ?? ""} />
-            <ReadOnlyField label="Tổng cộng" value={formatCurrency(order.total)} />
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            setSection1Open((prev) => !prev);
+          }}
+          aria-expanded={section1Open}
+          aria-controls="draft-order-section1"
+          className="flex min-h-11 w-full items-center justify-between gap-2 rounded-xl border border-line bg-card px-3 text-left text-sm font-semibold text-heading lg:hidden"
+        >
+          <span>Thông tin đơn</span>
+          {section1Open ? (
+            <ChevronUp aria-hidden="true" className="size-4 shrink-0 text-muted" />
+          ) : (
+            <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted" />
+          )}
+        </button>
+
+        <div id="draft-order-section1" hidden={!showSection1} className="space-y-6">
+          {canEdit ? (
+            <>
+              <CustomerPicker
+                register={register}
+                watch={watch}
+                setValue={setValue}
+                errors={formState.errors}
+              />
+              <Select
+                label="Phòng phụ trách"
+                error={formState.errors.division?.message}
+                {...register("division")}
+              >
+                <option value="">—</option>
+                {DIVISION_ORDER.map((division) => (
+                  <option key={division} value={division}>
+                    {DIVISION_LABELS[division]}
+                  </option>
+                ))}
+              </Select>
+              <TextField
+                label="Địa chỉ thi công"
+                error={formState.errors.service_address?.message}
+                {...register("service_address")}
+              />
+              <Textarea
+                label="Mô tả công việc"
+                error={formState.errors.work_description?.message}
+                {...register("work_description")}
+              />
+              <ChipGroup
+                label="Độ ưu tiên"
+                value={priority}
+                options={PRIORITY_ORDER.map((priority) => ({
+                  value: priority,
+                  label: PRIORITY_LABELS[priority],
+                }))}
+                onChange={(value) => {
+                  setValue("priority", value, { shouldDirty: true });
+                }}
+              />
+              <TextField
+                label="Ngày hẹn"
+                type="date"
+                error={formState.errors.requested_date?.message}
+                {...register("requested_date")}
+              />
+            </>
+          ) : (
+            // canEdit is false only when `order` exists (see its definition above) and the actor's
+            // scope doesn't cover it — never for a not-yet-created draft.
+            <div className="space-y-4">
+              <ReadOnlyField label="Khách hàng" value={order.customer_name ?? "Khách lẻ"} />
+              <ReadOnlyField
+                label="Phòng phụ trách"
+                value={order.division ? DIVISION_LABELS[order.division as Division] : ""}
+              />
+              <ReadOnlyField label="Địa chỉ thi công" value={order.service_address} />
+              <ReadOnlyField label="Mô tả công việc" value={order.work_description} />
+              <ReadOnlyField
+                label="Độ ưu tiên"
+                value={PRIORITY_LABELS[order.priority as Priority]}
+              />
+              <ReadOnlyField label="Ngày hẹn" value={order.requested_date ?? ""} />
+              <ReadOnlyField label="Tổng cộng" value={formatCurrency(order.total)} />
+            </div>
+          )}
+        </div>
       </form>
 
       {/* AC-ORD-038: ở desktop, "dòng hàng" không đủ chỗ trong nửa cột phải cạnh Section 1 (6-7
