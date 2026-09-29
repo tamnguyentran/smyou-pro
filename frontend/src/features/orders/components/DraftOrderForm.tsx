@@ -217,7 +217,12 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
 
   return (
     <div data-testid="draft-order-layout" className="grid gap-6 lg:grid-cols-2">
-      <form noValidate onSubmit={(event) => void onSave(event)} className="space-y-6">
+      <form
+        id="draft-order-form"
+        noValidate
+        onSubmit={(event) => void onSave(event)}
+        className="space-y-6 lg:col-start-1 lg:row-start-1"
+      >
         {formError ? <Alert>{formError}</Alert> : null}
         {staleVersion ? (
           <div className="space-y-2">
@@ -282,14 +287,6 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
               error={formState.errors.requested_date?.message}
               {...register("requested_date")}
             />
-            <div
-              data-testid="draft-order-save-bar"
-              className="sticky bottom-0 z-10 bg-page py-3 lg:static lg:bg-transparent lg:py-0"
-            >
-              <Button type="submit" loading={createOrder.isPending || updateOrder.isPending}>
-                Lưu nháp
-              </Button>
-            </div>
           </>
         ) : (
           // canEdit is false only when `order` exists (see its definition above) and the actor's
@@ -309,7 +306,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
         )}
       </form>
 
-      <div className="space-y-6">
+      <div className="space-y-6 lg:col-start-2 lg:row-start-1">
         <OrderLinesSection
           order={order}
           canEdit={canEdit}
@@ -320,6 +317,21 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
         />
         {order ? <OrderTotalsSection order={order} /> : null}
       </div>
+
+      {canEdit ? (
+        <div
+          data-testid="draft-order-save-bar"
+          className="sticky bottom-0 z-30 bg-page py-3 lg:static lg:col-start-1 lg:row-start-2 lg:bg-transparent lg:py-0"
+        >
+          <Button
+            type="submit"
+            form="draft-order-form"
+            loading={createOrder.isPending || updateOrder.isPending}
+          >
+            Lưu nháp
+          </Button>
+        </div>
+      ) : null}
 
       {addLineOpen ? (
         <AddLineSheet

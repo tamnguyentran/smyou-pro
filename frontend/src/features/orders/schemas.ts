@@ -41,9 +41,17 @@ export const discountFieldSchema = z
   .preprocess(blankToNaN, z.coerce.number("Vui lòng nhập giảm giá."))
   .pipe(z.int("Giảm giá phải là số nguyên.").min(0, "Giảm giá phải lớn hơn hoặc bằng 0."));
 // Cùng thông điệp với catalog/domain.py's vat_rate_problem (products/services đã dùng).
+const hasAtMostTwoDecimals = (value: number) =>
+  Math.abs(Math.round(value * 100) - value * 100) < 1e-9;
 export const vatOtherFieldSchema = z
   .preprocess(blankToNaN, z.coerce.number("Vui lòng nhập VAT."))
-  .pipe(z.number().min(0, "VAT phải trong khoảng 0-100.").max(100, "VAT phải trong khoảng 0-100."));
+  .pipe(
+    z
+      .number()
+      .min(0, "VAT phải trong khoảng 0-100.")
+      .max(100, "VAT phải trong khoảng 0-100.")
+      .refine(hasAtMostTwoDecimals, "VAT tối đa 2 chữ số thập phân."),
+  );
 
 export const CUSTOMER_MODES = ["search", "walkin"] as const;
 export type CustomerMode = (typeof CUSTOMER_MODES)[number];

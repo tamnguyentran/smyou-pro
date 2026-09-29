@@ -22,8 +22,22 @@ export function CustomerPicker({
   errors: FieldErrors<OrderInfoFormValues>;
 }) {
   const mode = watch("customerMode");
+  const customerId = watch("customer_id");
+  const customerName = watch("customer_name");
+  const customerPhone = watch("customer_phone");
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<Customer | null>(null);
+  const [selected, setSelected] = useState<Pick<Customer, "name" | "phone" | "address"> | null>(
+    null,
+  );
+  // Reflect an already-linked customer (loaded order, or a background refetch) into the picker's own
+  // UI state — done during render, like OrderLinesSection's serverSnapshot, so a reopened draft never
+  // shows a blank search box for a customer it actually has.
+  const [syncedCustomerId, setSyncedCustomerId] = useState<string | undefined>(undefined);
+  if (mode === "search" && customerId && customerId !== syncedCustomerId && selected === null) {
+    setSyncedCustomerId(customerId);
+    setSelected({ name: customerName ?? "", phone: customerPhone ?? "", address: null });
+    setQuery(customerName ?? "");
+  }
   const debouncedQuery = useDebouncedValue(query, 300);
   const searching = mode === "search" && debouncedQuery.trim() !== "" && selected === null;
   const results = useCustomers({ q: debouncedQuery, type: "", limit: 8, offset: 0 }, searching);

@@ -1,11 +1,13 @@
 import { Lock, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { Alert } from "../../../components/ui/Alert";
 import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
 import { formatCurrency } from "../../../lib/format";
+import { ApiError } from "../../auth/errors";
 import {
   useRemoveLine,
   useUpdateLine,
@@ -24,6 +26,12 @@ interface Draft {
   lineDiscount: string;
   vatRate: number;
   isGift: boolean;
+}
+
+function describeError(err: unknown): string {
+  return err instanceof ApiError && err.problem.detail
+    ? err.problem.detail
+    : "Không thực hiện được. Vui lòng thử lại.";
 }
 
 function toDraft(line: OrderLine): Draft {
@@ -62,6 +70,7 @@ function OrderLineRow({
   }
   const [quantityError, setQuantityError] = useState<string>();
   const [discountError, setDiscountError] = useState<string>();
+  const [rowError, setRowError] = useState<string>();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const updateLine = useUpdateLine();
   const removeLine = useRemoveLine();
@@ -76,13 +85,17 @@ function OrderLineRow({
   });
 
   function commit(patch: Omit<OrderLineUpdateBody, "version">) {
-    void runWrite((order) =>
+    setRowError(undefined);
+    runWrite((order) =>
       updateLine.mutateAsync({
         id: order.id,
         lineId: line.id,
         body: { version: order.version, ...patch },
       }),
-    );
+    ).catch((err: unknown) => {
+      setDraft(toDraft(serverSnapshot));
+      setRowError(describeError(err));
+    });
   }
 
   const readOnlyPrice = line.price_fixed || draft.isGift;
@@ -90,8 +103,13 @@ function OrderLineRow({
   return (
     <li
       data-testid={`order-line-${line.id}`}
-      className="grid grid-cols-2 gap-3 rounded-2xl border border-line bg-card p-4 lg:grid-cols-6 lg:items-center"
+      className="grid grid-cols-2 gap-3 rounded-2xl border border-line bg-card p-4 lg:grid-cols-7 lg:items-center"
     >
+      {rowError ? (
+        <div className="col-span-2 lg:col-span-7">
+          <Alert>{rowError}</Alert>
+        </div>
+      ) : null}
       <div className="col-span-2 flex flex-wrap items-center gap-2 lg:col-span-1">
         <span className="font-semibold text-heading">{line.name_snapshot}</span>
         {line.price_fixed ? (
@@ -177,9 +195,9 @@ function OrderLineRow({
         <p className="text-sm text-body">{formatCurrency(line.line_discount)}</p>
       )}
 
-      <div className="flex items-center justify-between gap-3 lg:justify-end">
+      <div className="flex min-w-0 items-center justify-between gap-3 lg:col-span-2 lg:justify-end">
         {canEdit ? (
-          <span className="flex min-h-11 items-center">
+          <span className="flex min-h-11 min-w-11 shrink-0 items-center justify-center">
             <input
               type="checkbox"
               aria-label="Tặng kèm"
@@ -195,7 +213,7 @@ function OrderLineRow({
         ) : (
           <span />
         )}
-        <p className="tabular-nums font-semibold text-heading">
+        <p className="shrink-0 whitespace-nowrap tabular-nums font-semibold text-heading">
           {formatCurrency(preview.line_total)}
         </p>
         {canEdit ? (
@@ -223,12 +241,18 @@ function OrderLineRow({
           confirmLabel="Xoá"
           loading={removeLine.isPending}
           onConfirm={() => {
-            void runWrite((order) =>
+            setRowError(undefined);
+            runWrite((order) =>
               removeLine.mutateAsync({ id: order.id, lineId: line.id, version: order.version }),
-            ).then(() => {
-              setConfirmOpen(false);
-              toast("Đã xoá dòng hàng.");
-            });
+            )
+              .then(() => {
+                setConfirmOpen(false);
+                toast("Đã xoá dòng hàng.");
+              })
+              .catch((err: unknown) => {
+                setConfirmOpen(false);
+                setRowError(describeError(err));
+              });
           }}
         />
       ) : null}
