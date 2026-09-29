@@ -51,13 +51,17 @@ test("AC-ORD-024 AC-ORD-025 AC-ORD-026 AC-ORD-030 AC-ORD-032 AC-ORD-034 AC-ORD-0
 }, info) => {
   await signIn(page, SALE);
   await expect(page.getByRole("heading", { level: 1, name: "Tạo đơn mới" })).toBeVisible();
+  // Overflow check right away, before any typing: evidence()'s checkOverflow resizes across the
+  // 1024px breakpoint, which remounts AppShell's outlet (same caveat as customers.spec.ts /
+  // services.spec.ts) — safe only here, before there is any unsaved input for it to wipe.
+  await evidence(page, info, "order-new-empty.png", { checkOverflow: true });
 
   // AC-ORD-025: tìm khách có sẵn
   await page.getByLabel("Tìm khách hàng").fill("Sáng Tạo Mới");
   await page.getByRole("option", { name: /Cty Sáng Tạo Mới E2E/ }).click();
   await expect(page.getByText("0909123456")).toBeVisible();
   await page.getByLabel("Địa chỉ thi công").fill("12 Lê Lợi, Q1, TP.HCM");
-  await evidence(page, info, "order-new.png", { checkOverflow: true });
+  await evidence(page, info, "order-new.png");
 
   // AC-ORD-026: dòng sản phẩm giá cố định (tạo nháp ngầm ở lần thêm dòng đầu tiên)
   await page.getByRole("button", { name: "Thêm dòng hàng" }).click();
@@ -107,16 +111,23 @@ test("AC-ORD-037 Hà (SALE khác) chỉ xem đơn của Hoa; An (MANAGER) sửa 
   await page.getByRole("option", { name: /Cty Sáng Tạo Mới E2E/ }).click();
   await page.getByRole("button", { name: "Lưu nháp" }).click();
   await expect(page.getByText(/^Đã lưu nháp DH\d{4}-\d{4}\.$/)).toBeVisible();
-  const orderUrl = page.url();
+  // baseURL already carries the app's own base path (playwright.config.ts) — page.url()'s pathname
+  // would double it up if passed straight through as `next`, so re-derive just "/orders/{id}".
+  const segments = new URL(page.url()).pathname.split("/");
+  const orderId = segments[segments.length - 1];
+  const orderPath = `/orders/${orderId ?? ""}`;
 
-  await page.goto("./dang-nhap");
-  await signIn(page, OTHER_SALE, new URL(orderUrl).pathname);
+  // Switching identity mid-test: clear the httpOnly session cookie first, or /dang-nhap's
+  // SignedOutOnly guard finds Hoa's session still valid and redirects straight past the login form
+  // (flaky — "Email" never appears) instead of showing it for the next sign-in.
+  await page.context().clearCookies();
+  await signIn(page, OTHER_SALE, orderPath);
   await expect(page.getByText("Cty Sáng Tạo Mới E2E")).toBeVisible();
   await expect(page.getByRole("button", { name: "Thêm dòng hàng" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Lưu nháp" })).toHaveCount(0);
 
-  await page.goto("./dang-nhap");
-  await signIn(page, MANAGER, new URL(orderUrl).pathname);
+  await page.context().clearCookies();
+  await signIn(page, MANAGER, orderPath);
   await expect(page.getByRole("button", { name: "Thêm dòng hàng" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Lưu nháp" })).toBeVisible();
 });
