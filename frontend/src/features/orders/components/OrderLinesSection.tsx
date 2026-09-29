@@ -197,7 +197,9 @@ function OrderLineRow({
 
       <div className="flex min-w-0 items-center justify-between gap-3 lg:col-span-2 lg:justify-end">
         {canEdit ? (
-          <span className="flex min-h-11 min-w-11 shrink-0 items-center justify-center">
+          // A <label> (not a <span>) so the 44px padding is actually clickable/tappable, not just
+          // visual spacing around the browser's fixed-size checkbox.
+          <label className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center">
             <input
               type="checkbox"
               aria-label="Tặng kèm"
@@ -209,7 +211,7 @@ function OrderLineRow({
               }}
               className="size-5 rounded border-line text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
             />
-          </span>
+          </label>
         ) : (
           <span />
         )}

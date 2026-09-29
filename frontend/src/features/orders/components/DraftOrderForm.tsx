@@ -306,7 +306,11 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
         )}
       </form>
 
-      <div className="space-y-6 lg:col-start-2 lg:row-start-1">
+      {/* AC-ORD-038: ở desktop, "dòng hàng" không đủ chỗ trong nửa cột phải cạnh Section 1 (6-7
+          trường mỗi dòng) — dùng phương án thay thế của spec: bảng dòng hàng full-width bên dưới.
+          Đứng trước trong DOM để mobile vẫn đọc Dòng hàng → Tổng tiền theo đúng thứ tự; desktop tự
+          đặt lại vị trí bằng lg:col-start/row-start bên dưới, không phụ thuộc thứ tự DOM. */}
+      <div className="lg:col-span-2 lg:row-start-2">
         <OrderLinesSection
           order={order}
           canEdit={canEdit}
@@ -315,13 +319,18 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
             setAddLineOpen(true);
           }}
         />
-        {order ? <OrderTotalsSection order={order} /> : null}
       </div>
+
+      {order ? (
+        <div className="lg:col-start-2 lg:row-start-1">
+          <OrderTotalsSection order={order} />
+        </div>
+      ) : null}
 
       {canEdit ? (
         <div
           data-testid="draft-order-save-bar"
-          className="sticky bottom-0 z-30 bg-page py-3 lg:static lg:col-start-1 lg:row-start-2 lg:bg-transparent lg:py-0"
+          className="sticky bottom-0 z-30 bg-page py-3 lg:static lg:col-span-2 lg:row-start-3 lg:bg-transparent lg:py-0"
         >
           <Button
             type="submit"
