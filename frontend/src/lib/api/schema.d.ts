@@ -1148,7 +1148,8 @@ export interface components {
       /** Specs */
       specs?: string | null;
       /** Unit */
-      unit?: string | null;
+      unit?:
+        ("CAI" | "MAY" | "BO" | "MET" | "CUON" | "HOP" | "LICENSE" | "LAN" | "DIEM" | "GIO") | null;
       /** Unit Price */
       unit_price: number;
       /** Vat Rate */

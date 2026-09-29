@@ -1611,6 +1611,7 @@
           "unit": {
             "anyOf": [
               {
+                "enum": ["CAI", "MAY", "BO", "MET", "CUON", "HOP", "LICENSE", "LAN", "DIEM", "GIO"],
                 "type": "string"
               },
               {
