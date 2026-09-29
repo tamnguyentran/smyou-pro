@@ -37,8 +37,10 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 ## M3 — Khách hàng & Đơn hàng
 - [x] **M3-01 Khách hàng**: CRUD, tìm theo tên/SĐT/MST, chống trùng SĐT (cảnh báo). Spec `M3-01-customers.md`.
 - [R] **M3-02a Đơn nháp + dòng hàng + tính tiền — API**: tạo/sửa đơn nháp, thêm/sửa/xoá dòng hàng (snapshot, gift, giảm giá, VAT), pricing engine + property test. Spec `M3-02a-draft-orders-api.md`. Q52, Q53.
-- [~] **M3-02b Đơn nháp — giao diện**: trang Tạo/sửa đơn (`/orders/new`, `/orders/:id`), chọn khách/Khách lẻ, thêm dòng từ danh mục hoặc tự do, tổng tiền theo mức VAT. Spec `M3-02b-draft-orders-ui.md`.
+- [R] **M3-02b Đơn nháp — giao diện**: trang Tạo/sửa đơn (`/orders/new`, `/orders/:id`), chọn khách/Khách lẻ, thêm dòng từ danh mục hoặc tự do, tổng tiền theo mức VAT. Spec `M3-02b-draft-orders-ui.md`. `/review` xong 3 vòng (`reports/review-M3-02b.md`), `make verify`/`make e2e` xanh (`reports/verification.md`).
   - Follow-up (review M1-03b): nút + ở thanh dưới đáy thành `Link` thường (không `aria-current`) khi trang Tạo đơn thật thay trang giữ chỗ. → xử lý trong M3-02b.
+  - AC-ORD-038 (accordion Section 1 trên mobile): chủ sở hữu chọn "1 khối accordion đơn giản" — mở mặc định khi tạo đơn mới, thu gọn mặc định khi mở lại đơn đã lưu. Đã làm.
+  - Còn để sau (không chặn ship): `order.read_prices` chưa tách riêng khỏi `order.read` trong permissions.yaml (chưa khai thác được nhưng nên tách khi có thay đổi vai trò); ô đơn giá/giảm giá sửa tay chưa có dấu phân cách nghìn; màn lỗi tải đơn chưa có nút "Thử lại".
 - [ ] **M3-03 Gửi/thu hồi/huỷ đơn** + danh sách & chi tiết đơn (tab Thông tin/Dòng hàng/Lịch sử), `allowed_commands`.
 - [ ] **M3-04 Sửa liên hệ sau khi gửi; Manager sửa dòng sau khi gửi** (audit diff).
 
