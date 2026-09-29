@@ -21,6 +21,7 @@ from app.modules.files.router import router as files_router
 from app.modules.identity.router import me_router
 from app.modules.identity.router import router as auth_router
 from app.modules.identity.service import authenticate
+from app.modules.orders.router import router as orders_router
 from app.modules.system.router import router as system_router
 from app.modules.workflow.guards import GUARDS, PENDING_GUARDS
 
@@ -73,6 +74,7 @@ def create_app(
     app.include_router(services_router)
     app.include_router(files_router)
     app.include_router(customers_router)
+    app.include_router(orders_router)
     return app
 
 
