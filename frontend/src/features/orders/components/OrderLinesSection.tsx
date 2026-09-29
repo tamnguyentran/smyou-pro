@@ -1,9 +1,10 @@
-import { Lock, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Lock, Package, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
 import { Alert } from "../../../components/ui/Alert";
 import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
+import { EmptyState } from "../../../components/ui/EmptyState";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
 import { formatCurrency } from "../../../lib/format";
@@ -75,6 +76,14 @@ function OrderLineRow({
   const updateLine = useUpdateLine();
   const removeLine = useRemoveLine();
   const toast = useToast();
+
+  // The server zeroes unit_price while is_gift (service.py's `_resolve_pricing`) and has no other
+  // record of what it was — turning "Tặng kèm" back off must resend a real price alongside
+  // `is_gift: false`, or a price-fixed line gets stuck forever (0 != catalog_price_snapshot →
+  // PRICE_FIXED 422 on every retry) and a free-priced line silently keeps a 0 price.
+  const preGiftUnitPriceRef = useRef(
+    line.price_fixed ? (line.catalog_price_snapshot ?? 0) : line.unit_price,
+  );
 
   // Only an unsaved edit (draft not yet round-tripped) falls back to the client-side preview — once
   // it matches the last-known server line, show the server's own line_total, never a client
@@ -155,14 +164,32 @@ function OrderLineRow({
 
       {canEdit ? (
         readOnlyPrice ? (
-          <TextField label="Đơn giá" type="text" readOnly value={formatCurrency(draft.unitPrice)} />
+          <TextField
+            label="Đơn giá"
+            type="text"
+            readOnly
+            value={formatCurrency(draft.unitPrice)}
+            trailing={
+              line.price_fixed ? (
+                <span
+                  title="Giá cố định"
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted"
+                >
+                  <Lock className="size-4" />
+                </span>
+              ) : undefined
+            }
+          />
         ) : (
           <TextField
             label="Đơn giá"
             type="number"
             value={draft.unitPrice}
             onChange={(event) => {
-              setDraft((prev) => ({ ...prev, unitPrice: Number(event.target.value) }));
+              const unitPrice = Number(event.target.value);
+              setDraft((prev) => ({ ...prev, unitPrice }));
+              preGiftUnitPriceRef.current = unitPrice;
             }}
             onBlur={() => {
               commit({ unit_price: draft.unitPrice });
@@ -210,18 +237,22 @@ function OrderLineRow({
         {canEdit ? (
           // A <label> (not a <span>) so the 44px padding is actually clickable/tappable, not just
           // visual spacing around the browser's fixed-size checkbox.
-          <label className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center">
+          <label className="flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5">
             <input
               type="checkbox"
               aria-label="Tặng kèm"
               checked={draft.isGift}
               onChange={(event) => {
                 const isGift = event.target.checked;
-                setDraft((prev) => ({ ...prev, isGift }));
-                commit({ is_gift: isGift });
+                // Restore the last real price when un-gifting — see preGiftUnitPriceRef above; the
+                // server has no memory of it once it zeroed unit_price for is_gift.
+                const unitPrice = isGift ? 0 : preGiftUnitPriceRef.current;
+                setDraft((prev) => ({ ...prev, isGift, unitPrice }));
+                commit(isGift ? { is_gift: true } : { is_gift: false, unit_price: unitPrice });
               }}
-              className="size-5 rounded border-line text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+              className="size-5 shrink-0 rounded border-line text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
             />
+            <span className="text-xs text-muted">Tặng kèm</span>
           </label>
         ) : (
           <span />
@@ -296,9 +327,7 @@ export function OrderLinesSection({
         ) : null}
       </div>
       {!order || order.lines.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">
-          Chưa có dòng hàng nào.
-        </p>
+        <EmptyState icon={Package} message="Chưa có dòng hàng nào." />
       ) : (
         <ul className="space-y-3">
           {order.lines.map((line) => (
