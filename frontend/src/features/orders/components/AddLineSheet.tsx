@@ -10,7 +10,7 @@ import { TextField } from "../../../components/ui/TextField";
 import { cn } from "../../../lib/cn";
 import { formatCurrency } from "../../../lib/format";
 import { useDebouncedValue } from "../../../lib/useDebouncedValue";
-import { ApiError } from "../../auth/errors";
+import { ApiError, formError } from "../../auth/errors";
 import { productImageUrl, useProducts, type Product } from "../../products/api";
 import { ProductImage } from "../../products/components/ProductList";
 import { useServices, type Service } from "../../services/api";
@@ -20,6 +20,10 @@ import { fieldErrors } from "../errors";
 import { customLineSchema, type CustomLineFormValues } from "../schemas";
 import type { RunOrderWrite } from "./writeQueue";
 import { VatChipField } from "./VatChipField";
+
+// Fields CustomLineForm actually renders a server error under — anything else (or a fieldless error
+// like 409 STALE_VERSION) must fall back to the Sheet's top-level Alert, not be dropped silently.
+const CUSTOM_SHOWN_FIELDS = ["name", "unit_price"] as const;
 
 type Tab = "PRODUCT" | "SERVICE" | "CUSTOM";
 const TABS: { id: Tab; label: string; icon: typeof Package }[] = [
@@ -225,6 +229,7 @@ export function AddLineSheet({
   }
 
   async function addCustomLine(values: CustomLineFormValues) {
+    setError(null);
     setServerErrors({});
     try {
       await runOrderWrite((order) =>
@@ -246,6 +251,7 @@ export function AddLineSheet({
       onClose();
     } catch (err) {
       if (err instanceof ApiError) setServerErrors(fieldErrors(err));
+      setError(formError(err, CUSTOM_SHOWN_FIELDS));
     }
   }
 

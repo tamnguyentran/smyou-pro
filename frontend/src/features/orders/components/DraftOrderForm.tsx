@@ -330,7 +330,10 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
       {canEdit ? (
         <div
           data-testid="draft-order-save-bar"
-          className="sticky bottom-0 z-30 bg-page py-3 lg:static lg:col-span-2 lg:row-start-3 lg:bg-transparent lg:py-0"
+          // bottom-16, not bottom-0: BottomNav is `fixed bottom-0` too, so bottom-0 here would stack
+          // this bar directly on top of it, hiding the nav for the entire scroll range. `pb-24` on
+          // the page's Content already reserves this space (UI_GUIDELINES §4) for exactly this.
+          className="sticky bottom-16 z-10 bg-page py-3 lg:static lg:col-span-2 lg:row-start-3 lg:bottom-auto lg:bg-transparent lg:py-0"
         >
           <Button
             type="submit"

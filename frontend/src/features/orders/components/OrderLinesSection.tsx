@@ -76,6 +76,16 @@ function OrderLineRow({
   const removeLine = useRemoveLine();
   const toast = useToast();
 
+  // Only an unsaved edit (draft not yet round-tripped) falls back to the client-side preview — once
+  // it matches the last-known server line, show the server's own line_total, never a client
+  // recomputation of it, so a real divergence (rounding, a rule the client doesn't replicate) is
+  // never silently masked by the client's own "corrected" number.
+  const isDirty =
+    draft.quantity !== serverSnapshot.quantity ||
+    draft.unitPrice !== serverSnapshot.unit_price ||
+    draft.lineDiscount !== String(serverSnapshot.line_discount) ||
+    draft.vatRate !== Number(serverSnapshot.vat_rate) ||
+    draft.isGift !== serverSnapshot.is_gift;
   const preview = computeLineTotal({
     quantity: Number(draft.quantity) || 0,
     unitPrice: draft.unitPrice,
@@ -83,6 +93,7 @@ function OrderLineRow({
     vatRate: draft.vatRate,
     isGift: draft.isGift,
   });
+  const displayTotal = isDirty ? preview.line_total : serverSnapshot.line_total;
 
   function commit(patch: Omit<OrderLineUpdateBody, "version">) {
     setRowError(undefined);
@@ -216,7 +227,7 @@ function OrderLineRow({
           <span />
         )}
         <p className="shrink-0 whitespace-nowrap tabular-nums font-semibold text-heading">
-          {formatCurrency(preview.line_total)}
+          {formatCurrency(displayTotal)}
         </p>
         {canEdit ? (
           <Button
