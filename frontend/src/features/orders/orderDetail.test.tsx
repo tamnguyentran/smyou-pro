@@ -188,7 +188,8 @@ describe("AC-ORD-064 trang chi tiết", () => {
 
     expect(await screen.findByText("DH2609-0001")).toBeInTheDocument();
     expect(screen.getByText("Chờ điều phối")).toBeInTheDocument();
-    expect(screen.getAllByText("Cty Sáng Tạo Mới").length).toBeGreaterThan(0);
+    const infoTab = screen.getByRole("tabpanel");
+    expect(within(infoTab).getByText("Cty Sáng Tạo Mới")).toBeInTheDocument();
     expect(screen.getByText("12 Lê Lợi, Q1, TP.HCM")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Thu hồi" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Huỷ đơn" })).toBeInTheDocument();
