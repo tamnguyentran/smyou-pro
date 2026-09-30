@@ -46,7 +46,14 @@ export function CancelOrderSheet({
       {staleVersion ? (
         <div className="mt-3 space-y-2">
           <Alert>Thông tin đã bị người khác thay đổi. Vui lòng tải lại.</Alert>
-          <Button type="button" variant="secondary" onClick={onReload}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setReason("");
+              onReload();
+            }}
+          >
             Tải lại
           </Button>
         </div>
