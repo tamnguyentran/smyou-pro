@@ -105,6 +105,10 @@ test("AC-CAT-048 @a11y @screenshot xem trước có dòng lỗi: nút Xác nhậ
     .setInputFiles({ name: "products-bad.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
   await expect(dialog.getByText("0/1 dòng hợp lệ · 1 dòng lỗi")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Xác nhận nhập" })).toBeDisabled();
+  if (info.project.name === "mobile") {
+    // AC-CAT-057: điện thoại hiện thẻ, không phải bảng.
+    await expect(dialog.getByRole("table")).toHaveCount(0);
+  }
   await evidence(page, info, "catalog-import-errors.png", { checkOverflow: true });
 });
 

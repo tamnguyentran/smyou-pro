@@ -176,63 +176,71 @@ export function CatalogImportSheet({
             </p>
 
             {desktop ? (
-              <table className="w-full overflow-hidden rounded-2xl border border-line bg-card text-left text-sm">
-                <thead className="bg-sidebar-sub text-xs font-semibold text-body uppercase">
-                  <tr>
-                    <th scope="col" className="px-3 py-2">
-                      Dòng
-                    </th>
-                    {config.columns.map((column) => (
-                      <th key={column.key} scope="col" className="px-3 py-2">
-                        {column.label}
+              <div
+                role="region"
+                aria-label="Bảng xem trước dữ liệu nhập"
+                // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- ARIA APG scrollable-region pattern: axe's scrollable-region-focusable rule requires this container be keyboard-reachable since it overflows horizontally.
+                tabIndex={0}
+                className="overflow-x-auto rounded-2xl border border-line"
+              >
+                <table className="w-full min-w-[640px] bg-card text-left text-sm">
+                  <thead className="bg-sidebar-sub text-xs font-semibold text-body uppercase">
+                    <tr>
+                      <th scope="col" className="px-3 py-2">
+                        Dòng
                       </th>
-                    ))}
-                    <th scope="col" className="px-3 py-2">
-                      Trạng thái
-                    </th>
-                    <th scope="col" className="px-3 py-2">
-                      Chi tiết lỗi
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {result.rows.map((row) => (
-                    <tr key={row.line}>
-                      <td className="px-3 py-2 text-body">{row.line}</td>
-                      {config.columns.map((column) => {
-                        const error = fieldError(row, column.key);
-                        return (
-                          <td
-                            key={column.key}
-                            className={
-                              error
-                                ? "border border-urgent-border px-3 py-2 text-body"
-                                : "px-3 py-2 text-body"
-                            }
-                          >
-                            {cellValue(row, column.key)}
-                            {error ? (
-                              <p className="mt-1 text-xs text-urgent-fg">{error.message}</p>
-                            ) : null}
-                          </td>
-                        );
-                      })}
-                      <td className="px-3 py-2">
-                        {row.errors && row.errors.length > 0 ? (
-                          <Badge tone="urgent">Lỗi</Badge>
-                        ) : (
-                          <Badge tone="completed">Hợp lệ</Badge>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-xs text-urgent-fg">
-                        {row.errors
-                          ?.map((error) => `${error.field}: ${error.message}`)
-                          .join(" · ") ?? "—"}
-                      </td>
+                      {config.columns.map((column) => (
+                        <th key={column.key} scope="col" className="px-3 py-2">
+                          {column.label}
+                        </th>
+                      ))}
+                      <th scope="col" className="px-3 py-2">
+                        Trạng thái
+                      </th>
+                      <th scope="col" className="px-3 py-2">
+                        Chi tiết lỗi
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {result.rows.map((row) => (
+                      <tr key={row.line}>
+                        <td className="px-3 py-2 text-body">{row.line}</td>
+                        {config.columns.map((column) => {
+                          const error = fieldError(row, column.key);
+                          return (
+                            <td
+                              key={column.key}
+                              className={
+                                error
+                                  ? "border border-urgent-border px-3 py-2 text-body"
+                                  : "px-3 py-2 text-body"
+                              }
+                            >
+                              {cellValue(row, column.key)}
+                              {error ? (
+                                <p className="mt-1 text-xs text-urgent-fg">{error.message}</p>
+                              ) : null}
+                            </td>
+                          );
+                        })}
+                        <td className="px-3 py-2">
+                          {row.errors && row.errors.length > 0 ? (
+                            <Badge tone="urgent">Lỗi</Badge>
+                          ) : (
+                            <Badge tone="completed">Hợp lệ</Badge>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-urgent-fg">
+                          {row.errors
+                            ?.map((error) => `${error.field}: ${error.message}`)
+                            .join(" · ") ?? "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <ul className="space-y-3">
                 {result.rows.map((row) => (

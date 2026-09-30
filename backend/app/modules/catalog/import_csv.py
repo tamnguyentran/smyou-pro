@@ -90,7 +90,7 @@ class RowResult:
 
 
 def _detail_for(missing: list[str]) -> str:
-    return f"Thiếu cột bắt buộc: {', '.join(missing)}."
+    return ", ".join(missing)
 
 
 def read_rows(file_bytes: bytes, kind: Kind) -> list[tuple[int, dict[str, str]]]:

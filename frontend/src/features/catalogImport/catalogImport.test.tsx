@@ -294,11 +294,7 @@ describe("AC-CAT-051 mã hàng đã tồn tại", () => {
 describe("AC-CAT-052 lỗi cấp file", () => {
   const cases: [string, { code: string; detail: string }, string][] = [
     ["EMPTY_FILE", { code: "EMPTY_FILE", detail: "empty" }, "File không có dữ liệu."],
-    [
-      "MISSING_COLUMNS",
-      { code: "MISSING_COLUMNS", detail: "Thiếu cột bắt buộc: price." },
-      "File thiếu cột: price.",
-    ],
+    ["MISSING_COLUMNS", { code: "MISSING_COLUMNS", detail: "price" }, "File thiếu cột: price."],
     [
       "TOO_MANY_ROWS",
       { code: "TOO_MANY_ROWS", detail: "too many" },
