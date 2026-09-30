@@ -414,6 +414,30 @@ describe("AC-ORD-067 tab lịch sử", () => {
     expect(within(history).getByText("Tạo đơn")).toBeInTheDocument();
     expect(within(history).getByText("Thêm dòng hàng")).toBeInTheDocument();
   });
+
+  test("lỗi tải lịch sử → thông báo lỗi + nút Thử lại (khác với chưa có lịch sử)", async () => {
+    signedInAs(hoaId, HOA);
+    let calls = 0;
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ allowed_commands: ["recall", "cancel"] })),
+      ),
+      http.get("/api/v1/orders/:id/history", () => {
+        calls += 1;
+        if (calls === 1) return HttpResponse.json({ status: 503 }, { status: 503 });
+        return HttpResponse.json({ items: [], total: 0, limit: 50, offset: 0 });
+      }),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Lịch sử" }));
+
+    expect(await screen.findByText("Không tải được lịch sử.")).toBeInTheDocument();
+    expect(screen.queryByText("Chưa có lịch sử thay đổi.")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Thử lại" }));
+    expect(await screen.findByText("Chưa có lịch sử thay đổi.")).toBeInTheDocument();
+  });
 });
 
 describe("AC-ORD-068 phân quyền xem", () => {
