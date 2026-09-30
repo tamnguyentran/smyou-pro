@@ -35,9 +35,15 @@ export const ORDER_STATUS_ORDER: OrderStatus[] = [
   "CANCELLED",
 ];
 
-/** spec/state_machines.yaml#order.transitions — command name → Vietnamese label. */
+/** spec/state_machines.yaml#order.transitions (submit/recall/cancel) + backend's other
+ * `audit.record` actions on ORDER (orders/service.py) — nhãn tiếng Việt cho tab "Lịch sử". */
 export const COMMAND_LABELS: Record<string, string> = {
   submit: "Gửi đơn",
   recall: "Thu hồi",
   cancel: "Huỷ đơn",
+  create: "Tạo đơn",
+  update: "Cập nhật thông tin",
+  add_line: "Thêm dòng hàng",
+  update_line: "Sửa dòng hàng",
+  remove_line: "Xoá dòng hàng",
 };
