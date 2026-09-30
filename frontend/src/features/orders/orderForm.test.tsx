@@ -516,7 +516,13 @@ describe("AC-ORD-063 huỷ đơn nháp", () => {
     const textarea = within(dialog).getByRole("textbox");
     await user.type(textarea, "Huỷ");
     expect(confirmBtn).toBeDisabled();
-    await user.type(textarea, " vì khách đổi ý không mua nữa");
+    // AC-ORD-063 boundary: đúng 4 ký tự vẫn khoá, đúng 5 ký tự thì mở (không phải 6).
+    await user.type(textarea, "1");
+    expect(confirmBtn).toBeDisabled();
+    await user.type(textarea, "2");
+    expect(confirmBtn).not.toBeDisabled();
+    await user.clear(textarea);
+    await user.type(textarea, "Huỷ vì khách đổi ý không mua nữa");
     expect(confirmBtn).not.toBeDisabled();
     await user.click(confirmBtn);
 
