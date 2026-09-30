@@ -52,7 +52,6 @@ export function OrdersListPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold text-heading">Danh sách đơn</h1>
       <div className="grid gap-3 sm:grid-cols-2">
         <TextField
           label="Tìm kiếm"

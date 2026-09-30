@@ -86,7 +86,7 @@ export function OrderDetailTabs({ order, onReload }: { order: Order; onReload: (
       <header className="sticky top-0 z-10 space-y-3 rounded-2xl border border-line bg-card p-4 shadow-card lg:flex lg:items-center lg:justify-between lg:gap-4 lg:space-y-0">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-lg font-semibold text-heading">{order.code}</h1>
+            <p className="text-lg font-semibold text-heading">{order.code}</p>
             <Badge tone={ORDER_STATUS_TONE[status]}>{ORDER_STATUS_LABEL[status]}</Badge>
           </div>
           <p className="text-sm text-body">{order.customer_name ?? "Khách lẻ"}</p>
