@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Alert } from "../../../components/ui/Alert";
 import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
@@ -34,6 +35,7 @@ export function OrderDetailTabs({ order, onReload }: { order: Order; onReload: (
   const [tab, setTab] = useState<TabId>("info");
   const [recallOpen, setRecallOpen] = useState(false);
   const [recallError, setRecallError] = useState<string | null>(null);
+  const [recallStale, setRecallStale] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [cancelStale, setCancelStale] = useState(false);
@@ -54,7 +56,12 @@ export function OrderDetailTabs({ order, onReload }: { order: Order; onReload: (
           toast(`Đã thu hồi đơn ${updated.code}.`);
         },
         onError: (err: unknown) => {
-          setRecallError(describeError(err));
+          if (err instanceof ApiError && err.problem.code === "STALE_VERSION") {
+            setRecallOpen(false);
+            setRecallStale(true);
+          } else {
+            setRecallError(describeError(err));
+          }
         },
       },
     );
@@ -83,6 +90,21 @@ export function OrderDetailTabs({ order, onReload }: { order: Order; onReload: (
 
   return (
     <div className="space-y-4">
+      {recallStale ? (
+        <div className="space-y-2">
+          <Alert>Thông tin đã bị người khác thay đổi. Vui lòng tải lại.</Alert>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setRecallStale(false);
+              onReload();
+            }}
+          >
+            Tải lại
+          </Button>
+        </div>
+      ) : null}
       <header className="sticky top-0 z-10 space-y-3 rounded-2xl border border-line bg-card p-4 shadow-card lg:flex lg:items-center lg:justify-between lg:gap-4 lg:space-y-0">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
