@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -45,6 +45,7 @@ function summary(overrides: Partial<OrderSummary> = {}): OrderSummary {
     requested_date: null,
     total: 3300000,
     created_by: hoaId,
+    created_by_name: "Nguyễn Thị Hoa",
     created_at: "2026-09-30T03:00:00Z",
     ...overrides,
   };
@@ -118,8 +119,9 @@ describe("AC-ORD-069 danh sách đơn", () => {
     expect(screen.getByRole("columnheader", { name: "Tổng tiền" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Ngày hẹn" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Người tạo" })).toBeInTheDocument();
-    expect(screen.getByText("Chờ điều phối")).toBeInTheDocument();
-    expect(screen.getByText("Đã huỷ")).toBeInTheDocument();
+    const table = screen.getByRole("table");
+    expect(within(table).getByText("Chờ điều phối")).toBeInTheDocument();
+    expect(within(table).getByText("Đã huỷ")).toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("Tìm kiếm"), "0909");

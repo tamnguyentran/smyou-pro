@@ -188,7 +188,7 @@ describe("AC-ORD-064 trang chi tiết", () => {
 
     expect(await screen.findByText("DH2609-0001")).toBeInTheDocument();
     expect(screen.getByText("Chờ điều phối")).toBeInTheDocument();
-    expect(screen.getByText("Cty Sáng Tạo Mới")).toBeInTheDocument();
+    expect(screen.getAllByText("Cty Sáng Tạo Mới").length).toBeGreaterThan(0);
     expect(screen.getByText("12 Lê Lợi, Q1, TP.HCM")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Thu hồi" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Huỷ đơn" })).toBeInTheDocument();
@@ -321,7 +321,8 @@ describe("AC-ORD-067 tab lịch sử", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("tab", { name: "Lịch sử" }));
 
-    const items = await screen.findAllByText(/^(Thu hồi|Gửi đơn)$/);
+    const history = await screen.findByLabelText("Lịch sử đơn");
+    const items = within(history).getAllByText(/^(Thu hồi|Gửi đơn)$/);
     expect(items).toHaveLength(3);
     expect(items[0]).toHaveTextContent("Gửi đơn");
     expect(items[1]).toHaveTextContent("Thu hồi");

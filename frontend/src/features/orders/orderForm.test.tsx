@@ -514,9 +514,9 @@ describe("AC-ORD-063 huỷ đơn nháp", () => {
     expect(confirmBtn).toBeDisabled();
 
     const textarea = within(dialog).getByRole("textbox");
-    await user.type(textarea, "Khách");
+    await user.type(textarea, "Huỷ");
     expect(confirmBtn).toBeDisabled();
-    await user.type(textarea, " đổi ý không mua nữa");
+    await user.type(textarea, " vì khách đổi ý không mua nữa");
     expect(confirmBtn).not.toBeDisabled();
     await user.click(confirmBtn);
 
