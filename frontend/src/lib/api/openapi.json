@@ -3995,6 +3995,15 @@
             "schema": {
               "anyOf": [
                 {
+                  "enum": [
+                    "DRAFT",
+                    "PENDING_DISPATCH",
+                    "IN_PROGRESS",
+                    "AWAITING_CONFIRMATION",
+                    "COMPLETED",
+                    "REVISION",
+                    "CANCELLED"
+                  ],
                   "type": "string"
                 },
                 {

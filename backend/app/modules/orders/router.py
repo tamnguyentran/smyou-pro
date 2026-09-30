@@ -19,6 +19,7 @@ from app.modules.orders.schemas import (
     OrderLineRemove,
     OrderLineUpdate,
     OrderPage,
+    OrderStatus,
     OrderUpdate,
 )
 
@@ -59,7 +60,7 @@ def list_orders(
     session: DbSession,
     actor: Reader,
     q: Annotated[str | None, Query(max_length=100)] = None,
-    status: str | None = None,
+    status: OrderStatus | None = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> OrderPage:

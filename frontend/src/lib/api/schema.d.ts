@@ -2427,7 +2427,17 @@ export interface operations {
     parameters: {
       query?: {
         q?: string | null;
-        status?: string | null;
+        status?:
+          | (
+              | "DRAFT"
+              | "PENDING_DISPATCH"
+              | "IN_PROGRESS"
+              | "AWAITING_CONFIRMATION"
+              | "COMPLETED"
+              | "REVISION"
+              | "CANCELLED"
+            )
+          | null;
         limit?: number;
         offset?: number;
       };

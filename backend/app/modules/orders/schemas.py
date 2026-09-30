@@ -14,6 +14,15 @@ from app.modules.identity.schemas import Email
 
 Division = Literal["OFFICE_EQUIPMENT", "SECURITY", "GENERAL"]
 Priority = Literal["LOW", "NORMAL", "HIGH", "URGENT"]
+OrderStatus = Literal[
+    "DRAFT",
+    "PENDING_DISPATCH",
+    "IN_PROGRESS",
+    "AWAITING_CONFIRMATION",
+    "COMPLETED",
+    "REVISION",
+    "CANCELLED",
+]
 PaymentStatus = Literal["UNPAID", "PAID", "PAY_LATER"]
 PaymentMethod = Literal["CASH", "BANK_TRANSFER"]
 ItemType = Literal["PRODUCT", "SERVICE", "CUSTOM"]
