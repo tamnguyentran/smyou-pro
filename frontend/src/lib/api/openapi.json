@@ -2015,6 +2015,17 @@
             "title": "Created By",
             "type": "string"
           },
+          "created_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Name"
+          },
           "customer_name": {
             "anyOf": [
               {
@@ -2089,6 +2100,7 @@
           "total",
           "requested_date",
           "created_by",
+          "created_by_name",
           "created_at"
         ],
         "title": "OrderSummary",

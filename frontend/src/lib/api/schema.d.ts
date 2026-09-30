@@ -1340,6 +1340,8 @@ export interface components {
        * Format: uuid
        */
       created_by: string;
+      /** Created By Name */
+      created_by_name: string | null;
       /** Customer Name */
       customer_name: string | null;
       /** Customer Phone */

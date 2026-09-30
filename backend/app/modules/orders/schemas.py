@@ -219,6 +219,7 @@ class OrderSummary(BaseModel):
     total: int
     requested_date: date | None
     created_by: uuid.UUID
+    created_by_name: str | None
     created_at: datetime
 
 

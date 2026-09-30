@@ -17,6 +17,7 @@ from app.modules.audit import service as audit
 from app.modules.audit.schemas import AuditEventPage
 from app.modules.catalog.models import Product, Service
 from app.modules.customers.models import Customer
+from app.modules.identity.models import Employee
 from app.modules.orders import domain
 from app.modules.orders.models import Order, OrderLine
 from app.modules.orders.schemas import (
@@ -240,7 +241,7 @@ def _out(order: Order, actor: Actor, specs: Specs) -> OrderDetail:
     )
 
 
-def _summary(order: Order) -> OrderSummary:
+def _summary(order: Order, created_by_name: str | None) -> OrderSummary:
     return OrderSummary(
         id=order.id,
         code=order.code,
@@ -252,6 +253,7 @@ def _summary(order: Order) -> OrderSummary:
         total=order.total,
         requested_date=order.requested_date,
         created_by=order.created_by,
+        created_by_name=created_by_name,
         created_at=order.created_at,
     )
 
@@ -420,7 +422,9 @@ def list_orders(
     limit: int,
     offset: int,
 ) -> OrderPage:
-    query = apply_scope(select(Order), actor, RULES)
+    query = apply_scope(
+        select(Order, Employee).outerjoin(Employee, Employee.id == Order.created_by), actor, RULES
+    )
     if q and q.strip():
         pattern = _like(q.strip())
         query = query.where(
@@ -434,8 +438,13 @@ def list_orders(
         query = query.where(Order.status == status)
     total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
     ordered = query.order_by(Order.created_at.desc())
-    rows = session.scalars(ordered.limit(limit).offset(offset)).all()
-    return OrderPage(items=[_summary(o) for o in rows], total=total, limit=limit, offset=offset)
+    rows = session.execute(ordered.limit(limit).offset(offset)).all()
+    return OrderPage(
+        items=[_summary(o, employee.full_name if employee else None) for o, employee in rows],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 def get_order_history(
