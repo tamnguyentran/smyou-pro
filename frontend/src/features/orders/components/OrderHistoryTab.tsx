@@ -1,4 +1,5 @@
 import { Badge } from "../../../components/ui/Badge";
+import { Button } from "../../../components/ui/Button";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { formatDateTime } from "../../../lib/format";
 import { History } from "lucide-react";
@@ -48,7 +49,25 @@ export function OrderHistoryTab({ orderId }: { orderId: string }) {
       />
     );
   }
-  if (history.isError || history.data.items.length === 0) {
+  if (history.isError) {
+    return (
+      <EmptyState
+        icon={History}
+        message="Không tải được lịch sử."
+        action={
+          <Button
+            variant="secondary"
+            onClick={() => {
+              void history.refetch();
+            }}
+          >
+            Thử lại
+          </Button>
+        }
+      />
+    );
+  }
+  if (history.data.items.length === 0) {
     return <EmptyState icon={History} message="Chưa có lịch sử thay đổi." />;
   }
 
