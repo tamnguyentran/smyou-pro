@@ -287,7 +287,8 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    /** Danh sách đơn (tìm theo mã/tên khách/SĐT, lọc theo trạng thái) */
+    get: operations["orders_list"];
     put?: never;
     /** Tạo đơn nháp */
     post: operations["orders_create"];
@@ -313,6 +314,40 @@ export interface paths {
     head?: never;
     /** Sửa thông tin đơn nháp */
     patch: operations["orders_update"];
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Huỷ đơn */
+    post: operations["orders_cancel"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/history": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Lịch sử thay đổi trạng thái của đơn */
+    get: operations["orders_history"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   "/api/v1/orders/{order_id}/lines": {
@@ -360,6 +395,40 @@ export interface paths {
     put?: never;
     /** Xoá dòng hàng khỏi đơn nháp */
     post: operations["orders_remove_line"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/recall": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Thu hồi đơn về Nháp */
+    post: operations["orders_recall"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/submit": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Gửi đơn cho Quản lý kỹ thuật */
+    post: operations["orders_submit"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1028,6 +1097,21 @@ export interface components {
       /** Roles */
       roles: string[];
     };
+    /** OrderCancel */
+    OrderCancel: {
+      /** Reason */
+      reason?: string | null;
+      /** Version */
+      version: number;
+    };
+    /**
+     * OrderCommand
+     * @description Body for `submit`/`recall` — no extra fields beyond the concurrency token.
+     */
+    OrderCommand: {
+      /** Version */
+      version: number;
+    };
     /** OrderCreate */
     OrderCreate: {
       /** Customer Email */
@@ -1065,6 +1149,8 @@ export interface components {
     };
     /** OrderDetail */
     OrderDetail: {
+      /** Allowed Commands */
+      allowed_commands: string[];
       /** Code */
       code: string;
       /**
@@ -1228,6 +1314,51 @@ export interface components {
       vat_rate?: number | string | null;
       /** Version */
       version: number;
+    };
+    /** OrderPage */
+    OrderPage: {
+      /** Items */
+      items: components["schemas"]["OrderSummary"][];
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+      /** Total */
+      total: number;
+    };
+    /** OrderSummary */
+    OrderSummary: {
+      /** Code */
+      code: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Created By
+       * Format: uuid
+       */
+      created_by: string;
+      /** Customer Name */
+      customer_name: string | null;
+      /** Customer Phone */
+      customer_phone: string | null;
+      /** Division */
+      division: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Priority */
+      priority: string;
+      /** Requested Date */
+      requested_date: string | null;
+      /** Status */
+      status: string;
+      /** Total */
+      total: number;
     };
     /** OrderUpdate */
     OrderUpdate: {
@@ -2292,6 +2423,40 @@ export interface operations {
       };
     };
   };
+  orders_list: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        status?: string | null;
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderPage"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   orders_create: {
     parameters: {
       query?: never;
@@ -2396,6 +2561,96 @@ export interface operations {
       };
       /** @description problem+json — STALE_VERSION | ORDER_NOT_DRAFT */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_cancel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderCancel"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_history: {
+    parameters: {
+      query?: {
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AuditEventPage"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
         headers: {
           [name: string]: unknown;
         };
@@ -2544,6 +2799,104 @@ export interface operations {
         content?: never;
       };
       /** @description problem+json — STALE_VERSION | ORDER_NOT_DRAFT */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_recall: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderCommand"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_submit: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderCommand"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED */
       409: {
         headers: {
           [name: string]: unknown;
