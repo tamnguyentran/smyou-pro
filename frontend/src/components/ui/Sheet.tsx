@@ -25,10 +25,22 @@ export function Sheet({
   const panel = useRef<HTMLDivElement>(null);
   const opener = useRef<Element | null>(null);
 
+  // Split from the keydown-listener effect below: this one must depend only on `open`, not on
+  // `onClose`/`dismissible` — a caller with a controlled field inside the sheet (e.g. a `Textarea`
+  // driven by `useState`) re-renders on every keystroke, giving an inline `onClose` a new identity
+  // each time. If that were in this effect's deps, the steal-focus-into-panel call below would
+  // refire on every keystroke and yank focus away from whatever the user is typing into.
   useEffect(() => {
     if (!open) return undefined;
     opener.current = document.activeElement;
     panel.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+    return () => {
+      if (opener.current instanceof HTMLElement) opener.current.focus();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         if (dismissible) onClose();
@@ -49,7 +61,6 @@ export function Sheet({
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      if (opener.current instanceof HTMLElement) opener.current.focus();
     };
   }, [open, onClose, dismissible]);
 
