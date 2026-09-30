@@ -329,6 +329,48 @@ describe("AC-ORD-067 tab lịch sử", () => {
     expect(items[2]).toHaveTextContent("Gửi đơn");
     expect(screen.getAllByText("Nguyễn Thị Hoa").length).toBeGreaterThan(0);
   });
+
+  test("hành động ngoài submit/recall/cancel (create, add_line, ...) vẫn hiện nhãn tiếng Việt", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ allowed_commands: ["recall", "cancel"] })),
+      ),
+      http.get("/api/v1/orders/:id/history", () =>
+        HttpResponse.json({
+          items: [
+            historyEvent({
+              id: "e5",
+              action: "add_line",
+              from_status: null,
+              to_status: null,
+              occurred_at: "2026-09-30T02:00:00Z",
+            }),
+            historyEvent({
+              id: "e4",
+              action: "create",
+              from_status: null,
+              to_status: "DRAFT",
+              occurred_at: "2026-09-30T01:00:00Z",
+            }),
+          ],
+          total: 2,
+          limit: 50,
+          offset: 0,
+        }),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Lịch sử" }));
+
+    const history = await screen.findByLabelText("Lịch sử đơn");
+    expect(within(history).queryByText("create")).not.toBeInTheDocument();
+    expect(within(history).queryByText("add_line")).not.toBeInTheDocument();
+    expect(within(history).getByText("Tạo đơn")).toBeInTheDocument();
+    expect(within(history).getByText("Thêm dòng hàng")).toBeInTheDocument();
+  });
 });
 
 describe("AC-ORD-068 phân quyền xem", () => {
