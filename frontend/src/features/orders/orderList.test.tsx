@@ -42,7 +42,7 @@ function summary(overrides: Partial<OrderSummary> = {}): OrderSummary {
     customer_name: "Cty Sáng Tạo Mới",
     customer_phone: "0909123456",
     priority: "NORMAL",
-    requested_date: "2026-11-05",
+    requested_date: null,
     total: 3300000,
     created_by: hoaId,
     created_by_name: "Nguyễn Thị Hoa",
@@ -92,7 +92,7 @@ describe("AC-ORD-069 danh sách đơn", () => {
         lastQuery = new URL(request.url).search;
         return HttpResponse.json({
           items: [
-            summary(),
+            summary({ requested_date: "2026-11-05" }),
             summary({
               id: "b0000000-0000-4000-8000-000000000021",
               code: "DH2609-0002",

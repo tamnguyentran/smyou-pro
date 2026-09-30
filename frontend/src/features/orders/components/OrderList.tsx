@@ -1,5 +1,5 @@
 import { Badge } from "../../../components/ui/Badge";
-import { formatCurrency } from "../../../lib/format";
+import { formatCurrency, formatDate } from "../../../lib/format";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
 import { useNavigate } from "react-router";
 import type { OrderSummary } from "../api";
@@ -50,7 +50,9 @@ export function OrderList({ items }: { items: OrderSummary[] }) {
                   <Badge tone={ORDER_STATUS_TONE[status]}>{ORDER_STATUS_LABEL[status]}</Badge>
                 </td>
                 <td className="px-4 py-3 tabular-nums text-body">{formatCurrency(order.total)}</td>
-                <td className="px-4 py-3 text-body">{order.requested_date ?? "—"}</td>
+                <td className="px-4 py-3 text-body">
+                  {order.requested_date ? formatDate(order.requested_date) : "—"}
+                </td>
                 <td className="px-4 py-3 text-body">{order.created_by_name ?? "—"}</td>
               </tr>
             );

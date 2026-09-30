@@ -1,4 +1,4 @@
-import { formatCurrency } from "../../../lib/format";
+import { formatCurrency, formatDate } from "../../../lib/format";
 import type { Order } from "../api";
 import { DIVISION_LABELS, PRIORITY_LABELS, type Division, type Priority } from "../schemas";
 import { ReadOnlyField } from "./ReadOnlyField";
@@ -15,7 +15,10 @@ export function OrderInfoTab({ order }: { order: Order }) {
       <ReadOnlyField label="Địa chỉ thi công" value={order.service_address} />
       <ReadOnlyField label="Mô tả công việc" value={order.work_description} />
       <ReadOnlyField label="Độ ưu tiên" value={PRIORITY_LABELS[order.priority as Priority]} />
-      <ReadOnlyField label="Ngày hẹn" value={order.requested_date ?? ""} />
+      <ReadOnlyField
+        label="Ngày hẹn"
+        value={order.requested_date ? formatDate(order.requested_date) : ""}
+      />
       <ReadOnlyField label="Tổng cộng" value={formatCurrency(order.total)} />
     </div>
   );
