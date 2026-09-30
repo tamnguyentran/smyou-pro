@@ -145,10 +145,8 @@ def insert_order(
             columns.append(column)
             params[column] = value
     placeholders = ", ".join(f":{c}" for c in columns)
-    db.execute(
-        text(f"INSERT INTO orders ({', '.join(columns)}, version) VALUES ({placeholders}, 1)"),
-        params,
-    )
+    query = f"INSERT INTO orders ({', '.join(columns)}, version) VALUES ({placeholders}, 1)"  # noqa: S608  # column names are literal strings from the fixed set above, not user input
+    db.execute(text(query), params)
     return order_id
 
 

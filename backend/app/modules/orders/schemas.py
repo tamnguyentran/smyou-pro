@@ -2,7 +2,7 @@
 
 import uuid
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
@@ -133,6 +133,21 @@ class OrderLineRemove(BaseModel):
     version: int
 
 
+class OrderCommand(BaseModel):
+    """Body for `submit`/`recall` — no extra fields beyond the concurrency token."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    version: int
+
+
+class OrderCancel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: int
+    reason: str | None = None
+
+
 class OrderLineOut(BaseModel):
     id: uuid.UUID
     position: int
@@ -181,3 +196,25 @@ class OrderDetail(BaseModel):
     created_by: uuid.UUID
     version: int
     lines: list[OrderLineOut]
+    allowed_commands: list[str]
+
+
+class OrderSummary(BaseModel):
+    id: uuid.UUID
+    code: str
+    status: str
+    customer_name: str | None
+    customer_phone: str | None
+    division: str | None
+    priority: str
+    total: int
+    requested_date: date | None
+    created_by: uuid.UUID
+    created_at: datetime
+
+
+class OrderPage(BaseModel):
+    items: list[OrderSummary]
+    total: int
+    limit: int
+    offset: int

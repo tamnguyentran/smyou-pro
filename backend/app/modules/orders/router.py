@@ -1,20 +1,24 @@
-"""/api/v1/orders — thin HTTP layer (M3-02a)."""
+"""/api/v1/orders — thin HTTP layer (M3-02a, M3-03a)."""
 
 import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.core.authz import Actor, require
 from app.core.db import DbSession
 from app.core.request_id import get_request_id
+from app.modules.audit.schemas import AuditEventPage
 from app.modules.orders import service
 from app.modules.orders.schemas import (
+    OrderCancel,
+    OrderCommand,
     OrderCreate,
     OrderDetail,
     OrderLineCreate,
     OrderLineRemove,
     OrderLineUpdate,
+    OrderPage,
     OrderUpdate,
 )
 
@@ -22,6 +26,8 @@ router = APIRouter(prefix="/api/v1/orders", tags=["orders"])
 Creator = Annotated[Actor, Depends(require("order.create"))]
 Reader = Annotated[Actor, Depends(require("order.read"))]
 Editor = Annotated[Actor, Depends(require("order.edit_draft"))]
+Submitter = Annotated[Actor, Depends(require("order.submit"))]
+Canceler = Annotated[Actor, Depends(require("order.cancel"))]
 
 
 def _docs(*lines: tuple[int, str]) -> dict[int | str, dict[str, Any]]:
@@ -30,6 +36,7 @@ def _docs(*lines: tuple[int, str]) -> dict[int | str, dict[str, Any]]:
 
 NOT_FOUND = (404, "NOT_FOUND")
 CONFLICTS = (409, "STALE_VERSION | ORDER_NOT_DRAFT")
+TRANSITION_CONFLICTS = (409, "STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED")
 
 
 @router.post(
@@ -37,7 +44,26 @@ CONFLICTS = (409, "STALE_VERSION | ORDER_NOT_DRAFT")
 )
 def create_order(body: OrderCreate, request: Request, session: DbSession, actor: Creator) -> OrderDetail:
     now = request.app.state.clock()
-    return service.create_order(session, actor, body, now=now, request_id=get_request_id(request))
+    return service.create_order(
+        session, actor, body, now=now, specs=request.app.state.specs, request_id=get_request_id(request)
+    )
+
+
+@router.get(
+    "",
+    operation_id="orders_list",
+    summary="Danh sách đơn (tìm theo mã/tên khách/SĐT, lọc theo trạng thái)",
+    response_model=OrderPage,
+)
+def list_orders(
+    session: DbSession,
+    actor: Reader,
+    q: Annotated[str | None, Query(max_length=100)] = None,
+    status: str | None = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> OrderPage:
+    return service.list_orders(session, actor, q=q, status=status, limit=limit, offset=offset)
 
 
 @router.get(
@@ -47,8 +73,25 @@ def create_order(body: OrderCreate, request: Request, session: DbSession, actor:
     response_model=OrderDetail,
     responses=_docs(NOT_FOUND),
 )
-def get_order(order_id: uuid.UUID, session: DbSession, actor: Reader) -> OrderDetail:
-    return service.get_order(session, actor, order_id)
+def get_order(order_id: uuid.UUID, request: Request, session: DbSession, actor: Reader) -> OrderDetail:
+    return service.get_order(session, actor, order_id, specs=request.app.state.specs)
+
+
+@router.get(
+    "/{order_id}/history",
+    operation_id="orders_history",
+    summary="Lịch sử thay đổi trạng thái của đơn",
+    response_model=AuditEventPage,
+    responses=_docs(NOT_FOUND),
+)
+def get_order_history(
+    order_id: uuid.UUID,
+    session: DbSession,
+    actor: Reader,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> AuditEventPage:
+    return service.get_order_history(session, actor, order_id, limit=limit, offset=offset)
 
 
 @router.patch(
@@ -61,7 +104,75 @@ def get_order(order_id: uuid.UUID, session: DbSession, actor: Reader) -> OrderDe
 def update_order(
     order_id: uuid.UUID, body: OrderUpdate, request: Request, session: DbSession, actor: Editor
 ) -> OrderDetail:
-    return service.update_order(session, actor, order_id, body, request_id=get_request_id(request))
+    return service.update_order(
+        session, actor, order_id, body, specs=request.app.state.specs, request_id=get_request_id(request)
+    )
+
+
+@router.post(
+    "/{order_id}/submit",
+    operation_id="orders_submit",
+    summary="Gửi đơn cho Quản lý kỹ thuật",
+    response_model=OrderDetail,
+    responses=_docs(NOT_FOUND, TRANSITION_CONFLICTS),
+)
+def submit_order(
+    order_id: uuid.UUID, body: OrderCommand, request: Request, session: DbSession, actor: Submitter
+) -> OrderDetail:
+    now = request.app.state.clock()
+    return service.submit_order(
+        session,
+        actor,
+        order_id,
+        body,
+        now=now,
+        specs=request.app.state.specs,
+        request_id=get_request_id(request),
+    )
+
+
+@router.post(
+    "/{order_id}/recall",
+    operation_id="orders_recall",
+    summary="Thu hồi đơn về Nháp",
+    response_model=OrderDetail,
+    responses=_docs(NOT_FOUND, TRANSITION_CONFLICTS),
+)
+def recall_order(
+    order_id: uuid.UUID, body: OrderCommand, request: Request, session: DbSession, actor: Submitter
+) -> OrderDetail:
+    now = request.app.state.clock()
+    return service.recall_order(
+        session,
+        actor,
+        order_id,
+        body,
+        now=now,
+        specs=request.app.state.specs,
+        request_id=get_request_id(request),
+    )
+
+
+@router.post(
+    "/{order_id}/cancel",
+    operation_id="orders_cancel",
+    summary="Huỷ đơn",
+    response_model=OrderDetail,
+    responses=_docs(NOT_FOUND, TRANSITION_CONFLICTS),
+)
+def cancel_order(
+    order_id: uuid.UUID, body: OrderCancel, request: Request, session: DbSession, actor: Canceler
+) -> OrderDetail:
+    now = request.app.state.clock()
+    return service.cancel_order(
+        session,
+        actor,
+        order_id,
+        body,
+        now=now,
+        specs=request.app.state.specs,
+        request_id=get_request_id(request),
+    )
 
 
 @router.post(
@@ -75,7 +186,9 @@ def update_order(
 def add_line(
     order_id: uuid.UUID, body: OrderLineCreate, request: Request, session: DbSession, actor: Editor
 ) -> OrderDetail:
-    return service.add_line(session, actor, order_id, body, request_id=get_request_id(request))
+    return service.add_line(
+        session, actor, order_id, body, specs=request.app.state.specs, request_id=get_request_id(request)
+    )
 
 
 @router.patch(
@@ -93,7 +206,15 @@ def update_line(
     session: DbSession,
     actor: Editor,
 ) -> OrderDetail:
-    return service.update_line(session, actor, order_id, line_id, body, request_id=get_request_id(request))
+    return service.update_line(
+        session,
+        actor,
+        order_id,
+        line_id,
+        body,
+        specs=request.app.state.specs,
+        request_id=get_request_id(request),
+    )
 
 
 @router.post(
@@ -111,4 +232,12 @@ def remove_line(
     session: DbSession,
     actor: Editor,
 ) -> OrderDetail:
-    return service.remove_line(session, actor, order_id, line_id, body, request_id=get_request_id(request))
+    return service.remove_line(
+        session,
+        actor,
+        order_id,
+        line_id,
+        body,
+        specs=request.app.state.specs,
+        request_id=get_request_id(request),
+    )
