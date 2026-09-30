@@ -115,6 +115,7 @@ function order(overrides: Partial<Order> = {}): Order {
     created_by: hoaId,
     version: 1,
     lines: [],
+    allowed_commands: [],
     ...overrides,
   };
 }
