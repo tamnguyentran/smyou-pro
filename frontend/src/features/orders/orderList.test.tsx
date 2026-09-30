@@ -42,7 +42,7 @@ function summary(overrides: Partial<OrderSummary> = {}): OrderSummary {
     customer_name: "Cty Sáng Tạo Mới",
     customer_phone: "0909123456",
     priority: "NORMAL",
-    requested_date: null,
+    requested_date: "2026-11-05",
     total: 3300000,
     created_by: hoaId,
     created_by_name: "Nguyễn Thị Hoa",
@@ -122,6 +122,8 @@ describe("AC-ORD-069 danh sách đơn", () => {
     const table = screen.getByRole("table");
     expect(within(table).getByText("Chờ điều phối")).toBeInTheDocument();
     expect(within(table).getByText("Đã huỷ")).toBeInTheDocument();
+    expect(within(table).getByText("05/11/2026")).toBeInTheDocument();
+    expect(within(table).queryByText("2026-11-05")).not.toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("Tìm kiếm"), "0909");

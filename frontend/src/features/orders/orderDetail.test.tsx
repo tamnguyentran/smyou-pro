@@ -178,7 +178,9 @@ describe("AC-ORD-064 trang chi tiết", () => {
     signedInAs(hoaId, HOA);
     server.use(
       http.get("/api/v1/orders/:id", () =>
-        HttpResponse.json(order({ allowed_commands: ["recall", "cancel"] })),
+        HttpResponse.json(
+          order({ allowed_commands: ["recall", "cancel"], requested_date: "2026-11-05" }),
+        ),
       ),
       http.get("/api/v1/orders/:id/history", () =>
         HttpResponse.json({ items: [], total: 0, limit: 50, offset: 0 }),
@@ -191,6 +193,8 @@ describe("AC-ORD-064 trang chi tiết", () => {
     const infoTab = screen.getByRole("tabpanel");
     expect(within(infoTab).getByText("Cty Sáng Tạo Mới")).toBeInTheDocument();
     expect(screen.getByText("12 Lê Lợi, Q1, TP.HCM")).toBeInTheDocument();
+    expect(within(infoTab).getByText("05/11/2026")).toBeInTheDocument();
+    expect(within(infoTab).queryByText("2026-11-05")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Thu hồi" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Huỷ đơn" })).toBeInTheDocument();
   });
