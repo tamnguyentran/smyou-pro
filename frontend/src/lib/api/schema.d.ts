@@ -280,6 +280,92 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/orders": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Tạo đơn nháp */
+    post: operations["orders_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Chi tiết đơn */
+    get: operations["orders_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Sửa thông tin đơn nháp */
+    patch: operations["orders_update"];
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/lines": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Thêm dòng hàng vào đơn nháp */
+    post: operations["orders_add_line"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/lines/{line_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Sửa dòng hàng trong đơn nháp */
+    patch: operations["orders_update_line"];
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/lines/{line_id}/remove": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Xoá dòng hàng khỏi đơn nháp */
+    post: operations["orders_remove_line"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/products": {
     parameters: {
       query?: never;
@@ -832,7 +918,7 @@ export interface components {
      * EntityType
      * @enum {string}
      */
-    EntityType: "EMPLOYEE" | "PRODUCT" | "SERVICE" | "CUSTOMER";
+    EntityType: "EMPLOYEE" | "PRODUCT" | "SERVICE" | "CUSTOMER" | "ORDER";
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -941,6 +1027,236 @@ export interface components {
       employee: components["schemas"]["MeEmployee"];
       /** Roles */
       roles: string[];
+    };
+    /** OrderCreate */
+    OrderCreate: {
+      /** Customer Email */
+      customer_email?: string | null;
+      /** Customer Id */
+      customer_id?: string | null;
+      /** Customer Name */
+      customer_name?: string | null;
+      /** Customer Phone */
+      customer_phone?: string | null;
+      /** Customer Tax Code */
+      customer_tax_code?: string | null;
+      /** Division */
+      division?: ("OFFICE_EQUIPMENT" | "SECURITY" | "GENERAL") | null;
+      /** Payment Method */
+      payment_method?: ("CASH" | "BANK_TRANSFER") | null;
+      /**
+       * Payment Status
+       * @default UNPAID
+       * @enum {string}
+       */
+      payment_status: "UNPAID" | "PAID" | "PAY_LATER";
+      /**
+       * Priority
+       * @default NORMAL
+       * @enum {string}
+       */
+      priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+      /** Requested Date */
+      requested_date?: string | null;
+      /** Service Address */
+      service_address?: string | null;
+      /** Work Description */
+      work_description?: string | null;
+    };
+    /** OrderDetail */
+    OrderDetail: {
+      /** Code */
+      code: string;
+      /**
+       * Created By
+       * Format: uuid
+       */
+      created_by: string;
+      /** Customer Email */
+      customer_email: string | null;
+      /** Customer Id */
+      customer_id: string | null;
+      /** Customer Name */
+      customer_name: string | null;
+      /** Customer Phone */
+      customer_phone: string | null;
+      /** Customer Tax Code */
+      customer_tax_code: string | null;
+      /** Discount Amount */
+      discount_amount: number;
+      /** Division */
+      division: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Lines */
+      lines: components["schemas"]["OrderLineOut"][];
+      /** Payment Method */
+      payment_method: string | null;
+      /** Payment Status */
+      payment_status: string;
+      /** Priority */
+      priority: string;
+      /** Requested Date */
+      requested_date: string | null;
+      /** Revision No */
+      revision_no: number;
+      /** Service Address */
+      service_address: string;
+      /** Status */
+      status: string;
+      /** Subtotal */
+      subtotal: number;
+      /** Total */
+      total: number;
+      /** Vat Amount */
+      vat_amount: number;
+      /** Version */
+      version: number;
+      /** Work Description */
+      work_description: string;
+    };
+    /** OrderLineCreate */
+    OrderLineCreate: {
+      /**
+       * Is Gift
+       * @default false
+       */
+      is_gift: boolean;
+      /**
+       * Item Type
+       * @enum {string}
+       */
+      item_type: "PRODUCT" | "SERVICE" | "CUSTOM";
+      /**
+       * Line Discount
+       * @default 0
+       */
+      line_discount: number;
+      /** Name */
+      name?: string | null;
+      /** Note */
+      note?: string | null;
+      /** Product Id */
+      product_id?: string | null;
+      /** Quantity */
+      quantity: number | string;
+      /** Service Id */
+      service_id?: string | null;
+      /** Specs */
+      specs?: string | null;
+      /** Unit */
+      unit?:
+        ("CAI" | "MAY" | "BO" | "MET" | "CUON" | "HOP" | "LICENSE" | "LAN" | "DIEM" | "GIO") | null;
+      /** Unit Price */
+      unit_price: number;
+      /** Vat Rate */
+      vat_rate?: number | string | null;
+      /** Version */
+      version: number;
+      /** Warranty Months */
+      warranty_months?: number | null;
+    };
+    /** OrderLineOut */
+    OrderLineOut: {
+      /** Catalog Price Snapshot */
+      catalog_price_snapshot: number | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Is Gift */
+      is_gift: boolean;
+      /** Item Type */
+      item_type: string;
+      /** Line Discount */
+      line_discount: number;
+      /** Line Gross */
+      line_gross: number;
+      /** Line Total */
+      line_total: number;
+      /** Line Vat */
+      line_vat: number;
+      /** Name Snapshot */
+      name_snapshot: string;
+      /** Note */
+      note: string | null;
+      /** Position */
+      position: number;
+      /** Price Fixed */
+      price_fixed: boolean;
+      /** Product Id */
+      product_id: string | null;
+      /** Quantity */
+      quantity: string;
+      /** Service Id */
+      service_id: string | null;
+      /** Sku Snapshot */
+      sku_snapshot: string | null;
+      /** Specs Snapshot */
+      specs_snapshot: string | null;
+      /** Unit Price */
+      unit_price: number;
+      /** Unit Snapshot */
+      unit_snapshot: string;
+      /** Vat Rate */
+      vat_rate: string;
+      /** Warranty Months Snapshot */
+      warranty_months_snapshot: number | null;
+    };
+    /** OrderLineRemove */
+    OrderLineRemove: {
+      /** Version */
+      version: number;
+    };
+    /** OrderLineUpdate */
+    OrderLineUpdate: {
+      /** Is Gift */
+      is_gift?: boolean | null;
+      /** Line Discount */
+      line_discount?: number | null;
+      /** Note */
+      note?: string | null;
+      /** Quantity */
+      quantity?: number | string | null;
+      /** Unit Price */
+      unit_price?: number | null;
+      /** Vat Rate */
+      vat_rate?: number | string | null;
+      /** Version */
+      version: number;
+    };
+    /** OrderUpdate */
+    OrderUpdate: {
+      /** Customer Email */
+      customer_email?: string | null;
+      /** Customer Id */
+      customer_id?: string | null;
+      /** Customer Name */
+      customer_name?: string | null;
+      /** Customer Phone */
+      customer_phone?: string | null;
+      /** Customer Tax Code */
+      customer_tax_code?: string | null;
+      /** Division */
+      division?: ("OFFICE_EQUIPMENT" | "SECURITY" | "GENERAL") | null;
+      /** Payment Method */
+      payment_method?: ("CASH" | "BANK_TRANSFER") | null;
+      /** Payment Status */
+      payment_status?: ("UNPAID" | "PAID" | "PAY_LATER") | null;
+      /** Priority */
+      priority?: ("LOW" | "NORMAL" | "HIGH" | "URGENT") | null;
+      /** Requested Date */
+      requested_date?: string | null;
+      /** Service Address */
+      service_address?: string | null;
+      /** Version */
+      version: number;
+      /** Work Description */
+      work_description?: string | null;
     };
     /** ProductCreate */
     ProductCreate: {
@@ -1973,6 +2289,275 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  orders_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | ORDER_NOT_DRAFT */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_add_line: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderLineCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | ORDER_NOT_DRAFT */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_update_line: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+        line_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderLineUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | ORDER_NOT_DRAFT */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_remove_line: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+        line_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderLineRemove"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | ORDER_NOT_DRAFT */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
       };
     };
   };

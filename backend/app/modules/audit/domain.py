@@ -12,3 +12,4 @@ class EntityType(StrEnum):
     PRODUCT = "PRODUCT"
     SERVICE = "SERVICE"
     CUSTOMER = "CUSTOMER"
+    ORDER = "ORDER"
