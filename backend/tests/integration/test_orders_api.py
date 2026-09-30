@@ -1,7 +1,10 @@
-"""M3-02a: draft orders + lines + pricing API (AC-ORD-001…023)."""
+"""M3-02a: draft orders + lines + pricing API (AC-ORD-001…023).
+M3-03a: submit/recall/cancel, list, allowed_commands, history (AC-ORD-040…060).
+"""
 
 import re
 import uuid
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import httpx2 as httpx
@@ -9,6 +12,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import Connection, text
+from sqlalchemy.engine import Row
 
 from app.core.authz import declared_routes
 from tests.integration.conftest import AN, KHOA, Person, login, seed
@@ -114,16 +118,35 @@ def insert_service(db: Connection, service: dict[str, object]) -> uuid.UUID:
     return service_id
 
 
-def insert_order(db: Connection, *, created_by: uuid.UUID, status: str) -> uuid.UUID:
+def insert_order(
+    db: Connection,
+    *,
+    created_by: uuid.UUID,
+    status: str,
+    customer_name: str | None = None,
+    customer_phone: str | None = None,
+    service_address: str | None = None,
+    work_description: str | None = None,
+    created_at: datetime | None = None,
+) -> uuid.UUID:
     order_id = uuid.uuid4()
     code = f"DH0000-{uuid.uuid4().hex[:4]}"
-    db.execute(
-        text(
-            "INSERT INTO orders (id, code, status, created_by, version) VALUES"
-            " (:id, :code, :status, :created_by, 1)"
-        ),
-        {"id": order_id, "code": code, "status": status, "created_by": created_by},
-    )
+    columns = ["id", "code", "status", "created_by"]
+    params: dict[str, object] = {"id": order_id, "code": code, "status": status, "created_by": created_by}
+    extra = {
+        "customer_name": customer_name,
+        "customer_phone": customer_phone,
+        "service_address": service_address,
+        "work_description": work_description,
+        "created_at": created_at,
+    }
+    for column, value in extra.items():
+        if value is not None:
+            columns.append(column)
+            params[column] = value
+    placeholders = ", ".join(f":{c}" for c in columns)
+    query = f"INSERT INTO orders ({', '.join(columns)}, version) VALUES ({placeholders}, 1)"  # noqa: S608  # column names are literal strings from the fixed set above, not user input
+    db.execute(text(query), params)
     return order_id
 
 
@@ -147,9 +170,64 @@ def error_fields(body: dict[str, object]) -> list[str]:
     return [str(e["field"]) for e in errors]
 
 
+def audit_rows(db: Connection, entity_id: uuid.UUID) -> list[Row]:
+    return db.execute(
+        text("SELECT * FROM audit_events WHERE entity_id = :id ORDER BY occurred_at, seq"), {"id": entity_id}
+    ).all()
+
+
+def submittable_order(client: TestClient, *, customer_id: uuid.UUID, product_id: uuid.UUID) -> dict:
+    order = client.post(
+        "/api/v1/orders",
+        json={"customer_id": str(customer_id), "service_address": "12 Lê Lợi, Q1"},
+    ).json()
+    return client.post(
+        f"/api/v1/orders/{order['id']}/lines",
+        json={
+            "version": order["version"],
+            "item_type": "PRODUCT",
+            "product_id": str(product_id),
+            "quantity": "1",
+            "unit_price": 2_500_000,
+            "vat_rate": "8",
+        },
+    ).json()
+
+
 @pytest.fixture
 def people(db: Connection) -> dict[str, uuid.UUID]:
     return {p.code: seed(db, p) for p in (AN, HOA, HA, TUAN, KHOA)}
+
+
+@pytest.fixture
+def three_orders(db: Connection, people: dict[str, uuid.UUID]) -> dict[str, uuid.UUID]:
+    """AC-ORD-054…056 fixture: 3 orders in different statuses, spaced `created_at` for deterministic sort."""
+    return {
+        "C": insert_order(
+            db,
+            created_by=people["NV001"],
+            status="CANCELLED",
+            customer_name="Chị Lan",
+            customer_phone="0933111222",
+            created_at=datetime(2026, 9, 28, tzinfo=UTC),
+        ),
+        "B": insert_order(
+            db,
+            created_by=people["NV005"],
+            status="PENDING_DISPATCH",
+            customer_name="Anh Long",
+            customer_phone="0977888999",
+            created_at=datetime(2026, 9, 29, tzinfo=UTC),
+        ),
+        "A": insert_order(
+            db,
+            created_by=people["NV005"],
+            status="DRAFT",
+            customer_name="Cty Sáng Tạo Mới",
+            customer_phone="0909123456",
+            created_at=datetime(2026, 9, 30, tzinfo=UTC),
+        ),
+    }
 
 
 @pytest.fixture
@@ -803,15 +881,21 @@ def test_read_scope_all_vs_technician_404(app: FastAPI, db: Connection, people: 
 
 
 @pytest.mark.ac("AC-ORD-023")
+@pytest.mark.ac("AC-ORD-060")
 def test_routes_declare_capability(app: FastAPI) -> None:
     routes = {r for r in declared_routes(app) if "/orders" in r[1]}
     assert routes == {
         ("POST", "/api/v1/orders", "order.create"),
+        ("GET", "/api/v1/orders", "order.read"),
         ("GET", "/api/v1/orders/{order_id}", "order.read"),
         ("PATCH", "/api/v1/orders/{order_id}", "order.edit_draft"),
         ("POST", "/api/v1/orders/{order_id}/lines", "order.edit_draft"),
         ("PATCH", "/api/v1/orders/{order_id}/lines/{line_id}", "order.edit_draft"),
         ("POST", "/api/v1/orders/{order_id}/lines/{line_id}/remove", "order.edit_draft"),
+        ("POST", "/api/v1/orders/{order_id}/submit", "order.submit"),
+        ("POST", "/api/v1/orders/{order_id}/recall", "order.submit"),
+        ("POST", "/api/v1/orders/{order_id}/cancel", "order.cancel"),
+        ("GET", "/api/v1/orders/{order_id}/history", "order.read"),
     }
 
 
@@ -853,3 +937,462 @@ def test_mutations_write_audit_events(app: FastAPI, db: Connection, people: dict
         .all()
     )
     assert actions == ["create", "update", "add_line", "update_line", "remove_line"]
+
+
+# ---------------- M3-03a: submit / recall / cancel / list / allowed_commands / history ----------------
+
+
+@pytest.mark.ac("AC-ORD-040")
+def test_submit_happy_path(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submittable_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    res = hoa.post(f"/api/v1/orders/{order['id']}/submit", json={"version": order["version"]})
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["status"] == "PENDING_DISPATCH"
+    assert body["version"] == order["version"] + 1
+    assert body["allowed_commands"] == ["recall", "cancel"]
+
+    row = (
+        db.execute(text("SELECT submitted_at FROM orders WHERE id = :id"), {"id": order["id"]})
+        .mappings()
+        .one()
+    )
+    assert row["submitted_at"] is not None
+    events = audit_rows(db, uuid.UUID(order["id"]))
+    submit_event = next(e for e in events if e.action == "submit")
+    assert (submit_event.from_status, submit_event.to_status) == ("DRAFT", "PENDING_DISPATCH")
+    assert submit_event.actor_id == people["NV005"]
+
+
+@pytest.mark.ac("AC-ORD-041")
+def test_recall_happy_path(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submittable_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+    submitted = hoa.post(f"/api/v1/orders/{order['id']}/submit", json={"version": order["version"]}).json()
+
+    res = hoa.post(f"/api/v1/orders/{order['id']}/recall", json={"version": submitted["version"]})
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["status"] == "DRAFT"
+    assert body["version"] == submitted["version"] + 1
+    assert body["allowed_commands"] == ["submit", "cancel"]
+    events = audit_rows(db, uuid.UUID(order["id"]))
+    recall_event = next(e for e in events if e.action == "recall")
+    assert (recall_event.from_status, recall_event.to_status) == ("PENDING_DISPATCH", "DRAFT")
+
+
+@pytest.mark.ac("AC-ORD-042")
+def test_cancel_from_draft(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submittable_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+    submitted = hoa.post(f"/api/v1/orders/{order['id']}/submit", json={"version": order["version"]}).json()
+    recalled = hoa.post(f"/api/v1/orders/{order['id']}/recall", json={"version": submitted["version"]}).json()
+
+    res = hoa.post(
+        f"/api/v1/orders/{order['id']}/cancel",
+        json={"version": recalled["version"], "reason": "Khách đổi ý không mua nữa"},
+    )
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["status"] == "CANCELLED"
+    assert body["version"] == recalled["version"] + 1
+    assert body["allowed_commands"] == []
+
+    row = (
+        db.execute(text("SELECT cancelled_at, cancel_reason FROM orders WHERE id = :id"), {"id": order["id"]})
+        .mappings()
+        .one()
+    )
+    assert row["cancelled_at"] is not None
+    assert row["cancel_reason"] == "Khách đổi ý không mua nữa"
+    cancel_event = next(e for e in audit_rows(db, uuid.UUID(order["id"])) if e.action == "cancel")
+    assert (cancel_event.from_status, cancel_event.to_status) == ("DRAFT", "CANCELLED")
+    payload = cancel_event.data if isinstance(cancel_event.data, dict) else {}
+    assert payload["reason"] == "Khách đổi ý không mua nữa"
+
+
+@pytest.mark.ac("AC-ORD-043")
+def test_cancel_from_pending_dispatch(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submittable_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+    submitted = hoa.post(f"/api/v1/orders/{order['id']}/submit", json={"version": order["version"]}).json()
+
+    res = hoa.post(
+        f"/api/v1/orders/{order['id']}/cancel",
+        json={"version": submitted["version"], "reason": "Lắp sai địa chỉ, tạo lại đơn mới"},
+    )
+
+    assert res.status_code == 200, res.text
+    assert res.json()["status"] == "CANCELLED"
+    cancel_event = next(e for e in audit_rows(db, uuid.UUID(order["id"])) if e.action == "cancel")
+    assert cancel_event.from_status == "PENDING_DISPATCH"
+
+
+@pytest.mark.ac("AC-ORD-044")
+def test_submit_guard_customer_present(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post(
+        "/api/v1/orders",
+        json={"service_address": "12 Lê Lợi, Q1", "work_description": "Lắp đặt máy in"},
+    ).json()
+
+    res = hoa.post(f"/api/v1/orders/{order['id']}/submit", json={"version": order["version"]})
+
+    body = problem(res, 409, "GUARD_FAILED")
+    assert body["guard"] == "customer_present"
+    assert hoa.get(f"/api/v1/orders/{order['id']}").json()["status"] == "DRAFT"
+
+
+@pytest.mark.ac("AC-ORD-045")
+def test_submit_guard_has_lines_or_description(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], kh00001: uuid.UUID
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post(
+        "/api/v1/orders", json={"customer_id": str(kh00001), "service_address": "12 Lê Lợi, Q1"}
+    ).json()
+
+    body = problem(
+        hoa.post(f"/api/v1/orders/{order['id']}/submit", json={"version": order["version"]}),
+        409,
+        "GUARD_FAILED",
+    )
+    assert body["guard"] == "has_lines_or_description"
+
+
+@pytest.mark.ac("AC-ORD-046")
+def test_submit_guard_service_address_present(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], kh00001: uuid.UUID
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post(
+        "/api/v1/orders", json={"customer_id": str(kh00001), "work_description": "Lắp đặt máy in"}
+    ).json()
+
+    body = problem(
+        hoa.post(f"/api/v1/orders/{order['id']}/submit", json={"version": order["version"]}),
+        409,
+        "GUARD_FAILED",
+    )
+    assert body["guard"] == "service_address_present"
+
+
+@pytest.mark.ac("AC-ORD-047")
+def test_cancel_guard_reason_present(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submittable_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    no_reason = problem(
+        hoa.post(f"/api/v1/orders/{order['id']}/cancel", json={"version": order["version"]}),
+        409,
+        "GUARD_FAILED",
+    )
+    assert no_reason["guard"] == "reason_present"
+
+    too_short = problem(
+        hoa.post(f"/api/v1/orders/{order['id']}/cancel", json={"version": order["version"], "reason": "abc"}),
+        409,
+        "GUARD_FAILED",
+    )
+    assert too_short["guard"] == "reason_present"
+
+    too_short_padded = problem(
+        hoa.post(
+            f"/api/v1/orders/{order['id']}/cancel", json={"version": order["version"], "reason": "  ab  "}
+        ),
+        409,
+        "GUARD_FAILED",
+    )
+    assert too_short_padded["guard"] == "reason_present"
+    assert hoa.get(f"/api/v1/orders/{order['id']}").json()["status"] == "DRAFT"
+
+
+@pytest.mark.ac("AC-ORD-048")
+def test_submit_invalid_transition_already_pending(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submittable_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+    submitted = hoa.post(f"/api/v1/orders/{order['id']}/submit", json={"version": order["version"]}).json()
+
+    problem(
+        hoa.post(f"/api/v1/orders/{order['id']}/submit", json={"version": submitted["version"]}),
+        409,
+        "INVALID_TRANSITION",
+    )
+
+
+@pytest.mark.ac("AC-ORD-049")
+def test_recall_invalid_transition_from_draft(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+
+    problem(
+        hoa.post(f"/api/v1/orders/{order['id']}/recall", json={"version": order["version"]}),
+        409,
+        "INVALID_TRANSITION",
+    )
+
+
+@pytest.mark.ac("AC-ORD-050")
+def test_all_commands_invalid_on_cancelled(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    order_id = insert_order(db, created_by=people["NV005"], status="CANCELLED")
+    hoa = client_as(app, HOA)
+
+    problem(hoa.post(f"/api/v1/orders/{order_id}/submit", json={"version": 1}), 409, "INVALID_TRANSITION")
+    problem(hoa.post(f"/api/v1/orders/{order_id}/recall", json={"version": 1}), 409, "INVALID_TRANSITION")
+    problem(
+        hoa.post(f"/api/v1/orders/{order_id}/cancel", json={"version": 1, "reason": "Huỷ lần nữa"}),
+        409,
+        "INVALID_TRANSITION",
+    )
+
+
+@pytest.mark.ac("AC-ORD-051")
+def test_recall_stale_version(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submittable_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+    submitted = hoa.post(f"/api/v1/orders/{order['id']}/submit", json={"version": order["version"]}).json()
+
+    problem(
+        hoa.post(f"/api/v1/orders/{order['id']}/recall", json={"version": submitted["version"] - 1}),
+        409,
+        "STALE_VERSION",
+    )
+
+
+@pytest.mark.ac("AC-ORD-052")
+def test_submit_scope(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submittable_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    ha = client_as(app, HA)
+    problem(
+        ha.post(f"/api/v1/orders/{order['id']}/submit", json={"version": order["version"]}), 404, "NOT_FOUND"
+    )
+
+    khoa = client_as(app, KHOA)
+    problem(
+        khoa.post(f"/api/v1/orders/{order['id']}/submit", json={"version": order["version"]}),
+        403,
+        "FORBIDDEN",
+    )
+
+    an = client_as(app, AN)
+    res = an.post(f"/api/v1/orders/{order['id']}/submit", json={"version": order["version"]})
+    assert res.status_code == 200, res.text
+
+
+@pytest.mark.ac("AC-ORD-053")
+def test_cancel_scope(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submittable_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    ha = client_as(app, HA)
+    problem(
+        ha.post(
+            f"/api/v1/orders/{order['id']}/cancel", json={"version": order["version"], "reason": "Huỷ thử"}
+        ),
+        404,
+        "NOT_FOUND",
+    )
+
+    khoa = client_as(app, KHOA)
+    problem(
+        khoa.post(
+            f"/api/v1/orders/{order['id']}/cancel", json={"version": order["version"], "reason": "Huỷ thử"}
+        ),
+        403,
+        "FORBIDDEN",
+    )
+
+    an = client_as(app, AN)
+    res = an.post(
+        f"/api/v1/orders/{order['id']}/cancel", json={"version": order["version"], "reason": "Huỷ thử"}
+    )
+    assert res.status_code == 200, res.text
+
+
+@pytest.mark.ac("AC-ORD-054")
+def test_list_orders_basic(app: FastAPI, db: Connection, three_orders: dict[str, uuid.UUID]) -> None:
+    hoa = client_as(app, HOA)
+
+    res = hoa.get("/api/v1/orders?limit=20&offset=0")
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert (body["total"], body["limit"], body["offset"]) == (3, 20, 0)
+    ids = [item["id"] for item in body["items"]]
+    assert ids == [str(three_orders["A"]), str(three_orders["B"]), str(three_orders["C"])]
+    assert set(body["items"][0].keys()) == {
+        "id",
+        "code",
+        "status",
+        "customer_name",
+        "customer_phone",
+        "division",
+        "priority",
+        "total",
+        "requested_date",
+        "created_by",
+        "created_at",
+    }
+
+
+@pytest.mark.ac("AC-ORD-055")
+def test_list_orders_filters(app: FastAPI, db: Connection, three_orders: dict[str, uuid.UUID]) -> None:
+    hoa = client_as(app, HOA)
+
+    by_status = hoa.get("/api/v1/orders?status=PENDING_DISPATCH").json()
+    assert [item["id"] for item in by_status["items"]] == [str(three_orders["B"])]
+
+    by_phone = hoa.get("/api/v1/orders?q=0977888999").json()
+    assert [item["id"] for item in by_phone["items"]] == [str(three_orders["B"])]
+
+    by_name = hoa.get("/api/v1/orders?q=chị lan").json()
+    assert [item["id"] for item in by_name["items"]] == [str(three_orders["C"])]
+
+    problem(hoa.get("/api/v1/orders?limit=101"), 422, "VALIDATION_ERROR")
+
+
+@pytest.mark.ac("AC-ORD-056")
+def test_list_orders_scope(app: FastAPI, db: Connection, three_orders: dict[str, uuid.UUID]) -> None:
+    for person in (HOA, AN, TUAN):
+        client = client_as(app, person)
+        assert client.get("/api/v1/orders").json()["total"] == 3
+
+    khoa = client_as(app, KHOA)
+    body = khoa.get("/api/v1/orders").json()
+    assert body == {"items": [], "total": 0, "limit": 20, "offset": 0}
+
+
+@pytest.mark.ac("AC-ORD-057")
+def test_allowed_commands_draft(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submittable_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    for person in (HOA, AN):
+        client = client_as(app, person)
+        assert client.get(f"/api/v1/orders/{order['id']}").json()["allowed_commands"] == ["submit", "cancel"]
+
+    ha = client_as(app, HA)
+    assert ha.get(f"/api/v1/orders/{order['id']}").json()["allowed_commands"] == []
+
+    tuan = client_as(app, TUAN)
+    assert tuan.get(f"/api/v1/orders/{order['id']}").json()["allowed_commands"] == []
+
+
+@pytest.mark.ac("AC-ORD-058")
+def test_allowed_commands_pending_and_cancelled(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submittable_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+    submitted = hoa.post(f"/api/v1/orders/{order['id']}/submit", json={"version": order["version"]}).json()
+    assert submitted["allowed_commands"] == ["recall", "cancel"]
+
+    cancelled_id = insert_order(db, created_by=people["NV005"], status="CANCELLED")
+    assert hoa.get(f"/api/v1/orders/{cancelled_id}").json()["allowed_commands"] == []
+
+
+@pytest.mark.ac("AC-ORD-059")
+def test_order_history(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    order_id = insert_order(
+        db,
+        created_by=people["NV005"],
+        status="DRAFT",
+        customer_name="Anh Long",
+        customer_phone="0977888999",
+        service_address="12 Lê Lợi, Q1",
+        work_description="Lắp đặt máy in",
+    )
+    hoa = client_as(app, HOA)
+    submitted = hoa.post(f"/api/v1/orders/{order_id}/submit", json={"version": 1}).json()
+    hoa.post(f"/api/v1/orders/{order_id}/recall", json={"version": submitted["version"]})
+
+    res = hoa.get(f"/api/v1/orders/{order_id}/history")
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["total"] == 2
+    assert body["items"][0]["action"] == "recall"
+    assert (body["items"][0]["from_status"], body["items"][0]["to_status"]) == ("PENDING_DISPATCH", "DRAFT")
+    assert body["items"][1]["action"] == "submit"
+    assert body["items"][0]["actor"]["full_name"] == HOA.full_name
+
+    ha = client_as(app, HA)
+    assert ha.get(f"/api/v1/orders/{order_id}/history").status_code == 200
+
+    khoa = client_as(app, KHOA)
+    problem(khoa.get(f"/api/v1/orders/{order_id}/history"), 404, "NOT_FOUND")

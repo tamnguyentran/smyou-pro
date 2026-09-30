@@ -4,6 +4,15 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 
+from app.core.spec_loader import Machine, Transition
+
+
+def find_transition(machine: Machine, command: str) -> Transition:
+    for t in machine.transitions:
+        if t.command == command:
+            return t
+    raise AssertionError(f"unknown order command: {command!r}")  # routes only ever pass known commands
+
 
 @dataclass(frozen=True)
 class LineTotals:

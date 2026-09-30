@@ -1,4 +1,4 @@
-"""Order management use cases (M3-02a). Callers own the transaction; these never commit."""
+"""Order management use cases (M3-02a, M3-03a). Callers own the transaction; these never commit."""
 
 import uuid
 from dataclasses import dataclass
@@ -6,26 +6,33 @@ from datetime import datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.core.authz import Actor, ScopeRules, apply_scope, get_in_scope_or_404
+from app.core.authz import Actor, ScopeRules, apply_scope, effective_scopes, get_in_scope_or_404
 from app.core.errors import AppError
 from app.core.sequences import next_value
+from app.core.spec_loader import Specs
 from app.modules.audit import service as audit
+from app.modules.audit.schemas import AuditEventPage
 from app.modules.catalog.models import Product, Service
 from app.modules.customers.models import Customer
 from app.modules.orders import domain
 from app.modules.orders.models import Order, OrderLine
 from app.modules.orders.schemas import (
+    OrderCancel,
+    OrderCommand,
     OrderCreate,
     OrderDetail,
     OrderLineCreate,
     OrderLineOut,
     OrderLineRemove,
     OrderLineUpdate,
+    OrderPage,
+    OrderSummary,
     OrderUpdate,
 )
+from app.modules.workflow.guards import GUARDS
 
 VIETNAM = ZoneInfo("Asia/Ho_Chi_Minh")
 NOT_FOUND_ORDER = "Không tìm thấy đơn hàng."
@@ -57,8 +64,17 @@ NON_NULL_TEXT_FIELDS = {"service_address", "work_description"}
 # order.edit_draft genuinely grants SALE only `own` (unlike customers/audit's empty `{}`, which is
 # safe only because every role holding those capabilities gets `all`). `assigned` (TECHNICIAN) has
 # no rule yet: Task/Assignment don't exist until M4/M5, so it fails closed (no rows) — correct,
-# since a DRAFT order can never have an assignment.
+# since a DRAFT order can never have an assignment. `order.submit`/`order.cancel` define "own" the
+# same way (spec/permissions.yaml), so this one dict covers every order capability's scope check.
 RULES: ScopeRules = {"own": lambda actor: Order.created_by == actor.id}
+
+_GUARD_MESSAGES = {
+    "customer_present": "Đơn cần có khách hàng trước khi gửi.",
+    "has_lines_or_description": "Đơn cần có ít nhất 1 dòng hàng hoặc mô tả công việc.",
+    "service_address_present": "Đơn cần có địa chỉ thi công.",
+    "order_has_no_tasks": "Đơn đang có đầu việc, không thể thực hiện thao tác này.",
+    "reason_present": "Vui lòng nhập lý do (ít nhất 5 ký tự).",
+}
 
 
 @dataclass(frozen=True)
@@ -174,7 +190,27 @@ def _line_out(line: OrderLine) -> OrderLineOut:
     )
 
 
-def _out(order: Order) -> OrderDetail:
+def _allowed_commands(order: Order, actor: Actor, specs: Specs) -> list[str]:
+    """State-machine commands the actor may currently invoke on this order (ARCHITECTURE §4:
+    the frontend shows/hides action buttons from this list, never re-deriving the rule itself).
+
+    Iterates `spec/state_machines.yaml#order.transitions` in file order (submit, recall, …, cancel),
+    which is why the resulting lists match the spec's expected order exactly. Only checks capability
+    + scope — a listed command can still fail its own guards at execution time (409 GUARD_FAILED).
+    """
+    commands = []
+    for t in specs.state_machines.order.transitions:
+        if t.actor is not None or t.capability is None:
+            continue  # system-only transition (e.g. start_dispatch) — never actor-invoked
+        if order.status not in t.from_:
+            continue
+        scopes = effective_scopes(specs.permissions, actor.roles, t.capability)
+        if "all" in scopes or ("own" in scopes and order.created_by == actor.id):
+            commands.append(t.command)
+    return commands
+
+
+def _out(order: Order, actor: Actor, specs: Specs) -> OrderDetail:
     lines = sorted(order.lines, key=lambda line: line.position)
     return OrderDetail(
         id=order.id,
@@ -200,7 +236,29 @@ def _out(order: Order) -> OrderDetail:
         created_by=order.created_by,
         version=order.version,
         lines=[_line_out(line) for line in lines],
+        allowed_commands=_allowed_commands(order, actor, specs),
     )
+
+
+def _summary(order: Order) -> OrderSummary:
+    return OrderSummary(
+        id=order.id,
+        code=order.code,
+        status=order.status,
+        customer_name=order.customer_name,
+        customer_phone=order.customer_phone,
+        division=order.division,
+        priority=order.priority,
+        total=order.total,
+        requested_date=order.requested_date,
+        created_by=order.created_by,
+        created_at=order.created_at,
+    )
+
+
+def _like(q: str) -> str:
+    escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
 
 
 def _resolve_customer(
@@ -298,7 +356,13 @@ def _resolve_pricing(
 
 
 def create_order(
-    session: Session, actor: Actor, body: OrderCreate, *, now: datetime, request_id: str | None = None
+    session: Session,
+    actor: Actor,
+    body: OrderCreate,
+    *,
+    now: datetime,
+    specs: Specs,
+    request_id: str | None = None,
 ) -> OrderDetail:
     customer_id, customer_name, customer_phone, customer_email, customer_tax_code = _resolve_customer(
         session,
@@ -338,17 +402,194 @@ def create_order(
         action="create",
         request_id=request_id,
     )
-    return _out(order)
+    return _out(order, actor, specs)
 
 
-def get_order(session: Session, actor: Actor, order_id: uuid.UUID) -> OrderDetail:
+def get_order(session: Session, actor: Actor, order_id: uuid.UUID, *, specs: Specs) -> OrderDetail:
     stmt = select(Order).where(Order.id == order_id).options(selectinload(Order.lines))
     order = get_in_scope_or_404(session, stmt, actor, RULES)
-    return _out(order)
+    return _out(order, actor, specs)
+
+
+def list_orders(
+    session: Session,
+    actor: Actor,
+    *,
+    q: str | None,
+    status: str | None,
+    limit: int,
+    offset: int,
+) -> OrderPage:
+    query = apply_scope(select(Order), actor, RULES)
+    if q and q.strip():
+        pattern = _like(q.strip())
+        query = query.where(
+            or_(
+                Order.code.ilike(pattern),
+                func.unaccent(Order.customer_name).ilike(func.unaccent(pattern)),
+                Order.customer_phone.ilike(pattern),
+            )
+        )
+    if status is not None:
+        query = query.where(Order.status == status)
+    total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
+    ordered = query.order_by(Order.created_at.desc())
+    rows = session.scalars(ordered.limit(limit).offset(offset)).all()
+    return OrderPage(items=[_summary(o) for o in rows], total=total, limit=limit, offset=offset)
+
+
+def get_order_history(
+    session: Session, actor: Actor, order_id: uuid.UUID, *, limit: int, offset: int
+) -> AuditEventPage:
+    # Visibility is established by `order.read`'s own scope on the parent order — the history rows
+    # themselves are not re-scoped by audit.read (Manager-only, the system-wide Nhật ký page; see
+    # spec Q55). `get_in_scope_or_404` 404s here exactly like `get_order` does.
+    order = get_in_scope_or_404(session, select(Order).where(Order.id == order_id), actor, RULES)
+    return audit.list_events_for_entity(
+        session, entity_type="ORDER", entity_id=order.id, limit=limit, offset=offset
+    )
+
+
+def _check_guards(order: Order, guard_names: list[str], reason: str | None) -> None:
+    for name in guard_names:
+        if name == "customer_present":
+            ok = GUARDS[name](order.customer_id, order.customer_name, order.customer_phone)
+        elif name == "has_lines_or_description":
+            ok = GUARDS[name](len(order.lines), order.work_description)
+        elif name == "service_address_present":
+            ok = GUARDS[name](order.service_address)
+        elif name == "order_has_no_tasks":
+            # `tasks` doesn't exist until M4-01 — always 0 at this milestone (spec §8).
+            ok = GUARDS[name](0)
+        elif name == "reason_present":
+            ok = GUARDS[name](reason)
+        else:
+            raise AssertionError(f"order transitions don't use guard {name!r}")
+        if not ok:
+            raise AppError(409, "GUARD_FAILED", _GUARD_MESSAGES[name], extra={"guard": name})
+
+
+def _apply_transition(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    version: int,
+    command: str,
+    *,
+    reason: str | None,
+    now: datetime,
+    specs: Specs,
+    request_id: str | None,
+) -> Order:
+    order = _locked(session, actor, order_id, version)
+    t = domain.find_transition(specs.state_machines.order, command)
+    if order.status not in t.from_:
+        raise AppError(409, "INVALID_TRANSITION", "Không thể thực hiện thao tác này ở trạng thái hiện tại.")
+    _check_guards(order, t.guards, reason)
+
+    from_status = order.status
+    order.status = t.to
+    if command == "submit":
+        order.submitted_at = now
+    elif command == "cancel":
+        order.cancelled_at = now
+        order.cancel_reason = reason
+    _bump(order)
+    session.flush()
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ORDER",
+        entity_id=order.id,
+        action=command,
+        from_status=from_status,
+        to_status=order.status,
+        data={"reason": reason} if reason else None,
+        request_id=request_id,
+    )
+    return order
+
+
+def submit_order(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    body: OrderCommand,
+    *,
+    now: datetime,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = _apply_transition(
+        session,
+        actor,
+        order_id,
+        body.version,
+        "submit",
+        reason=None,
+        now=now,
+        specs=specs,
+        request_id=request_id,
+    )
+    return _out(order, actor, specs)
+
+
+def recall_order(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    body: OrderCommand,
+    *,
+    now: datetime,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = _apply_transition(
+        session,
+        actor,
+        order_id,
+        body.version,
+        "recall",
+        reason=None,
+        now=now,
+        specs=specs,
+        request_id=request_id,
+    )
+    return _out(order, actor, specs)
+
+
+def cancel_order(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    body: OrderCancel,
+    *,
+    now: datetime,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = _apply_transition(
+        session,
+        actor,
+        order_id,
+        body.version,
+        "cancel",
+        reason=body.reason,
+        now=now,
+        specs=specs,
+        request_id=request_id,
+    )
+    return _out(order, actor, specs)
 
 
 def update_order(
-    session: Session, actor: Actor, order_id: uuid.UUID, body: OrderUpdate, *, request_id: str | None = None
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    body: OrderUpdate,
+    *,
+    specs: Specs,
+    request_id: str | None = None,
 ) -> OrderDetail:
     order = _locked(session, actor, order_id, body.version)
     _require_draft(order)
@@ -390,7 +631,7 @@ def update_order(
         data={"changed_fields": sorted(changed_fields)},
         request_id=request_id,
     )
-    return _out(order)
+    return _out(order, actor, specs)
 
 
 def add_line(
@@ -399,6 +640,7 @@ def add_line(
     order_id: uuid.UUID,
     body: OrderLineCreate,
     *,
+    specs: Specs,
     request_id: str | None = None,
 ) -> OrderDetail:
     order = _locked(session, actor, order_id, body.version)
@@ -451,7 +693,7 @@ def add_line(
         action="add_line",
         request_id=request_id,
     )
-    return _out(order)
+    return _out(order, actor, specs)
 
 
 def update_line(
@@ -461,6 +703,7 @@ def update_line(
     line_id: uuid.UUID,
     body: OrderLineUpdate,
     *,
+    specs: Specs,
     request_id: str | None = None,
 ) -> OrderDetail:
     order = _locked(session, actor, order_id, body.version)
@@ -508,7 +751,7 @@ def update_line(
         action="update_line",
         request_id=request_id,
     )
-    return _out(order)
+    return _out(order, actor, specs)
 
 
 def remove_line(
@@ -518,6 +761,7 @@ def remove_line(
     line_id: uuid.UUID,
     body: OrderLineRemove,
     *,
+    specs: Specs,
     request_id: str | None = None,
 ) -> OrderDetail:
     order = _locked(session, actor, order_id, body.version)
@@ -538,4 +782,4 @@ def remove_line(
         action="remove_line",
         request_id=request_id,
     )
-    return _out(order)
+    return _out(order, actor, specs)

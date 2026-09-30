@@ -115,3 +115,21 @@ def list_events(
     rows = session.execute(ordered.limit(limit).offset(offset)).all()
     items = [_out(event, employee) for event, employee in rows]
     return AuditEventPage(items=items, total=total, limit=limit, offset=offset)
+
+
+def list_events_for_entity(
+    session: Session, *, entity_type: str, entity_id: uuid.UUID, limit: int, offset: int
+) -> AuditEventPage:
+    """History of one entity, e.g. for an order's "Lịch sử" tab (M3-03a).
+
+    No actor/capability scoping here — unlike `list_events` (Manager-only Nhật ký hệ thống page),
+    the caller must already have established that the actor may view `entity_id` (e.g. via that
+    entity's own `*.read` capability and scope) before calling this.
+    """
+    query = select(AuditEvent, Employee).outerjoin(Employee, Employee.id == AuditEvent.actor_id)
+    query = query.where(AuditEvent.entity_type == entity_type, AuditEvent.entity_id == entity_id)
+    total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
+    ordered = query.order_by(AuditEvent.occurred_at.desc(), AuditEvent.seq.desc())
+    rows = session.execute(ordered.limit(limit).offset(offset)).all()
+    items = [_out(event, employee) for event, employee in rows]
+    return AuditEventPage(items=items, total=total, limit=limit, offset=offset)
