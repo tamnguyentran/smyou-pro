@@ -1130,6 +1130,15 @@ def test_cancel_guard_reason_present(
         "GUARD_FAILED",
     )
     assert too_short["guard"] == "reason_present"
+
+    too_short_padded = problem(
+        hoa.post(
+            f"/api/v1/orders/{order['id']}/cancel", json={"version": order["version"], "reason": "  ab  "}
+        ),
+        409,
+        "GUARD_FAILED",
+    )
+    assert too_short_padded["guard"] == "reason_present"
     assert hoa.get(f"/api/v1/orders/{order['id']}").json()["status"] == "DRAFT"
 
 
