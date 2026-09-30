@@ -228,6 +228,49 @@ describe("AC-ORD-065 thu hồi", () => {
     expect(recalled).toBe(true);
     expect(await screen.findByLabelText("Địa chỉ thi công")).toHaveValue("12 Lê Lợi, Q1, TP.HCM");
   });
+
+  test("409 STALE_VERSION → banner đỏ + nút Tải lại (như huỷ đơn, AC-ORD-070)", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ allowed_commands: ["recall", "cancel"] })),
+      ),
+      http.get("/api/v1/orders/:id/history", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 50, offset: 0 }),
+      ),
+      http.post("/api/v1/orders/:id/recall", () =>
+        HttpResponse.json(
+          {
+            status: 409,
+            code: "STALE_VERSION",
+            detail: "Thông tin đã bị người khác thay đổi. Vui lòng tải lại.",
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Thu hồi" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thu hồi đơn?" });
+    await user.click(within(dialog).getByRole("button", { name: "Thu hồi" }));
+
+    expect(
+      await screen.findByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại."),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Thu hồi đơn?" })).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Tải lại" }));
+    await waitFor(() => {
+      expect(
+        screen.queryByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại."),
+      ).not.toBeInTheDocument();
+    });
+  });
 });
 
 describe("AC-ORD-066 tab dòng hàng", () => {
