@@ -138,3 +138,105 @@ test("AC-ORD-037 Hà (SALE khác) chỉ xem đơn của Hoa; An (MANAGER) sửa 
   await expect(page.getByRole("button", { name: "Thêm dòng hàng" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Lưu nháp" })).toBeVisible();
 });
+
+test("AC-ORD-061 AC-ORD-064 AC-ORD-065 AC-ORD-067 AC-ORD-071 @a11y @screenshot gửi đơn, xem chi tiết, thu hồi, gửi lại, lịch sử, bố cục", async ({
+  page,
+}, info) => {
+  await signIn(page, SALE);
+  await page.getByLabel("Tìm khách hàng").fill("Sáng Tạo Mới");
+  await page.getByRole("option", { name: /Cty Sáng Tạo Mới E2E/ }).click();
+  await page.getByLabel("Địa chỉ thi công").fill("12 Lê Lợi, Q1, TP.HCM");
+  await page.getByRole("button", { name: "Thêm dòng hàng" }).click();
+  const sheet = page.getByRole("dialog", { name: "Thêm dòng hàng" });
+  await sheet.getByLabel("Tìm sản phẩm").fill("dell");
+  await sheet.getByRole("button", { name: /Màn hình Dell 22 inch E2E/ }).click();
+  await page.getByRole("button", { name: "Lưu nháp" }).click();
+  await expect(page.getByText(/^Đã lưu nháp DH\d{4}-\d{4}\.$/)).toBeVisible();
+  const code = (await page.getByRole("heading", { level: 1 }).textContent()) ?? "";
+
+  // AC-ORD-061
+  await page.getByRole("button", { name: "Gửi đơn" }).click();
+  await page
+    .getByRole("dialog", { name: "Gửi đơn?" })
+    .getByRole("button", { name: "Gửi đơn" })
+    .click();
+  await expect(page.getByText(`Đã gửi đơn ${code}.`)).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Thông tin", selected: true })).toBeVisible();
+  await expect(page.getByText("Chờ điều phối")).toBeVisible();
+
+  // AC-ORD-064
+  await expect(page.getByRole("button", { name: "Thu hồi" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Huỷ đơn" })).toBeVisible();
+
+  // AC-ORD-071: mobile pill tabs scroll within their own container (no page overflow); desktop
+  // keeps the action buttons in the sticky header, not a bottom bar.
+  await evidence(page, info, "order-detail.png", { checkOverflow: true });
+  const actionsClass = await page.getByTestId("order-detail-actions").getAttribute("class");
+  if (isMobile(info)) {
+    expect(actionsClass).toMatch(/sticky bottom-16/);
+  } else {
+    expect(actionsClass).toMatch(/lg:static/);
+  }
+
+  // AC-ORD-065: thu hồi → hiện lại DraftOrderForm
+  await page.getByRole("button", { name: "Thu hồi" }).click();
+  await page
+    .getByRole("dialog", { name: "Thu hồi đơn?" })
+    .getByRole("button", { name: "Thu hồi" })
+    .click();
+  await expect(page.getByText(`Đã thu hồi đơn ${code}.`)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Gửi đơn" })).toBeVisible();
+
+  // Gửi lại để có 3 sự kiện lịch sử (submit → recall → submit), đang PENDING_DISPATCH.
+  await page.getByRole("button", { name: "Gửi đơn" }).click();
+  await page
+    .getByRole("dialog", { name: "Gửi đơn?" })
+    .getByRole("button", { name: "Gửi đơn" })
+    .click();
+  await expect(page.getByText(`Đã gửi đơn ${code}.`)).toBeVisible();
+
+  // AC-ORD-067
+  await page.getByRole("tab", { name: "Lịch sử" }).click();
+  const events = page.getByText(/^(Thu hồi|Gửi đơn)$/);
+  await expect(events).toHaveCount(3);
+  await expect(events.nth(0)).toHaveText("Gửi đơn");
+  await expect(events.nth(1)).toHaveText("Thu hồi");
+  await expect(events.nth(2)).toHaveText("Gửi đơn");
+});
+
+test("AC-ORD-063 huỷ đơn nháp", async ({ page }) => {
+  await signIn(page, SALE);
+  await page.getByLabel("Địa chỉ thi công").fill("34 Nguyễn Huệ, Q1, TP.HCM");
+  await page.getByLabel("Mô tả công việc").fill("Lắp camera văn phòng");
+  await page.getByRole("button", { name: "Lưu nháp" }).click();
+  await expect(page.getByText(/^Đã lưu nháp DH\d{4}-\d{4}\.$/)).toBeVisible();
+  const code = (await page.getByRole("heading", { level: 1 }).textContent()) ?? "";
+
+  await page.getByRole("button", { name: "Huỷ đơn" }).click();
+  const dialog = page.getByRole("dialog", { name: `Huỷ đơn ${code}?` });
+  const confirm = dialog.getByRole("button", { name: "Xác nhận huỷ" });
+  await expect(confirm).toBeDisabled();
+  await dialog.getByRole("textbox").fill("Khách đổi ý không mua nữa");
+  await expect(confirm).toBeEnabled();
+  await confirm.click();
+
+  await expect(page.getByText(`Đã huỷ đơn ${code}.`)).toBeVisible();
+  await expect(page).toHaveURL(/\/orders$/);
+});
+
+test("AC-ORD-069 @a11y @screenshot danh sách đơn", async ({ page }, info) => {
+  await signIn(page, SALE);
+  await page.getByLabel("Địa chỉ thi công").fill("56 Lý Tự Trọng, Q1, TP.HCM");
+  await page.getByRole("button", { name: "Lưu nháp" }).click();
+  await expect(page.getByText(/^Đã lưu nháp DH\d{4}-\d{4}\.$/)).toBeVisible();
+  const code = (await page.getByRole("heading", { level: 1 }).textContent()) ?? "";
+
+  await page.goto("./orders");
+  await expect(page.getByRole("heading", { level: 1, name: "Danh sách đơn" })).toBeVisible();
+  await evidence(page, info, "order-list.png", { checkOverflow: true });
+
+  await page.getByLabel("Tìm kiếm").fill(code);
+  await expect(page.getByText(code)).toBeVisible();
+  await page.getByText(code).click();
+  await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
+});
