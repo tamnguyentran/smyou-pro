@@ -3,6 +3,7 @@ import { useState } from "react";
 import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
 import { ForbiddenPage } from "../../../app/shell/StatusPage";
+import { Button } from "../../../components/ui/Button";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { Pagination } from "../../../components/ui/Pagination";
 import { Select } from "../../../components/ui/Select";
@@ -90,7 +91,20 @@ export function OrdersListPage() {
       {orders.isPending ? (
         <Waiting />
       ) : orders.isError ? (
-        <EmptyState icon={ShoppingBag} message="Không tải được danh sách." />
+        <EmptyState
+          icon={ShoppingBag}
+          message="Không tải được danh sách."
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => {
+                void orders.refetch();
+              }}
+            >
+              Thử lại
+            </Button>
+          }
+        />
       ) : orders.data.items.length === 0 ? (
         <EmptyState icon={ShoppingBag} message="Không tìm thấy đơn nào." />
       ) : (
