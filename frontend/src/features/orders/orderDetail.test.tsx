@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -399,5 +399,16 @@ describe("AC-ORD-070 409 STALE_VERSION khi huỷ", () => {
       await screen.findByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại."),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tải lại" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Tải lại" }));
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: "Huỷ đơn DH2609-0001?" }),
+      ).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Huỷ đơn" }));
+    const reopened = await screen.findByRole("dialog", { name: "Huỷ đơn DH2609-0001?" });
+    expect(within(reopened).getByRole("textbox")).toHaveValue("");
   });
 });
