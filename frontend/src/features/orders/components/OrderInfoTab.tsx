@@ -1,7 +1,7 @@
 import { formatCurrency } from "../../../lib/format";
 import type { Order } from "../api";
 import { DIVISION_LABELS, PRIORITY_LABELS, type Division, type Priority } from "../schemas";
-import { ReadOnlyField } from "./DraftOrderForm";
+import { ReadOnlyField } from "./ReadOnlyField";
 
 /** Tab "Thông tin" của OrderDetailTabs — luôn chỉ đọc (sửa liên hệ sau khi gửi thuộc M3-04). */
 export function OrderInfoTab({ order }: { order: Order }) {

@@ -42,6 +42,7 @@ import { CustomerPicker } from "./CustomerPicker";
 import { OrderDetailTabs } from "./OrderDetailTabs";
 import { OrderLinesSection } from "./OrderLinesSection";
 import { OrderTotalsSection } from "./OrderTotalsSection";
+import { ReadOnlyField } from "./ReadOnlyField";
 import { useOrderWriteQueue } from "./writeQueue";
 
 // Matches Tailwind's `lg:` breakpoint (and AppShell's own desktop/mobile split) — AC-ORD-038's
@@ -85,15 +86,6 @@ function buildOrderFields(values: OrderInfoFormValues): Omit<OrderCreateBody, "p
     priority: values.priority,
     requested_date: values.requested_date || null,
   };
-}
-
-export function ReadOnlyField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="space-y-1">
-      <p className="text-sm font-medium text-muted">{label}</p>
-      <p className="text-body">{value || "—"}</p>
-    </div>
-  );
 }
 
 function Waiting() {
