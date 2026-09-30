@@ -197,7 +197,7 @@ test("AC-ORD-061 AC-ORD-064 AC-ORD-065 AC-ORD-067 AC-ORD-071 @a11y @screenshot g
 
   // AC-ORD-067
   await page.getByRole("tab", { name: "Lịch sử" }).click();
-  const events = page.getByText(/^(Thu hồi|Gửi đơn)$/);
+  const events = page.getByRole("list", { name: "Lịch sử đơn" }).getByText(/^(Thu hồi|Gửi đơn)$/);
   await expect(events).toHaveCount(3);
   await expect(events.nth(0)).toHaveText("Gửi đơn");
   await expect(events.nth(1)).toHaveText("Thu hồi");
