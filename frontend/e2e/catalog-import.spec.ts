@@ -74,7 +74,10 @@ test("AC-CAT-047 AC-CAT-058 @a11y @screenshot nhập sản phẩm: xem trước 
     buffer: Buffer.from(productsCsv(sku)),
   });
   await expect(dialog.getByText("1/1 dòng hợp lệ")).toBeVisible();
-  await evidence(page, info, "catalog-import-preview.png", { checkOverflow: true });
+  // No checkOverflow here: it resizes across the 1024px breakpoint, which remounts AppShell's
+  // outlet and drops open Sheet state (same caveat as products.spec.ts/employees.spec.ts) — this
+  // test still needs the dialog open below. See AC-CAT-048 for the overflow check.
+  await evidence(page, info, "catalog-import-preview.png");
 
   await dialog.getByRole("button", { name: "Xác nhận nhập" }).click();
   const confirm = page.getByRole("dialog", { name: "Xác nhận nhập" });
@@ -82,6 +85,8 @@ test("AC-CAT-047 AC-CAT-058 @a11y @screenshot nhập sản phẩm: xem trước 
   await confirm.getByRole("button", { name: "Xác nhận nhập" }).click();
   await expect(page.getByText("Đã nhập 1 sản phẩm.")).toBeVisible();
   await expect(dialog).toBeHidden();
+
+  await page.getByLabel("Tìm kiếm").fill(sku);
   await expect(page.getByText(sku)).toBeVisible();
 });
 
@@ -100,7 +105,7 @@ test("AC-CAT-048 @a11y @screenshot xem trước có dòng lỗi: nút Xác nhậ
     .setInputFiles({ name: "products-bad.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
   await expect(dialog.getByText("0/1 dòng hợp lệ · 1 dòng lỗi")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Xác nhận nhập" })).toBeDisabled();
-  await evidence(page, info, "catalog-import-errors.png");
+  await evidence(page, info, "catalog-import-errors.png", { checkOverflow: true });
 });
 
 test("AC-CAT-055 Sale không thấy nút Nhập từ CSV", async ({ page }) => {
@@ -124,5 +129,7 @@ test("AC-CAT-056 nhập dịch vụ từ CSV", async ({ page }) => {
   const confirm = page.getByRole("dialog", { name: "Xác nhận nhập" });
   await confirm.getByRole("button", { name: "Xác nhận nhập" }).click();
   await expect(page.getByText("Đã nhập 1 dịch vụ.")).toBeVisible();
+
+  await page.getByLabel("Tìm kiếm").fill(code);
   await expect(page.getByText(code)).toBeVisible();
 });
