@@ -151,4 +151,21 @@ describe("AC-ORD-069 danh sách đơn", () => {
 
     expect(await screen.findByText("Không tìm thấy đơn nào.")).toBeInTheDocument();
   });
+
+  test("lỗi tải danh sách → nút Thử lại tải lại", async () => {
+    signedInAs(hoaId, HOA);
+    let calls = 0;
+    server.use(
+      http.get("/api/v1/orders", () => {
+        calls += 1;
+        if (calls === 1) return HttpResponse.json({ status: 503 }, { status: 503 });
+        return HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 });
+      }),
+    );
+    renderApp("/orders");
+
+    expect(await screen.findByText("Không tải được danh sách.")).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Thử lại" }));
+    expect(await screen.findByText("Không tìm thấy đơn nào.")).toBeInTheDocument();
+  });
 });
