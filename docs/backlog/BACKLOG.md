@@ -39,7 +39,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [x] **M3-02a Đơn nháp + dòng hàng + tính tiền — API**: tạo/sửa đơn nháp, thêm/sửa/xoá dòng hàng (snapshot, gift, giảm giá, VAT), pricing engine + property test. Spec `M3-02a-draft-orders-api.md`. Q52, Q53.
 - [x] **M3-02b Đơn nháp — giao diện**: trang Tạo/sửa đơn (`/orders/new`, `/orders/:id`), chọn khách/Khách lẻ, thêm dòng từ danh mục hoặc tự do, tổng tiền theo mức VAT. Spec `M3-02b-draft-orders-ui.md`. `/review` xong 3 vòng (`reports/review-M3-02b.md`), `make verify`/`make e2e` xanh (`reports/verification.md`). Merged via PR #39/#40.
   - Còn để sau (không chặn ship): `order.read_prices` chưa tách riêng khỏi `order.read` trong permissions.yaml (chưa khai thác được nhưng nên tách khi có thay đổi vai trò); ô đơn giá/giảm giá sửa tay chưa có dấu phân cách nghìn; màn lỗi tải đơn chưa có nút "Thử lại".
-- [~] **M3-03a Gửi/thu hồi/huỷ đơn — API**: lệnh `submit`/`recall`/`cancel`, 5 guard đang chờ ở `workflow/guards.py`, `GET /orders` (danh sách), `GET /orders/{id}` + `allowed_commands`, `GET /orders/{id}/history`. Spec `M3-03a-order-transitions-api.md`. Q54, Q55.
+- [R] **M3-03a Gửi/thu hồi/huỷ đơn — API**: lệnh `submit`/`recall`/`cancel`, 5 guard cài ở `workflow/guards.py`, `GET /orders` (danh sách), `GET /orders/{id}` + `allowed_commands`, `GET /orders/{id}/history`. Spec `M3-03a-order-transitions-api.md`. Q54, Q55.
 - [S] **M3-03b Gửi/thu hồi/huỷ đơn — giao diện**: trang `/orders` (danh sách), trang chi tiết đơn có tab Thông tin/Dòng hàng/Lịch sử, nút Gửi đơn/Thu hồi/Huỷ đơn theo `allowed_commands`. Spec `M3-03b-order-list-detail-ui.md`. Q56.
 - [ ] **M3-04 Sửa liên hệ sau khi gửi; Manager sửa dòng sau khi gửi** (audit diff).
 
