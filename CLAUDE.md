@@ -60,6 +60,7 @@ Nếu tài liệu mâu thuẫn: `spec/*.yaml` > `docs/specs/<feature>.md` đã A
 - Vòng sửa lỗi: chạy lệnh test nhỏ nhất liên quan; `make verify` chỉ chạy **một lần** khi xong.
 - Subagent review chạy model `sonnet` (khai báo trong `.claude/agents/`); vòng review sau chỉ chạy lại agent có finding ≥ Medium đã sửa.
 - Không chạy lại job CI "Claude PR Review" (tốn tiền API) khi chưa hỏi người dùng.
+- **Không chờ CI trên GitHub.** Dev + test + review + `make verify` chạy hết ở máy dev cho tới khi xanh; chỉ `git push` **một lần** khi item đã hoàn thiện, `gh pr create` rồi `gh pr merge --auto --merge --delete-branch` ngay, sau đó qua việc tiếp theo luôn — không `gh pr checks`/`gh run watch` để đợi CI chạy xong. CI từ xa là lớp xác nhận thứ hai, không phải cổng phải ngồi canh; PR tự merge khi CI pass. Nếu nhánh bị lùi so với `main` (item khác merge trước), chạy `gh pr update-branch` một lần rồi bật lại auto-merge, cũng không đợi.
 
 ## Cách làm việc với Claude Code
 - Luồng chuẩn: `/spec <ID>` → người duyệt → `/implement <ID>` → `/review` → `/ship`. Chi tiết: `docs/process/WORKFLOW.md`.

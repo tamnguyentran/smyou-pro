@@ -18,5 +18,7 @@ argument-hint: <backlog-ID>
    - Review resolutions summary
    - Screenshots (list of files in `reports/screenshots/`; they are also uploaded as CI artifacts)
    - New assumptions / open questions
-6. If the CI job "Claude PR Review" fails, report it — never re-run it without asking (each run is billed to the owner's API key; one run here cost $3).
-7. Reply with the PR URL and what the owner should look at (checklist in QUALITY_GATES §4).
+6. Immediately arm auto-merge and stop watching: `gh pr merge --auto --merge --delete-branch`. GitHub merges it unattended once required checks pass — do not `gh pr checks`/`gh run watch`/poll CI after this. The gate that matters already ran locally (`make verify`, step 1); remote CI here is a second confirmation, not something to babysit.
+   - If `gh pr merge --auto` reports the branch isn't up to date with `main` (another item merged first), run `gh pr update-branch` once, then re-arm auto-merge the same way. Still do not wait for that rerun — move on right after.
+7. If the CI job "Claude PR Review" fails, report it — never re-run it without asking (each run is billed to the owner's API key; one run here cost $3).
+8. Reply with the PR URL, that auto-merge is armed, and what the owner should look at (checklist in QUALITY_GATES §4) — then move straight to the next backlog item. If a required CI check later fails, that surfaces on its own (PR stays open, auto-merge cancels); handle it when it's noticed, not by waiting now.
