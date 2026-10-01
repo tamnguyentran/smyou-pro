@@ -20,7 +20,7 @@ import {
 } from "../api";
 import { computeLineTotal } from "../pricing";
 import { discountFieldSchema, quantityFieldSchema } from "../schemas";
-import type { RunOrderWrite } from "./writeQueue";
+import { isStaleAfterSubmit, type RunOrderWrite } from "./writeQueue";
 import { VatChipField } from "./VatChipField";
 
 /** Which route family a line write goes to — "draft" (M3-02a, `.../lines*`) or "after-submit"
@@ -131,13 +131,8 @@ function OrderLineRow({
       }),
     ).catch((err: unknown) => {
       setDraft(toDraft(serverSnapshot));
-      if (
-        lineEndpoint === "after-submit" &&
-        onStaleVersion &&
-        err instanceof ApiError &&
-        err.problem.code === "STALE_VERSION"
-      ) {
-        onStaleVersion();
+      if (isStaleAfterSubmit(err, lineEndpoint, onStaleVersion)) {
+        onStaleVersion?.();
         return;
       }
       setRowError(describeError(err));
@@ -321,13 +316,8 @@ function OrderLineRow({
               })
               .catch((err: unknown) => {
                 setConfirmOpen(false);
-                if (
-                  lineEndpoint === "after-submit" &&
-                  onStaleVersion &&
-                  err instanceof ApiError &&
-                  err.problem.code === "STALE_VERSION"
-                ) {
-                  onStaleVersion();
+                if (isStaleAfterSubmit(err, lineEndpoint, onStaleVersion)) {
+                  onStaleVersion?.();
                   return;
                 }
                 setRowError(describeError(err));

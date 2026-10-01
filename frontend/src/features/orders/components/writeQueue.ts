@@ -1,8 +1,26 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
+import { ApiError } from "../../auth/errors";
 import { ORDER_KEY, type Order } from "../api";
 
 export type RunOrderWrite = (task: (current: Order) => Promise<Order>) => Promise<Order>;
+
+/** AC-ORD-102/103: a STALE_VERSION on an after-submit line/add-line write defers to the caller's
+ * own tab-level banner (`onStaleVersion`) instead of the local sheet/row error state — but only
+ * when the caller actually wired a banner up, and only in post-submit mode (draft-mode callers
+ * never pass `onStaleVersion`). */
+export function isStaleAfterSubmit(
+  err: unknown,
+  lineEndpoint: "draft" | "after-submit" | undefined,
+  onStaleVersion: (() => void) | undefined,
+): boolean {
+  return (
+    lineEndpoint === "after-submit" &&
+    Boolean(onStaleVersion) &&
+    err instanceof ApiError &&
+    err.problem.code === "STALE_VERSION"
+  );
+}
 
 /** Serializes every write against one order — create, Section 1 save, add/update/remove line — so a
  * row edit's PATCH and "Lưu nháp" (or another row edit) can never race on the same optimistic-

@@ -19,7 +19,7 @@ import { useAddLine, useAddLineAfterSubmit, type OrderLineCreateBody } from "../
 import { fieldErrors } from "../errors";
 import { customLineSchema, type CustomLineFormValues } from "../schemas";
 import type { LineEndpoint } from "./OrderLinesSection";
-import type { RunOrderWrite } from "./writeQueue";
+import { isStaleAfterSubmit, type RunOrderWrite } from "./writeQueue";
 import { VatChipField } from "./VatChipField";
 
 // Fields CustomLineForm actually renders a server error under — anything else (or a fieldless error
@@ -224,15 +224,6 @@ export function AddLineSheet({
   const addLineAfterSubmit = useAddLineAfterSubmit();
   const addLine = lineEndpoint === "after-submit" ? addLineAfterSubmit : addLineDraft;
 
-  function isStaleAfterSubmit(err: unknown): boolean {
-    return (
-      lineEndpoint === "after-submit" &&
-      Boolean(onStaleVersion) &&
-      err instanceof ApiError &&
-      err.problem.code === "STALE_VERSION"
-    );
-  }
-
   async function addCatalogLine(body: Omit<OrderLineCreateBody, "version">) {
     setError(null);
     try {
@@ -241,7 +232,7 @@ export function AddLineSheet({
       );
       onClose();
     } catch (err) {
-      if (isStaleAfterSubmit(err)) {
+      if (isStaleAfterSubmit(err, lineEndpoint, onStaleVersion)) {
         onStaleVersion?.();
         onClose();
         return;
@@ -273,7 +264,7 @@ export function AddLineSheet({
       );
       onClose();
     } catch (err) {
-      if (isStaleAfterSubmit(err)) {
+      if (isStaleAfterSubmit(err, lineEndpoint, onStaleVersion)) {
         onStaleVersion?.();
         onClose();
         return;
