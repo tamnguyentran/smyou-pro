@@ -28,6 +28,12 @@ async function evidence(
   { checkOverflow = false }: { checkOverflow?: boolean } = {},
 ) {
   await page.evaluate(() => document.fonts.ready);
+  // A tab switch right before this call (AC-ORD-098) still has the just-deselected tab's
+  // `transition duration-200` color/background mid-flight — axe can sample that interpolated
+  // frame and flag a false color-contrast violation that neither the before nor after state has.
+  await page.evaluate(() =>
+    Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))),
+  );
   const results = await new AxeBuilder({ page }).analyze();
   expect(
     results.violations
