@@ -48,7 +48,8 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [x] **M3-06 Component `ChipGroup` cho bộ lọc trạng thái**: thay `<Select>` lọc trạng thái ở `OrdersListPage` bằng `ChipGroup`, đúng mô tả UI_GUIDELINES §6 / AC-ORD-069 "chip lọc trạng thái". Phát hiện ở `/review` M3-03b (`reports/review-M3-03b.md`). Spec `M3-06-order-status-chip-filter.md`. `make verify` xanh (`reports/verification.md`).
 
 ## M4 — Điều phối (QLKT)
-- [ ] **M4-01 Hàng đợi đơn chờ điều phối + tạo task + giao nhiều KTV** (đơn → IN_PROGRESS).
+- [~] **M4-01a Hàng đợi điều phối + tạo task + giao nhiều KTV — API**: bảng `tasks`/`assignments`, 5 guard đang treo (`order_in_dispatchable_state`/`at_least_one_assignee`/`assignees_are_active_technicians`/`estimated_hours_positive`/`due_at_not_in_past`), lệnh tạo task (đơn → IN_PROGRESS khi là task đầu tiên), `GET /orders/{id}/tasks`, `GET /orders?sort=dispatch`, badge `pending_dispatch_count`. Spec `M4-01a-dispatch-task-create-api.md`. Q59, Q60, Q61, Q62, Q63.
+- [ ] **M4-01b Hàng đợi điều phối + tạo task + giao nhiều KTV — giao diện**: trang `/dispatch/queue` (sắp theo ưu tiên + ngày hẹn), panel/form tạo task nhiều người giao, tab "Đầu việc" trên trang chi tiết đơn. Spec `M4-01b-dispatch-task-create-ui.md` (chưa viết — sau khi M4-01a Approved).
 - [ ] **M4-02 Sửa task, thêm/gỡ người, huỷ task**; trạng thái task suy ra; NEEDS_ASSIGNEE.
 - [ ] **M4-03 Bảng đầu việc** (Kanban desktop / danh sách mobile, lọc theo KTV/hạn/ưu tiên).
 - [ ] **M4-04 Lịch & tải việc** theo nhân viên.
