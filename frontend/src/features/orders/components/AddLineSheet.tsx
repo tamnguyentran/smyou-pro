@@ -15,10 +15,11 @@ import { productImageUrl, useProducts, type Product } from "../../products/api";
 import { ProductImage } from "../../products/components/ProductList";
 import { useServices, type Service } from "../../services/api";
 import { UNIT_LABELS, UNIT_ORDER } from "../../services/schemas";
-import { useAddLine, type OrderLineCreateBody } from "../api";
+import { useAddLine, useAddLineAfterSubmit, type OrderLineCreateBody } from "../api";
 import { fieldErrors } from "../errors";
 import { customLineSchema, type CustomLineFormValues } from "../schemas";
-import type { RunOrderWrite } from "./writeQueue";
+import type { LineEndpoint } from "./OrderLinesSection";
+import { isStaleAfterSubmit, type RunOrderWrite } from "./writeQueue";
 import { VatChipField } from "./VatChipField";
 
 // Fields CustomLineForm actually renders a server error under — anything else (or a fieldless error
@@ -206,14 +207,22 @@ function CustomLineForm({
 export function AddLineSheet({
   onClose,
   runOrderWrite,
+  lineEndpoint = "draft",
+  onStaleVersion,
 }: {
   onClose: () => void;
   runOrderWrite: RunOrderWrite;
+  lineEndpoint?: LineEndpoint;
+  /** AC-ORD-102/103: when given (post-submit mode), a STALE_VERSION closes this sheet and defers to
+   * the caller's own tab-level banner instead of this sheet's local error state. */
+  onStaleVersion?: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("PRODUCT");
   const [error, setError] = useState<string | null>(null);
   const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
-  const addLine = useAddLine();
+  const addLineDraft = useAddLine();
+  const addLineAfterSubmit = useAddLineAfterSubmit();
+  const addLine = lineEndpoint === "after-submit" ? addLineAfterSubmit : addLineDraft;
 
   async function addCatalogLine(body: Omit<OrderLineCreateBody, "version">) {
     setError(null);
@@ -223,6 +232,11 @@ export function AddLineSheet({
       );
       onClose();
     } catch (err) {
+      if (isStaleAfterSubmit(err, lineEndpoint, onStaleVersion)) {
+        onStaleVersion?.();
+        onClose();
+        return;
+      }
       setError(err instanceof ApiError ? (err.problem.detail ?? null) : null);
       if (!(err instanceof ApiError)) setError("Không thực hiện được. Vui lòng thử lại.");
     }
@@ -250,6 +264,11 @@ export function AddLineSheet({
       );
       onClose();
     } catch (err) {
+      if (isStaleAfterSubmit(err, lineEndpoint, onStaleVersion)) {
+        onStaleVersion?.();
+        onClose();
+        return;
+      }
       if (err instanceof ApiError) setServerErrors(fieldErrors(err));
       setError(formError(err, CUSTOM_SHOWN_FIELDS));
     }

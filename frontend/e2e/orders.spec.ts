@@ -28,6 +28,12 @@ async function evidence(
   { checkOverflow = false }: { checkOverflow?: boolean } = {},
 ) {
   await page.evaluate(() => document.fonts.ready);
+  // A tab switch right before this call (AC-ORD-098) still has the just-deselected tab's
+  // `transition duration-200` color/background mid-flight — axe can sample that interpolated
+  // frame and flag a false color-contrast violation that neither the before nor after state has.
+  await page.evaluate(() =>
+    Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))),
+  );
   const results = await new AxeBuilder({ page }).analyze();
   expect(
     results.violations
@@ -139,7 +145,7 @@ test("AC-ORD-037 Hà (SALE khác) chỉ xem đơn của Hoa; An (MANAGER) sửa 
   await expect(page.getByRole("button", { name: "Lưu nháp" })).toBeVisible();
 });
 
-test("AC-ORD-061 AC-ORD-064 AC-ORD-065 AC-ORD-067 AC-ORD-071 @a11y @screenshot gửi đơn, xem chi tiết, thu hồi, gửi lại, lịch sử, bố cục", async ({
+test("AC-ORD-061 AC-ORD-064 AC-ORD-065 AC-ORD-067 AC-ORD-071 AC-ORD-093 AC-ORD-098 AC-ORD-100 AC-ORD-105 @a11y @screenshot gửi đơn, xem chi tiết, thu hồi, gửi lại, lịch sử, bố cục", async ({
   page,
 }, info) => {
   await signIn(page, SALE);
@@ -177,6 +183,42 @@ test("AC-ORD-061 AC-ORD-064 AC-ORD-065 AC-ORD-067 AC-ORD-071 @a11y @screenshot g
   } else {
     expect(actionsClass).toMatch(/lg:static/);
   }
+
+  // AC-ORD-093/AC-ORD-105: sửa liên hệ ngay trên trang chi tiết (bottom sheet mobile/modal desktop).
+  // No `checkOverflow` here: that option resizes the viewport mid-test, and doing so while this
+  // Sheet is open isn't needed — AC-ORD-071 already proves the page has no horizontal scroll, and
+  // the Sheet's own mobile/desktop shape is captured by this screenshot at the project's own fixed
+  // viewport (this spec runs once per project: 390px mobile, 1440px desktop).
+  await page.getByRole("button", { name: "Sửa liên hệ" }).click();
+  const contactSheet = page.getByRole("dialog", { name: "Sửa liên hệ" });
+  await contactSheet.getByLabel("Số điện thoại").fill("0988777666");
+  await evidence(page, info, "order-edit-contact.png");
+  await contactSheet.getByRole("button", { name: "Lưu" }).click();
+  await expect(page.getByText("Đã cập nhật liên hệ.")).toBeVisible();
+  await expect(page.getByText("0988777666")).toBeVisible();
+
+  // AC-ORD-098/AC-ORD-100: thêm rồi xoá 1 dòng sau khi gửi (cùng AddLineSheet của DraftOrderForm).
+  // Dùng dịch vụ (không phải sản phẩm) — "Hộp mực Canon E2E" (sản phẩm thứ 2 được seed) có
+  // `is_active=false` nên không bao giờ hiện trong tìm kiếm (ProductPicker lọc is_active=true).
+  await page.getByRole("tab", { name: "Dòng hàng" }).click();
+  await page.getByRole("button", { name: "Thêm dòng hàng" }).click();
+  const addLineSheet = page.getByRole("dialog", { name: "Thêm dòng hàng" });
+  await addLineSheet.getByRole("tab", { name: "Dịch vụ" }).click();
+  await addLineSheet.getByLabel("Tìm dịch vụ").fill("camera");
+  await evidence(page, info, "order-add-line-after-submit.png");
+  await addLineSheet.getByRole("button", { name: /Lắp đặt camera E2E/ }).click();
+  await expect(page.getByText("Lắp đặt camera E2E")).toBeVisible();
+  const newLineRow = page.locator('[data-testid^="order-line-"]', {
+    hasText: "Lắp đặt camera E2E",
+  });
+  await newLineRow.getByRole("button", { name: /Xoá dòng/ }).click();
+  await page
+    .getByRole("dialog", { name: "Xoá dòng hàng" })
+    .getByRole("button", { name: "Xoá" })
+    .click();
+  await expect(page.getByText("Đã xoá dòng hàng.")).toBeVisible();
+  await expect(page.getByText("Lắp đặt camera E2E")).not.toBeVisible();
+  await page.getByRole("tab", { name: "Thông tin" }).click();
 
   // AC-ORD-065: thu hồi → hiện lại DraftOrderForm
   await page.getByRole("button", { name: "Thu hồi" }).click();

@@ -142,6 +142,17 @@ def _json_safe(value: object) -> object:
     return value
 
 
+def _diff_fields(before: dict[str, object], after: dict[str, object]) -> dict[str, dict[str, object]]:
+    """`{field: {"before", "after"}}` (both `_json_safe`'d) for every key of `before` whose value in
+    `after` actually differs — shared by `update_contact` and `_apply_line_changes` for the M3-04a
+    audit diff; unchanged fields are omitted."""
+    return {
+        field: {"before": _json_safe(old), "after": _json_safe(after[field])}
+        for field, old in before.items()
+        if old != after[field]
+    }
+
+
 def _price_fixed_error() -> AppError:
     return AppError(
         422,
@@ -746,18 +757,20 @@ def _build_line(session: Session, order: Order, body: OrderLineCreate) -> OrderL
     )
 
 
-# Fields `_apply_line_changes` tracks for the M3-04a audit diff — only ones a client can actually
-# send on `OrderLineUpdate`, read from `line` *after* the resolved value lands on it.
+# Fields `_apply_line_changes` tracks for the M3-04a audit diff. Captured for ALL of these
+# regardless of what the client sent on `OrderLineUpdate` — pricing side effects (e.g.
+# `is_gift=True` zeroing `unit_price` in `_resolve_pricing`) must still show up in the diff,
+# since it's money data needed for dispute resolution (spec M3-04a §2/§4, AC-ORD-106).
 _LINE_DIFF_FIELDS = ("quantity", "unit_price", "vat_rate", "is_gift", "line_discount", "note")
 
 
 def _apply_line_changes(line: OrderLine, body: OrderLineUpdate) -> dict[str, dict[str, object]]:
     """Mutates `line` exactly as before this item existed, and additionally returns a
-    `{field: {"before", "after"}}` diff (only fields present in `body` whose value actually
-    changed) — `update_line` (DRAFT) ignores the return value; `update_line_after_submit` (M3-04a)
-    puts it straight into `audit_events.data`."""
+    `{field: {"before", "after"}}` diff (every tracked field whose value actually changed,
+    including side effects of fields the client sent) — `update_line` (DRAFT) ignores the
+    return value; `update_line_after_submit` (M3-04a) puts it straight into `audit_events.data`."""
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
-    before = {field: getattr(line, field) for field in _LINE_DIFF_FIELDS if field in changes}
+    before = {field: getattr(line, field) for field in _LINE_DIFF_FIELDS}
 
     quantity = changes.get("quantity", line.quantity)
     is_gift = changes.get("is_gift", line.is_gift)
@@ -786,11 +799,7 @@ def _apply_line_changes(line: OrderLine, body: OrderLineUpdate) -> dict[str, dic
     if "note" in changes:
         line.note = changes["note"]
 
-    return {
-        field: {"before": _json_safe(old), "after": _json_safe(getattr(line, field))}
-        for field, old in before.items()
-        if old != getattr(line, field)
-    }
+    return _diff_fields(before, {field: getattr(line, field) for field in _LINE_DIFF_FIELDS})
 
 
 def add_line(
@@ -894,17 +903,15 @@ def update_contact(
     _require_editable_after_submit(order)
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
 
-    diff: dict[str, dict[str, object]] = {}
-    for field in CONTACT_FIELDS:
-        if field not in changes:
-            continue
-        value = changes[field]
-        if field in NON_NULL_TEXT_FIELDS and value is None:
-            value = ""
-        before = getattr(order, field)
-        if before != value:
-            diff[field] = {"before": _json_safe(before), "after": _json_safe(value)}
+    sent = {
+        field: ("" if field in NON_NULL_TEXT_FIELDS and changes[field] is None else changes[field])
+        for field in CONTACT_FIELDS
+        if field in changes
+    }
+    before = {field: getattr(order, field) for field in sent}
+    for field, value in sent.items():
         setattr(order, field, value)
+    diff = _diff_fields(before, sent)
 
     _bump(order)
     session.flush()

@@ -8,11 +8,14 @@ import { cn } from "../../../lib/cn";
 import { ApiError } from "../../auth/errors";
 import { useCancelOrder, useRecallOrder, type Order, type OrderCancelBody } from "../api";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, type OrderStatus } from "../orderStatus";
+import { AddLineSheet } from "./AddLineSheet";
 import { CancelOrderSheet } from "./CancelOrderSheet";
+import { EditContactSheet } from "./EditContactSheet";
 import { OrderHistoryTab } from "./OrderHistoryTab";
 import { OrderInfoTab } from "./OrderInfoTab";
 import { OrderLinesSection } from "./OrderLinesSection";
 import { OrderTotalsSection } from "./OrderTotalsSection";
+import type { RunOrderWrite } from "./writeQueue";
 
 const TABS = [
   { id: "info", label: "Thông tin" },
@@ -27,10 +30,20 @@ function describeError(err: unknown): string {
     : "Không thực hiện được. Vui lòng thử lại.";
 }
 
-/** `/orders/:id` khi `status != DRAFT` (spec §6) — chỉ đọc, hành động theo `allowed_commands`.
- * `onReload` re-fetches the order from the parent's query (AC-ORD-070's "Tải lại" after a
- * STALE_VERSION cancel). */
-export function OrderDetailTabs({ order, onReload }: { order: Order; onReload: () => void }) {
+/** `/orders/:id` khi `status != DRAFT` (spec §6) — chỉ đọc trừ khi `can_edit_contact`/
+ * `can_edit_lines_after_submit` (M3-04b), hành động theo `allowed_commands`. `onReload` re-fetches
+ * the order from the parent's query (AC-ORD-070's "Tải lại" after a STALE_VERSION cancel);
+ * `runWrite` is the same per-order write queue `DraftOrderForm` already owns (writeQueue.ts) — reused
+ * here instead of a second queue, so a contact/line edit can never race the order's `version`. */
+export function OrderDetailTabs({
+  order,
+  onReload,
+  runWrite,
+}: {
+  order: Order;
+  onReload: () => void;
+  runWrite: RunOrderWrite;
+}) {
   const toast = useToast();
   const [tab, setTab] = useState<TabId>("info");
   const [recallOpen, setRecallOpen] = useState(false);
@@ -39,6 +52,9 @@ export function OrderDetailTabs({ order, onReload }: { order: Order; onReload: (
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [cancelStale, setCancelStale] = useState(false);
+  const [editContactOpen, setEditContactOpen] = useState(false);
+  const [addLineOpen, setAddLineOpen] = useState(false);
+  const [linesStale, setLinesStale] = useState(false);
   const recallOrder = useRecallOrder();
   const cancelOrder = useCancelOrder();
 
@@ -98,6 +114,21 @@ export function OrderDetailTabs({ order, onReload }: { order: Order; onReload: (
             variant="secondary"
             onClick={() => {
               setRecallStale(false);
+              onReload();
+            }}
+          >
+            Tải lại
+          </Button>
+        </div>
+      ) : null}
+      {linesStale ? (
+        <div className="space-y-2">
+          <Alert>Thông tin đã bị người khác thay đổi. Vui lòng tải lại.</Alert>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setLinesStale(false);
               onReload();
             }}
           >
@@ -167,16 +198,31 @@ export function OrderDetailTabs({ order, onReload }: { order: Order; onReload: (
       </div>
 
       <div role="tabpanel">
-        {tab === "info" ? <OrderInfoTab order={order} /> : null}
+        {tab === "info" ? (
+          <OrderInfoTab
+            order={order}
+            onEditContact={
+              order.can_edit_contact
+                ? () => {
+                    setEditContactOpen(true);
+                  }
+                : undefined
+            }
+          />
+        ) : null}
         {tab === "lines" ? (
           <div className="space-y-4">
             <OrderLinesSection
               order={order}
-              canEdit={false}
+              canEdit={order.can_edit_lines_after_submit}
+              lineEndpoint="after-submit"
               onAddLine={() => {
-                // no-op: read-only tab, "Thêm dòng hàng" is never rendered when canEdit is false
+                setAddLineOpen(true);
               }}
-              runWrite={() => Promise.reject(new Error("Chế độ chỉ đọc."))}
+              runWrite={runWrite}
+              onStaleVersion={() => {
+                setLinesStale(true);
+              }}
             />
             <OrderTotalsSection order={order} />
           </div>
@@ -213,6 +259,31 @@ export function OrderDetailTabs({ order, onReload }: { order: Order; onReload: (
         }}
         onConfirm={submitCancel}
       />
+      {editContactOpen ? (
+        <EditContactSheet
+          order={order}
+          onClose={() => {
+            setEditContactOpen(false);
+          }}
+          onReload={() => {
+            setEditContactOpen(false);
+            onReload();
+          }}
+          runWrite={runWrite}
+        />
+      ) : null}
+      {addLineOpen ? (
+        <AddLineSheet
+          onClose={() => {
+            setAddLineOpen(false);
+          }}
+          runOrderWrite={runWrite}
+          lineEndpoint="after-submit"
+          onStaleVersion={() => {
+            setLinesStale(true);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
