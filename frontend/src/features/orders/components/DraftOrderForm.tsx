@@ -2,8 +2,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { usePageTitle } from "../../../app/shell/pageTitle";
+import { NotFoundPage } from "../../../app/shell/StatusPage";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { ChipGroup } from "../../../components/ui/Chip";
@@ -16,7 +17,15 @@ import { formatCurrency } from "../../../lib/format";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
 import { ApiError } from "../../auth/errors";
 import { useMe } from "../../me/api";
-import { useCreateOrder, useOrder, useUpdateOrder, type Order, type OrderCreateBody } from "../api";
+import {
+  useCancelOrder,
+  useCreateOrder,
+  useOrder,
+  useSubmitOrder,
+  useUpdateOrder,
+  type Order,
+  type OrderCreateBody,
+} from "../api";
 import {
   DIVISION_LABELS,
   DIVISION_ORDER,
@@ -28,9 +37,12 @@ import {
   type Priority,
 } from "../schemas";
 import { AddLineSheet } from "./AddLineSheet";
+import { CancelOrderSheet } from "./CancelOrderSheet";
 import { CustomerPicker } from "./CustomerPicker";
+import { OrderDetailTabs } from "./OrderDetailTabs";
 import { OrderLinesSection } from "./OrderLinesSection";
 import { OrderTotalsSection } from "./OrderTotalsSection";
+import { ReadOnlyField } from "./ReadOnlyField";
 import { useOrderWriteQueue } from "./writeQueue";
 
 // Matches Tailwind's `lg:` breakpoint (and AppShell's own desktop/mobile split) — AC-ORD-038's
@@ -76,15 +88,6 @@ function buildOrderFields(values: OrderInfoFormValues): Omit<OrderCreateBody, "p
   };
 }
 
-function ReadOnlyField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="space-y-1">
-      <p className="text-sm font-medium text-muted">{label}</p>
-      <p className="text-body">{value || "—"}</p>
-    </div>
-  );
-}
-
 function Waiting() {
   return (
     <div
@@ -113,6 +116,8 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
   const order = orderQuery.data;
   const createOrder = useCreateOrder();
   const updateOrder = useUpdateOrder();
+  const submitOrder = useSubmitOrder();
+  const cancelOrder = useCancelOrder();
   // Serializes this save against every line edit (see writeQueue.ts) — a "Giảm giá" blur and "Lưu
   // nháp" both PATCH with the order's current `version`, and firing both at once would make
   // whichever lands second fail with a spurious STALE_VERSION, since it wasn't really a different actor.
@@ -122,6 +127,11 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
   const [reloadConfirmOpen, setReloadConfirmOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [addLineOpen, setAddLineOpen] = useState(false);
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [cancelStale, setCancelStale] = useState(false);
   // AC-ORD-038: on mobile, Section 1 collapses into an accordion (never "Dòng hàng"). Open by
   // default when starting a brand-new order (there's nothing to collapse yet); collapsed by default
   // when reopening an already-saved one, since the focus there is usually "Dòng hàng". Keyed off the
@@ -198,25 +208,71 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
     setReloadConfirmOpen(false);
   }
 
+  /** AC-ORD-061/062: submit guard failures stay on this form as a banner (order data untouched). */
+  function doSubmit() {
+    if (!order) return;
+    setSubmitError(null);
+    submitOrder.mutate(
+      { id: order.id, version: order.version },
+      {
+        onSuccess: (updated) => {
+          setSubmitOpen(false);
+          toast(`Đã gửi đơn ${updated.code}.`);
+        },
+        onError: (err: unknown) => {
+          setSubmitOpen(false);
+          if (err instanceof ApiError && err.problem.code === "STALE_VERSION") {
+            setStaleVersion(true);
+          } else {
+            setSubmitError(
+              err instanceof ApiError && err.problem.detail
+                ? err.problem.detail
+                : "Không thực hiện được. Vui lòng thử lại.",
+            );
+          }
+        },
+      },
+    );
+  }
+
+  /** AC-ORD-063: huỷ đơn nháp — điều hướng về /orders sau khi thành công. */
+  function doCancel(reason: string) {
+    if (!order) return;
+    setCancelError(null);
+    cancelOrder.mutate(
+      { id: order.id, body: { version: order.version, reason } },
+      {
+        onSuccess: (updated) => {
+          setCancelOpen(false);
+          toast(`Đã huỷ đơn ${updated.code}.`);
+          void navigate("/orders");
+        },
+        onError: (err: unknown) => {
+          if (err instanceof ApiError && err.problem.code === "STALE_VERSION") {
+            setCancelStale(true);
+          } else {
+            setCancelError(
+              err instanceof ApiError && err.problem.detail
+                ? err.problem.detail
+                : "Không thực hiện được. Vui lòng thử lại.",
+            );
+          }
+        },
+      },
+    );
+  }
+
   if (id && orderQuery.isPending) return <Waiting />;
   if (id && orderQuery.isError) {
+    // AC-ORD-068: out-of-scope (e.g. a TECHNICIAN with no assignment) gets a plain 404 from the API.
+    if (orderQuery.error instanceof ApiError && orderQuery.error.problem.status === 404) {
+      return <NotFoundPage />;
+    }
     return <p className="text-sm text-body">Không tải được đơn hàng.</p>;
   }
 
   if (order && order.status !== "DRAFT") {
-    return (
-      <section className="flex flex-col items-center gap-4 py-16 text-center">
-        <p className="text-sm leading-relaxed text-body">
-          Đơn {order.code} đã được gửi, không thể sửa ở đây.
-        </p>
-        <Link
-          to="/"
-          className="inline-flex min-h-11 items-center rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition duration-200 hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-        >
-          Về Tổng quan
-        </Link>
-      </section>
-    );
+    return <OrderDetailTabs order={order} onReload={() => void orderQuery.refetch()} />;
   }
 
   const scopes = me.data?.capabilities["order.edit_draft"] ?? [];
@@ -238,6 +294,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
         className="space-y-6 lg:col-start-1 lg:row-start-1"
       >
         {formError ? <Alert>{formError}</Alert> : null}
+        {submitError ? <Alert>{submitError}</Alert> : null}
         {staleVersion ? (
           <div className="space-y-2">
             <Alert>Thông tin đã bị người khác thay đổi. Vui lòng tải lại.</Alert>
@@ -369,7 +426,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
           // bottom-16, not bottom-0: BottomNav is `fixed bottom-0` too, so bottom-0 here would stack
           // this bar directly on top of it, hiding the nav for the entire scroll range. `pb-24` on
           // the page's Content already reserves this space (UI_GUIDELINES §4) for exactly this.
-          className="sticky bottom-16 z-10 bg-page py-3 lg:static lg:col-span-2 lg:row-start-3 lg:bottom-auto lg:bg-transparent lg:py-0"
+          className="sticky bottom-16 z-10 flex flex-wrap gap-3 bg-page py-3 lg:static lg:col-span-2 lg:row-start-3 lg:bottom-auto lg:bg-transparent lg:py-0"
         >
           <Button
             type="submit"
@@ -378,6 +435,28 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
           >
             Lưu nháp
           </Button>
+          {order?.allowed_commands.includes("submit") ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setSubmitOpen(true);
+              }}
+            >
+              Gửi đơn
+            </Button>
+          ) : null}
+          {order?.allowed_commands.includes("cancel") ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setCancelOpen(true);
+              }}
+            >
+              Huỷ đơn
+            </Button>
+          ) : null}
         </div>
       ) : null}
 
@@ -399,6 +478,38 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
         confirmLabel="Tải lại"
         onConfirm={() => void doReload()}
       />
+      {order ? (
+        <ConfirmDialog
+          open={submitOpen}
+          onClose={() => {
+            setSubmitOpen(false);
+          }}
+          title="Gửi đơn?"
+          message={`Gửi đơn ${order.code} tới Quản lý kỹ thuật?`}
+          confirmLabel="Gửi đơn"
+          loading={submitOrder.isPending}
+          onConfirm={doSubmit}
+        />
+      ) : null}
+      {order ? (
+        <CancelOrderSheet
+          open={cancelOpen}
+          onClose={() => {
+            setCancelOpen(false);
+            setCancelError(null);
+          }}
+          orderCode={order.code}
+          loading={cancelOrder.isPending}
+          error={cancelError}
+          staleVersion={cancelStale}
+          onReload={() => {
+            setCancelStale(false);
+            setCancelOpen(false);
+            void orderQuery.refetch();
+          }}
+          onConfirm={doCancel}
+        />
+      ) : null}
     </div>
   );
 }

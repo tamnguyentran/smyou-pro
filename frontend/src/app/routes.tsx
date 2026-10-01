@@ -8,6 +8,7 @@ import { EmployeesPage } from "../features/employees/pages/EmployeesPage";
 import { HomeRoute } from "../features/home/pages/HomeRoute";
 import { NotificationsPage } from "../features/notifications/pages/NotificationsPage";
 import { DraftOrderPage } from "../features/orders/pages/DraftOrderPage";
+import { OrdersListPage } from "../features/orders/pages/OrdersListPage";
 import { ProductsPage } from "../features/products/pages/ProductsPage";
 import { ProfilePage } from "../features/profile/pages/ProfilePage";
 import { ServicesPage } from "../features/services/pages/ServicesPage";
@@ -26,7 +27,8 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/customers" is real (M3-01) and checks customer.read itself — narrower than the menu entry's
 // customer.manage (AC-CUS-012: TECH_LEAD reads it without seeing the "Khách hàng" menu item).
 // "/orders/new" is real (M3-02b) and checks order.create itself, same shape as the menu entry.
-// "/orders" (list) stays a placeholder — no list endpoint until M3-03.
+// "/orders" (list) is real (M3-03b) and checks order.read itself — narrower than the menu entry's
+// order.create (Q56: TECH_LEAD reads it via direct URL without seeing the "Đơn hàng" menu item).
 const REAL_PAGES = new Set([
   "/",
   "/employees",
@@ -35,6 +37,7 @@ const REAL_PAGES = new Set([
   "/catalog/services",
   "/customers",
   "/orders/new",
+  "/orders",
 ]);
 const menuRoutes: RouteObject[] = menuPages()
   .filter(({ item }) => !REAL_PAGES.has(item.path ?? ""))
@@ -74,6 +77,7 @@ export const routes: RouteObject[] = [
       { path: "/catalog/products", element: <ProductsPage /> },
       { path: "/catalog/services", element: <ServicesPage /> },
       { path: "/customers", element: <CustomersPage /> },
+      { path: "/orders", element: <OrdersListPage /> },
       // One route object (not two) for "/orders/new" and "/orders/:id": creating the first line
       // silently saves the draft and navigate()s from "new" to the real id — same route match, same
       // DraftOrderPage instance, so that in-flight state (the open add-line Sheet) survives the URL

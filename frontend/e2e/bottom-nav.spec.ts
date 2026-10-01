@@ -77,11 +77,11 @@ for (const role of Object.keys(ACCOUNTS) as Role[]) {
 }
 
 test("AC-SYS-048 ô đang chọn và nội dung không bị che", async ({ page }, info) => {
-  await signIn(page, "sale", "/orders");
+  await signIn(page, "technician", "/my-tasks");
   await expect(page.getByText("Tính năng đang được phát triển.")).toBeVisible();
   if (isMobile(info)) {
     const nav = page.getByRole("navigation", { name: "Điều hướng nhanh" });
-    await expect(nav.getByRole("link", { name: "Đơn hàng" })).toHaveAttribute(
+    await expect(nav.getByRole("link", { name: "Việc của tôi" })).toHaveAttribute(
       "aria-current",
       "page",
     );

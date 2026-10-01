@@ -4,6 +4,8 @@ export interface Problem {
   code?: string;
   detail?: string;
   errors?: { field: string; code?: string; message?: string }[];
+  /** Set on 409 GUARD_FAILED — the guard that blocked the command (workflow/guards.py). */
+  guard?: string;
 }
 
 export class ApiError extends Error {
