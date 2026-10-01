@@ -1,6 +1,6 @@
 # M3-03b — Gửi/thu hồi/huỷ đơn + danh sách/chi tiết: Giao diện
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M3-03b (tách từ M3-03) · **Milestone:** M3
 - **Liên quan:** `M3-03a-order-transitions-api.md` (API dùng ở item này: `submit`/`recall`/`cancel`, `GET /orders`, `GET /orders/{id}` + `allowed_commands`, `GET /orders/{id}/history`); `M3-02b-draft-orders-ui.md` (`DraftOrderForm` ở `/orders/new`/`/orders/:id` khi `DRAFT` — item này thêm nút "Gửi đơn"/"Huỷ đơn" vào đó và thay hẳn placeholder "Đơn đã được gửi, không thể sửa ở đây." bằng trang chi tiết thật khi `status != DRAFT`); `docs/design/UI_GUIDELINES.md` §5 hàng "Chi tiết đơn" (header + tab Thông tin·Dòng hàng·Lịch sử ở item này — Đầu việc/Tệp đính kèm để M4/M6) + §6 (`ConfirmDialog` cho hành động phá huỷ, toast, empty state); `spec/permissions.yaml` menu `orders` (`Danh sách đơn`, path `/orders`, kế thừa capability `order.create` của mục cha "Đơn hàng")
 
