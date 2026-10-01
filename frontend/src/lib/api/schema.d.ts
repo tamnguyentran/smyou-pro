@@ -503,6 +503,24 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/orders/{order_id}/tasks": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách đầu việc của đơn */
+    get: operations["orders_tasks_list"];
+    put?: never;
+    /** Tạo đầu việc, giao cho một hoặc nhiều kỹ thuật viên */
+    post: operations["orders_tasks_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/products": {
     parameters: {
       query?: never;
@@ -1055,7 +1073,7 @@ export interface components {
      * EntityType
      * @enum {string}
      */
-    EntityType: "EMPLOYEE" | "PRODUCT" | "SERVICE" | "CUSTOMER" | "ORDER";
+    EntityType: "EMPLOYEE" | "PRODUCT" | "SERVICE" | "CUSTOMER" | "ORDER" | "TASK";
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -1701,6 +1719,134 @@ export interface components {
       vat_rate?: number | string | null;
       /** Version */
       version: number;
+    };
+    /** TaskAssigneeOut */
+    TaskAssigneeOut: {
+      /**
+       * Employee Id
+       * Format: uuid
+       */
+      employee_id: string;
+      /** Full Name */
+      full_name: string;
+      /** Status */
+      status: string;
+    };
+    /** TaskCreate */
+    TaskCreate: {
+      /** Assignee Ids */
+      assignee_ids: string[];
+      /** Description */
+      description?: string | null;
+      /**
+       * Due At
+       * Format: date-time
+       */
+      due_at: string;
+      /** Estimated Hours */
+      estimated_hours: number | string;
+      /** Order Line Ids */
+      order_line_ids?: string[] | null;
+      /** Priority */
+      priority?: ("LOW" | "NORMAL" | "HIGH" | "URGENT") | null;
+      /** Title */
+      title: string;
+      /** Version */
+      version: number;
+    };
+    /** TaskDetail */
+    TaskDetail: {
+      /** Assignees */
+      assignees: components["schemas"]["TaskAssigneeOut"][];
+      /** Code */
+      code: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Created By
+       * Format: uuid
+       */
+      created_by: string;
+      /** Created In Revision */
+      created_in_revision: number;
+      /** Cycle */
+      cycle: number;
+      /** Description */
+      description: string | null;
+      /**
+       * Due At
+       * Format: date-time
+       */
+      due_at: string;
+      /** Estimated Hours */
+      estimated_hours: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Order Id
+       * Format: uuid
+       */
+      order_id: string;
+      /** Order Line Ids */
+      order_line_ids: string[] | null;
+      /** Order Status */
+      order_status: string;
+      /** Order Version */
+      order_version: number;
+      /** Origin */
+      origin: string;
+      /** Priority */
+      priority: string;
+      /** Status */
+      status: string;
+      /** Title */
+      title: string;
+    };
+    /** TaskListOut */
+    TaskListOut: {
+      /** Items */
+      items: components["schemas"]["TaskSummary"][];
+    };
+    /** TaskSummary */
+    TaskSummary: {
+      /** Assignees */
+      assignees: components["schemas"]["TaskSummaryAssigneeOut"][];
+      /** Code */
+      code: string;
+      /**
+       * Due At
+       * Format: date-time
+       */
+      due_at: string;
+      /** Estimated Hours */
+      estimated_hours: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Priority */
+      priority: string;
+      /** Status */
+      status: string;
+      /** Title */
+      title: string;
+    };
+    /** TaskSummaryAssigneeOut */
+    TaskSummaryAssigneeOut: {
+      /**
+       * Employee Id
+       * Format: uuid
+       */
+      employee_id: string;
+      /** Full Name */
+      full_name: string;
     };
     /** ValidationError */
     ValidationError: {
@@ -2533,6 +2679,7 @@ export interface operations {
               | "CANCELLED"
             )
           | null;
+        sort?: "created_at_desc" | "dispatch";
         limit?: number;
         offset?: number;
       };
@@ -3200,6 +3347,93 @@ export interface operations {
         content?: never;
       };
       /** @description problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_tasks_list: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskListOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_tasks_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | GUARD_FAILED */
       409: {
         headers: {
           [name: string]: unknown;
