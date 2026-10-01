@@ -33,11 +33,18 @@ export function OrderList({ items }: { items: OrderSummary[] }) {
           {items.map((order) => {
             const status = order.status as OrderStatus;
             return (
-              <tr key={order.id} className="hover:bg-sidebar-sub">
+              <tr
+                key={order.id}
+                className="cursor-pointer hover:bg-sidebar-sub"
+                onClick={() => {
+                  open(order);
+                }}
+              >
                 <td className="px-4 py-3">
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       open(order);
                     }}
                     className={CODE_BUTTON}
