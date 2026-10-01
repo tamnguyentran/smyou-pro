@@ -9,6 +9,7 @@ import { useToast } from "../../components/ui/Toast";
 import { useMediaQuery } from "../../lib/useMediaQuery";
 import { ApiError } from "../auth/errors";
 import {
+  clientFileError,
   ENTITY_CONFIG,
   fileLevelErrorMessage,
   importErrorRows,
@@ -71,6 +72,11 @@ export function CatalogImportSheet({
   const pick = async (candidate: File) => {
     if (!candidate.name.toLowerCase().endsWith(".csv")) {
       setFileError("Chỉ chấp nhận file .csv.");
+      return;
+    }
+    const clientError = await clientFileError(candidate);
+    if (clientError) {
+      setFileError(clientError);
       return;
     }
     setFileError(null);
