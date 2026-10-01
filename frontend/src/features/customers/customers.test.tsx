@@ -182,6 +182,26 @@ describe("AC-CUS-009 danh sách khách hàng", () => {
     await userEvent.setup().click(screen.getByRole("button", { name: "Thử lại" }));
     expect(await screen.findByText("Chưa có khách hàng phù hợp.")).toBeInTheDocument();
   });
+
+  test("AC-CUS-014 bấm ô khác trong hàng (không phải tên) → mở sheet sửa", async () => {
+    mockViewport(true);
+    signedInAs(AN, () => HttpResponse.json(page([KIM_LONG])));
+    renderApp("/customers");
+    await openMenu();
+
+    await userEvent.setup().click(await screen.findByText("0912345678"));
+    expect(await screen.findByRole("dialog", { name: "Sửa khách hàng" })).toBeInTheDocument();
+  });
+
+  test("AC-CUS-015 bấm tên khách hàng vẫn mở sheet sửa (không regression)", async () => {
+    mockViewport(true);
+    signedInAs(AN, () => HttpResponse.json(page([KIM_LONG])));
+    renderApp("/customers");
+    await openMenu();
+
+    await userEvent.setup().click(await screen.findByText("Cty Kim Long"));
+    expect(await screen.findByRole("dialog", { name: "Sửa khách hàng" })).toBeInTheDocument();
+  });
 });
 
 describe("AC-CUS-010 thêm khách hàng", () => {
