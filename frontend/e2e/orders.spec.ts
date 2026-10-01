@@ -266,7 +266,9 @@ test("AC-ORD-063 huỷ đơn nháp", async ({ page }) => {
   await expect(page).toHaveURL(/\/orders$/);
 });
 
-test("AC-ORD-069 @a11y @screenshot danh sách đơn", async ({ page }, info) => {
+test("AC-ORD-069 AC-ORD-110 AC-ORD-113 AC-ORD-114 @a11y @screenshot danh sách đơn, lọc trạng thái bằng chip", async ({
+  page,
+}, info) => {
   await signIn(page, SALE);
   await page.getByLabel("Địa chỉ thi công").fill("56 Lý Tự Trọng, Q1, TP.HCM");
   await page.getByRole("button", { name: "Lưu nháp" }).click();
@@ -275,6 +277,30 @@ test("AC-ORD-069 @a11y @screenshot danh sách đơn", async ({ page }, info) => 
 
   await page.goto("./orders");
   await expect(page.getByRole("heading", { level: 1, name: "Danh sách đơn" })).toBeVisible();
+
+  // AC-ORD-110/AC-ORD-113: nhóm chip trạng thái, đủ 8 chip đúng thứ tự, "Tất cả" đang chọn, vùng chạm ≥44px.
+  const statusGroup = page.getByRole("radiogroup", { name: "Trạng thái" });
+  await expect(statusGroup.getByRole("radio")).toHaveCount(8);
+  const chipLabels = await statusGroup.getByRole("radio").allTextContents();
+  expect(chipLabels).toEqual([
+    "Tất cả",
+    "Nháp",
+    "Chờ điều phối",
+    "Đang thực hiện",
+    "Chờ khách xác nhận",
+    "Hoàn tất",
+    "Chỉnh sửa",
+    "Đã huỷ",
+  ]);
+  await expect(statusGroup.getByRole("radio", { name: "Tất cả" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  const chipBox = await statusGroup.getByRole("radio", { name: "Chờ điều phối" }).boundingBox();
+  expect(chipBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+  // AC-ORD-114: axe 0 serious/critical + ảnh 390px/1440px; checkOverflow chứng minh phần
+  // "chip tự xuống dòng, không cuộn ngang" của AC-ORD-113.
   await evidence(page, info, "order-list.png", { checkOverflow: true });
 
   await page.getByLabel("Tìm kiếm").fill(code);

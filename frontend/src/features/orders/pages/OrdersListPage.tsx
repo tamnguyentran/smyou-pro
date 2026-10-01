@@ -4,9 +4,9 @@ import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
 import { ForbiddenPage } from "../../../app/shell/StatusPage";
 import { Button } from "../../../components/ui/Button";
+import { ChipGroup } from "../../../components/ui/Chip";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { Pagination } from "../../../components/ui/Pagination";
-import { Select } from "../../../components/ui/Select";
 import { TextField } from "../../../components/ui/TextField";
 import { useDebouncedValue } from "../../../lib/useDebouncedValue";
 import { useMe } from "../../me/api";
@@ -71,22 +71,20 @@ export function OrdersListPage() {
             </span>
           }
         />
-        <Select
-          label="Trạng thái"
-          value={status}
-          onChange={(event) => {
-            setStatus(event.target.value);
-            setOffset(0);
-          }}
-        >
-          <option value="">Tất cả</option>
-          {ORDER_STATUS_ORDER.map((value) => (
-            <option key={value} value={value}>
-              {ORDER_STATUS_LABEL[value]}
-            </option>
-          ))}
-        </Select>
       </div>
+
+      <ChipGroup
+        label="Trạng thái"
+        value={status}
+        options={[
+          { value: "", label: "Tất cả" },
+          ...ORDER_STATUS_ORDER.map((value) => ({ value, label: ORDER_STATUS_LABEL[value] })),
+        ]}
+        onChange={(value) => {
+          setStatus(value);
+          setOffset(0);
+        }}
+      />
 
       {orders.isPending ? (
         <Waiting />
