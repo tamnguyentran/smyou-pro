@@ -1,6 +1,6 @@
 # M2-02 — Danh mục dịch vụ
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M2-02 · **Milestone:** M2
 - **Liên quan:** DOMAIN_MODEL §3 (Service); `spec/permissions.yaml` (`catalog.read`: MANAGER/SALE/TECH_LEAD all; `catalog.manage`: MANAGER all; menu `catalog.services` đã khai báo sẵn, icon `Hammer`, path `/catalog/services`); M2-01a/M2-01b (mẫu CRUD danh mục — module `catalog`, cùng khuôn, tái dùng phần lớn code)
 
