@@ -1,6 +1,6 @@
 # M2-03c — Import danh mục từ CSV: kiểm tra kích thước/số dòng ở client
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M2-03c · **Milestone:** M2
 - **Liên quan:** `M2-03b-catalog-import-ui.md` (đã Done — PR #43; AC-CAT-052 hiện test đường server cho `EMPTY_FILE`/`MISSING_COLUMNS`/`TOO_MANY_ROWS`/`INVALID_FILE`/`FILE_TOO_LARGE`); `M2-03a-catalog-import-api.md` (API, mã lỗi); Q58 (`docs/product/OPEN_QUESTIONS.md`)
 
