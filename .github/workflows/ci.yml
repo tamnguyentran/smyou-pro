@@ -14,31 +14,6 @@ env:
   NODE_VERSION: "22"
 
 jobs:
-  changes:
-    # Lets docs-only PRs skip the slow e2e/image jobs below without weakening branch
-    # protection: a job skipped via `if:` still reports a (green) required-check status.
-    runs-on: ubuntu-latest
-    outputs:
-      docs_only: ${{ steps.filter.outputs.docs_only }}
-    steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - id: filter
-        run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "docs_only=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          git fetch --depth=1 origin "$GITHUB_BASE_REF"
-          changed=$(git diff --name-only "origin/$GITHUB_BASE_REF"...HEAD)
-          echo "Changed files:"
-          echo "$changed"
-          if echo "$changed" | grep -vE '^(docs/|\.claude/)' | grep -q .; then
-            echo "docs_only=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "docs_only=true" >> "$GITHUB_OUTPUT"
-          fi
-
   backend:
     runs-on: ubuntu-latest
     services:
@@ -113,8 +88,7 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    needs: [backend, frontend, changes]
-    if: needs.changes.outputs.docs_only != 'true'
+    needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -158,8 +132,7 @@ jobs:
   image:
     # GitHub runners are x86_64 = same arch as AlmaLinux production: catches arch-specific failures.
     runs-on: ubuntu-latest
-    needs: [backend, frontend, changes]
-    if: needs.changes.outputs.docs_only != 'true'
+    needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
