@@ -1546,6 +1546,9 @@ def test_edit_contact_rejects_completed_and_cancelled(
             409,
             "ORDER_LOCKED",
         )
+        refreshed = hoa.get(f"/api/v1/orders/{order_id}").json()
+        assert refreshed["version"] == 1
+        assert refreshed["customer_phone"] != "0988777666"
 
 
 @pytest.mark.ac("AC-ORD-077")
@@ -1786,6 +1789,9 @@ def test_lines_after_submit_rejects_draft(
         409,
         "ORDER_NOT_SUBMITTED",
     )
+    refreshed = hoa.get(f"/api/v1/orders/{order['id']}").json()
+    assert refreshed["version"] == order["version"]
+    assert len(refreshed["lines"]) == len(order["lines"])
 
 
 @pytest.mark.ac("AC-ORD-086")
@@ -1805,6 +1811,9 @@ def test_lines_after_submit_rejects_completed_and_cancelled(
             "vat_rate": "8",
         }
         problem(an.post(f"/api/v1/orders/{order_id}/lines-after-submit", json=add_body), 409, "ORDER_LOCKED")
+        refreshed = an.get(f"/api/v1/orders/{order_id}").json()
+        assert refreshed["version"] == 1
+        assert refreshed["lines"] == []
 
 
 @pytest.mark.ac("AC-ORD-087")
@@ -1851,6 +1860,9 @@ def test_lines_after_submit_stale_version(
         409,
         "STALE_VERSION",
     )
+    refreshed = hoa.get(f"/api/v1/orders/{order['id']}").json()
+    assert refreshed["version"] == order["version"]
+    assert len(refreshed["lines"]) == len(order["lines"])
 
 
 @pytest.mark.ac("AC-ORD-088")
