@@ -139,7 +139,7 @@ test("AC-ORD-037 Hà (SALE khác) chỉ xem đơn của Hoa; An (MANAGER) sửa 
   await expect(page.getByRole("button", { name: "Lưu nháp" })).toBeVisible();
 });
 
-test("AC-ORD-061 AC-ORD-064 AC-ORD-065 AC-ORD-067 AC-ORD-071 @a11y @screenshot gửi đơn, xem chi tiết, thu hồi, gửi lại, lịch sử, bố cục", async ({
+test("AC-ORD-061 AC-ORD-064 AC-ORD-065 AC-ORD-067 AC-ORD-071 AC-ORD-093 AC-ORD-098 AC-ORD-100 AC-ORD-105 @a11y @screenshot gửi đơn, xem chi tiết, thu hồi, gửi lại, lịch sử, bố cục", async ({
   page,
 }, info) => {
   await signIn(page, SALE);
@@ -177,6 +177,35 @@ test("AC-ORD-061 AC-ORD-064 AC-ORD-065 AC-ORD-067 AC-ORD-071 @a11y @screenshot g
   } else {
     expect(actionsClass).toMatch(/lg:static/);
   }
+
+  // AC-ORD-093/AC-ORD-105: sửa liên hệ ngay trên trang chi tiết (bottom sheet mobile/modal desktop)
+  await page.getByRole("button", { name: "Sửa liên hệ" }).click();
+  const contactSheet = page.getByRole("dialog", { name: "Sửa liên hệ" });
+  await contactSheet.getByLabel("Số điện thoại").fill("0988777666");
+  await evidence(page, info, "order-edit-contact.png", { checkOverflow: true });
+  await contactSheet.getByRole("button", { name: "Lưu" }).click();
+  await expect(page.getByText("Đã cập nhật liên hệ.")).toBeVisible();
+  await expect(page.getByText("0988777666")).toBeVisible();
+
+  // AC-ORD-098/AC-ORD-100: thêm rồi xoá 1 dòng sau khi gửi (cùng AddLineSheet của DraftOrderForm)
+  await page.getByRole("tab", { name: "Dòng hàng" }).click();
+  await page.getByRole("button", { name: "Thêm dòng hàng" }).click();
+  const addLineSheet = page.getByRole("dialog", { name: "Thêm dòng hàng" });
+  await addLineSheet.getByLabel("Tìm sản phẩm").fill("canon");
+  await evidence(page, info, "order-add-line-after-submit.png", { checkOverflow: true });
+  await addLineSheet.getByRole("button", { name: /Hộp mực Canon E2E/ }).click();
+  await expect(page.getByText("Hộp mực Canon E2E")).toBeVisible();
+  const newLineRow = page.locator('[data-testid^="order-line-"]', {
+    hasText: "Hộp mực Canon E2E",
+  });
+  await newLineRow.getByRole("button", { name: /Xoá dòng/ }).click();
+  await page
+    .getByRole("dialog", { name: "Xoá dòng hàng" })
+    .getByRole("button", { name: "Xoá" })
+    .click();
+  await expect(page.getByText("Đã xoá dòng hàng.")).toBeVisible();
+  await expect(page.getByText("Hộp mực Canon E2E")).not.toBeVisible();
+  await page.getByRole("tab", { name: "Thông tin" }).click();
 
   // AC-ORD-065: thu hồi → hiện lại DraftOrderForm
   await page.getByRole("button", { name: "Thu hồi" }).click();
