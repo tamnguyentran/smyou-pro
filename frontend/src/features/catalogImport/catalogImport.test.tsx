@@ -345,6 +345,20 @@ describe("AC-CAT-059 file > 2MB", () => {
     await within(dialog).findByText("File vượt quá 2MB.");
     expect(mutateAsync).not.toHaveBeenCalled();
   });
+
+  test("đúng 2MB vẫn gọi API (biên)", async () => {
+    signedInAs(AN);
+    const mutateAsync = vi.fn(() => Promise.resolve(VALID_PREVIEW));
+    stubPreview(mutateAsync);
+    renderApp("/catalog/products");
+    const dialog = await openProductsImport();
+    const exactFile = new File([new Uint8Array(2 * 1024 * 1024)], "exact.csv", {
+      type: "text/csv",
+    });
+    await userEvent.upload(within(dialog).getByLabelText("Chọn file"), exactFile);
+    await within(dialog).findByText("3/3 dòng hợp lệ");
+    expect(mutateAsync).toHaveBeenCalled();
+  });
 });
 
 describe("AC-CAT-060 file > 500 dòng dữ liệu", () => {
@@ -362,6 +376,22 @@ describe("AC-CAT-060 file > 500 dòng dữ liệu", () => {
     await userEvent.upload(within(dialog).getByLabelText("Chọn file"), bigFile);
     await within(dialog).findByText("File có hơn 500 dòng, vui lòng chia nhỏ.");
     expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  test("đúng 500 dòng dữ liệu vẫn gọi API (biên)", async () => {
+    signedInAs(AN);
+    const mutateAsync = vi.fn(() => Promise.resolve(VALID_PREVIEW));
+    stubPreview(mutateAsync);
+    renderApp("/catalog/products");
+    const dialog = await openProductsImport();
+    const header = "sku,name,category,unit,price\n";
+    const rows = Array.from({ length: 500 }, (_, i) => `SKU${String(i)},Name,PC,CAI,1000`).join(
+      "\n",
+    );
+    const exactFile = new File([header + rows], "exact-rows.csv", { type: "text/csv" });
+    await userEvent.upload(within(dialog).getByLabelText("Chọn file"), exactFile);
+    await within(dialog).findByText("3/3 dòng hợp lệ");
+    expect(mutateAsync).toHaveBeenCalled();
   });
 });
 
