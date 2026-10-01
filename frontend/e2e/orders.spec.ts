@@ -178,25 +178,32 @@ test("AC-ORD-061 AC-ORD-064 AC-ORD-065 AC-ORD-067 AC-ORD-071 AC-ORD-093 AC-ORD-0
     expect(actionsClass).toMatch(/lg:static/);
   }
 
-  // AC-ORD-093/AC-ORD-105: sửa liên hệ ngay trên trang chi tiết (bottom sheet mobile/modal desktop)
+  // AC-ORD-093/AC-ORD-105: sửa liên hệ ngay trên trang chi tiết (bottom sheet mobile/modal desktop).
+  // No `checkOverflow` here: that option resizes the viewport mid-test, and doing so while this
+  // Sheet is open isn't needed — AC-ORD-071 already proves the page has no horizontal scroll, and
+  // the Sheet's own mobile/desktop shape is captured by this screenshot at the project's own fixed
+  // viewport (this spec runs once per project: 390px mobile, 1440px desktop).
   await page.getByRole("button", { name: "Sửa liên hệ" }).click();
   const contactSheet = page.getByRole("dialog", { name: "Sửa liên hệ" });
   await contactSheet.getByLabel("Số điện thoại").fill("0988777666");
-  await evidence(page, info, "order-edit-contact.png", { checkOverflow: true });
+  await evidence(page, info, "order-edit-contact.png");
   await contactSheet.getByRole("button", { name: "Lưu" }).click();
   await expect(page.getByText("Đã cập nhật liên hệ.")).toBeVisible();
   await expect(page.getByText("0988777666")).toBeVisible();
 
-  // AC-ORD-098/AC-ORD-100: thêm rồi xoá 1 dòng sau khi gửi (cùng AddLineSheet của DraftOrderForm)
+  // AC-ORD-098/AC-ORD-100: thêm rồi xoá 1 dòng sau khi gửi (cùng AddLineSheet của DraftOrderForm).
+  // Dùng dịch vụ (không phải sản phẩm) — "Hộp mực Canon E2E" (sản phẩm thứ 2 được seed) có
+  // `is_active=false` nên không bao giờ hiện trong tìm kiếm (ProductPicker lọc is_active=true).
   await page.getByRole("tab", { name: "Dòng hàng" }).click();
   await page.getByRole("button", { name: "Thêm dòng hàng" }).click();
   const addLineSheet = page.getByRole("dialog", { name: "Thêm dòng hàng" });
-  await addLineSheet.getByLabel("Tìm sản phẩm").fill("canon");
-  await evidence(page, info, "order-add-line-after-submit.png", { checkOverflow: true });
-  await addLineSheet.getByRole("button", { name: /Hộp mực Canon E2E/ }).click();
-  await expect(page.getByText("Hộp mực Canon E2E")).toBeVisible();
+  await addLineSheet.getByRole("tab", { name: "Dịch vụ" }).click();
+  await addLineSheet.getByLabel("Tìm dịch vụ").fill("camera");
+  await evidence(page, info, "order-add-line-after-submit.png");
+  await addLineSheet.getByRole("button", { name: /Lắp đặt camera E2E/ }).click();
+  await expect(page.getByText("Lắp đặt camera E2E")).toBeVisible();
   const newLineRow = page.locator('[data-testid^="order-line-"]', {
-    hasText: "Hộp mực Canon E2E",
+    hasText: "Lắp đặt camera E2E",
   });
   await newLineRow.getByRole("button", { name: /Xoá dòng/ }).click();
   await page
@@ -204,7 +211,7 @@ test("AC-ORD-061 AC-ORD-064 AC-ORD-065 AC-ORD-067 AC-ORD-071 AC-ORD-093 AC-ORD-0
     .getByRole("button", { name: "Xoá" })
     .click();
   await expect(page.getByText("Đã xoá dòng hàng.")).toBeVisible();
-  await expect(page.getByText("Hộp mực Canon E2E")).not.toBeVisible();
+  await expect(page.getByText("Lắp đặt camera E2E")).not.toBeVisible();
   await page.getByRole("tab", { name: "Thông tin" }).click();
 
   // AC-ORD-065: thu hồi → hiện lại DraftOrderForm
