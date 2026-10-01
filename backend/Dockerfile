@@ -28,6 +28,8 @@ FROM python:3.12-slim AS prod
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH=/opt/venv/bin:$PATH
+# Pick up Debian security fixes released after the base image was built (CI scans this image with trivy).
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 RUN useradd --system --uid 10001 --no-create-home app \
     && mkdir -p /data/uploads && chown app /data/uploads
 WORKDIR /app
