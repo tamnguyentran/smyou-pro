@@ -331,6 +331,51 @@ describe("AC-CAT-053 phần mở rộng không phải .csv", () => {
   });
 });
 
+describe("AC-CAT-059 file > 2MB", () => {
+  test("chặn ngay ở client, không gọi API", async () => {
+    signedInAs(AN);
+    const mutateAsync = vi.fn();
+    stubPreview(mutateAsync);
+    renderApp("/catalog/products");
+    const dialog = await openProductsImport();
+    const bigFile = new File([new Uint8Array(2 * 1024 * 1024 + 1)], "big.csv", {
+      type: "text/csv",
+    });
+    await userEvent.upload(within(dialog).getByLabelText("Chọn file"), bigFile);
+    await within(dialog).findByText("File vượt quá 2MB.");
+    expect(mutateAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe("AC-CAT-060 file > 500 dòng dữ liệu", () => {
+  test("chặn ngay ở client, không gọi API", async () => {
+    signedInAs(AN);
+    const mutateAsync = vi.fn();
+    stubPreview(mutateAsync);
+    renderApp("/catalog/products");
+    const dialog = await openProductsImport();
+    const header = "sku,name,category,unit,price\n";
+    const rows = Array.from({ length: 501 }, (_, i) => `SKU${String(i)},Name,PC,CAI,1000`).join(
+      "\n",
+    );
+    const bigFile = new File([header + rows], "many-rows.csv", { type: "text/csv" });
+    await userEvent.upload(within(dialog).getByLabelText("Chọn file"), bigFile);
+    await within(dialog).findByText("File có hơn 500 dòng, vui lòng chia nhỏ.");
+    expect(mutateAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe("AC-CAT-061 file hợp lệ trong giới hạn", () => {
+  test("vẫn gọi preview như cũ (không regress)", async () => {
+    signedInAs(AN);
+    stubPreview(() => Promise.resolve(VALID_PREVIEW));
+    renderApp("/catalog/products");
+    const dialog = await openProductsImport();
+    await userEvent.upload(within(dialog).getByLabelText("Chọn file"), csvFile());
+    await within(dialog).findByText("3/3 dòng hợp lệ");
+  });
+});
+
 describe("AC-CAT-054 chọn file khác", () => {
   test("quay lại bước 1, Sheet vẫn mở", async () => {
     signedInAs(AN);
