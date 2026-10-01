@@ -17,6 +17,7 @@ HOA = Person("hoa.le@smyou.vn", "Hoa@SmYou26", ("SALE",), "NV005", "Lê Thị Ho
 TUAN = Person("tuan.pham@smyou.vn", "Tuan@SmYou26", ("TECH_LEAD",), "NV010", "Phạm Quốc Tuấn", "TECHNICAL")
 MINH = Person("minh.vo@smyou.vn", "Minh@SmYou26", ("TECHNICIAN",), "NV015", "Võ Thành Minh", "TECHNICAL")
 LAN = Person("lan.do@smyou.vn", "Lan@SmYou26", ("TECHNICIAN",), "NV016", "Đỗ Thị Lan", "TECHNICAL")
+DUC = Person("duc.nguyen@smyou.vn", "Duc@SmYou26", ("TECHNICIAN",), "NV017", "Nguyễn Văn Đức", "TECHNICAL")
 
 
 def insert_order(
@@ -409,8 +410,9 @@ def test_list_order_tasks_scope(app: FastAPI, db: Connection, people: dict[str, 
     khoa = client_as(app, KHOA)
     assert khoa.get(f"/api/v1/orders/{order_id}/tasks").status_code == 200
 
-    lan = client_as(app, LAN)
-    problem(lan.get(f"/api/v1/orders/{order_id}/tasks"), 404, "NOT_FOUND")
+    seed(db, DUC)  # active TECHNICIAN, never assigned to this order
+    duc = client_as(app, DUC)
+    problem(duc.get(f"/api/v1/orders/{order_id}/tasks"), 404, "NOT_FOUND")
 
 
 @pytest.mark.ac("AC-DSP-014")

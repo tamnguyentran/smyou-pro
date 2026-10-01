@@ -6,6 +6,8 @@ tests/generated/test_guards_implemented.py fails if a pending item is already do
 
 import uuid
 from collections.abc import Callable
+from datetime import datetime
+from decimal import Decimal
 
 
 def customer_present(
@@ -30,21 +32,42 @@ def reason_present(reason: str | None) -> bool:
     return reason is not None and len(reason.strip()) >= 5
 
 
+def order_in_dispatchable_state(order_status: str) -> bool:
+    # REVISION included: task.commands[create].origin ("INITIAL if order not in REVISION, else
+    # ADDITIONAL") presupposes a task can be created while the order is in REVISION.
+    return order_status in ("PENDING_DISPATCH", "IN_PROGRESS", "REVISION")
+
+
+def at_least_one_assignee(assignee_count: int) -> bool:
+    return assignee_count >= 1
+
+
+def assignees_are_active_technicians(valid_technician_count: int, requested_count: int) -> bool:
+    return requested_count > 0 and valid_technician_count == requested_count
+
+
+def estimated_hours_positive(hours: Decimal) -> bool:
+    return Decimal(0) < hours <= Decimal(200) and (hours * 100) % 25 == 0
+
+
+def due_at_not_in_past(due_at: datetime, now: datetime) -> bool:
+    return due_at >= now
+
+
 GUARDS: dict[str, Callable[..., bool]] = {
     "customer_present": customer_present,
     "has_lines_or_description": has_lines_or_description,
     "service_address_present": service_address_present,
     "order_has_no_tasks": order_has_no_tasks,
     "reason_present": reason_present,
+    "order_in_dispatchable_state": order_in_dispatchable_state,
+    "at_least_one_assignee": at_least_one_assignee,
+    "assignees_are_active_technicians": assignees_are_active_technicians,
+    "estimated_hours_positive": estimated_hours_positive,
+    "due_at_not_in_past": due_at_not_in_past,
 }
 
 PENDING_GUARDS: dict[str, str] = {
-    # dispatch: tasks & assignments
-    "order_in_dispatchable_state": "M4-01",
-    "at_least_one_assignee": "M4-01",
-    "assignees_are_active_technicians": "M4-01",
-    "estimated_hours_positive": "M4-01",
-    "due_at_not_in_past": "M4-01",
     "not_already_active_assignee": "M4-02",
     "task_not_cancelled": "M4-02",
     # technician responses
