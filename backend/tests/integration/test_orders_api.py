@@ -1717,6 +1717,40 @@ def test_update_line_after_submit_recalculates_and_diffs(
     }
 
 
+@pytest.mark.ac("AC-ORD-106")
+def test_update_line_after_submit_gift_diffs_implicit_unit_price(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+    line_id = order["lines"][0]["id"]
+
+    an = client_as(app, AN)
+    res = an.patch(
+        f"/api/v1/orders/{order['id']}/lines-after-submit/{line_id}",
+        json={"version": order["version"], "is_gift": True},
+    )
+
+    assert res.status_code == 200, res.text
+    line = res.json()["lines"][0]
+    assert line["unit_price"] == 0
+    assert (line["line_gross"], line["line_vat"], line["line_total"]) == (0, 0, 0)
+
+    event = next(e for e in audit_rows(db, uuid.UUID(order["id"])) if e.action == "update_line_after_submit")
+    assert event.data == {
+        "line_id": line_id,
+        "item": "Màn hình Dell 22 inch",
+        "changes": {
+            "is_gift": {"before": False, "after": True},
+            "unit_price": {"before": 2_500_000, "after": 0},
+        },
+    }
+
+
 @pytest.mark.ac("AC-ORD-084")
 def test_remove_line_after_submit(
     app: FastAPI,
