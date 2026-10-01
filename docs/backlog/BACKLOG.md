@@ -33,6 +33,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [x] **M2-02 Dịch vụ**: CRUD, `default_estimated_hours`. Spec `M2-02-services.md`.
 - [x] **M2-03a Import danh mục — API**: import CSV cho Sản phẩm + Dịch vụ, xem trước (dry-run) → xác nhận, báo lỗi từng dòng, không import nửa chừng. Spec `M2-03a-catalog-import-api.md`. Q15.
 - [x] **M2-03b Import danh mục — giao diện**: màn tải file/xem trước/xác nhận. Spec `M2-03b-catalog-import-ui.md`. Q58.
+- [x] **M2-03c Import danh mục — kiểm tra kích thước/số dòng ở client**: chặn file >2MB hoặc >500 dòng ngay ở client trước khi gọi `preview`, tránh gọi API thừa (M2-03b đã Done trước khi Q58 được chốt). Spec `M2-03c-catalog-import-client-validation.md`. Q58.
 
 ## M3 — Khách hàng & Đơn hàng
 - [x] **M3-01 Khách hàng**: CRUD, tìm theo tên/SĐT/MST, chống trùng SĐT (cảnh báo). Spec `M3-01-customers.md`.
