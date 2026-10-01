@@ -891,7 +891,9 @@ def test_read_scope_all_vs_technician_404(app: FastAPI, db: Connection, people: 
 @pytest.mark.ac("AC-ORD-079")
 @pytest.mark.ac("AC-ORD-089")
 def test_routes_declare_capability(app: FastAPI) -> None:
-    routes = {r for r in declared_routes(app) if "/orders" in r[1]}
+    # M4-01a's /tasks routes share the "/orders" prefix but belong to the dispatch module/router —
+    # asserted separately in test_dispatch_api.py::test_routes_declare_capability (AC-DSP-014).
+    routes = {r for r in declared_routes(app) if "/orders" in r[1] and "/tasks" not in r[1]}
     assert routes == {
         ("POST", "/api/v1/orders", "order.create"),
         ("GET", "/api/v1/orders", "order.read"),

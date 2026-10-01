@@ -20,6 +20,7 @@ from app.modules.orders.schemas import (
     OrderLineRemove,
     OrderLineUpdate,
     OrderPage,
+    OrderSort,
     OrderStatus,
     OrderUpdate,
 )
@@ -65,10 +66,11 @@ def list_orders(
     actor: Reader,
     q: Annotated[str | None, Query(max_length=100)] = None,
     status: OrderStatus | None = None,
+    sort: OrderSort = "created_at_desc",
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> OrderPage:
-    return service.list_orders(session, actor, q=q, status=status, limit=limit, offset=offset)
+    return service.list_orders(session, actor, q=q, status=status, sort=sort, limit=limit, offset=offset)
 
 
 @router.get(
