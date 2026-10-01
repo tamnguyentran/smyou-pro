@@ -42,6 +42,8 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [x] **M3-03a Gửi/thu hồi/huỷ đơn — API**: lệnh `submit`/`recall`/`cancel`, 5 guard cài ở `workflow/guards.py`, `GET /orders` (danh sách), `GET /orders/{id}` + `allowed_commands`, `GET /orders/{id}/history`. Spec `M3-03a-order-transitions-api.md`. Q54, Q55. Merged PR #41.
 - [R] **M3-03b Gửi/thu hồi/huỷ đơn — giao diện**: trang `/orders` (danh sách), trang chi tiết đơn có tab Thông tin/Dòng hàng/Lịch sử, nút Gửi đơn/Thu hồi/Huỷ đơn theo `allowed_commands`. Spec `M3-03b-order-list-detail-ui.md`. Q56.
 - [ ] **M3-04 Sửa liên hệ sau khi gửi; Manager sửa dòng sau khi gửi** (audit diff).
+- [ ] **M3-05 Hàng trong bảng danh sách bấm được cả dòng**: `CustomerList` (M3-01) và `OrderList` (M3-03b) hiện chỉ mã/tên bấm được, phần còn lại của hàng (desktop) không điều hướng — khác với wording AC-ORD-069 "bấm 1 dòng/thẻ → chi tiết". Sửa cả 2 bảng cho nhất quán. Phát hiện ở `/review` M3-03b (`reports/review-M3-03b.md`).
+- [ ] **M3-06 Component `ChipGroup` cho bộ lọc trạng thái**: thay `<Select>` lọc trạng thái ở `OrdersListPage` (và các danh sách tương tự) bằng nhóm chip, đúng mô tả UI_GUIDELINES §6 / AC-ORD-069 "chip lọc trạng thái". Phát hiện ở `/review` M3-03b (`reports/review-M3-03b.md`).
 
 ## M4 — Điều phối (QLKT)
 - [ ] **M4-01 Hàng đợi đơn chờ điều phối + tạo task + giao nhiều KTV** (đơn → IN_PROGRESS).
