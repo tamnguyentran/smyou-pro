@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -6,6 +6,7 @@ import { markSignedIn } from "../../lib/sessionHint";
 import { server } from "../../test/msw";
 import { renderApp } from "../../test/renderApp";
 import type { Customer } from "./api";
+import { CustomerList } from "./components/CustomerList";
 
 const id = "9d1f0c2e-0000-4000-8000-000000000003";
 
@@ -193,6 +194,16 @@ describe("AC-CUS-009 danh sách khách hàng", () => {
     expect(await screen.findByRole("dialog", { name: "Sửa khách hàng" })).toBeInTheDocument();
   });
 
+  test("AC-CUS-014 bấm ô khác trong hàng → gọi onSelect đúng 1 lần", async () => {
+    const onSelect = vi.fn();
+    render(<CustomerList items={[KIM_LONG]} onSelect={onSelect} />);
+
+    await userEvent.setup().click(screen.getByText("0912345678"));
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(KIM_LONG);
+  });
+
   test("AC-CUS-015 bấm tên khách hàng vẫn mở sheet sửa (không regression)", async () => {
     mockViewport(true);
     signedInAs(AN, () => HttpResponse.json(page([KIM_LONG])));
@@ -201,6 +212,16 @@ describe("AC-CUS-009 danh sách khách hàng", () => {
 
     await userEvent.setup().click(await screen.findByText("Cty Kim Long"));
     expect(await screen.findByRole("dialog", { name: "Sửa khách hàng" })).toBeInTheDocument();
+  });
+
+  test("AC-CUS-015 bấm nút tên khách hàng gọi onSelect đúng 1 lần (không regression bấm đúp)", async () => {
+    const onSelect = vi.fn();
+    render(<CustomerList items={[KIM_LONG]} onSelect={onSelect} />);
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Cty Kim Long" }));
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(KIM_LONG);
   });
 });
 

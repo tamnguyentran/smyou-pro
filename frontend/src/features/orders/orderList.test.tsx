@@ -171,7 +171,7 @@ describe("AC-ORD-069 danh sách đơn", () => {
     expect(await screen.findByText("Không tìm thấy đơn nào.")).toBeInTheDocument();
   });
 
-  test("AC-ORD-107 bấm ô khác trong hàng (không phải mã) → điều hướng chi tiết", async () => {
+  test("AC-ORD-107 bấm ô khác trong hàng (không phải mã) → điều hướng chi tiết, đúng 1 lần", async () => {
     signedInAs(hoaId, HOA);
     server.use(
       http.get("/api/v1/orders", () =>
@@ -181,13 +181,19 @@ describe("AC-ORD-069 danh sách đơn", () => {
     const router = renderApp("/orders");
     await screen.findByText("DH2609-0001");
 
+    let navigations = 0;
+    const unsubscribe = router.subscribe(() => {
+      navigations += 1;
+    });
     await userEvent.setup().click(screen.getByText("Cty Sáng Tạo Mới"));
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/orders/b0000000-0000-4000-8000-000000000020");
     });
+    unsubscribe();
+    expect(navigations).toBe(1);
   });
 
-  test("AC-ORD-108 bấm nút mã đơn vẫn điều hướng (không regression)", async () => {
+  test("AC-ORD-108 bấm nút mã đơn vẫn điều hướng đúng 1 lần (không regression bấm đúp)", async () => {
     signedInAs(hoaId, HOA);
     server.use(
       http.get("/api/v1/orders", () =>
@@ -197,10 +203,16 @@ describe("AC-ORD-069 danh sách đơn", () => {
     const router = renderApp("/orders");
     await screen.findByText("DH2609-0001");
 
+    let navigations = 0;
+    const unsubscribe = router.subscribe(() => {
+      navigations += 1;
+    });
     await userEvent.setup().click(screen.getByRole("button", { name: "DH2609-0001" }));
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/orders/b0000000-0000-4000-8000-000000000020");
     });
+    unsubscribe();
+    expect(navigations).toBe(1);
   });
 
   test("AC-ORD-109 mobile: thẻ đơn vẫn là 1 nút điều hướng, không đổi", async () => {
