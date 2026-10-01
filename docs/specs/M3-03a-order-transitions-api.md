@@ -1,6 +1,6 @@
 # M3-03a — Gửi/thu hồi/huỷ đơn + danh sách/lịch sử: API
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M3-03a (tách từ M3-03) · **Milestone:** M3
 - **Liên quan:** `spec/state_machines.yaml#order` (transitions `submit`, `recall`, `cancel`, guards `customer_present`/`has_lines_or_description`/`service_address_present`/`order_has_no_tasks`/`reason_present`); `spec/permissions.yaml` (`order.submit`: MANAGER all/SALE own — dùng chung cho cả `submit` **và** `recall`; `order.cancel`: MANAGER all/SALE own; `order.read`: MANAGER/SALE/TECH_LEAD all, TECHNICIAN assigned); `docs/product/WORKFLOWS.md` §2 (sơ đồ trạng thái đơn) + §6 (khoá `FOR UPDATE` + `version`); `docs/product/DOMAIN_MODEL.md` §5 (cột `submitted_at/cancelled_at/cancel_reason` đã có sẵn từ migration M3-02a) + §12 (AuditEvent); `docs/architecture/ARCHITECTURE.md` §4 (lệnh POST có tên, lỗi problem+json); `M3-02a-draft-orders-api.md` (OrderDetail hiện có, guard nghiệp vụ `ORDER_NOT_DRAFT`); `backend/app/modules/workflow/guards.py` (5 guard của mục này đang ở `PENDING_GUARDS` ghi sẵn `"M3-03"`); M1-05 audit framework (`audit.service.record`/`list_events` tái dùng cho lịch sử)
 
