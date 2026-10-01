@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -116,6 +116,8 @@ function order(overrides: Partial<Order> = {}): Order {
     version: 1,
     lines: [],
     allowed_commands: [],
+    can_edit_contact: false,
+    can_edit_lines_after_submit: false,
     ...overrides,
   };
 }
@@ -313,12 +315,12 @@ describe("AC-ORD-035 409 STALE_VERSION", () => {
 });
 
 describe("AC-ORD-036 đơn không còn DRAFT", () => {
-  test("hiện thông báo, không cho sửa, không gọi PATCH/thêm dòng", async () => {
+  test("hiện trang chi tiết (OrderDetailTabs), không cho sửa, không gọi PATCH/thêm dòng", async () => {
     signedInAs(hoaId, HOA);
     let patched = false;
     server.use(
       http.get("/api/v1/orders/:id", () =>
-        HttpResponse.json(order({ status: "PENDING_DISPATCH" })),
+        HttpResponse.json(order({ status: "PENDING_DISPATCH", allowed_commands: [] })),
       ),
       http.patch("/api/v1/orders/:id", () => {
         patched = true;
@@ -327,10 +329,7 @@ describe("AC-ORD-036 đơn không còn DRAFT", () => {
     );
     renderApp(`/orders/${orderId}`);
 
-    expect(
-      await screen.findByText("Đơn DH2609-0001 đã được gửi, không thể sửa ở đây."),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Về Tổng quan" })).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "Thông tin" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Địa chỉ thi công")).not.toBeInTheDocument();
     expect(patched).toBe(false);
   });
@@ -420,5 +419,120 @@ describe("AC-ORD-038 bố cục 390px/1440px", () => {
     await openForm("DH2609-0001");
 
     expect(screen.getByLabelText("Địa chỉ thi công")).toBeVisible();
+  });
+});
+
+describe("AC-ORD-061 gửi đơn", () => {
+  test("xác nhận → submit → chuyển sang trang chi tiết (badge Chờ điều phối)", async () => {
+    signedInAs(hoaId, HOA);
+    let submitted = false;
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ allowed_commands: ["submit", "cancel"] })),
+      ),
+      http.post("/api/v1/orders/:id/submit", () => {
+        submitted = true;
+        return HttpResponse.json(
+          order({
+            status: "PENDING_DISPATCH",
+            allowed_commands: ["recall", "cancel"],
+            version: 2,
+          }),
+        );
+      }),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Gửi đơn" }));
+    const dialog = await screen.findByRole("dialog", { name: "Gửi đơn?" });
+    expect(
+      within(dialog).getByText("Gửi đơn DH2609-0001 tới Quản lý kỹ thuật?"),
+    ).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Gửi đơn" }));
+
+    expect(await screen.findByText("Đã gửi đơn DH2609-0001.")).toBeInTheDocument();
+    expect(submitted).toBe(true);
+    expect(await screen.findByRole("tab", { name: "Thông tin" })).toBeInTheDocument();
+    expect(screen.getByText("Chờ điều phối")).toBeInTheDocument();
+  });
+});
+
+describe("AC-ORD-062 guard gửi đơn", () => {
+  test.each([
+    ["customer_present", "Đơn cần có khách hàng trước khi gửi."],
+    ["has_lines_or_description", "Đơn cần có ít nhất 1 dòng hàng hoặc mô tả công việc."],
+    ["service_address_present", "Đơn cần có địa chỉ thi công."],
+  ])("guard=%s → toast lỗi đúng nội dung, vẫn ở lại form", async (guard, message) => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ allowed_commands: ["submit", "cancel"] })),
+      ),
+      http.post("/api/v1/orders/:id/submit", () =>
+        HttpResponse.json(
+          { status: 409, code: "GUARD_FAILED", detail: message, guard },
+          { status: 409 },
+        ),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Gửi đơn" }));
+    const dialog = await screen.findByRole("dialog", { name: "Gửi đơn?" });
+    await user.click(within(dialog).getByRole("button", { name: "Gửi đơn" }));
+
+    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(screen.getByLabelText("Địa chỉ thi công")).toBeInTheDocument();
+  });
+});
+
+describe("AC-ORD-063 huỷ đơn nháp", () => {
+  test("nhập lý do ≥5 ký tự mới bấm được Xác nhận huỷ → cancel → về /orders", async () => {
+    signedInAs(hoaId, HOA);
+    let cancelled = false;
+    let sentReason = "";
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ allowed_commands: ["submit", "cancel"] })),
+      ),
+      http.post("/api/v1/orders/:id/cancel", async ({ request }) => {
+        cancelled = true;
+        const body = (await request.json()) as { reason?: string };
+        sentReason = body.reason ?? "";
+        return HttpResponse.json(order({ status: "CANCELLED", allowed_commands: [], version: 2 }));
+      }),
+    );
+    const router = renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Huỷ đơn" }));
+    const dialog = await screen.findByRole("dialog", { name: `Huỷ đơn DH2609-0001?` });
+    const confirmBtn = within(dialog).getByRole("button", { name: "Xác nhận huỷ" });
+    expect(confirmBtn).toBeDisabled();
+
+    const textarea = within(dialog).getByRole("textbox");
+    await user.type(textarea, "Huỷ");
+    expect(confirmBtn).toBeDisabled();
+    // AC-ORD-063 boundary: đúng 4 ký tự vẫn khoá, đúng 5 ký tự thì mở (không phải 6).
+    await user.type(textarea, "1");
+    expect(confirmBtn).toBeDisabled();
+    await user.type(textarea, "2");
+    expect(confirmBtn).not.toBeDisabled();
+    await user.clear(textarea);
+    await user.type(textarea, "Huỷ vì khách đổi ý không mua nữa");
+    expect(confirmBtn).not.toBeDisabled();
+    await user.click(confirmBtn);
+
+    expect(await screen.findByText("Đã huỷ đơn DH2609-0001.")).toBeInTheDocument();
+    expect(cancelled).toBe(true);
+    expect(sentReason.length).toBeGreaterThanOrEqual(5);
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/orders");
+    });
   });
 });

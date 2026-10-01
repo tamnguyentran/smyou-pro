@@ -194,6 +194,12 @@ def submittable_order(client: TestClient, *, customer_id: uuid.UUID, product_id:
     ).json()
 
 
+def submitted_order(client: TestClient, *, customer_id: uuid.UUID, product_id: uuid.UUID) -> dict:
+    """M3-04a fixture: a PENDING_DISPATCH order (1 line, LCD-DELL22 qty=1, line_total=2_700_000)."""
+    draft = submittable_order(client, customer_id=customer_id, product_id=product_id)
+    return client.post(f"/api/v1/orders/{draft['id']}/submit", json={"version": draft["version"]}).json()
+
+
 @pytest.fixture
 def people(db: Connection) -> dict[str, uuid.UUID]:
     return {p.code: seed(db, p) for p in (AN, HOA, HA, TUAN, KHOA)}
@@ -882,6 +888,8 @@ def test_read_scope_all_vs_technician_404(app: FastAPI, db: Connection, people: 
 
 @pytest.mark.ac("AC-ORD-023")
 @pytest.mark.ac("AC-ORD-060")
+@pytest.mark.ac("AC-ORD-079")
+@pytest.mark.ac("AC-ORD-089")
 def test_routes_declare_capability(app: FastAPI) -> None:
     routes = {r for r in declared_routes(app) if "/orders" in r[1]}
     assert routes == {
@@ -896,6 +904,18 @@ def test_routes_declare_capability(app: FastAPI) -> None:
         ("POST", "/api/v1/orders/{order_id}/recall", "order.submit"),
         ("POST", "/api/v1/orders/{order_id}/cancel", "order.cancel"),
         ("GET", "/api/v1/orders/{order_id}/history", "order.read"),
+        ("PATCH", "/api/v1/orders/{order_id}/contact", "order.edit_contact"),
+        ("POST", "/api/v1/orders/{order_id}/lines-after-submit", "order.edit_lines_after_submit"),
+        (
+            "PATCH",
+            "/api/v1/orders/{order_id}/lines-after-submit/{line_id}",
+            "order.edit_lines_after_submit",
+        ),
+        (
+            "POST",
+            "/api/v1/orders/{order_id}/lines-after-submit/{line_id}/remove",
+            "order.edit_lines_after_submit",
+        ),
     }
 
 
@@ -1296,8 +1316,11 @@ def test_list_orders_basic(app: FastAPI, db: Connection, three_orders: dict[str,
         "total",
         "requested_date",
         "created_by",
+        "created_by_name",
         "created_at",
     }
+    # order A was created by HOA (NV005) — M3-03b's list page needs a name, not just the UUID.
+    assert body["items"][0]["created_by_name"] == "Lê Thị Hoa"
 
 
 @pytest.mark.ac("AC-ORD-055")
@@ -1396,3 +1419,527 @@ def test_order_history(app: FastAPI, db: Connection, people: dict[str, uuid.UUID
 
     khoa = client_as(app, KHOA)
     problem(khoa.get(f"/api/v1/orders/{order_id}/history"), 404, "NOT_FOUND")
+
+
+# ---------------- M3-04a: sửa liên hệ / dòng hàng sau khi gửi (AC-ORD-072…092) ----------------
+
+
+@pytest.mark.ac("AC-ORD-072")
+def test_edit_contact_happy_path_records_diff(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    res = hoa.patch(
+        f"/api/v1/orders/{order['id']}/contact",
+        json={
+            "version": order["version"],
+            "customer_phone": "0988777666",
+            "service_address": "20 Nguyễn Huệ, Q1",
+        },
+    )
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["customer_phone"] == "0988777666"
+    assert body["service_address"] == "20 Nguyễn Huệ, Q1"
+    assert body["customer_name"] == order["customer_name"]
+    assert body["version"] == order["version"] + 1
+
+    event = next(e for e in audit_rows(db, uuid.UUID(order["id"])) if e.action == "edit_contact")
+    assert event.actor_id == people["NV005"]
+    assert event.data["changes"] == {
+        "customer_phone": {"before": "0909123456", "after": "0988777666"},
+        "service_address": {"before": "12 Lê Lợi, Q1", "after": "20 Nguyễn Huệ, Q1"},
+    }
+
+
+@pytest.mark.ac("AC-ORD-073")
+def test_edit_contact_scope(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    ha = client_as(app, HA)
+    problem(
+        ha.patch(
+            f"/api/v1/orders/{order['id']}/contact",
+            json={"version": order["version"], "customer_phone": "0988777666"},
+        ),
+        404,
+        "NOT_FOUND",
+    )
+
+    an = client_as(app, AN)
+    res = an.patch(
+        f"/api/v1/orders/{order['id']}/contact",
+        json={"version": order["version"], "customer_phone": "0988777666"},
+    )
+    assert res.status_code == 200, res.text
+
+
+@pytest.mark.ac("AC-ORD-074")
+def test_edit_contact_forbidden_without_capability(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    khoa = client_as(app, KHOA)
+    problem(
+        khoa.patch(
+            f"/api/v1/orders/{order['id']}/contact",
+            json={"version": order["version"], "customer_phone": "0988777666"},
+        ),
+        403,
+        "FORBIDDEN",
+    )
+
+
+@pytest.mark.ac("AC-ORD-075")
+def test_edit_contact_rejects_draft(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submittable_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    problem(
+        hoa.patch(
+            f"/api/v1/orders/{order['id']}/contact",
+            json={"version": order["version"], "customer_phone": "0988777666"},
+        ),
+        409,
+        "ORDER_NOT_SUBMITTED",
+    )
+
+
+@pytest.mark.ac("AC-ORD-076")
+def test_edit_contact_rejects_completed_and_cancelled(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    for status in ("COMPLETED", "CANCELLED"):
+        order_id = insert_order(db, created_by=people["NV005"], status=status)
+        problem(
+            hoa.patch(
+                f"/api/v1/orders/{order_id}/contact",
+                json={"version": 1, "customer_phone": "0988777666"},
+            ),
+            409,
+            "ORDER_LOCKED",
+        )
+        refreshed = hoa.get(f"/api/v1/orders/{order_id}").json()
+        assert refreshed["version"] == 1
+        assert refreshed["customer_phone"] != "0988777666"
+
+
+@pytest.mark.ac("AC-ORD-077")
+def test_edit_contact_stale_version(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    problem(
+        hoa.patch(
+            f"/api/v1/orders/{order['id']}/contact",
+            json={"version": order["version"] - 1, "customer_phone": "0988777666"},
+        ),
+        409,
+        "STALE_VERSION",
+    )
+
+
+@pytest.mark.ac("AC-ORD-078")
+def test_edit_contact_noop_still_bumps_version(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    res = hoa.patch(f"/api/v1/orders/{order['id']}/contact", json={"version": order["version"]})
+
+    assert res.status_code == 200, res.text
+    assert res.json()["version"] == order["version"] + 1
+    event = next(e for e in audit_rows(db, uuid.UUID(order["id"])) if e.action == "edit_contact")
+    assert event.data["changes"] == {}
+
+
+@pytest.mark.ac("AC-ORD-080")
+def test_add_line_after_submit_happy_path_manager(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    an = client_as(app, AN)
+    res = an.post(
+        f"/api/v1/orders/{order['id']}/lines-after-submit",
+        json={
+            "version": order["version"],
+            "item_type": "PRODUCT",
+            "product_id": str(catalog["PC-I5-12400"]),
+            "quantity": "1",
+            "unit_price": 11_980_000,
+            "vat_rate": "0",
+        },
+    )
+
+    assert res.status_code == 201, res.text
+    body = res.json()
+    assert body["version"] == order["version"] + 1
+    assert len(body["lines"]) == 2
+    new_line = next(line for line in body["lines"] if line["name_snapshot"] == "PC SMYOU CORE I5-12400")
+    assert new_line["line_total"] == 11_980_000
+    assert body["total"] == order["total"] + 11_980_000
+
+    event = next(e for e in audit_rows(db, uuid.UUID(order["id"])) if e.action == "add_line_after_submit")
+    assert event.data == {
+        "line_id": new_line["id"],
+        "item": "PC SMYOU CORE I5-12400",
+        "line_total": 11_980_000,
+    }
+
+
+@pytest.mark.ac("AC-ORD-081")
+def test_add_line_after_submit_sale_owns_order(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    res = hoa.post(
+        f"/api/v1/orders/{order['id']}/lines-after-submit",
+        json={
+            "version": order["version"],
+            "item_type": "PRODUCT",
+            "product_id": str(catalog["PC-I5-12400"]),
+            "quantity": "1",
+            "unit_price": 11_980_000,
+            "vat_rate": "0",
+        },
+    )
+
+    assert res.status_code == 201, res.text
+
+
+@pytest.mark.ac("AC-ORD-082")
+def test_add_line_after_submit_scope_and_capability(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+    body = {
+        "version": order["version"],
+        "item_type": "PRODUCT",
+        "product_id": str(catalog["PC-I5-12400"]),
+        "quantity": "1",
+        "unit_price": 11_980_000,
+        "vat_rate": "0",
+    }
+
+    ha = client_as(app, HA)
+    problem(ha.post(f"/api/v1/orders/{order['id']}/lines-after-submit", json=body), 404, "NOT_FOUND")
+
+    khoa = client_as(app, KHOA)
+    problem(khoa.post(f"/api/v1/orders/{order['id']}/lines-after-submit", json=body), 403, "FORBIDDEN")
+
+
+@pytest.mark.ac("AC-ORD-083")
+def test_update_line_after_submit_recalculates_and_diffs(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+    line_id = order["lines"][0]["id"]
+
+    an = client_as(app, AN)
+    res = an.patch(
+        f"/api/v1/orders/{order['id']}/lines-after-submit/{line_id}",
+        json={"version": order["version"], "quantity": "3"},
+    )
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    line = body["lines"][0]
+    assert line["line_gross"] == 7_500_000
+    assert line["line_vat"] == 600_000
+    assert line["line_total"] == 8_100_000
+    assert body["total"] == 8_100_000
+
+    event = next(e for e in audit_rows(db, uuid.UUID(order["id"])) if e.action == "update_line_after_submit")
+    assert event.data == {
+        "line_id": line_id,
+        "item": "Màn hình Dell 22 inch",
+        "changes": {"quantity": {"before": "1.00", "after": "3"}},
+    }
+
+
+@pytest.mark.ac("AC-ORD-084")
+def test_remove_line_after_submit(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+    line_id = order["lines"][0]["id"]
+
+    an = client_as(app, AN)
+    res = an.post(
+        f"/api/v1/orders/{order['id']}/lines-after-submit/{line_id}/remove",
+        json={"version": order["version"]},
+    )
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["lines"] == []
+    assert body["total"] == 0
+
+    event = next(e for e in audit_rows(db, uuid.UUID(order["id"])) if e.action == "remove_line_after_submit")
+    assert event.data == {
+        "line_id": line_id,
+        "item": "Màn hình Dell 22 inch",
+        "line_total": 2_700_000,
+    }
+
+
+@pytest.mark.ac("AC-ORD-085")
+def test_lines_after_submit_rejects_draft(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submittable_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+    line_id = order["lines"][0]["id"]
+    add_body = {
+        "version": order["version"],
+        "item_type": "PRODUCT",
+        "product_id": str(catalog["PC-I5-12400"]),
+        "quantity": "1",
+        "unit_price": 11_980_000,
+        "vat_rate": "0",
+    }
+
+    problem(
+        hoa.post(f"/api/v1/orders/{order['id']}/lines-after-submit", json=add_body),
+        409,
+        "ORDER_NOT_SUBMITTED",
+    )
+    problem(
+        hoa.patch(
+            f"/api/v1/orders/{order['id']}/lines-after-submit/{line_id}",
+            json={"version": order["version"], "quantity": "2"},
+        ),
+        409,
+        "ORDER_NOT_SUBMITTED",
+    )
+    problem(
+        hoa.post(
+            f"/api/v1/orders/{order['id']}/lines-after-submit/{line_id}/remove",
+            json={"version": order["version"]},
+        ),
+        409,
+        "ORDER_NOT_SUBMITTED",
+    )
+    refreshed = hoa.get(f"/api/v1/orders/{order['id']}").json()
+    assert refreshed["version"] == order["version"]
+    assert len(refreshed["lines"]) == len(order["lines"])
+
+
+@pytest.mark.ac("AC-ORD-086")
+def test_lines_after_submit_rejects_completed_and_cancelled(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    for status in ("COMPLETED", "CANCELLED"):
+        order_id = insert_order(db, created_by=people["NV005"], status=status)
+        add_body = {
+            "version": 1,
+            "item_type": "CUSTOM",
+            "name": "Việc",
+            "unit": "LAN",
+            "quantity": "1",
+            "unit_price": 100_000,
+            "vat_rate": "8",
+        }
+        problem(an.post(f"/api/v1/orders/{order_id}/lines-after-submit", json=add_body), 409, "ORDER_LOCKED")
+        refreshed = an.get(f"/api/v1/orders/{order_id}").json()
+        assert refreshed["version"] == 1
+        assert refreshed["lines"] == []
+
+
+@pytest.mark.ac("AC-ORD-087")
+def test_lines_after_submit_stale_version(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+    line_id = order["lines"][0]["id"]
+    stale = order["version"] - 1
+
+    problem(
+        hoa.post(
+            f"/api/v1/orders/{order['id']}/lines-after-submit",
+            json={
+                "version": stale,
+                "item_type": "CUSTOM",
+                "name": "Việc",
+                "unit": "LAN",
+                "quantity": "1",
+                "unit_price": 100_000,
+                "vat_rate": "8",
+            },
+        ),
+        409,
+        "STALE_VERSION",
+    )
+    problem(
+        hoa.patch(
+            f"/api/v1/orders/{order['id']}/lines-after-submit/{line_id}",
+            json={"version": stale, "quantity": "2"},
+        ),
+        409,
+        "STALE_VERSION",
+    )
+    problem(
+        hoa.post(
+            f"/api/v1/orders/{order['id']}/lines-after-submit/{line_id}/remove", json={"version": stale}
+        ),
+        409,
+        "STALE_VERSION",
+    )
+    refreshed = hoa.get(f"/api/v1/orders/{order['id']}").json()
+    assert refreshed["version"] == order["version"]
+    assert len(refreshed["lines"]) == len(order["lines"])
+
+
+@pytest.mark.ac("AC-ORD-088")
+def test_add_line_after_submit_price_fixed_guard(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    res = hoa.post(
+        f"/api/v1/orders/{order['id']}/lines-after-submit",
+        json={
+            "version": order["version"],
+            "item_type": "PRODUCT",
+            "product_id": str(catalog["LCD-DELL22"]),
+            "quantity": "1",
+            "unit_price": 9_999_999,
+            "vat_rate": "8",
+        },
+    )
+    body = problem(res, 422, "PRICE_FIXED")
+    assert error_fields(body) == ["unit_price"]
+
+
+@pytest.mark.ac("AC-ORD-090")
+def test_can_edit_flags_pending_dispatch(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    for person in (HOA, AN):
+        client = client_as(app, person)
+        got = client.get(f"/api/v1/orders/{order['id']}").json()
+        assert got["can_edit_contact"] is True
+        assert got["can_edit_lines_after_submit"] is True
+
+    ha = client_as(app, HA)
+    got = ha.get(f"/api/v1/orders/{order['id']}").json()
+    assert got["can_edit_contact"] is False
+    assert got["can_edit_lines_after_submit"] is False
+
+    tuan = client_as(app, TUAN)
+    got = tuan.get(f"/api/v1/orders/{order['id']}").json()
+    assert got["can_edit_contact"] is False
+    assert got["can_edit_lines_after_submit"] is False
+
+
+@pytest.mark.ac("AC-ORD-091")
+def test_can_edit_flags_draft(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submittable_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    got = hoa.get(f"/api/v1/orders/{order['id']}").json()
+    assert got["can_edit_contact"] is False
+    assert got["can_edit_lines_after_submit"] is False
+
+
+@pytest.mark.ac("AC-ORD-092")
+def test_can_edit_flags_completed(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    an = client_as(app, AN)
+    order_id = insert_order(db, created_by=people["NV005"], status="COMPLETED")
+
+    got = an.get(f"/api/v1/orders/{order_id}").json()
+    assert got["can_edit_contact"] is False
+    assert got["can_edit_lines_after_submit"] is False

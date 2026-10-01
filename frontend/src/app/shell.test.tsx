@@ -342,10 +342,10 @@ describe("Khung ứng dụng — chặn trang & trạng thái", () => {
   });
 
   test("AC-SYS-043 mục menu chưa làm → trang đang phát triển", async () => {
-    signedInAs(HOA);
-    renderApp("/orders");
+    signedInAs(AN);
+    renderApp("/reports/kpi");
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Danh sách đơn" })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Báo cáo KPI" })).toBeVisible();
     expect(screen.getByText("Tính năng đang được phát triển.")).toBeInTheDocument();
   });
 

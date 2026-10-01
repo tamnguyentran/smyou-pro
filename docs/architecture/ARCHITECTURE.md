@@ -79,7 +79,7 @@ spec/                       # state_machines.yaml, permissions.yaml (nguồn s�
 scripts/                    # check_ac_coverage.py, export_openapi.py, seed_dev.py …
 ```
 
-**Ranh giới (import-linter enforce):** `domain` không import gì ngoài stdlib + `domain` khác; `router` không import `models`; module chỉ gọi module khác qua `service` public của nó. Ngoại lệ đã biết: `employees` (quản trị nhân viên, M1-04a) đọc/ghi trực tiếp bảng `employees`/`employee_roles` thuộc model của `identity` (cùng một thực thể), nhưng mọi hành vi phiên đăng nhập (thu hồi phiên) đi qua `identity.service` (`revoke_all_sessions`). `audit` (M1-05) chỉ **đọc** `identity.models.Employee` để join tên người thực hiện trong `list_events`; ghi audit từ module khác luôn qua `audit.service.record`.
+**Ranh giới (import-linter enforce):** `domain` không import gì ngoài stdlib + `domain` khác; `router` không import `models`; module chỉ gọi module khác qua `service` public của nó. Ngoại lệ đã biết: `employees` (quản trị nhân viên, M1-04a) đọc/ghi trực tiếp bảng `employees`/`employee_roles` thuộc model của `identity` (cùng một thực thể), nhưng mọi hành vi phiên đăng nhập (thu hồi phiên) đi qua `identity.service` (`revoke_all_sessions`). `audit` (M1-05) chỉ **đọc** `identity.models.Employee` để join tên người thực hiện trong `list_events`; ghi audit từ module khác luôn qua `audit.service.record`. `orders` (M3-03b) cũng chỉ **đọc** `identity.models.Employee` để join `created_by_name` trong `list_orders`, cùng lý do/mẫu với `audit`.
 
 ## 4. Quy ước API
 - Tiền tố `/api/v1`. JSON `snake_case`. ID là UUID; hiển thị dùng `code`.

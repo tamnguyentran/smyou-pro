@@ -88,6 +88,21 @@ class OrderUpdate(BaseModel):
     _check_payment_method = field_validator("payment_method")(_check_payment_method)
 
 
+class OrderContactUpdate(BaseModel):
+    """M3-04a: liên hệ + mô tả sửa được sau khi gửi (`order.edit_contact`) — không có `customer_id`
+    (không đổi liên kết khách hàng) hay các trường điều phối/kế toán (Q57)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    version: int
+    customer_name: Name | None = None
+    customer_phone: str | None = None
+    customer_email: Email | None = None
+    customer_tax_code: TaxCode | None = None
+    service_address: str | None = None
+    work_description: str | None = None
+
+
 def _required_when(item_type: str) -> Callable[[object, ValidationInfo], object]:
     def _check(value: object, info: ValidationInfo) -> object:
         if info.data.get("item_type") == item_type and value is None:
@@ -206,6 +221,8 @@ class OrderDetail(BaseModel):
     version: int
     lines: list[OrderLineOut]
     allowed_commands: list[str]
+    can_edit_contact: bool
+    can_edit_lines_after_submit: bool
 
 
 class OrderSummary(BaseModel):
@@ -219,6 +236,7 @@ class OrderSummary(BaseModel):
     total: int
     requested_date: date | None
     created_by: uuid.UUID
+    created_by_name: str | None
     created_at: datetime
 
 

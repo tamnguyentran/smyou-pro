@@ -29,13 +29,20 @@ export function CustomerList({
         </thead>
         <tbody className="divide-y divide-line">
           {items.map((customer) => (
-            <tr key={customer.id} className="hover:bg-sidebar-sub">
+            <tr
+              key={customer.id}
+              className="cursor-pointer hover:bg-sidebar-sub"
+              onClick={() => {
+                onSelect(customer);
+              }}
+            >
               <td className="px-4 py-3 font-medium text-heading">{customer.code}</td>
               <td className="px-4 py-3 text-body">{TYPE_LABELS[customer.type as CustomerType]}</td>
               <td className="px-4 py-3">
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     onSelect(customer);
                   }}
                   className={NAME_BUTTON}

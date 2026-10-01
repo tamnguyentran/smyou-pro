@@ -17,11 +17,13 @@ from app.modules.audit import service as audit
 from app.modules.audit.schemas import AuditEventPage
 from app.modules.catalog.models import Product, Service
 from app.modules.customers.models import Customer
+from app.modules.identity.models import Employee
 from app.modules.orders import domain
 from app.modules.orders.models import Order, OrderLine
 from app.modules.orders.schemas import (
     OrderCancel,
     OrderCommand,
+    OrderContactUpdate,
     OrderCreate,
     OrderDetail,
     OrderLineCreate,
@@ -41,6 +43,8 @@ NOT_FOUND_CUSTOMER = "Không tìm thấy khách hàng."
 NOT_FOUND_PRODUCT = "Không tìm thấy sản phẩm."
 NOT_FOUND_SERVICE = "Không tìm thấy dịch vụ."
 ORDER_NOT_DRAFT = "Đơn phải đang ở trạng thái Nháp mới thực hiện được thao tác này."
+ORDER_NOT_SUBMITTED = "Đơn chưa được gửi — dùng chức năng sửa đơn nháp."
+ORDER_LOCKED = "Đơn đã hoàn tất hoặc đã huỷ, không thể sửa."
 PRICE_FIXED = "Đơn giá của dòng này cố định theo danh mục."
 DISCOUNT_EXCEEDS_GROSS = "Giảm giá không được lớn hơn tiền hàng của dòng."
 ITEM_INACTIVE = "Sản phẩm/dịch vụ này đã ngừng kinh doanh."
@@ -60,6 +64,24 @@ HEADER_FIELDS = (
 # (`body.service_address or ""` below); OrderUpdate's schema is nullable the same way (so a client
 # can clear the field), so PATCH needs the same coercion or `null` here trips the DB constraint.
 NON_NULL_TEXT_FIELDS = {"service_address", "work_description"}
+# M3-04a (Q57): fields `order.edit_contact` may change once the order is no longer DRAFT — a subset
+# of HEADER_FIELDS/CUSTOMER_FIELDS, deliberately excluding `customer_id` (no re-linking to a
+# different customer record after submit, only correcting the snapshot text) and the
+# dispatch/accounting fields (division/priority/requested_date/payment_*).
+CONTACT_FIELDS = (
+    "customer_name",
+    "customer_phone",
+    "customer_email",
+    "customer_tax_code",
+    "service_address",
+    "work_description",
+)
+# M3-04a (Q57): statuses where `order.edit_contact`/`order.edit_lines_after_submit` apply — after
+# DRAFT (which uses order.edit_draft instead) and before the order is COMPLETED/CANCELLED for good.
+# REVISION is included: that's exactly when a contact/line correction is often needed.
+EDITABLE_AFTER_SUBMIT_STATUSES = frozenset(
+    {"PENDING_DISPATCH", "IN_PROGRESS", "AWAITING_CONFIRMATION", "REVISION"}
+)
 
 # order.edit_draft genuinely grants SALE only `own` (unlike customers/audit's empty `{}`, which is
 # safe only because every role holding those capabilities gets `all`). `assigned` (TECHNICIAN) has
@@ -105,6 +127,21 @@ def _order_not_draft() -> AppError:
     return AppError(409, "ORDER_NOT_DRAFT", ORDER_NOT_DRAFT)
 
 
+def _order_not_submitted() -> AppError:
+    return AppError(409, "ORDER_NOT_SUBMITTED", ORDER_NOT_SUBMITTED)
+
+
+def _order_locked() -> AppError:
+    return AppError(409, "ORDER_LOCKED", ORDER_LOCKED)
+
+
+def _json_safe(value: object) -> object:
+    """`audit_events.data` is JSONB — `Decimal`/`UUID` aren't natively serializable."""
+    if isinstance(value, Decimal | uuid.UUID):
+        return str(value)
+    return value
+
+
 def _price_fixed_error() -> AppError:
     return AppError(
         422,
@@ -135,6 +172,13 @@ def _item_inactive(field: str) -> AppError:
 def _require_draft(order: Order) -> None:
     if order.status != "DRAFT":
         raise _order_not_draft()
+
+
+def _require_editable_after_submit(order: Order) -> None:
+    if order.status == "DRAFT":
+        raise _order_not_submitted()
+    if order.status not in EDITABLE_AFTER_SUBMIT_STATUSES:
+        raise _order_locked()
 
 
 def _locked(session: Session, actor: Actor, order_id: uuid.UUID, version: int) -> Order:
@@ -210,6 +254,16 @@ def _allowed_commands(order: Order, actor: Actor, specs: Specs) -> list[str]:
     return commands
 
 
+def _can_edit_after_submit(order: Order, actor: Actor, specs: Specs, capability: str) -> bool:
+    """Whether `actor` could call the M3-04a contact/line-after-submit routes on this order right
+    now — exposed on `OrderDetail` so the frontend never re-derives permission/state (CLAUDE.md
+    rule 4), same spirit as `_allowed_commands`."""
+    if order.status not in EDITABLE_AFTER_SUBMIT_STATUSES:
+        return False
+    scopes = effective_scopes(specs.permissions, actor.roles, capability)
+    return "all" in scopes or ("own" in scopes and order.created_by == actor.id)
+
+
 def _out(order: Order, actor: Actor, specs: Specs) -> OrderDetail:
     lines = sorted(order.lines, key=lambda line: line.position)
     return OrderDetail(
@@ -237,10 +291,14 @@ def _out(order: Order, actor: Actor, specs: Specs) -> OrderDetail:
         version=order.version,
         lines=[_line_out(line) for line in lines],
         allowed_commands=_allowed_commands(order, actor, specs),
+        can_edit_contact=_can_edit_after_submit(order, actor, specs, "order.edit_contact"),
+        can_edit_lines_after_submit=_can_edit_after_submit(
+            order, actor, specs, "order.edit_lines_after_submit"
+        ),
     )
 
 
-def _summary(order: Order) -> OrderSummary:
+def _summary(order: Order, created_by_name: str | None) -> OrderSummary:
     return OrderSummary(
         id=order.id,
         code=order.code,
@@ -252,6 +310,7 @@ def _summary(order: Order) -> OrderSummary:
         total=order.total,
         requested_date=order.requested_date,
         created_by=order.created_by,
+        created_by_name=created_by_name,
         created_at=order.created_at,
     )
 
@@ -420,7 +479,9 @@ def list_orders(
     limit: int,
     offset: int,
 ) -> OrderPage:
-    query = apply_scope(select(Order), actor, RULES)
+    query = apply_scope(
+        select(Order, Employee).outerjoin(Employee, Employee.id == Order.created_by), actor, RULES
+    )
     if q and q.strip():
         pattern = _like(q.strip())
         query = query.where(
@@ -434,8 +495,13 @@ def list_orders(
         query = query.where(Order.status == status)
     total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
     ordered = query.order_by(Order.created_at.desc())
-    rows = session.scalars(ordered.limit(limit).offset(offset)).all()
-    return OrderPage(items=[_summary(o) for o in rows], total=total, limit=limit, offset=offset)
+    rows = session.execute(ordered.limit(limit).offset(offset)).all()
+    return OrderPage(
+        items=[_summary(o, employee.full_name if employee else None) for o, employee in rows],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 def get_order_history(
@@ -634,17 +700,14 @@ def update_order(
     return _out(order, actor, specs)
 
 
-def add_line(
-    session: Session,
-    actor: Actor,
-    order_id: uuid.UUID,
-    body: OrderLineCreate,
-    *,
-    specs: Specs,
-    request_id: str | None = None,
-) -> OrderDetail:
-    order = _locked(session, actor, order_id, body.version)
-    _require_draft(order)
+def _find_line(order: Order, line_id: uuid.UUID) -> OrderLine:
+    line = next((candidate for candidate in order.lines if candidate.id == line_id), None)
+    if line is None:
+        raise _not_found(NOT_FOUND_LINE)
+    return line
+
+
+def _build_line(session: Session, order: Order, body: OrderLineCreate) -> OrderLine:
     if body.item_type == "CUSTOM" and body.vat_rate is None:
         raise _field_error("vat_rate", VAT_REQUIRED_FOR_CUSTOM, code="required")
     snapshot = _snapshot_item(session, body)
@@ -658,7 +721,7 @@ def add_line(
         catalog_price_snapshot=snapshot.catalog_price_snapshot,
         default_vat_rate=snapshot.default_vat_rate,
     )
-    line = OrderLine(
+    return OrderLine(
         order_id=order.id,
         position=max((line.position for line in order.lines), default=0) + 1,
         item_type=body.item_type,
@@ -681,38 +744,21 @@ def add_line(
         line_total=totals.line_total,
         note=body.note,
     )
-    order.lines.append(line)
-    _recompute_order_totals(order)
-    _bump(order)
-    session.flush()
-    audit.record(
-        session,
-        actor_id=actor.id,
-        entity_type="ORDER",
-        entity_id=order.id,
-        action="add_line",
-        request_id=request_id,
-    )
-    return _out(order, actor, specs)
 
 
-def update_line(
-    session: Session,
-    actor: Actor,
-    order_id: uuid.UUID,
-    line_id: uuid.UUID,
-    body: OrderLineUpdate,
-    *,
-    specs: Specs,
-    request_id: str | None = None,
-) -> OrderDetail:
-    order = _locked(session, actor, order_id, body.version)
-    _require_draft(order)
-    line = next((candidate for candidate in order.lines if candidate.id == line_id), None)
-    if line is None:
-        raise _not_found(NOT_FOUND_LINE)
+# Fields `_apply_line_changes` tracks for the M3-04a audit diff — only ones a client can actually
+# send on `OrderLineUpdate`, read from `line` *after* the resolved value lands on it.
+_LINE_DIFF_FIELDS = ("quantity", "unit_price", "vat_rate", "is_gift", "line_discount", "note")
 
+
+def _apply_line_changes(line: OrderLine, body: OrderLineUpdate) -> dict[str, dict[str, object]]:
+    """Mutates `line` exactly as before this item existed, and additionally returns a
+    `{field: {"before", "after"}}` diff (only fields present in `body` whose value actually
+    changed) — `update_line` (DRAFT) ignores the return value; `update_line_after_submit` (M3-04a)
+    puts it straight into `audit_events.data`."""
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
+    before = {field: getattr(line, field) for field in _LINE_DIFF_FIELDS if field in changes}
+
     quantity = changes.get("quantity", line.quantity)
     is_gift = changes.get("is_gift", line.is_gift)
     unit_price_in = changes.get("unit_price", line.unit_price)
@@ -740,6 +786,55 @@ def update_line(
     if "note" in changes:
         line.note = changes["note"]
 
+    return {
+        field: {"before": _json_safe(old), "after": _json_safe(getattr(line, field))}
+        for field, old in before.items()
+        if old != getattr(line, field)
+    }
+
+
+def add_line(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    body: OrderLineCreate,
+    *,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = _locked(session, actor, order_id, body.version)
+    _require_draft(order)
+    line = _build_line(session, order, body)
+    order.lines.append(line)
+    _recompute_order_totals(order)
+    _bump(order)
+    session.flush()
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ORDER",
+        entity_id=order.id,
+        action="add_line",
+        request_id=request_id,
+    )
+    return _out(order, actor, specs)
+
+
+def update_line(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    line_id: uuid.UUID,
+    body: OrderLineUpdate,
+    *,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = _locked(session, actor, order_id, body.version)
+    _require_draft(order)
+    line = _find_line(order, line_id)
+    _apply_line_changes(line, body)
+
     _recompute_order_totals(order)
     _bump(order)
     session.flush()
@@ -766,9 +861,7 @@ def remove_line(
 ) -> OrderDetail:
     order = _locked(session, actor, order_id, body.version)
     _require_draft(order)
-    line = next((candidate for candidate in order.lines if candidate.id == line_id), None)
-    if line is None:
-        raise _not_found(NOT_FOUND_LINE)
+    line = _find_line(order, line_id)
 
     order.lines.remove(line)
     _recompute_order_totals(order)
@@ -780,6 +873,137 @@ def remove_line(
         entity_type="ORDER",
         entity_id=order.id,
         action="remove_line",
+        request_id=request_id,
+    )
+    return _out(order, actor, specs)
+
+
+# ---------------- M3-04a: sửa liên hệ / dòng hàng sau khi gửi ----------------
+
+
+def update_contact(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    body: OrderContactUpdate,
+    *,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = _locked(session, actor, order_id, body.version)
+    _require_editable_after_submit(order)
+    changes = body.model_dump(exclude_unset=True, exclude={"version"})
+
+    diff: dict[str, dict[str, object]] = {}
+    for field in CONTACT_FIELDS:
+        if field not in changes:
+            continue
+        value = changes[field]
+        if field in NON_NULL_TEXT_FIELDS and value is None:
+            value = ""
+        before = getattr(order, field)
+        if before != value:
+            diff[field] = {"before": _json_safe(before), "after": _json_safe(value)}
+        setattr(order, field, value)
+
+    _bump(order)
+    session.flush()
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ORDER",
+        entity_id=order.id,
+        action="edit_contact",
+        data={"changes": diff},
+        request_id=request_id,
+    )
+    return _out(order, actor, specs)
+
+
+def add_line_after_submit(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    body: OrderLineCreate,
+    *,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = _locked(session, actor, order_id, body.version)
+    _require_editable_after_submit(order)
+    line = _build_line(session, order, body)
+    order.lines.append(line)
+    _recompute_order_totals(order)
+    _bump(order)
+    session.flush()
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ORDER",
+        entity_id=order.id,
+        action="add_line_after_submit",
+        data={"line_id": str(line.id), "item": line.name_snapshot, "line_total": line.line_total},
+        request_id=request_id,
+    )
+    return _out(order, actor, specs)
+
+
+def update_line_after_submit(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    line_id: uuid.UUID,
+    body: OrderLineUpdate,
+    *,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = _locked(session, actor, order_id, body.version)
+    _require_editable_after_submit(order)
+    line = _find_line(order, line_id)
+    diff = _apply_line_changes(line, body)
+
+    _recompute_order_totals(order)
+    _bump(order)
+    session.flush()
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ORDER",
+        entity_id=order.id,
+        action="update_line_after_submit",
+        data={"line_id": str(line.id), "item": line.name_snapshot, "changes": diff},
+        request_id=request_id,
+    )
+    return _out(order, actor, specs)
+
+
+def remove_line_after_submit(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    line_id: uuid.UUID,
+    body: OrderLineRemove,
+    *,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = _locked(session, actor, order_id, body.version)
+    _require_editable_after_submit(order)
+    line = _find_line(order, line_id)
+    removed_item, removed_total = line.name_snapshot, line.line_total
+
+    order.lines.remove(line)
+    _recompute_order_totals(order)
+    _bump(order)
+    session.flush()
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ORDER",
+        entity_id=order.id,
+        action="remove_line_after_submit",
+        data={"line_id": str(line_id), "item": removed_item, "line_total": removed_total},
         request_id=request_id,
     )
     return _out(order, actor, specs)

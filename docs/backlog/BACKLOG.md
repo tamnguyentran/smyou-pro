@@ -32,16 +32,19 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [x] **M2-01b Sản phẩm — giao diện**: trang Danh mục sản phẩm, form, chọn & xem trước ảnh. Spec `M2-01b-products-ui.md`.
 - [x] **M2-02 Dịch vụ**: CRUD, `default_estimated_hours`. Spec `M2-02-services.md`.
 - [x] **M2-03a Import danh mục — API**: import CSV cho Sản phẩm + Dịch vụ, xem trước (dry-run) → xác nhận, báo lỗi từng dòng, không import nửa chừng. Spec `M2-03a-catalog-import-api.md`. Q15.
-- [R] **M2-03b Import danh mục — giao diện**: màn tải file/xem trước/xác nhận. Spec `M2-03b-catalog-import-ui.md`. Q57.
+- [R] **M2-03b Import danh mục — giao diện**: màn tải file/xem trước/xác nhận. Spec `M2-03b-catalog-import-ui.md`. Q58.
 
 ## M3 — Khách hàng & Đơn hàng
 - [x] **M3-01 Khách hàng**: CRUD, tìm theo tên/SĐT/MST, chống trùng SĐT (cảnh báo). Spec `M3-01-customers.md`.
 - [x] **M3-02a Đơn nháp + dòng hàng + tính tiền — API**: tạo/sửa đơn nháp, thêm/sửa/xoá dòng hàng (snapshot, gift, giảm giá, VAT), pricing engine + property test. Spec `M3-02a-draft-orders-api.md`. Q52, Q53.
 - [x] **M3-02b Đơn nháp — giao diện**: trang Tạo/sửa đơn (`/orders/new`, `/orders/:id`), chọn khách/Khách lẻ, thêm dòng từ danh mục hoặc tự do, tổng tiền theo mức VAT. Spec `M3-02b-draft-orders-ui.md`. `/review` xong 3 vòng (`reports/review-M3-02b.md`), `make verify`/`make e2e` xanh (`reports/verification.md`). Merged via PR #39/#40.
   - Còn để sau (không chặn ship): `order.read_prices` chưa tách riêng khỏi `order.read` trong permissions.yaml (chưa khai thác được nhưng nên tách khi có thay đổi vai trò); ô đơn giá/giảm giá sửa tay chưa có dấu phân cách nghìn; màn lỗi tải đơn chưa có nút "Thử lại".
-- [R] **M3-03a Gửi/thu hồi/huỷ đơn — API**: lệnh `submit`/`recall`/`cancel`, 5 guard cài ở `workflow/guards.py`, `GET /orders` (danh sách), `GET /orders/{id}` + `allowed_commands`, `GET /orders/{id}/history`. Spec `M3-03a-order-transitions-api.md`. Q54, Q55.
-- [S] **M3-03b Gửi/thu hồi/huỷ đơn — giao diện**: trang `/orders` (danh sách), trang chi tiết đơn có tab Thông tin/Dòng hàng/Lịch sử, nút Gửi đơn/Thu hồi/Huỷ đơn theo `allowed_commands`. Spec `M3-03b-order-list-detail-ui.md`. Q56.
-- [ ] **M3-04 Sửa liên hệ sau khi gửi; Manager sửa dòng sau khi gửi** (audit diff).
+- [x] **M3-03a Gửi/thu hồi/huỷ đơn — API**: lệnh `submit`/`recall`/`cancel`, 5 guard cài ở `workflow/guards.py`, `GET /orders` (danh sách), `GET /orders/{id}` + `allowed_commands`, `GET /orders/{id}/history`. Spec `M3-03a-order-transitions-api.md`. Q54, Q55. Merged via PR #41.
+- [x] **M3-03b Gửi/thu hồi/huỷ đơn — giao diện**: trang `/orders` (danh sách), trang chi tiết đơn có tab Thông tin/Dòng hàng/Lịch sử, nút Gửi đơn/Thu hồi/Huỷ đơn theo `allowed_commands`. Spec `M3-03b-order-list-detail-ui.md`. Q56. Merged via PR #42.
+- [x] **M3-04a Sửa liên hệ & dòng hàng sau khi gửi — API**: `PATCH /orders/{id}/contact`, thêm/sửa/xoá dòng sau khi gửi (`order.edit_contact`, `order.edit_lines_after_submit`), audit ghi diff trước/sau. Spec `M3-04a-order-post-submit-edits-api.md`. Q57.
+- [ ] **M3-04b Sửa liên hệ & dòng hàng sau khi gửi — giao diện**: form sửa liên hệ, sửa dòng hàng trên trang chi tiết đơn (M3-03b) khi đơn không còn Nháp. Spec chưa viết.
+- [x] **M3-05 Hàng trong bảng danh sách bấm được cả dòng**: `CustomerList` (M3-01) và `OrderList` (M3-03b) hiện chỉ mã/tên bấm được, phần còn lại của hàng (desktop) không điều hướng — khác với wording AC-ORD-069 "bấm 1 dòng/thẻ → chi tiết". Sửa cả 2 bảng cho nhất quán. Phát hiện ở `/review` M3-03b (`reports/review-M3-03b.md`). Spec `M3-05-clickable-list-rows.md`.
+- [ ] **M3-06 Component `ChipGroup` cho bộ lọc trạng thái**: thay `<Select>` lọc trạng thái ở `OrdersListPage` (và các danh sách tương tự) bằng nhóm chip, đúng mô tả UI_GUIDELINES §6 / AC-ORD-069 "chip lọc trạng thái". Phát hiện ở `/review` M3-03b (`reports/review-M3-03b.md`).
 
 ## M4 — Điều phối (QLKT)
 - [ ] **M4-01 Hàng đợi đơn chờ điều phối + tạo task + giao nhiều KTV** (đơn → IN_PROGRESS).
