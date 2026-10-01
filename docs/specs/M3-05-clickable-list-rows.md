@@ -1,6 +1,6 @@
 # M3-05 — Hàng trong bảng danh sách bấm được cả dòng
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M3-05 · **Milestone:** M3
 - **Liên quan:** `frontend/src/features/orders/components/OrderList.tsx`, `frontend/src/features/customers/components/CustomerList.tsx`; AC-ORD-069 (`M3-03b-order-list-detail-ui.md`), AC-CUS-009 (`M3-01-customers.md`); phát hiện ở `/review` M3-03b (`reports/review-M3-03b.md`, finding "Desktop order-list row is not fully clickable")
 
