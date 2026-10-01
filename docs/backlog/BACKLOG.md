@@ -44,7 +44,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [x] **M3-04a Sửa liên hệ & dòng hàng sau khi gửi — API**: `PATCH /orders/{id}/contact`, thêm/sửa/xoá dòng sau khi gửi (`order.edit_contact`, `order.edit_lines_after_submit`), audit ghi diff trước/sau. Spec `M3-04a-order-post-submit-edits-api.md`. Q57.
 - [x] **M3-04b Sửa liên hệ & dòng hàng sau khi gửi — giao diện**: form sửa liên hệ, sửa dòng hàng trên trang chi tiết đơn (M3-03b) khi đơn không còn Nháp. Spec `M3-04b-order-post-submit-edits-ui.md`.
 - [x] **M3-05 Hàng trong bảng danh sách bấm được cả dòng**: `CustomerList` (M3-01) và `OrderList` (M3-03b) hiện chỉ mã/tên bấm được, phần còn lại của hàng (desktop) không điều hướng — khác với wording AC-ORD-069 "bấm 1 dòng/thẻ → chi tiết". Sửa cả 2 bảng cho nhất quán. Phát hiện ở `/review` M3-03b (`reports/review-M3-03b.md`). Spec `M3-05-clickable-list-rows.md`.
-- [S] **M3-06 Component `ChipGroup` cho bộ lọc trạng thái**: thay `<Select>` lọc trạng thái ở `OrdersListPage` (và các danh sách tương tự) bằng nhóm chip, đúng mô tả UI_GUIDELINES §6 / AC-ORD-069 "chip lọc trạng thái". Phát hiện ở `/review` M3-03b (`reports/review-M3-03b.md`). Spec `M3-06-order-status-chip-filter.md`.
+- [~] **M3-06 Component `ChipGroup` cho bộ lọc trạng thái**: thay `<Select>` lọc trạng thái ở `OrdersListPage` (và các danh sách tương tự) bằng nhóm chip, đúng mô tả UI_GUIDELINES §6 / AC-ORD-069 "chip lọc trạng thái". Phát hiện ở `/review` M3-03b (`reports/review-M3-03b.md`). Spec `M3-06-order-status-chip-filter.md`.
 
 ## M4 — Điều phối (QLKT)
 - [ ] **M4-01 Hàng đợi đơn chờ điều phối + tạo task + giao nhiều KTV** (đơn → IN_PROGRESS).

@@ -131,7 +131,11 @@ describe("AC-ORD-069 danh sách đơn", () => {
       expect(lastQuery).toContain("q=0909");
     });
 
-    await user.selectOptions(screen.getByLabelText("Trạng thái"), "CANCELLED");
+    await user.click(
+      within(screen.getByRole("radiogroup", { name: "Trạng thái" })).getByRole("radio", {
+        name: "Đã huỷ",
+      }),
+    );
     await waitFor(() => {
       expect(lastQuery).toContain("status=CANCELLED");
     });
@@ -239,5 +243,119 @@ describe("AC-ORD-069 danh sách đơn", () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/orders/b0000000-0000-4000-8000-000000000020");
     });
+  });
+});
+
+describe("AC-ORD-110 AC-ORD-111 AC-ORD-112 chip lọc trạng thái", () => {
+  const draft = summary();
+  const dispatch = summary({
+    id: "b0000000-0000-4000-8000-000000000021",
+    code: "DH2609-0002",
+    status: "PENDING_DISPATCH",
+  });
+  const cancelled = summary({
+    id: "b0000000-0000-4000-8000-000000000022",
+    code: "DH2609-0003",
+    status: "CANCELLED",
+  });
+  const all = [draft, dispatch, cancelled];
+
+  function mockFilteredOrders(onQuery?: (search: string) => void) {
+    server.use(
+      http.get("/api/v1/orders", ({ request }) => {
+        const url = new URL(request.url);
+        onQuery?.(url.search);
+        const status = url.searchParams.get("status");
+        const items = status ? all.filter((order) => order.status === status) : all;
+        return HttpResponse.json({ items, total: items.length, limit: 20, offset: 0 });
+      }),
+    );
+  }
+
+  test("AC-ORD-110 mở trang: nhóm chip đúng 8 lựa chọn, đúng thứ tự, 'Tất cả' đang chọn, không còn dropdown", async () => {
+    signedInAs(hoaId, HOA);
+    mockFilteredOrders();
+    renderApp("/orders");
+    await screen.findByText("DH2609-0001");
+
+    const group = screen.getByRole("radiogroup", { name: "Trạng thái" });
+    const radios = within(group).getAllByRole("radio");
+    expect(radios.map((radio) => radio.textContent)).toEqual([
+      "Tất cả",
+      "Nháp",
+      "Chờ điều phối",
+      "Đang thực hiện",
+      "Chờ khách xác nhận",
+      "Hoàn tất",
+      "Chỉnh sửa",
+      "Đã huỷ",
+    ]);
+    expect(within(group).getByRole("radio", { name: "Tất cả" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(screen.queryByRole("combobox", { name: "Trạng thái" })).not.toBeInTheDocument();
+  });
+
+  test("AC-ORD-111 bấm chip 'Chờ điều phối' → gọi lại API với status, danh sách chỉ còn đơn đó", async () => {
+    signedInAs(hoaId, HOA);
+    let lastQuery = "";
+    mockFilteredOrders((search) => {
+      lastQuery = search;
+    });
+    renderApp("/orders");
+    await screen.findByText("DH2609-0001");
+
+    const group = screen.getByRole("radiogroup", { name: "Trạng thái" });
+    await userEvent.setup().click(within(group).getByRole("radio", { name: "Chờ điều phối" }));
+
+    await waitFor(() => {
+      expect(lastQuery).toContain("status=PENDING_DISPATCH");
+    });
+    expect(within(group).getByRole("radio", { name: "Chờ điều phối" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(within(group).getByRole("radio", { name: "Tất cả" })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    await waitFor(() => {
+      expect(screen.queryByText("DH2609-0001")).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("DH2609-0002")).toBeInTheDocument();
+  });
+
+  test("AC-ORD-112 bấm 'Tất cả' sau khi đã lọc → về lại đầy đủ, không còn tham số status", async () => {
+    signedInAs(hoaId, HOA);
+    let lastQuery = "";
+    mockFilteredOrders((search) => {
+      lastQuery = search;
+    });
+    renderApp("/orders");
+    await screen.findByText("DH2609-0001");
+
+    const group = screen.getByRole("radiogroup", { name: "Trạng thái" });
+    const user = userEvent.setup();
+    await user.click(within(group).getByRole("radio", { name: "Chờ điều phối" }));
+    await waitFor(() => {
+      expect(lastQuery).toContain("status=PENDING_DISPATCH");
+    });
+
+    await user.click(within(group).getByRole("radio", { name: "Tất cả" }));
+    await waitFor(() => {
+      expect(lastQuery).not.toContain("status=");
+    });
+    expect(within(group).getByRole("radio", { name: "Tất cả" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(within(group).getByRole("radio", { name: "Chờ điều phối" })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    await screen.findByText("DH2609-0001");
+    expect(screen.getByText("DH2609-0002")).toBeInTheDocument();
+    expect(screen.getByText("DH2609-0003")).toBeInTheDocument();
   });
 });
