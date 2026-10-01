@@ -1,6 +1,6 @@
 # M2-03b — Import danh mục từ CSV: giao diện
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M2-03b · **Milestone:** M2
 - **Liên quan:** `M2-03a-catalog-import-api.md` (API, capability `catalog.manage`, mã lỗi, giới hạn file — Q46–Q49); `M2-01b-products-ui.md` (mẫu Sheet, ConfirmDialog, Toast, Skeleton, ảnh nén phía client, không có route theo id); `M2-02-services.md` (trang Dịch vụ); UI_GUIDELINES §3–§6
 
