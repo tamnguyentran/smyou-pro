@@ -1,6 +1,6 @@
 # M4-01a — Hàng đợi điều phối + tạo task + giao nhiều KTV: API
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M4-01 (tách thành M4-01a API / M4-01b giao diện — Q59) · **Milestone:** M4
 - **Liên quan:** `spec/state_machines.yaml#task` (lệnh `create`, guard `order_in_dispatchable_state`/`at_least_one_assignee`/`assignees_are_active_technicians`/`estimated_hours_positive`/`due_at_not_in_past`, effect `create_pending_assignments`/`fire_order_start_dispatch_if_first_task`/`notify_assignees`/`audit`); `spec/state_machines.yaml#order` (transition hệ thống `start_dispatch`, guard `order_has_no_tasks` của `recall`/`cancel`); `spec/permissions.yaml` (`task.manage`: TECH_LEAD all; `order.read`: MANAGER/SALE/TECH_LEAD all, TECHNICIAN assigned; badge `pending_dispatch_count`); `docs/product/DOMAIN_MODEL.md` §8 (Task) §9 (Assignment); `docs/product/WORKFLOWS.md` §2 (sơ đồ đơn, chuyển "system") §3 (trạng thái task suy ra) §6 (khoá `FOR UPDATE` theo đơn gốc); `backend/app/modules/workflow/guards.py` (5 guard đang ở `PENDING_GUARDS` ghi `"M4-01"`); `backend/app/modules/orders/service.py` `RULES["assigned"]` (hiện fail-closed, ghi chú "Task/Assignment don't exist until M4/M5"); `M3-03a-order-transitions-api.md` §8 (ghi chú guard `order_has_no_tasks` tạm trả `True`)
 
