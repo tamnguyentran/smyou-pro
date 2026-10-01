@@ -269,6 +269,7 @@ export function OrderDetailTabs({
             setEditContactOpen(false);
             onReload();
           }}
+          runWrite={runWrite}
         />
       ) : null}
       {addLineOpen ? (

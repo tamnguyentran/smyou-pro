@@ -11,6 +11,7 @@ import { ApiError, formError } from "../../auth/errors";
 import { useUpdateContact, type Order } from "../api";
 import { fieldErrors } from "../errors";
 import { orderContactSchema, type OrderContactFormValues } from "../schemas";
+import type { RunOrderWrite } from "./writeQueue";
 
 const SHOWN_FIELDS = [
   "customer_name",
@@ -27,12 +28,16 @@ export function EditContactSheet({
   order,
   onClose,
   onReload,
+  runWrite,
 }: {
   order: Order;
   onClose: () => void;
   /** Already closes this sheet on the caller's side (same pattern as `CancelOrderSheet`'s
    * `onReload`) — this component only needs to trigger it. */
   onReload: () => void;
+  /** Same per-order write queue `OrderLinesSection`/`AddLineSheet` use, so this save can never
+   * race a pending line edit's PATCH on `order.version`. */
+  runWrite: RunOrderWrite;
 }) {
   const toast = useToast();
   const updateContact = useUpdateContact();
@@ -57,18 +62,20 @@ export function EditContactSheet({
     setServerErrors({});
     setShowReload(false);
     try {
-      await updateContact.mutateAsync({
-        id: order.id,
-        body: {
-          version: order.version,
-          customer_name: values.customer_name || null,
-          customer_phone: values.customer_phone || null,
-          customer_email: values.customer_email || null,
-          customer_tax_code: values.customer_tax_code || null,
-          service_address: values.service_address || null,
-          work_description: values.work_description || null,
-        },
-      });
+      await runWrite((current) =>
+        updateContact.mutateAsync({
+          id: current.id,
+          body: {
+            version: current.version,
+            customer_name: values.customer_name || null,
+            customer_phone: values.customer_phone || null,
+            customer_email: values.customer_email || null,
+            customer_tax_code: values.customer_tax_code || null,
+            service_address: values.service_address || null,
+            work_description: values.work_description || null,
+          },
+        }),
+      );
       toast("Đã cập nhật liên hệ.");
       onClose();
     } catch (error) {
