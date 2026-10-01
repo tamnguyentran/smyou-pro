@@ -13,6 +13,7 @@ export type OrderCreateBody = components["schemas"]["OrderCreate"];
 export type OrderUpdateBody = components["schemas"]["OrderUpdate"];
 export type OrderLineCreateBody = components["schemas"]["OrderLineCreate"];
 export type OrderLineUpdateBody = components["schemas"]["OrderLineUpdate"];
+export type OrderContactUpdateBody = components["schemas"]["OrderContactUpdate"];
 export type OrderCancelBody = components["schemas"]["OrderCancel"];
 export type AuditEventOut = components["schemas"]["AuditEventOut"];
 
@@ -213,6 +214,86 @@ export function useRemoveLine() {
     }) => {
       const { data, error, response } = await api.POST(
         "/api/v1/orders/{order_id}/lines/{line_id}/remove",
+        { params: { path: { order_id: id, line_id: lineId } }, body: { version } },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: setOrder,
+  });
+}
+
+/** AC-ORD-093/096/097: sửa liên hệ sau khi gửi (M3-04a's `order.edit_contact`). */
+export function useUpdateContact() {
+  const setOrder = useSetOrder();
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: OrderContactUpdateBody }) => {
+      const { data, error, response } = await api.PATCH("/api/v1/orders/{order_id}/contact", {
+        params: { path: { order_id: id } },
+        body,
+      });
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: setOrder,
+  });
+}
+
+/** AC-ORD-098: thêm dòng sau khi gửi (M3-04a's `order.edit_lines_after_submit`). */
+export function useAddLineAfterSubmit() {
+  const setOrder = useSetOrder();
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: OrderLineCreateBody }) => {
+      const { data, error, response } = await api.POST(
+        "/api/v1/orders/{order_id}/lines-after-submit",
+        { params: { path: { order_id: id } }, body },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: setOrder,
+  });
+}
+
+/** AC-ORD-099: sửa dòng sau khi gửi. */
+export function useUpdateLineAfterSubmit() {
+  const setOrder = useSetOrder();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      lineId,
+      body,
+    }: {
+      id: string;
+      lineId: string;
+      body: OrderLineUpdateBody;
+    }) => {
+      const { data, error, response } = await api.PATCH(
+        "/api/v1/orders/{order_id}/lines-after-submit/{line_id}",
+        { params: { path: { order_id: id, line_id: lineId } }, body },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: setOrder,
+  });
+}
+
+/** AC-ORD-100: xoá dòng sau khi gửi. */
+export function useRemoveLineAfterSubmit() {
+  const setOrder = useSetOrder();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      lineId,
+      version,
+    }: {
+      id: string;
+      lineId: string;
+      version: number;
+    }) => {
+      const { data, error, response } = await api.POST(
+        "/api/v1/orders/{order_id}/lines-after-submit/{line_id}/remove",
         { params: { path: { order_id: id, line_id: lineId } }, body: { version } },
       );
       if (!data) throw toApiError(response, error);

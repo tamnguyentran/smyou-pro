@@ -11,7 +11,9 @@ import { formatCurrency } from "../../../lib/format";
 import { ApiError } from "../../auth/errors";
 import {
   useRemoveLine,
+  useRemoveLineAfterSubmit,
   useUpdateLine,
+  useUpdateLineAfterSubmit,
   type Order,
   type OrderLine,
   type OrderLineUpdateBody,
@@ -20,6 +22,11 @@ import { computeLineTotal } from "../pricing";
 import { discountFieldSchema, quantityFieldSchema } from "../schemas";
 import type { RunOrderWrite } from "./writeQueue";
 import { VatChipField } from "./VatChipField";
+
+/** Which route family a line write goes to — "draft" (M3-02a, `.../lines*`) or "after-submit"
+ * (M3-04a, `.../lines-after-submit*`). Both hooks for the active pair are always called (Rules of
+ * Hooks); only the matching one actually fires a request. */
+export type LineEndpoint = "draft" | "after-submit";
 
 interface Draft {
   quantity: string;
@@ -49,10 +56,16 @@ function OrderLineRow({
   line,
   canEdit,
   runWrite,
+  lineEndpoint = "draft",
+  onStaleVersion,
 }: {
   line: OrderLine;
   canEdit: boolean;
   runWrite: RunOrderWrite;
+  lineEndpoint?: LineEndpoint;
+  /** AC-ORD-103: when given (post-submit mode), a STALE_VERSION on this row defers to the caller's
+   * own tab-level banner instead of the draft-mode inline row message. */
+  onStaleVersion?: () => void;
 }) {
   // Re-derive the editable draft when the server's own fields change (a mutation settling, or a
   // background refetch) — done during render (React's documented pattern for "adjusting state when
@@ -73,8 +86,12 @@ function OrderLineRow({
   const [discountError, setDiscountError] = useState<string>();
   const [rowError, setRowError] = useState<string>();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const updateLine = useUpdateLine();
-  const removeLine = useRemoveLine();
+  const updateLineDraft = useUpdateLine();
+  const updateLineAfterSubmit = useUpdateLineAfterSubmit();
+  const updateLine = lineEndpoint === "after-submit" ? updateLineAfterSubmit : updateLineDraft;
+  const removeLineDraft = useRemoveLine();
+  const removeLineAfterSubmit = useRemoveLineAfterSubmit();
+  const removeLine = lineEndpoint === "after-submit" ? removeLineAfterSubmit : removeLineDraft;
   const toast = useToast();
 
   // The server zeroes unit_price while is_gift (service.py's `_resolve_pricing`) and has no other
@@ -114,6 +131,15 @@ function OrderLineRow({
       }),
     ).catch((err: unknown) => {
       setDraft(toDraft(serverSnapshot));
+      if (
+        lineEndpoint === "after-submit" &&
+        onStaleVersion &&
+        err instanceof ApiError &&
+        err.problem.code === "STALE_VERSION"
+      ) {
+        onStaleVersion();
+        return;
+      }
       setRowError(describeError(err));
     });
   }
@@ -295,6 +321,15 @@ function OrderLineRow({
               })
               .catch((err: unknown) => {
                 setConfirmOpen(false);
+                if (
+                  lineEndpoint === "after-submit" &&
+                  onStaleVersion &&
+                  err instanceof ApiError &&
+                  err.problem.code === "STALE_VERSION"
+                ) {
+                  onStaleVersion();
+                  return;
+                }
                 setRowError(describeError(err));
               });
           }}
@@ -310,11 +345,15 @@ export function OrderLinesSection({
   canEdit,
   onAddLine,
   runWrite,
+  lineEndpoint = "draft",
+  onStaleVersion,
 }: {
   order: Order | undefined;
   canEdit: boolean;
   onAddLine: () => void;
   runWrite: RunOrderWrite;
+  lineEndpoint?: LineEndpoint;
+  onStaleVersion?: () => void;
 }) {
   return (
     <section className="space-y-3">
@@ -331,7 +370,14 @@ export function OrderLinesSection({
       ) : (
         <ul className="space-y-3">
           {order.lines.map((line) => (
-            <OrderLineRow key={line.id} line={line} canEdit={canEdit} runWrite={runWrite} />
+            <OrderLineRow
+              key={line.id}
+              line={line}
+              canEdit={canEdit}
+              runWrite={runWrite}
+              lineEndpoint={lineEndpoint}
+              onStaleVersion={onStaleVersion}
+            />
           ))}
         </ul>
       )}

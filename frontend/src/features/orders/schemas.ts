@@ -89,6 +89,29 @@ export const orderInfoSchema = z
   });
 export type OrderInfoFormValues = z.infer<typeof orderInfoSchema>;
 
+/** M3-04b's "Sửa liên hệ" Sheet (AC-ORD-093/094/097): mirrors `customers/schemas.ts`' phone/email
+ * checks, but every field stays optional — `OrderContactUpdate` accepts null for all 6 (Q57). */
+export const orderContactSchema = z.object({
+  customer_name: z.string().trim().optional(),
+  customer_phone: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === "" || phoneValid(value),
+      "Số điện thoại cần 10 chữ số, bắt đầu bằng 0.",
+    )
+    .optional(),
+  customer_email: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || z.email().safeParse(value).success, "Email không hợp lệ.")
+    .optional(),
+  customer_tax_code: z.string().trim().optional(),
+  service_address: z.string().trim().optional(),
+  work_description: z.string().trim().optional(),
+});
+export type OrderContactFormValues = z.infer<typeof orderContactSchema>;
+
 /** "Tự do" tab of the add-line Sheet (AC-ORD-030/033): CUSTOM lines always need their own VAT
  * (service.py's VAT_REQUIRED_FOR_CUSTOM), so unlike a catalog pick there is no default to fall back to. */
 export const customLineSchema = z.object({

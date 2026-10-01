@@ -272,7 +272,13 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
   }
 
   if (order && order.status !== "DRAFT") {
-    return <OrderDetailTabs order={order} onReload={() => void orderQuery.refetch()} />;
+    return (
+      <OrderDetailTabs
+        order={order}
+        onReload={() => void orderQuery.refetch()}
+        runWrite={runWrite}
+      />
+    );
   }
 
   const scopes = me.data?.capabilities["order.edit_draft"] ?? [];

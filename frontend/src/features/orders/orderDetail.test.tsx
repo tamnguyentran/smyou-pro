@@ -713,7 +713,7 @@ describe("AC-ORD-095 ẩn nút Sửa liên hệ theo quyền/trạng thái", () 
     renderApp(`/orders/${orderId}`);
     await screen.findByText("DH2609-0001");
     expect(screen.queryByRole("button", { name: "Sửa liên hệ" })).not.toBeInTheDocument();
-    expect(screen.getByText("Cty Sáng Tạo Mới")).toBeInTheDocument();
+    expect(screen.getAllByText("Cty Sáng Tạo Mới").length).toBeGreaterThan(0);
   });
 });
 

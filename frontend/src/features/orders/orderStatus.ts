@@ -46,4 +46,8 @@ export const COMMAND_LABELS: Record<string, string> = {
   add_line: "Thêm dòng hàng",
   update_line: "Sửa dòng hàng",
   remove_line: "Xoá dòng hàng",
+  edit_contact: "Sửa liên hệ",
+  add_line_after_submit: "Thêm dòng hàng",
+  update_line_after_submit: "Sửa dòng hàng",
+  remove_line_after_submit: "Xoá dòng hàng",
 };
