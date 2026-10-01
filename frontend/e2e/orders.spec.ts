@@ -280,6 +280,7 @@ test("AC-ORD-069 AC-ORD-110 AC-ORD-113 AC-ORD-114 @a11y @screenshot danh sách �
 
   // AC-ORD-110/AC-ORD-113: nhóm chip trạng thái, đủ 8 chip đúng thứ tự, "Tất cả" đang chọn, vùng chạm ≥44px.
   const statusGroup = page.getByRole("radiogroup", { name: "Trạng thái" });
+  await expect(statusGroup.getByRole("radio")).toHaveCount(8);
   const chipLabels = await statusGroup.getByRole("radio").allTextContents();
   expect(chipLabels).toEqual([
     "Tất cả",
