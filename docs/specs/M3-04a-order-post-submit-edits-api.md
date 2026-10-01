@@ -1,6 +1,6 @@
 # M3-04a — Sửa liên hệ & dòng hàng sau khi gửi: API
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M3-04a (tách từ M3-04) · **Milestone:** M3
 - **Liên quan:** `spec/permissions.yaml` (`order.edit_contact`: MANAGER all/SALE own — "phone/address/notes after submit, until COMPLETED"; `order.edit_lines_after_submit`: MANAGER all/SALE own — Q09 "until COMPLETED/CANCELLED, audited"; `order.read`: MANAGER/SALE/TECH_LEAD all); `spec/state_machines.yaml#order` (7 trạng thái; **không** có transition nào cho sửa liên hệ/dòng — đây là guard nghiệp vụ cấp domain, không đổi `status`, giống `ORDER_NOT_DRAFT` ở M3-02a/Q52); `docs/product/DOMAIN_MODEL.md` §5 (Order — cột `customer_name/phone/email/tax_code` "sửa được theo quyền `order.edit_contact`"), §6 (OrderLine); `docs/product/OPEN_QUESTIONS.md` Q09 (ai được sửa dòng hàng/giá sau khi gửi), Q52/Q53 (guard `ORDER_NOT_DRAFT`, snapshot không đồng bộ theo khách); `M3-02a-draft-orders-api.md` (pricing engine, `OrderLineCreate/Update/Remove`, khoá `version`); `M3-03a-order-transitions-api.md` (7 trạng thái đơn đã cài transition, `GET /orders/{id}/history` đọc `audit_events`); M1-05 audit framework (`audit.service.record`)
 
