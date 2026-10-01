@@ -636,6 +636,81 @@ describe("AC-ORD-093 sửa liên hệ", () => {
   });
 });
 
+describe("AC-ORD-093/099 sửa liên hệ dùng cùng write queue với sửa dòng hàng", () => {
+  test("Lưu liên hệ khi PATCH sửa dòng hàng còn đang chạy → chờ hàng đợi, không PATCH với version cũ", async () => {
+    signedInAs(hoaId, HOA);
+    let resolveLinePatch: (() => void) | undefined;
+    const linePatchGate = new Promise<void>((resolve) => {
+      resolveLinePatch = resolve;
+    });
+    let linePatchBody: unknown;
+    let contactPatchBody: unknown;
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(
+          order({ can_edit_contact: true, can_edit_lines_after_submit: true, lines: [line()] }),
+        ),
+      ),
+      http.get("/api/v1/orders/:id/history", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 50, offset: 0 }),
+      ),
+      http.patch("/api/v1/orders/:id/lines-after-submit/:lineId", async ({ request }) => {
+        linePatchBody = await request.json();
+        await linePatchGate;
+        return HttpResponse.json(
+          order({
+            can_edit_contact: true,
+            can_edit_lines_after_submit: true,
+            lines: [line({ quantity: "2" })],
+            version: 2,
+          }),
+        );
+      }),
+      http.patch("/api/v1/orders/:id/contact", async ({ request }) => {
+        contactPatchBody = await request.json();
+        return HttpResponse.json(
+          order({
+            can_edit_contact: true,
+            can_edit_lines_after_submit: true,
+            customer_phone: "0988777666",
+            version: 3,
+          }),
+        );
+      }),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("tab", { name: "Dòng hàng" }));
+    const row = screen.getByTestId(`order-line-${line().id}`);
+    const qty = within(row).getByLabelText("Số lượng");
+    await user.clear(qty);
+    await user.type(qty, "2");
+    await user.tab();
+    await waitFor(() => {
+      expect(linePatchBody).toBeDefined();
+    });
+
+    await user.click(screen.getByRole("tab", { name: "Thông tin" }));
+    await user.click(screen.getByRole("button", { name: "Sửa liên hệ" }));
+    const sheet = await screen.findByRole("dialog", { name: "Sửa liên hệ" });
+    await user.clear(within(sheet).getByLabelText("Số điện thoại"));
+    await user.type(within(sheet).getByLabelText("Số điện thoại"), "0988777666");
+    await user.click(within(sheet).getByRole("button", { name: "Lưu" }));
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(contactPatchBody).toBeUndefined();
+
+    resolveLinePatch?.();
+    await waitFor(() => {
+      expect(contactPatchBody).toBeDefined();
+    });
+    expect(contactPatchBody).toMatchObject({ version: 2, customer_phone: "0988777666" });
+  });
+});
+
 describe("AC-ORD-094 validate SĐT/email trước khi gửi", () => {
   test("SĐT/email sai định dạng → lỗi inline, Lưu vô hiệu, chưa gọi API", async () => {
     signedInAs(hoaId, HOA);
