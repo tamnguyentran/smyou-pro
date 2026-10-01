@@ -746,18 +746,20 @@ def _build_line(session: Session, order: Order, body: OrderLineCreate) -> OrderL
     )
 
 
-# Fields `_apply_line_changes` tracks for the M3-04a audit diff — only ones a client can actually
-# send on `OrderLineUpdate`, read from `line` *after* the resolved value lands on it.
+# Fields `_apply_line_changes` tracks for the M3-04a audit diff. Captured for ALL of these
+# regardless of what the client sent on `OrderLineUpdate` — pricing side effects (e.g.
+# `is_gift=True` zeroing `unit_price` in `_resolve_pricing`) must still show up in the diff,
+# since it's money data needed for dispute resolution (spec M3-04a §2/§4, AC-ORD-106).
 _LINE_DIFF_FIELDS = ("quantity", "unit_price", "vat_rate", "is_gift", "line_discount", "note")
 
 
 def _apply_line_changes(line: OrderLine, body: OrderLineUpdate) -> dict[str, dict[str, object]]:
     """Mutates `line` exactly as before this item existed, and additionally returns a
-    `{field: {"before", "after"}}` diff (only fields present in `body` whose value actually
-    changed) — `update_line` (DRAFT) ignores the return value; `update_line_after_submit` (M3-04a)
-    puts it straight into `audit_events.data`."""
+    `{field: {"before", "after"}}` diff (every tracked field whose value actually changed,
+    including side effects of fields the client sent) — `update_line` (DRAFT) ignores the
+    return value; `update_line_after_submit` (M3-04a) puts it straight into `audit_events.data`."""
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
-    before = {field: getattr(line, field) for field in _LINE_DIFF_FIELDS if field in changes}
+    before = {field: getattr(line, field) for field in _LINE_DIFF_FIELDS}
 
     quantity = changes.get("quantity", line.quantity)
     is_gift = changes.get("is_gift", line.is_gift)
