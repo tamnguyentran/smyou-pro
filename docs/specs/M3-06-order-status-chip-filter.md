@@ -1,6 +1,6 @@
 # M3-06 — Bộ lọc trạng thái đơn hàng bằng ChipGroup
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M3-06 · **Milestone:** M3
 - **Liên quan:** `M3-03b-order-list-detail-ui.md` (AC-ORD-069, wording đã duyệt "chip lọc trạng thái"); `frontend/src/components/ui/Chip.tsx` (`ChipGroup`, component có sẵn — dùng cho VAT ở M3-02a/b); UI_GUIDELINES §6 "chip chọn nhanh"; phát hiện ở `/review` M3-03b (`reports/review-M3-03b.md`, finding "Status filter is a `<Select>`, not the 'chip lọc trạng thái'...")
 
