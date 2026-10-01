@@ -13,6 +13,7 @@ from app.modules.orders import service
 from app.modules.orders.schemas import (
     OrderCancel,
     OrderCommand,
+    OrderContactUpdate,
     OrderCreate,
     OrderDetail,
     OrderLineCreate,
@@ -29,6 +30,8 @@ Reader = Annotated[Actor, Depends(require("order.read"))]
 Editor = Annotated[Actor, Depends(require("order.edit_draft"))]
 Submitter = Annotated[Actor, Depends(require("order.submit"))]
 Canceler = Annotated[Actor, Depends(require("order.cancel"))]
+ContactEditor = Annotated[Actor, Depends(require("order.edit_contact"))]
+AfterSubmitLineEditor = Annotated[Actor, Depends(require("order.edit_lines_after_submit"))]
 
 
 def _docs(*lines: tuple[int, str]) -> dict[int | str, dict[str, Any]]:
@@ -38,6 +41,7 @@ def _docs(*lines: tuple[int, str]) -> dict[int | str, dict[str, Any]]:
 NOT_FOUND = (404, "NOT_FOUND")
 CONFLICTS = (409, "STALE_VERSION | ORDER_NOT_DRAFT")
 TRANSITION_CONFLICTS = (409, "STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED")
+AFTER_SUBMIT_CONFLICTS = (409, "STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED")
 
 
 @router.post(
@@ -234,6 +238,97 @@ def remove_line(
     actor: Editor,
 ) -> OrderDetail:
     return service.remove_line(
+        session,
+        actor,
+        order_id,
+        line_id,
+        body,
+        specs=request.app.state.specs,
+        request_id=get_request_id(request),
+    )
+
+
+@router.patch(
+    "/{order_id}/contact",
+    operation_id="orders_update_contact",
+    summary="Sửa liên hệ/mô tả sau khi gửi",
+    response_model=OrderDetail,
+    responses=_docs(NOT_FOUND, AFTER_SUBMIT_CONFLICTS),
+)
+def update_contact(
+    order_id: uuid.UUID,
+    body: OrderContactUpdate,
+    request: Request,
+    session: DbSession,
+    actor: ContactEditor,
+) -> OrderDetail:
+    return service.update_contact(
+        session, actor, order_id, body, specs=request.app.state.specs, request_id=get_request_id(request)
+    )
+
+
+@router.post(
+    "/{order_id}/lines-after-submit",
+    operation_id="orders_add_line_after_submit",
+    summary="Thêm dòng hàng sau khi gửi",
+    status_code=201,
+    response_model=OrderDetail,
+    responses=_docs(NOT_FOUND, AFTER_SUBMIT_CONFLICTS),
+)
+def add_line_after_submit(
+    order_id: uuid.UUID,
+    body: OrderLineCreate,
+    request: Request,
+    session: DbSession,
+    actor: AfterSubmitLineEditor,
+) -> OrderDetail:
+    return service.add_line_after_submit(
+        session, actor, order_id, body, specs=request.app.state.specs, request_id=get_request_id(request)
+    )
+
+
+@router.patch(
+    "/{order_id}/lines-after-submit/{line_id}",
+    operation_id="orders_update_line_after_submit",
+    summary="Sửa dòng hàng sau khi gửi",
+    response_model=OrderDetail,
+    responses=_docs(NOT_FOUND, AFTER_SUBMIT_CONFLICTS),
+)
+def update_line_after_submit(
+    order_id: uuid.UUID,
+    line_id: uuid.UUID,
+    body: OrderLineUpdate,
+    request: Request,
+    session: DbSession,
+    actor: AfterSubmitLineEditor,
+) -> OrderDetail:
+    return service.update_line_after_submit(
+        session,
+        actor,
+        order_id,
+        line_id,
+        body,
+        specs=request.app.state.specs,
+        request_id=get_request_id(request),
+    )
+
+
+@router.post(
+    "/{order_id}/lines-after-submit/{line_id}/remove",
+    operation_id="orders_remove_line_after_submit",
+    summary="Xoá dòng hàng sau khi gửi",
+    response_model=OrderDetail,
+    responses=_docs(NOT_FOUND, AFTER_SUBMIT_CONFLICTS),
+)
+def remove_line_after_submit(
+    order_id: uuid.UUID,
+    line_id: uuid.UUID,
+    body: OrderLineRemove,
+    request: Request,
+    session: DbSession,
+    actor: AfterSubmitLineEditor,
+) -> OrderDetail:
+    return service.remove_line_after_submit(
         session,
         actor,
         order_id,

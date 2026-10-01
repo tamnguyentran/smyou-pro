@@ -142,6 +142,8 @@ function order(overrides: Partial<Order> = {}): Order {
     created_by: hoaId,
     version: 1,
     allowed_commands: [],
+    can_edit_contact: false,
+    can_edit_lines_after_submit: false,
     ...overrides,
     lines,
   };
