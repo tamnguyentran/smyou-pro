@@ -1,4 +1,4 @@
-import { Hammer, Search, Wrench } from "lucide-react";
+import { Hammer, Search, Upload, Wrench } from "lucide-react";
 import { useState } from "react";
 import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
@@ -8,6 +8,7 @@ import { EmptyState } from "../../../components/ui/EmptyState";
 import { Pagination } from "../../../components/ui/Pagination";
 import { Select } from "../../../components/ui/Select";
 import { TextField } from "../../../components/ui/TextField";
+import { CatalogImportSheet } from "../../catalogImport/CatalogImportSheet";
 import { useDebouncedValue } from "../../../lib/useDebouncedValue";
 import { useMe } from "../../me/api";
 import { useServices, type Service, type ServiceFilters } from "../api";
@@ -38,6 +39,7 @@ export function ServicesPage() {
   const [isActive, setIsActive] = useState<ServiceFilters["is_active"]>("");
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<Service | "new" | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const debouncedQ = useDebouncedValue(q, 300);
 
   const filters: ServiceFilters = {
@@ -113,14 +115,25 @@ export function ServicesPage() {
           </Select>
         </div>
         {canManage ? (
-          <Button
-            icon={<Hammer aria-hidden="true" className="size-4" />}
-            onClick={() => {
-              setSelected("new");
-            }}
-          >
-            Thêm dịch vụ
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              icon={<Upload aria-hidden="true" className="size-4" />}
+              onClick={() => {
+                setImportOpen(true);
+              }}
+            >
+              Nhập từ CSV
+            </Button>
+            <Button
+              icon={<Hammer aria-hidden="true" className="size-4" />}
+              onClick={() => {
+                setSelected("new");
+              }}
+            >
+              Thêm dịch vụ
+            </Button>
+          </div>
         ) : null}
       </div>
 
@@ -163,6 +176,14 @@ export function ServicesPage() {
           }}
           service={selected === "new" ? undefined : selected}
           canManage={canManage}
+        />
+      ) : null}
+      {importOpen && canManage ? (
+        <CatalogImportSheet
+          entity="services"
+          onClose={() => {
+            setImportOpen(false);
+          }}
         />
       ) : null}
     </div>
