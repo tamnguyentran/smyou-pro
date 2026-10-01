@@ -1,4 +1,4 @@
-import { Monitor, Package, Search } from "lucide-react";
+import { Monitor, Package, Search, Upload } from "lucide-react";
 import { useState } from "react";
 import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
@@ -8,6 +8,7 @@ import { EmptyState } from "../../../components/ui/EmptyState";
 import { Pagination } from "../../../components/ui/Pagination";
 import { Select } from "../../../components/ui/Select";
 import { TextField } from "../../../components/ui/TextField";
+import { CatalogImportSheet } from "../../catalogImport/CatalogImportSheet";
 import { useDebouncedValue } from "../../../lib/useDebouncedValue";
 import { useMe } from "../../me/api";
 import { useProducts, type Product, type ProductFilters } from "../api";
@@ -38,6 +39,7 @@ export function ProductsPage() {
   const [isActive, setIsActive] = useState<ProductFilters["is_active"]>("");
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<Product | "new" | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const debouncedQ = useDebouncedValue(q, 300);
 
   const filters: ProductFilters = {
@@ -113,14 +115,25 @@ export function ProductsPage() {
           </Select>
         </div>
         {canManage ? (
-          <Button
-            icon={<Monitor aria-hidden="true" className="size-4" />}
-            onClick={() => {
-              setSelected("new");
-            }}
-          >
-            Thêm sản phẩm
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              icon={<Upload aria-hidden="true" className="size-4" />}
+              onClick={() => {
+                setImportOpen(true);
+              }}
+            >
+              Nhập từ CSV
+            </Button>
+            <Button
+              icon={<Monitor aria-hidden="true" className="size-4" />}
+              onClick={() => {
+                setSelected("new");
+              }}
+            >
+              Thêm sản phẩm
+            </Button>
+          </div>
         ) : null}
       </div>
 
@@ -163,6 +176,14 @@ export function ProductsPage() {
           }}
           product={selected === "new" ? undefined : selected}
           canManage={canManage}
+        />
+      ) : null}
+      {importOpen && canManage ? (
+        <CatalogImportSheet
+          entity="products"
+          onClose={() => {
+            setImportOpen(false);
+          }}
         />
       ) : null}
     </div>
