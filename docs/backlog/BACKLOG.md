@@ -43,7 +43,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [x] **M3-03b Gửi/thu hồi/huỷ đơn — giao diện**: trang `/orders` (danh sách), trang chi tiết đơn có tab Thông tin/Dòng hàng/Lịch sử, nút Gửi đơn/Thu hồi/Huỷ đơn theo `allowed_commands`. Spec `M3-03b-order-list-detail-ui.md`. Q56. Merged via PR #42.
 - [x] **M3-04a Sửa liên hệ & dòng hàng sau khi gửi — API**: `PATCH /orders/{id}/contact`, thêm/sửa/xoá dòng sau khi gửi (`order.edit_contact`, `order.edit_lines_after_submit`), audit ghi diff trước/sau. Spec `M3-04a-order-post-submit-edits-api.md`. Q57.
 - [ ] **M3-04b Sửa liên hệ & dòng hàng sau khi gửi — giao diện**: form sửa liên hệ, sửa dòng hàng trên trang chi tiết đơn (M3-03b) khi đơn không còn Nháp. Spec chưa viết.
-- [ ] **M3-05 Hàng trong bảng danh sách bấm được cả dòng**: `CustomerList` (M3-01) và `OrderList` (M3-03b) hiện chỉ mã/tên bấm được, phần còn lại của hàng (desktop) không điều hướng — khác với wording AC-ORD-069 "bấm 1 dòng/thẻ → chi tiết". Sửa cả 2 bảng cho nhất quán. Phát hiện ở `/review` M3-03b (`reports/review-M3-03b.md`).
+- [~] **M3-05 Hàng trong bảng danh sách bấm được cả dòng**: `CustomerList` (M3-01) và `OrderList` (M3-03b) hiện chỉ mã/tên bấm được, phần còn lại của hàng (desktop) không điều hướng — khác với wording AC-ORD-069 "bấm 1 dòng/thẻ → chi tiết". Sửa cả 2 bảng cho nhất quán. Phát hiện ở `/review` M3-03b (`reports/review-M3-03b.md`). Spec `M3-05-clickable-list-rows.md`.
 - [ ] **M3-06 Component `ChipGroup` cho bộ lọc trạng thái**: thay `<Select>` lọc trạng thái ở `OrdersListPage` (và các danh sách tương tự) bằng nhóm chip, đúng mô tả UI_GUIDELINES §6 / AC-ORD-069 "chip lọc trạng thái". Phát hiện ở `/review` M3-03b (`reports/review-M3-03b.md`).
 
 ## M4 — Điều phối (QLKT)
