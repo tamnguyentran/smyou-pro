@@ -1,6 +1,6 @@
 # M3-04b — Sửa liên hệ & dòng hàng sau khi gửi: Giao diện
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M3-04b (tách từ M3-04) · **Milestone:** M3
 - **Liên quan:** `M3-04a-order-post-submit-edits-api.md` (API dùng ở item này: `PATCH /orders/{id}/contact`, `POST/PATCH/POST.../lines-after-submit*`, 2 cờ `can_edit_contact`/`can_edit_lines_after_submit` trên `GET /orders/{id}`); `M3-03b-order-list-detail-ui.md` (`OrderDetailTabs`/`OrderInfoTab`/`OrderLinesSection`/`OrderHistoryTab` đã có — item này bật khả năng sửa trên các component đó khi 2 cờ `true`, thay vì viết trang mới); `M3-02b-draft-orders-ui.md` (`AddLineSheet`, `OrderLineRow` canEdit=true — tái dùng nguyên UI, đổi endpoint đích); `docs/design/UI_GUIDELINES.md` §6 (`Sheet` = bottom sheet mobile/modal desktop, toast, banner "Tải lại" cho `STALE_VERSION`); `spec/permissions.yaml` (`order.edit_contact`, `order.edit_lines_after_submit`: MANAGER all/SALE own); `docs/product/OPEN_QUESTIONS.md` Q57 (6 trường liên hệ, trạng thái áp dụng — đã chốt ở M3-04a)
 
