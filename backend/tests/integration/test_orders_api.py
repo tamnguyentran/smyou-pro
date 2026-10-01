@@ -1710,7 +1710,7 @@ def test_update_line_after_submit_recalculates_and_diffs(
     assert event.data == {
         "line_id": line_id,
         "item": "Màn hình Dell 22 inch",
-        "changes": {"quantity": {"before": "1", "after": "3"}},
+        "changes": {"quantity": {"before": "1.00", "after": "3"}},
     }
 
 
