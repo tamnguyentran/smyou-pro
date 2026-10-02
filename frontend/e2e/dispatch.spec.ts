@@ -8,6 +8,9 @@ const SALE = "hoa.e2e@smyou.vn";
 const TECH_LEAD = "tuan.lead@smyou.vn";
 // Kỹ thuật viên đang hoạt động được seed (tên bị trùng giữa các tài khoản, nên nhắm theo mã).
 const TECHNICIAN_CODE = "E2E02";
+// KTV duy nhất không bị buộc đổi mật khẩu → đăng nhập được để kiểm quyền xem (AC-DSP-035).
+const TECHNICIAN = "khoa.shell@smyou.vn";
+const TECHNICIAN_SHELL_CODE = "E2E08";
 
 async function signIn(page: Page, email: string, path: string) {
   await page.goto(`./dang-nhap?next=${encodeURIComponent(path)}`);
@@ -141,4 +144,65 @@ test("AC-DSP-015 AC-DSP-016 AC-DSP-019 AC-DSP-022 AC-DSP-026 AC-DSP-027 @a11y @s
   await expect(page.getByRole("dialog")).toHaveCount(0);
   // Đơn đã sang IN_PROGRESS nên rời hàng đợi (hàng đợi chỉ hiện PENDING_DISPATCH).
   await expect(page.getByRole("button", { name: new RegExp(code) })).toHaveCount(0);
+});
+
+/** Mở trang chi tiết của đơn `code` từ danh sách đơn (hàng bấm được — M3-05). */
+async function openOrderDetail(page: Page, code: string) {
+  await page.getByLabel("Tìm kiếm").fill(code);
+  await expect(page.getByText(code)).toBeVisible();
+  await page.getByText(code).click();
+  await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
+}
+
+test("AC-DSP-028 AC-DSP-032 AC-DSP-033 AC-DSP-035 AC-DSP-036 AC-DSP-037 @a11y @screenshot tab Đầu việc trên chi tiết đơn", async ({
+  page,
+}, info) => {
+  const code = await submitUrgentOrder(page);
+
+  await page.context().clearCookies();
+  await signIn(page, TECH_LEAD, "/orders");
+  await openOrderDetail(page, code);
+
+  // AC-DSP-028: 4 tab đúng thứ tự, "Đầu việc" trước "Lịch sử".
+  await expect(page.getByRole("tab")).toHaveText(["Thông tin", "Dòng hàng", "Đầu việc", "Lịch sử"]);
+  await expect(page.getByText("Chờ điều phối")).toBeVisible();
+  await page.getByRole("tab", { name: "Đầu việc" }).click();
+  await expect(page.getByText("Chưa có đầu việc nào.")).toBeVisible();
+
+  // AC-DSP-032: tạo đầu việc ngay trong tab, dùng lại panel của M4-01b.
+  await page.getByRole("button", { name: "Tạo đầu việc" }).click();
+  const panel = page.getByRole("dialog", { name: `Tạo đầu việc — ${code}` });
+  await panel.getByLabel("Tiêu đề đầu việc").fill("Nghiệm thu với khách");
+  await panel.getByLabel("Số giờ ước tính").fill("1,5");
+  await panel.getByLabel("Hạn hoàn thành").fill(localInput(2));
+  await panel.getByRole("checkbox", { name: new RegExp(TECHNICIAN_SHELL_CODE) }).check();
+  await panel.getByRole("button", { name: "Tạo đầu việc" }).click();
+  await expect(
+    page.getByText(`Đã tạo đầu việc ${code}-T1 và giao cho 1 kỹ thuật viên.`),
+  ).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByText(`${code}-T1`)).toBeVisible();
+
+  // AC-DSP-033: task đầu tiên đưa đơn sang IN_PROGRESS → header + hành động đổi theo.
+  await expect(page.getByText("Đang thực hiện").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Thu hồi" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Huỷ đơn" })).toHaveCount(0);
+
+  // AC-DSP-036: thẻ trên mobile, bảng trên desktop.
+  if (isMobile(info)) {
+    await expect(page.getByRole("table")).toHaveCount(0);
+  } else {
+    await expect(page.getByRole("columnheader", { name: "Hạn hoàn thành" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Người được giao" })).toBeVisible();
+  }
+  // AC-DSP-037 + ảnh 390px/1440px; checkOverflow chứng minh phần "không cuộn ngang" của AC-DSP-036.
+  await evidence(page, info, "order-tasks-tab.png", { checkOverflow: true });
+
+  // AC-DSP-035: KTV được giao xem được tab nhưng không có nút tạo đầu việc.
+  await page.context().clearCookies();
+  await signIn(page, TECHNICIAN, "/orders");
+  await openOrderDetail(page, code);
+  await page.getByRole("tab", { name: "Đầu việc" }).click();
+  await expect(page.getByText(`${code}-T1`)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tạo đầu việc" })).toHaveCount(0);
 });

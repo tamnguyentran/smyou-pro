@@ -49,6 +49,14 @@ export const AN: Person = {
   roles: ["MANAGER"],
   capabilities: { "dashboard.read": all, "order.read": all, "audit.read": all },
 };
+/** Kỹ thuật viên được giao việc — `order.read` chỉ trong phạm vi đơn mình được giao. */
+export const KHOA_TECH: Person = {
+  code: "NV081",
+  full_name: "Trần Minh Khoa",
+  email: "khoa.tran@smyou.vn",
+  roles: ["TECHNICIAN"],
+  capabilities: { "dashboard.read": all, "order.read": ["assigned"], "profile.manage": self },
+};
 
 export function meBody(id: string, person: Person, counters: Record<string, number>) {
   return {
