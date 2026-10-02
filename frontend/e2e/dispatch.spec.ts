@@ -1,0 +1,144 @@
+import AxeBuilder from "@axe-core/playwright";
+import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { resolve } from "node:path";
+
+// Accounts/catalog created by backend/scripts/seed_e2e.py (reset before every `make e2e`).
+const PASSWORD = "E2e@SmYou2026";
+const SALE = "hoa.e2e@smyou.vn";
+const TECH_LEAD = "tuan.lead@smyou.vn";
+// Kỹ thuật viên đang hoạt động được seed (tên bị trùng giữa các tài khoản, nên nhắm theo mã).
+const TECHNICIAN_CODE = "E2E02";
+
+async function signIn(page: Page, email: string, path: string) {
+  await page.goto(`./dang-nhap?next=${encodeURIComponent(path)}`);
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Đăng nhập" }).click();
+}
+
+function shot(info: TestInfo, file: string) {
+  return resolve(import.meta.dirname, "../../reports/screenshots", info.project.name, file);
+}
+
+const isMobile = (info: TestInfo) => info.project.name === "mobile";
+
+async function evidence(
+  page: Page,
+  info: TestInfo,
+  file: string,
+  { checkOverflow = false }: { checkOverflow?: boolean } = {},
+) {
+  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() =>
+    Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))),
+  );
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(
+    results.violations
+      .filter((v) => v.impact === "serious" || v.impact === "critical")
+      .map((v) => v.id),
+  ).toEqual([]);
+  await page.screenshot({ path: shot(info, file), fullPage: true });
+  if (!checkOverflow) return;
+  const size = page.viewportSize();
+  for (const width of [size?.width ?? 390, 360]) {
+    await page.setViewportSize({ width, height: size?.height ?? 780 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+  }
+  if (size) await page.setViewportSize(size);
+}
+
+function localInput(offsetDays: number, hhmm = "09:00") {
+  const d = new Date(Date.now() + offsetDays * 86_400_000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${String(d.getFullYear())}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${hhmm}`;
+}
+
+/** Sale gửi một đơn "Khẩn" để đơn đó nằm trong hàng đợi điều phối; trả về mã đơn. */
+async function submitUrgentOrder(page: Page): Promise<string> {
+  await signIn(page, SALE, "/orders/new");
+  await page.getByLabel("Tìm khách hàng").fill("Sáng Tạo Mới");
+  await page.getByRole("option", { name: /Cty Sáng Tạo Mới E2E/ }).click();
+  await page.getByLabel("Địa chỉ thi công").fill("12 Lê Lợi, Q1, TP.HCM");
+  await page.getByLabel("Mô tả công việc").fill("Lắp 4 camera tầng 1");
+  await page
+    .getByRole("radiogroup", { name: "Độ ưu tiên" })
+    .getByRole("radio", { name: "Khẩn" })
+    .click();
+  await page.getByLabel("Ngày hẹn").fill(localInput(7).slice(0, 10));
+  await page.getByRole("button", { name: "Thêm dòng hàng" }).click();
+  const sheet = page.getByRole("dialog", { name: "Thêm dòng hàng" });
+  await sheet.getByRole("tab", { name: "Dịch vụ" }).click();
+  await sheet.getByLabel("Tìm dịch vụ").fill("camera");
+  await sheet
+    .getByRole("button", { name: /camera/i })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Lưu nháp" }).click();
+  await expect(page.getByText(/^Đã lưu nháp DH\d{4}-\d{4}\.$/)).toBeVisible();
+  const code = (await page.getByRole("heading", { level: 1 }).textContent()) ?? "";
+
+  await page.getByRole("button", { name: "Gửi đơn" }).click();
+  await page
+    .getByRole("dialog", { name: "Gửi đơn?" })
+    .getByRole("button", { name: "Gửi đơn" })
+    .click();
+  await expect(page.getByText(`Đã gửi đơn ${code}.`)).toBeVisible();
+  return code;
+}
+
+test("AC-DSP-015 AC-DSP-016 AC-DSP-019 AC-DSP-022 AC-DSP-026 AC-DSP-027 @a11y @screenshot hàng đợi điều phối, tạo đầu việc giao KTV", async ({
+  page,
+}, info) => {
+  const code = await submitUrgentOrder(page);
+
+  // Đổi người dùng giữa test: xoá cookie phiên trước, nếu không SignedOutOnly sẽ bỏ qua form đăng nhập.
+  await page.context().clearCookies();
+  await signIn(page, TECH_LEAD, "/dispatch/queue");
+
+  // AC-DSP-015 / AC-DSP-016
+  await expect(page.getByRole("heading", { name: "Đơn chờ điều phối", level: 1 })).toBeVisible();
+  const row = page.getByRole("button", { name: new RegExp(code) });
+  await expect(row.first()).toBeVisible();
+  if (isMobile(info)) {
+    await expect(page.getByRole("table")).toHaveCount(0);
+  } else {
+    await expect(page.getByRole("columnheader", { name: "Ưu tiên" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Ngày hẹn" })).toBeVisible();
+  }
+  await evidence(page, info, "dispatch-queue.png", { checkOverflow: true });
+
+  // AC-DSP-019
+  await row.first().click();
+  const panel = page.getByRole("dialog", { name: `Tạo đầu việc — ${code}` });
+  await expect(panel).toBeVisible();
+  await expect(panel.getByText("Cty Sáng Tạo Mới E2E")).toBeVisible();
+  await expect(panel.getByText("Lắp 4 camera tầng 1")).toBeVisible();
+  await expect(panel.getByLabel("Mức ưu tiên")).toHaveValue("URGENT");
+  await expect(panel.getByLabel("Tiêu đề đầu việc")).toBeFocused();
+
+  // AC-DSP-026: nút chính dính đáy trên mobile, chừa safe-area; desktop là modal giữa màn hình.
+  const actionsClass = await panel.getByTestId("task-create-actions").getAttribute("class");
+  expect(actionsClass).toMatch(/sticky bottom-0/);
+  expect(actionsClass).toMatch(/safe-area-inset-bottom/);
+
+  // AC-DSP-022
+  await panel.getByLabel("Tiêu đề đầu việc").fill("Lắp đặt 4 camera tầng 1");
+  await panel.getByLabel("Số giờ ước tính").fill("4");
+  await panel.getByLabel("Hạn hoàn thành").fill(localInput(2));
+  await panel.getByRole("checkbox", { name: new RegExp(TECHNICIAN_CODE) }).check();
+  await expect(panel.getByText("Đã chọn 1 kỹ thuật viên")).toBeVisible();
+  await evidence(page, info, "dispatch-task-create.png");
+
+  await panel.getByRole("button", { name: "Tạo đầu việc" }).click();
+  await expect(
+    page.getByText(`Đã tạo đầu việc ${code}-T1 và giao cho 1 kỹ thuật viên.`),
+  ).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  // Đơn đã sang IN_PROGRESS nên rời hàng đợi (hàng đợi chỉ hiện PENDING_DISPATCH).
+  await expect(page.getByRole("button", { name: new RegExp(code) })).toHaveCount(0);
+});
