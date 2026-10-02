@@ -1,4 +1,4 @@
-import { ClipboardList, Plus } from "lucide-react";
+import { CalendarClock, ClipboardList, Plus, Timer, Users } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
@@ -85,9 +85,18 @@ function TaskList({ tasks }: { tasks: TaskSummary[] }) {
             <StatusBadge status={task.status} />
           </div>
           <p className="text-sm text-body">{task.title}</p>
-          <p className="text-sm text-body">Số giờ: {hoursLabel(task.estimated_hours)} giờ</p>
-          <p className="text-sm text-body">Hạn: {formatDateTime(task.due_at)}</p>
-          <p className="text-sm text-body">Người được giao: {assigneeNames(task)}</p>
+          <p className="flex items-center gap-2 text-sm text-body">
+            <Timer aria-hidden="true" className="size-4 shrink-0 text-muted" />
+            Số giờ: {hoursLabel(task.estimated_hours)} giờ
+          </p>
+          <p className="flex items-center gap-2 text-sm text-body">
+            <CalendarClock aria-hidden="true" className="size-4 shrink-0 text-muted" />
+            Hạn: {formatDateTime(task.due_at)}
+          </p>
+          <p className="flex items-center gap-2 text-sm text-body">
+            <Users aria-hidden="true" className="size-4 shrink-0 text-muted" />
+            Người được giao: {assigneeNames(task)}
+          </p>
         </li>
       ))}
     </ul>
@@ -127,8 +136,12 @@ export function OrderTasksTab({ order }: { order: Order }) {
           role="group"
           aria-busy="true"
           aria-label="Đang tải danh sách đầu việc"
-          className="h-32 animate-pulse rounded-2xl bg-sidebar-sub"
-        />
+          className="space-y-3"
+        >
+          {[0, 1, 2].map((row) => (
+            <div key={row} className="h-20 animate-pulse rounded-2xl bg-sidebar-sub" />
+          ))}
+        </div>
       ) : tasks.isError ? (
         <EmptyState
           icon={ClipboardList}

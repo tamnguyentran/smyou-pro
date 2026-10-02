@@ -205,6 +205,12 @@ test("AC-DSP-028 AC-DSP-032 AC-DSP-033 AC-DSP-035 AC-DSP-036 AC-DSP-037 @a11y @s
     await expect(page.getByRole("columnheader", { name: "Hạn hoàn thành" })).toBeVisible();
     await expect(page.getByRole("columnheader", { name: "Người được giao" })).toBeVisible();
   }
+  // AC-DSP-036: vùng chạm ≥44px cho nút tạo và tab (mẫu `orders.spec.ts`).
+  const createBox = await page.getByRole("button", { name: "Tạo đầu việc" }).boundingBox();
+  expect(createBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+  const tabBox = await page.getByRole("tab", { name: "Đầu việc" }).boundingBox();
+  expect(tabBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+
   // AC-DSP-037 + ảnh 390px/1440px; checkOverflow chứng minh phần "không cuộn ngang" của AC-DSP-036.
   await evidence(page, info, "order-tasks-tab.png", { checkOverflow: true });
 
