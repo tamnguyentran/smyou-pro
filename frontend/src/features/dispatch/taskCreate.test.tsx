@@ -347,7 +347,7 @@ describe("Panel tạo đầu việc", () => {
       expect(calls.posts).toHaveLength(1);
     });
     expect(submit).toBeDisabled();
-    await user.click(submit, { skipPointerEventsCheck: true });
+    await user.click(submit);
     expect(calls.posts).toHaveLength(1);
     expect(calls.posts[0]).toEqual({
       version: 7,

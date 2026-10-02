@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { server } from "../../test/msw";
 import { renderApp } from "../../test/renderApp";
@@ -88,13 +88,16 @@ describe("Hàng đợi điều phối", () => {
   test("AC-DSP-017 skeleton khi tải, empty state khi không có đơn", async () => {
     signedInAs(tuanId, TUAN);
     server.use(
-      http.get("/api/v1/orders", () =>
-        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
-      ),
+      // Chậm có chủ ý: khung xương phải quan sát được trong lúc hàng đợi đang tải (không phải
+      // ở ngay lần render đầu — lúc đó app còn đang khôi phục phiên đăng nhập).
+      http.get("/api/v1/orders", async () => {
+        await delay(50);
+        return HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 });
+      }),
     );
     renderApp("/dispatch/queue");
 
-    expect(screen.getByLabelText("Đang tải hàng đợi điều phối")).toHaveAttribute(
+    expect(await screen.findByLabelText("Đang tải hàng đợi điều phối")).toHaveAttribute(
       "aria-busy",
       "true",
     );

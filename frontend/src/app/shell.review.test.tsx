@@ -63,6 +63,10 @@ function signedInAs(p: P, counters: Record<string, number> = {}) {
       meCalls += 1;
       return HttpResponse.json(me(p, counters));
     }),
+    // "/dispatch/queue" là trang thật từ M4-01b: nó tự gọi hàng đợi, các test menu ở đây không quan tâm.
+    http.get("/api/v1/orders", () =>
+      HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+    ),
   );
   markSignedIn();
   return () => meCalls;
@@ -131,6 +135,9 @@ describe("Review M1-03a", () => {
           ? HttpResponse.json({ status: 503 }, { status: 503 })
           : HttpResponse.json(me(TUAN));
       }),
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+      ),
     );
     markSignedIn();
     renderApp("/dispatch/queue");
@@ -145,7 +152,8 @@ describe("Review M1-03a", () => {
     ).toBeInTheDocument();
 
     await userEvent.setup().click(within(main).getByRole("button", { name: "Thử lại" }));
-    expect(await within(main).findByText("Tính năng đang được phát triển.")).toBeInTheDocument();
+    // "/dispatch/queue" không còn là trang giữ chỗ từ M4-01b: nạp lại được `/me` thì trang thật hiện ra.
+    expect(await within(main).findByText("Không có đơn nào chờ điều phối.")).toBeInTheDocument();
   });
 
   test("AC-SYS-037 badge được đọc là '4 mục' trong tên của liên kết", async () => {
