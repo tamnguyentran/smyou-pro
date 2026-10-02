@@ -6,6 +6,7 @@ import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { useToast } from "../../../components/ui/Toast";
 import { cn } from "../../../lib/cn";
 import { ApiError } from "../../auth/errors";
+import { OrderTasksTab } from "../../dispatch/components/OrderTasksTab";
 import { useCancelOrder, useRecallOrder, type Order, type OrderCancelBody } from "../api";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, type OrderStatus } from "../orderStatus";
 import { AddLineSheet } from "./AddLineSheet";
@@ -17,9 +18,12 @@ import { OrderLinesSection } from "./OrderLinesSection";
 import { OrderTotalsSection } from "./OrderTotalsSection";
 import type { RunOrderWrite } from "./writeQueue";
 
+// Thứ tự theo UI_GUIDELINES §5 ("Thông tin · Dòng hàng · Đầu việc · Tệp đính kèm · Lịch sử");
+// "Tệp đính kèm" chưa có (M6).
 const TABS = [
   { id: "info", label: "Thông tin" },
   { id: "lines", label: "Dòng hàng" },
+  { id: "tasks", label: "Đầu việc" },
   { id: "history", label: "Lịch sử" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
@@ -227,6 +231,7 @@ export function OrderDetailTabs({
             <OrderTotalsSection order={order} />
           </div>
         ) : null}
+        {tab === "tasks" ? <OrderTasksTab order={order} /> : null}
         {tab === "history" ? <OrderHistoryTab orderId={order.id} /> : null}
       </div>
 

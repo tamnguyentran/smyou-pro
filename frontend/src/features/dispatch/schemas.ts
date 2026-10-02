@@ -16,6 +16,13 @@ export function parseHours(value: string): number {
   return Number(value.trim().replace(",", "."));
 }
 
+const HOURS_FORMAT = new Intl.NumberFormat("vi-VN");
+
+/** Số giờ → chuỗi hiển thị kiểu Việt: `4` → "4", `"0.25"` → "0,25" (API trả numeric dạng string). */
+export function hoursLabel(hours: number | string): string {
+  return HOURS_FORMAT.format(Number(hours));
+}
+
 function hoursValid(value: string): boolean {
   const hours = parseHours(value);
   if (!Number.isFinite(hours) || hours < 0.25 || hours > 200) return false;

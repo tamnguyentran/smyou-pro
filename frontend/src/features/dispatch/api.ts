@@ -7,8 +7,25 @@ import { ORDER_KEY, ORDER_LIST_KEY, type Order } from "../orders/api";
 
 export type TaskCreateBody = components["schemas"]["TaskCreate"];
 export type TaskDetail = components["schemas"]["TaskDetail"];
+export type TaskSummary = components["schemas"]["TaskSummary"];
 
 export const DISPATCH_QUEUE_KEY = "dispatch-queue";
+export const ORDER_TASKS_KEY = "order-tasks";
+
+/** AC-DSP-028: danh sách đầu việc của 1 đơn (capability `order.read` — Q61). Chỉ gọi khi tab
+ * "Đầu việc" được mở: `OrderTasksTab` chỉ được render khi tab đó đang chọn. */
+export function useOrderTasks(orderId: string) {
+  return useQuery({
+    queryKey: [ORDER_TASKS_KEY, orderId],
+    queryFn: async () => {
+      const { data, error, response } = await api.GET("/api/v1/orders/{order_id}/tasks", {
+        params: { path: { order_id: orderId } },
+      });
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+  });
+}
 
 /** AC-DSP-015: hàng đợi điều phối — chỉ đơn `PENDING_DISPATCH`, thứ tự do server quyết (`sort=dispatch`). */
 export function useDispatchQueue({
@@ -87,7 +104,7 @@ export function useSuggestedHours(order: Order | undefined): number | null {
 }
 
 /** AC-DSP-022: tạo đầu việc + giao nhiều KTV. Đơn rời hàng đợi (đã `IN_PROGRESS`) và badge
- * `pending_dispatch_count` giảm → làm mới cả hàng đợi, đơn và `GET /me`. */
+ * `pending_dispatch_count` giảm → làm mới cả hàng đợi, đơn, danh sách đầu việc và `GET /me`. */
 export function useCreateTask() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -103,6 +120,7 @@ export function useCreateTask() {
       void queryClient.invalidateQueries({ queryKey: [DISPATCH_QUEUE_KEY] });
       void queryClient.invalidateQueries({ queryKey: [ORDER_LIST_KEY] });
       void queryClient.invalidateQueries({ queryKey: [ORDER_KEY, task.order_id] });
+      void queryClient.invalidateQueries({ queryKey: [ORDER_TASKS_KEY, task.order_id] });
       void queryClient.invalidateQueries({ queryKey: ME_KEY });
     },
   });

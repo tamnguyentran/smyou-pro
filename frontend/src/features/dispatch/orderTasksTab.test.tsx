@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { delay, http, HttpResponse } from "msw";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -330,6 +330,7 @@ describe("Tab Đầu việc trên trang chi tiết đơn", () => {
       screen.getByText("Quản lý kỹ thuật tạo đầu việc để giao cho kỹ thuật viên."),
     ).toBeInTheDocument();
 
+    cleanup(); // dựng lại trang cho pha thứ hai: lỗi tải danh sách
     server.resetHandlers();
     const failing = stubDetail({ tasksStatus: 500 });
     const user = await openTasksTab();
@@ -508,6 +509,7 @@ describe("Tab Đầu việc trên trang chi tiết đơn", () => {
     expect(screen.getByText(T2.code)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Tạo đầu việc" })).not.toBeInTheDocument();
 
+    cleanup(); // dựng lại trang cho KTV không liên quan đơn
     server.resetHandlers();
     const calls = stubDetail({ person: KHOA_TECH, personId: khoaId, orderStatus: 404 });
     renderApp(`/orders/${orderId}`);
@@ -532,6 +534,7 @@ describe("Tab Đầu việc trên trang chi tiết đơn", () => {
     expect(first.getByText(/Người được giao:/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tạo đầu việc" }).className).toContain("w-full");
 
+    cleanup(); // dựng lại trang ở desktop
     vi.unstubAllGlobals();
     server.resetHandlers();
     stubDetail();

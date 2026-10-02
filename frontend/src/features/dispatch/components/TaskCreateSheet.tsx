@@ -12,10 +12,16 @@ import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
 import { formatDate } from "../../../lib/format";
 import { ApiError } from "../../auth/errors";
-import { useOrder, type OrderSummary } from "../../orders/api";
+import { useOrder } from "../../orders/api";
 import { PRIORITY_LABELS, PRIORITY_ORDER, type Priority } from "../../orders/schemas";
 import { DISPATCH_QUEUE_KEY, useActiveTechnicians, useCreateTask, useSuggestedHours } from "../api";
-import { parseHours, taskCreateSchema, toOffsetIso, type TaskCreateFormValues } from "../schemas";
+import {
+  hoursLabel,
+  parseHours,
+  taskCreateSchema,
+  toOffsetIso,
+  type TaskCreateFormValues,
+} from "../schemas";
 import { AssigneePicker } from "./AssigneePicker";
 
 const GENERIC_ERROR = "Không tạo được đầu việc. Vui lòng thử lại.";
@@ -32,13 +38,24 @@ function mapHref(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 }
 
-function hoursLabel(hours: number): string {
-  return new Intl.NumberFormat("vi-VN").format(hours);
+/** Ba trường panel thật sự cần — nhận được cả `OrderSummary` (hàng đợi điều phối, M4-01b) và
+ * `OrderDetail` (tab "Đầu việc" của trang chi tiết đơn, M4-01c; `OrderDetail` không có
+ * `created_by_name` nên không gán được vào `OrderSummary`). */
+export interface TaskCreateOrder {
+  id: string;
+  code: string;
+  priority: string;
 }
 
 /** AC-DSP-019…026: panel tạo đầu việc (bottom sheet mobile / modal desktop). Chỉ hiện nội dung
  * khi đã có chi tiết đơn + danh sách KTV: `version` để gửi lệnh và người được giao đều bắt buộc. */
-export function TaskCreateSheet({ order, onClose }: { order: OrderSummary; onClose: () => void }) {
+export function TaskCreateSheet({
+  order,
+  onClose,
+}: {
+  order: TaskCreateOrder;
+  onClose: () => void;
+}) {
   const toast = useToast();
   const queryClient = useQueryClient();
   const detail = useOrder(order.id);
