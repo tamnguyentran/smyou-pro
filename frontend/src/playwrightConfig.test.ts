@@ -47,7 +47,9 @@ describe("Playwright config (M3-08)", () => {
   test("AC-SYS-079 không file e2e nào ép chạy tuần tự", () => {
     const offenders = listTs(join(ROOT, "e2e")).filter((file) => {
       const source = readFileSync(file, "utf8");
-      return /describe\s*\.\s*configure\s*\(/.test(source) || /mode\s*:\s*["']serial["']/.test(source);
+      return (
+        /describe\s*\.\s*configure\s*\(/.test(source) || /mode\s*:\s*["']serial["']/.test(source)
+      );
     });
     expect(offenders).toEqual([]);
   });
