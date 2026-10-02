@@ -7,7 +7,7 @@ const PORT = 4183;
 
 // One dev backend (single uvicorn, CPU-bound argon2) serves every worker; above this it saturates
 // and a different test times out on each run (M3-08). Never raise the default without 3 green runs.
-const DEFAULT_WORKERS = 3;
+const DEFAULT_WORKERS = 2;
 
 function resolveWorkers(raw: string | undefined): number {
   const parsed = Number(raw);
