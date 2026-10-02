@@ -34,29 +34,35 @@ export function TemporaryPasswordDialog({
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title="Mật khẩu tạm">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title="Mật khẩu tạm"
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button
+            variant="secondary"
+            onClick={onCopy}
+            icon={
+              copied ? (
+                <Check aria-hidden="true" className="size-4" />
+              ) : (
+                <Copy aria-hidden="true" className="size-4" />
+              )
+            }
+          >
+            {copied ? "Đã sao chép" : "Sao chép"}
+          </Button>
+          <Button onClick={onClose}>Đóng</Button>
+        </div>
+      }
+    >
       <p className="rounded-xl border border-line bg-sidebar-sub px-4 py-3 text-center font-mono text-lg tracking-wide text-heading">
         {password}
       </p>
       <p className="mt-3 text-sm leading-relaxed text-body">
         Mật khẩu chỉ hiện một lần. Hãy gửi cho nhân viên qua kênh riêng.
       </p>
-      <div className="mt-6 flex justify-end gap-3">
-        <Button
-          variant="secondary"
-          onClick={onCopy}
-          icon={
-            copied ? (
-              <Check aria-hidden="true" className="size-4" />
-            ) : (
-              <Copy aria-hidden="true" className="size-4" />
-            )
-          }
-        >
-          {copied ? "Đã sao chép" : "Sao chép"}
-        </Button>
-        <Button onClick={onClose}>Đóng</Button>
-      </div>
     </Sheet>
   );
 }

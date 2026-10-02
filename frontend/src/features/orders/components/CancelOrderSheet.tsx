@@ -39,6 +39,25 @@ export function CancelOrderSheet({
       }}
       title={`Huỷ đơn ${orderCode}?`}
       dismissible={!loading}
+      footer={
+        staleVersion ? undefined : (
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
+              Huỷ
+            </Button>
+            <Button
+              type="button"
+              disabled={trimmedLength < MIN_REASON_LENGTH}
+              loading={loading}
+              onClick={() => {
+                onConfirm(reason.trim());
+              }}
+            >
+              Xác nhận huỷ
+            </Button>
+          </div>
+        )
+      }
     >
       <p className="text-sm leading-relaxed text-body">
         Đơn sẽ chuyển sang trạng thái Đã huỷ và không thể hoàn tác. Vui lòng nhập lý do.
@@ -72,21 +91,6 @@ export function CancelOrderSheet({
                 setReason(event.target.value);
               }}
             />
-          </div>
-          <div className="mt-6 flex justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
-              Huỷ
-            </Button>
-            <Button
-              type="button"
-              disabled={trimmedLength < MIN_REASON_LENGTH}
-              loading={loading}
-              onClick={() => {
-                onConfirm(reason.trim());
-              }}
-            >
-              Xác nhận huỷ
-            </Button>
           </div>
         </>
       )}

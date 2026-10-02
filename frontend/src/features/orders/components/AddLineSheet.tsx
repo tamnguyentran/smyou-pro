@@ -146,12 +146,12 @@ function ServicePicker({ onPick }: { onPick: (service: Service) => void }) {
   );
 }
 
+const CUSTOM_FORM_ID = "custom-line-form";
+
 function CustomLineForm({
-  pending,
   serverErrors,
   onSubmit,
 }: {
-  pending: boolean;
   serverErrors: Record<string, string>;
   onSubmit: (values: CustomLineFormValues) => void;
 }) {
@@ -162,7 +162,12 @@ function CustomLineForm({
   const vatRate = useWatch({ control, name: "vat_rate" });
 
   return (
-    <form noValidate onSubmit={(event) => void handleSubmit(onSubmit)(event)} className="space-y-4">
+    <form
+      id={CUSTOM_FORM_ID}
+      noValidate
+      onSubmit={(event) => void handleSubmit(onSubmit)(event)}
+      className="space-y-4"
+    >
       <TextField
         label="Tên"
         error={formState.errors.name?.message ?? serverErrors.name}
@@ -194,9 +199,6 @@ function CustomLineForm({
           setValue("vat_rate", value, { shouldValidate: true });
         }}
       />
-      <Button type="submit" loading={pending}>
-        Thêm
-      </Button>
     </form>
   );
 }
@@ -275,7 +277,19 @@ export function AddLineSheet({
   }
 
   return (
-    <Sheet open onClose={onClose} title="Thêm dòng hàng" dismissible={!addLine.isPending}>
+    <Sheet
+      open
+      onClose={onClose}
+      title="Thêm dòng hàng"
+      dismissible={!addLine.isPending}
+      footer={
+        tab === "CUSTOM" ? (
+          <Button type="submit" form={CUSTOM_FORM_ID} loading={addLine.isPending}>
+            Thêm
+          </Button>
+        ) : undefined
+      }
+    >
       {error ? <Alert>{error}</Alert> : null}
       <div
         role="tablist"
@@ -336,7 +350,6 @@ export function AddLineSheet({
       ) : null}
       {tab === "CUSTOM" ? (
         <CustomLineForm
-          pending={addLine.isPending}
           serverErrors={serverErrors}
           onSubmit={(values) => void addCustomLine(values)}
         />

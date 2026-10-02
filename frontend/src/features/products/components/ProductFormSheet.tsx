@@ -53,6 +53,8 @@ const SHOWN_FIELDS = [
   "specs",
 ];
 
+const FORM_ID = "product-form";
+
 /** Create or edit a product (AC-CAT-013/014); read-only detail view for Sale (AC-CAT-017); ngừng/mở
  * kinh doanh (AC-CAT-015) live in the same sheet. Image upload (AC-CAT-016) is wired in separately. */
 export function ProductFormSheet({
@@ -185,6 +187,24 @@ export function ProductFormSheet({
         dismissible={
           !(create.isPending || update.isPending || imageUploading) && confirming === null
         }
+        footer={
+          readOnly ? undefined : showReload ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                invalidateList();
+                onClose();
+              }}
+            >
+              Tải lại
+            </Button>
+          ) : (
+            <Button type="submit" form={FORM_ID} loading={create.isPending || update.isPending}>
+              Lưu
+            </Button>
+          )
+        }
       >
         {readOnly ? (
           <div className="space-y-4">
@@ -227,7 +247,12 @@ export function ProductFormSheet({
             </dl>
           </div>
         ) : (
-          <form noValidate onSubmit={(event) => void onSubmit(event)} className="space-y-4">
+          <form
+            id={FORM_ID}
+            noValidate
+            onSubmit={(event) => void onSubmit(event)}
+            className="space-y-4"
+          >
             {formMessage ? <Alert>{formMessage}</Alert> : null}
             {!product ? (
               <TextField
@@ -311,23 +336,6 @@ export function ProductFormSheet({
               {...register("warranty_months")}
             />
             <Textarea label="Cấu hình" error={serverErrors.specs} {...register("specs")} />
-
-            {showReload ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  invalidateList();
-                  onClose();
-                }}
-              >
-                Tải lại
-              </Button>
-            ) : (
-              <Button type="submit" loading={create.isPending || update.isPending}>
-                Lưu
-              </Button>
-            )}
 
             {product && canManage ? (
               <div className="flex flex-wrap gap-3 border-t border-line pt-4">

@@ -49,6 +49,8 @@ export interface TaskCreateOrder {
 
 /** AC-DSP-019…026: panel tạo đầu việc (bottom sheet mobile / modal desktop). Chỉ hiện nội dung
  * khi đã có chi tiết đơn + danh sách KTV: `version` để gửi lệnh và người được giao đều bắt buộc. */
+const FORM_ID = "task-create-form";
+
 export function TaskCreateSheet({
   order,
   onClose,
@@ -135,6 +137,32 @@ export function TaskCreateSheet({
       onClose={onClose}
       dismissible={!createTask.isPending}
       title={ready ? `Tạo đầu việc — ${order.code}` : "Tạo đầu việc"}
+      footer={
+        ready ? (
+          <div data-testid="task-create-actions" className="flex gap-2">
+            {showReload ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setShowReload(false);
+                  setFormMessage(null);
+                  void detail.refetch();
+                }}
+              >
+                Tải lại
+              </Button>
+            ) : (
+              <Button type="submit" form={FORM_ID} loading={createTask.isPending}>
+                Tạo đầu việc
+              </Button>
+            )}
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Đóng
+            </Button>
+          </div>
+        ) : undefined
+      }
     >
       {!ready ? (
         <div
@@ -144,7 +172,12 @@ export function TaskCreateSheet({
           className="h-64 animate-pulse rounded-2xl bg-sidebar-sub"
         />
       ) : (
-        <form noValidate onSubmit={(event) => void onSubmit(event)} className="space-y-4">
+        <form
+          id={FORM_ID}
+          noValidate
+          onSubmit={(event) => void onSubmit(event)}
+          className="space-y-4"
+        >
           <div className="space-y-2 rounded-xl bg-sidebar-sub p-3 text-sm">
             <p className="font-semibold text-heading">{detail.data.customer_name ?? "Khách lẻ"}</p>
             {detail.data.customer_phone ? (
@@ -229,32 +262,6 @@ export function TaskCreateSheet({
               );
             }}
           />
-
-          <div
-            data-testid="task-create-actions"
-            className="sticky bottom-0 -mb-4 flex gap-2 border-t border-line bg-card pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] lg:-mb-6 lg:pb-6"
-          >
-            {showReload ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setShowReload(false);
-                  setFormMessage(null);
-                  void detail.refetch();
-                }}
-              >
-                Tải lại
-              </Button>
-            ) : (
-              <Button type="submit" loading={createTask.isPending}>
-                Tạo đầu việc
-              </Button>
-            )}
-            <Button type="button" variant="secondary" onClick={onClose}>
-              Đóng
-            </Button>
-          </div>
         </form>
       )}
     </Sheet>

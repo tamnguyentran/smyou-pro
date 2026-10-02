@@ -135,9 +135,10 @@ test("AC-DSP-015 AC-DSP-016 AC-DSP-019 AC-DSP-022 AC-DSP-026 AC-DSP-027 @a11y @s
   await expect(panel.getByLabel("Tiêu đề đầu việc")).toBeFocused();
 
   // AC-DSP-026: nút chính dính đáy trên mobile, chừa safe-area; desktop là modal giữa màn hình.
-  const actionsClass = await panel.getByTestId("task-create-actions").getAttribute("class");
-  expect(actionsClass).toMatch(/sticky bottom-0/);
+  // M4-01d: hàng nút nằm trong footer của Sheet (ngoài vùng cuộn) thay vì `sticky` trong body.
+  const actionsClass = await panel.getByTestId("sheet-footer").getAttribute("class");
   expect(actionsClass).toMatch(/safe-area-inset-bottom/);
+  await expect(panel.getByTestId("sheet-footer").getByTestId("task-create-actions")).toBeVisible();
 
   // AC-DSP-022
   await panel.getByLabel("Tiêu đề đầu việc").fill("Lắp đặt 4 camera tầng 1");

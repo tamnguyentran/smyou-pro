@@ -49,6 +49,8 @@ const SHOWN_FIELDS = [
   "description",
 ];
 
+const FORM_ID = "service-form";
+
 /** Create or edit a service (AC-CAT-028/029); read-only detail view for Sale (AC-CAT-031); ngừng/mở
  * kinh doanh (AC-CAT-030) live in the same sheet. No image (unlike products, M2-01b). */
 export function ServiceFormSheet({
@@ -179,6 +181,24 @@ export function ServiceFormSheet({
         onClose={onClose}
         title={title}
         dismissible={!(create.isPending || update.isPending) && confirming === null}
+        footer={
+          readOnly ? undefined : showReload ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                invalidateList();
+                onClose();
+              }}
+            >
+              Tải lại
+            </Button>
+          ) : (
+            <Button type="submit" form={FORM_ID} loading={create.isPending || update.isPending}>
+              Lưu
+            </Button>
+          )
+        }
       >
         {readOnly ? (
           <div className="space-y-4">
@@ -213,7 +233,12 @@ export function ServiceFormSheet({
             </dl>
           </div>
         ) : (
-          <form noValidate onSubmit={(event) => void onSubmit(event)} className="space-y-4">
+          <form
+            id={FORM_ID}
+            noValidate
+            onSubmit={(event) => void onSubmit(event)}
+            className="space-y-4"
+          >
             {formMessage ? <Alert>{formMessage}</Alert> : null}
             {!service ? (
               <TextField
@@ -289,23 +314,6 @@ export function ServiceFormSheet({
               {...register("default_estimated_hours")}
             />
             <Textarea label="Mô tả" error={serverErrors.description} {...register("description")} />
-
-            {showReload ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  invalidateList();
-                  onClose();
-                }}
-              >
-                Tải lại
-              </Button>
-            ) : (
-              <Button type="submit" loading={create.isPending || update.isPending}>
-                Lưu
-              </Button>
-            )}
 
             {service && canManage ? (
               <div className="flex flex-wrap gap-3 border-t border-line pt-4">

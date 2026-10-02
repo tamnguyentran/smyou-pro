@@ -94,6 +94,8 @@ function RoleField({
   );
 }
 
+const FORM_ID = "employee-form";
+
 /** Create or edit an employee (AC-EMP-014/015); read-only detail view for TECH_LEAD (AC-EMP-017);
  * roles and account state (khoá/mở/cấp lại mật khẩu, AC-EMP-016) live in the same sheet. */
 export function EmployeeFormSheet({
@@ -281,6 +283,28 @@ export function EmployeeFormSheet({
           confirming === null &&
           resetPasswordValue === null
         }
+        footer={
+          readOnly ? undefined : showReload ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                invalidateList();
+                onClose();
+              }}
+            >
+              Tải lại
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              form={FORM_ID}
+              loading={create.isPending || update.isPending || setRolesCommand.isPending}
+            >
+              Lưu
+            </Button>
+          )
+        }
       >
         {readOnly ? (
           <div className="space-y-4">
@@ -310,7 +334,12 @@ export function EmployeeFormSheet({
             <RoleField selected={selectedRoles} onToggle={toggleRole} readOnly error={null} />
           </div>
         ) : (
-          <form noValidate onSubmit={(event) => void onSubmit(event)} className="space-y-4">
+          <form
+            id={FORM_ID}
+            noValidate
+            onSubmit={(event) => void onSubmit(event)}
+            className="space-y-4"
+          >
             {formMessage ? <Alert>{formMessage}</Alert> : null}
             <TextField
               label="Họ và tên"
@@ -347,25 +376,6 @@ export function EmployeeFormSheet({
                   : rolesErrorFrom(serverErrors)
               }
             />
-            {showReload ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  invalidateList();
-                  onClose();
-                }}
-              >
-                Tải lại
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                loading={create.isPending || update.isPending || setRolesCommand.isPending}
-              >
-                Lưu
-              </Button>
-            )}
             {employee && canManage ? (
               <div className="flex flex-wrap gap-3 border-t border-line pt-4">
                 {employee.is_active && !isSelf ? (

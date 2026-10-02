@@ -133,6 +133,29 @@ export function CatalogImportSheet({
         onClose={onClose}
         title={config.title}
         dismissible={!busy && !confirmOpen && !commit.isPending}
+        footer={
+          step === "preview" && result ? (
+            <div className="flex flex-wrap gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={resetToSelect}
+                disabled={commit.isPending}
+              >
+                Chọn file khác
+              </Button>
+              <Button
+                type="button"
+                disabled={result.invalid_count > 0}
+                onClick={() => {
+                  setConfirmOpen(true);
+                }}
+              >
+                Xác nhận nhập
+              </Button>
+            </div>
+          ) : undefined
+        }
       >
         {step === "select" ? (
           <div className="space-y-4">
@@ -285,26 +308,6 @@ export function CatalogImportSheet({
             {result.invalid_count > 0 ? (
               <p className="text-xs text-muted">{RE_UPLOAD_HINT}</p>
             ) : null}
-
-            <div className="sticky bottom-0 flex flex-wrap gap-3 border-t border-line bg-card pt-4">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={resetToSelect}
-                disabled={commit.isPending}
-              >
-                Chọn file khác
-              </Button>
-              <Button
-                type="button"
-                disabled={result.invalid_count > 0}
-                onClick={() => {
-                  setConfirmOpen(true);
-                }}
-              >
-                Xác nhận nhập
-              </Button>
-            </div>
           </div>
         ) : null}
       </Sheet>

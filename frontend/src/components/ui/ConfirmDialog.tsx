@@ -23,21 +23,28 @@ export function ConfirmDialog({
   error?: string | null;
 }) {
   return (
-    <Sheet open={open} onClose={onClose} title={title} dismissible={!loading}>
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={title}
+      dismissible={!loading}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={onClose} disabled={loading}>
+            Huỷ
+          </Button>
+          <Button onClick={onConfirm} loading={loading}>
+            {confirmLabel}
+          </Button>
+        </div>
+      }
+    >
       <p className="text-sm leading-relaxed text-body">{message}</p>
       {error ? (
         <div className="mt-3">
           <Alert>{error}</Alert>
         </div>
       ) : null}
-      <div className="mt-6 flex justify-end gap-3">
-        <Button variant="secondary" onClick={onClose} disabled={loading}>
-          Huỷ
-        </Button>
-        <Button onClick={onConfirm} loading={loading}>
-          {confirmLabel}
-        </Button>
-      </div>
     </Sheet>
   );
 }
