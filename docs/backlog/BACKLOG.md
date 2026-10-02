@@ -49,7 +49,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 
 ## M4 — Điều phối (QLKT)
 - [x] **M4-01a Hàng đợi điều phối + tạo task + giao nhiều KTV — API**: bảng `tasks`/`assignments`, 5 guard đang treo (`order_in_dispatchable_state`/`at_least_one_assignee`/`assignees_are_active_technicians`/`estimated_hours_positive`/`due_at_not_in_past`), lệnh tạo task (đơn → IN_PROGRESS khi là task đầu tiên), `GET /orders/{id}/tasks`, `GET /orders?sort=dispatch`, badge `pending_dispatch_count`. Spec `M4-01a-dispatch-task-create-api.md`. Q59, Q60, Q61, Q62, Q63.
-- [A] **M4-01b Hàng đợi điều phối + tạo task + giao nhiều KTV — giao diện**: trang `/dispatch/queue` (sắp theo ưu tiên + ngày hẹn), panel/form tạo task nhiều người giao. Spec `M4-01b-dispatch-task-create-ui.md`. Q64.
+- [~] **M4-01b Hàng đợi điều phối + tạo task + giao nhiều KTV — giao diện**: trang `/dispatch/queue` (sắp theo ưu tiên + ngày hẹn), panel/form tạo task nhiều người giao. Spec `M4-01b-dispatch-task-create-ui.md`. Q64.
 - [ ] **M4-01c Tab "Đầu việc" trên trang chi tiết đơn**: danh sách task của đơn (`GET /orders/{id}/tasks`), badge trạng thái task, nút "Tạo đầu việc" dùng lại `TaskCreateSheet` của M4-01b cho đơn `IN_PROGRESS`/`REVISION`. Tách từ M4-01b vì gộp vượt ~400 dòng non-test (Q64).
 - [ ] **M4-02 Sửa task, thêm/gỡ người, huỷ task**; trạng thái task suy ra; NEEDS_ASSIGNEE.
 - [ ] **M4-03 Bảng đầu việc** (Kanban desktop / danh sách mobile, lọc theo KTV/hạn/ưu tiên).
