@@ -1,6 +1,6 @@
 # M4-01b — Hàng đợi điều phối + tạo task + giao nhiều KTV: Giao diện
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M4-01b (tách từ M4-01 — Q59; đề xuất tách tiếp phần tab "Đầu việc" sang M4-01c — Q64) · **Milestone:** M4
 - **Liên quan:** `M4-01a-dispatch-task-create-api.md` (API dùng ở item này: `GET /orders?status=PENDING_DISPATCH&sort=dispatch`, `POST /orders/{id}/tasks`, `GET /orders/{id}`, badge `pending_dispatch_count` trong `GET /me`); `spec/permissions.yaml` menu `dispatch-queue` (`Đơn chờ điều phối`, path `/dispatch/queue`, capability cha `task.manage`, badge `pending_dispatch_count`); `docs/design/UI_GUIDELINES.md` §5 hàng "Đơn chờ điều phối" ("sắp theo ưu tiên + ngày hẹn; mở đơn → panel tạo task (gợi ý giờ từ dịch vụ trong đơn)") + §4 (bottom sheet mobile / modal desktop) + §6 (`Sheet`, toast, empty state, nút ≥44px); `M3-03b-order-list-detail-ui.md` (mẫu bảng-desktop/thẻ-mobile `OrderList`, banner `STALE_VERSION` + nút "Tải lại"); `M2-02-services.md` (`default_estimated_hours` — gợi ý số giờ, `GET /services/{id}` dùng capability `catalog.read` mà TECH_LEAD có `all`); `M1-04a-employees-api.md` (`GET /employees?role=TECHNICIAN&is_active=true` — `employee.read` TECH_LEAD `all`); `frontend/src/features/orders/schemas.ts` (`PRIORITY_LABELS`)
 
