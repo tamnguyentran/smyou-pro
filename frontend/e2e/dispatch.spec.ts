@@ -31,8 +31,8 @@ const isMobile = (info: TestInfo) => info.project.name === "mobile";
 // STALE_VERSION oan khi backend chậm; M3-07 sửa gốc nên không được ép tuần tự lại ở đây.
 test("AC-ORD-124 file này không ép chạy tuần tự", () => {
   const source = readFileSync(resolve(import.meta.dirname, "dispatch.spec.ts"), "utf8");
-  // Ghép tên lệnh từ hai mảnh để chính dòng kiểm tra này không bị đếm là một lần ép tuần tự.
-  expect(source).not.toContain(["describe", "configure("].join("."));
+  // Khớp cả khi có khoảng trắng chen vào; chính dòng này không tự khớp vì nó chứa dấu `\s`.
+  expect(source).not.toMatch(/describe\s*\.\s*configure\s*\(/);
 });
 
 async function evidence(

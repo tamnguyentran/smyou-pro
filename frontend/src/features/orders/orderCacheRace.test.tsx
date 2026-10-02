@@ -272,6 +272,9 @@ describe("AC-ORD-119/120 phản hồi GET cũ không ghi đè bản chụp mới
     const user = userEvent.setup();
 
     await addDellLine(user);
+    // Giữ đúng node DOM của dòng hàng: nếu form quay lại trạng thái chờ ("Đang tải đơn hàng")
+    // rồi vẽ lại, node này bị tháo và node mới khác tham chiếu → chứng minh "vòng loading thứ hai".
+    const lineNode = screen.getByText("Màn hình Dell 22 inch");
     gate.release();
     await waitFor(() => {
       expect(state.getDone).toBe(true);
@@ -279,7 +282,8 @@ describe("AC-ORD-119/120 phản hồi GET cũ không ghi đè bản chụp mới
     // Một tương tác nữa để React xử lý xong mọi cập nhật do phản hồi GET cũ sinh ra.
     await user.click(screen.getByRole("button", { name: "Thông tin đơn" }));
 
-    expect(screen.getByText("Màn hình Dell 22 inch")).toBeInTheDocument();
+    expect(screen.getByText("Màn hình Dell 22 inch")).toBe(lineNode);
+    expect(screen.queryByLabelText("Đang tải đơn hàng")).not.toBeInTheDocument();
     expect(screen.queryByText("Chưa có dòng hàng nào.")).not.toBeInTheDocument();
     const totals = screen.getByTestId("order-totals");
     expect(within(totals).getByText("Tổng cộng: 2.700.000 ₫")).toBeInTheDocument();
@@ -361,11 +365,16 @@ describe("AC-ORD-122 409 STALE_VERSION thật vẫn báo và Tải lại đượ
 
 describe("AC-ORD-123 phản hồi mutation cũ hơn cũng không ghi đè cache", () => {
   test("AC-ORD-123 useSetOrder giữ version cao hơn khi PATCH trả bản cũ hơn", async () => {
+    const patchedVersions: number[] = [];
     server.use(
-      http.patch("/api/v1/orders/:id", () =>
+      http.patch("/api/v1/orders/:id", async ({ request }) => {
+        const body = (await request.json()) as { version: number };
+        patchedVersions.push(body.version);
+        // 409 oan nếu client gửi lại version cũ hơn bản đang có trong cache.
+        if (body.version !== 4) return staleVersionProblem();
         // Phản hồi về muộn, mang bản chụp cũ hơn bản một lệnh ghi khác đã đặt vào cache.
-        HttpResponse.json(order({ version: 3, lines: [dellLine()] })),
-      ),
+        return HttpResponse.json(order({ version: 3, lines: [dellLine()] }));
+      }),
     );
     const queryClient = createQueryClient();
     queryClient.setQueryData([ORDER_KEY, orderId], order({ version: 4, lines: [dellLine()] }));
@@ -380,5 +389,13 @@ describe("AC-ORD-123 phản hồi mutation cũ hơn cũng không ghi đè cache"
     });
 
     expect(queryClient.getQueryData<Order>([ORDER_KEY, orderId])?.version).toBe(4);
+
+    // Lệnh ghi kế tiếp lấy `version` từ cache (đúng như các form đang làm) → vẫn là 4, không 409.
+    const cachedVersion = queryClient.getQueryData<Order>([ORDER_KEY, orderId])?.version ?? 0;
+    await result.current.mutateAsync({
+      id: orderId,
+      body: { version: cachedVersion, service_address: "34 Hai Bà Trưng, Q1, TP.HCM" },
+    });
+    expect(patchedVersions).toEqual([4, 4]);
   });
 });
