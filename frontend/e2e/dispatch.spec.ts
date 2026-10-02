@@ -2,6 +2,14 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { resolve } from "node:path";
 
+// Hai test trong file này đều tạo + gửi một đơn qua giao diện Kinh doanh. Chạy song song (mặc
+// định `fullyParallel`) thì backend chậm đi và `DraftOrderForm` lộ một race có sẵn: một
+// `GET /orders/{id}` bay song song trả về bản chụp cũ hơn và ghi đè cache sau khi lệnh thêm dòng
+// hàng đã tăng `version` → "Lưu nháp" bị 409 STALE_VERSION oan. Lỗi nằm ở M3-02b/M3-04b, không
+// phải ở điều phối — xem backlog M3-07. Tạm cho file này chạy tuần tự (vẫn độc lập, không "serial":
+// test sau không bị skip khi test trước fail).
+test.describe.configure({ mode: "default" });
+
 // Accounts/catalog created by backend/scripts/seed_e2e.py (reset before every `make e2e`).
 const PASSWORD = "E2e@SmYou2026";
 const SALE = "hoa.e2e@smyou.vn";
@@ -181,7 +189,9 @@ test("AC-DSP-028 AC-DSP-032 AC-DSP-033 AC-DSP-035 AC-DSP-036 AC-DSP-037 @a11y @s
     page.getByText(`Đã tạo đầu việc ${code}-T1 và giao cho 1 kỹ thuật viên.`),
   ).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByText(`${code}-T1`)).toBeVisible();
+  // Khoanh vùng danh sách: mã đầu việc cũng xuất hiện trong toast vừa hiện.
+  const taskList = page.getByTestId("order-tasks");
+  await expect(taskList.getByText(`${code}-T1`)).toBeVisible();
 
   // AC-DSP-033: task đầu tiên đưa đơn sang IN_PROGRESS → header + hành động đổi theo.
   await expect(page.getByText("Đang thực hiện").first()).toBeVisible();
@@ -203,6 +213,6 @@ test("AC-DSP-028 AC-DSP-032 AC-DSP-033 AC-DSP-035 AC-DSP-036 AC-DSP-037 @a11y @s
   await signIn(page, TECHNICIAN, "/orders");
   await openOrderDetail(page, code);
   await page.getByRole("tab", { name: "Đầu việc" }).click();
-  await expect(page.getByText(`${code}-T1`)).toBeVisible();
+  await expect(page.getByTestId("order-tasks").getByText(`${code}-T1`)).toBeVisible();
   await expect(page.getByRole("button", { name: "Tạo đầu việc" })).toHaveCount(0);
 });

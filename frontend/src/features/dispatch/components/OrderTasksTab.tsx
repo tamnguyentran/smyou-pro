@@ -39,7 +39,10 @@ function TaskList({ tasks }: { tasks: TaskSummary[] }) {
 
   if (desktop) {
     return (
-      <table className="w-full overflow-hidden rounded-2xl border border-line bg-card text-left text-sm">
+      <table
+        data-testid="order-tasks"
+        className="w-full overflow-hidden rounded-2xl border border-line bg-card text-left text-sm"
+      >
         <caption className="sr-only">Đầu việc của đơn</caption>
         <thead className="bg-sidebar-sub text-xs font-semibold text-body uppercase">
           <tr>
@@ -71,7 +74,7 @@ function TaskList({ tasks }: { tasks: TaskSummary[] }) {
   }
 
   return (
-    <ul aria-label="Đầu việc của đơn" className="space-y-3">
+    <ul data-testid="order-tasks" aria-label="Đầu việc của đơn" className="space-y-3">
       {tasks.map((task) => (
         <li
           key={task.id}
