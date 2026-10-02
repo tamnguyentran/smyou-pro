@@ -31,9 +31,11 @@ export function AssigneePicker({
                   }}
                   className="size-5 shrink-0 rounded border-line text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                 />
+                {/* Mã nhân viên dùng `text-body` (không phải `text-muted`): hàng này có nền
+                 * `hover:bg-sidebar-sub`, trên nền đó `text-muted` tụt dưới 4.5:1 (axe). */}
                 <span className="text-sm text-body">
-                  {technician.full_name}
-                  <span className="text-muted"> · {technician.code}</span>
+                  <span className="font-medium text-heading">{technician.full_name}</span> ·{" "}
+                  {technician.code}
                 </span>
               </label>
             </li>
