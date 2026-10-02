@@ -1,6 +1,6 @@
 # M3-07 — Sửa lỗi `STALE_VERSION` oan khi lưu nháp (race ghi đè cache `GET /orders/{id}`)
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M3-07 · **Milestone:** M3
 - **Liên quan:** `docs/specs/M3-02b-draft-orders-ui.md` (AC-ORD-034, AC-ORD-035), `docs/specs/M3-04b-order-post-submit-edits-ui.md`, `docs/specs/M4-01b-dispatch-task-create-ui.md` (consumer thứ hai của `useOrder`), spec/permissions.yaml#order.update (không đổi)
 
