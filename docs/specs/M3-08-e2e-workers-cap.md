@@ -1,6 +1,6 @@
 # M3-08 — E2E ổn định dưới tải: giới hạn `workers` của Playwright
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M3-08 · **Milestone:** M3
 - **Liên quan:** `docs/specs/M3-07-stale-version-draft-save-race.md` (AC-ORD-124), `docs/process/QUALITY_GATES.md`, `reports/verification.md` §Failures. Không đổi `spec/*.yaml`.
 
@@ -44,7 +44,7 @@ Không đổi giao diện; không cần screenshot.
 3. (Tuỳ chọn) `E2E_WORKERS=8 make e2e` để thấy ngưỡng cũ gây timeout lại, xác nhận giới hạn là nguyên nhân.
 
 ## 8. Giả định & câu hỏi
-- Giả định kỹ thuật (không phải quy tắc nghiệp vụ, nên không thêm vào OPEN_QUESTIONS): giá trị mặc định `workers = 3`. Đây là điểm xuất phát; `/implement` thử 4 → 3 → 2 và chọn **giá trị lớn nhất cho 3 lần xanh liên tiếp**, ghi lại thang thử trong báo cáo. Trần ≤ 4 ở AC-SYS-077 để một ai đó không âm thầm nâng lại.
+- Giả định kỹ thuật (không phải quy tắc nghiệp vụ, nên không thêm vào OPEN_QUESTIONS): giá trị mặc định ban đầu `workers = 3`; thực tế 3 vẫn đỏ `AC-ORD-024` trên DB sạch nên chốt **2** (xem `reports/verification.md`). Điểm xuất phát đã là: `/implement` thử 4 → 3 → 2 và chọn **giá trị lớn nhất cho 3 lần xanh liên tiếp**, ghi lại thang thử trong báo cáo. Trần ≤ 4 ở AC-SYS-077 để một ai đó không âm thầm nâng lại.
 - Giả định: CI (`ubuntu`, ít CPU hơn máy dev) đã ổn với `workers` mặc định của Playwright (½ số CPU); đặt cố định có thể làm CI chậm hơn một chút nhưng không đỏ. Nếu `workers` thấp làm CI vượt giới hạn thời gian job, ghi lại và hỏi.
 - Giả định: nguyên nhân là bão hoà 1 backend dev (argon2 CPU-bound + `--reload`), suy ra từ `reports/verification.md`; chưa đo trực tiếp. Nếu giảm `workers` mà vẫn đỏ ở cùng test → dừng, báo lại (có thể phải xử lý ở backend — item riêng).
 - Câu hỏi mới: không.
