@@ -37,6 +37,9 @@ describe("Playwright config (M3-08)", () => {
   test("AC-SYS-078 E2E_WORKERS ghi đè được; giá trị sai rơi về mặc định", async () => {
     const fallback = (await loadConfig()).workers;
     expect((await loadConfig("2")).workers).toBe(2);
+    // Values different from the default prove the env var is read, not just echoed.
+    expect((await loadConfig("1")).workers).toBe(1);
+    expect((await loadConfig("3")).workers).toBe(3);
     for (const bad of ["abc", "0", "-1", "1.5"]) {
       const value = (await loadConfig(bad)).workers;
       expect(value).toBe(fallback);
