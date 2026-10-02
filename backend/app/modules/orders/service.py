@@ -6,7 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import ColumnElement, case, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.authz import Actor, ScopeRules, apply_scope, effective_scopes, get_in_scope_or_404
@@ -17,6 +17,7 @@ from app.modules.audit import service as audit
 from app.modules.audit.schemas import AuditEventPage
 from app.modules.catalog.models import Product, Service
 from app.modules.customers.models import Customer
+from app.modules.dispatch.models import Assignment, Task
 from app.modules.identity.models import Employee
 from app.modules.orders import domain
 from app.modules.orders.models import Order, OrderLine
@@ -83,12 +84,24 @@ EDITABLE_AFTER_SUBMIT_STATUSES = frozenset(
     {"PENDING_DISPATCH", "IN_PROGRESS", "AWAITING_CONFIRMATION", "REVISION"}
 )
 
+
 # order.edit_draft genuinely grants SALE only `own` (unlike customers/audit's empty `{}`, which is
-# safe only because every role holding those capabilities gets `all`). `assigned` (TECHNICIAN) has
-# no rule yet: Task/Assignment don't exist until M4/M5, so it fails closed (no rows) — correct,
-# since a DRAFT order can never have an assignment. `order.submit`/`order.cancel` define "own" the
-# same way (spec/permissions.yaml), so this one dict covers every order capability's scope check.
-RULES: ScopeRules = {"own": lambda actor: Order.created_by == actor.id}
+# safe only because every role holding those capabilities gets `all`). `order.submit`/`order.cancel`
+# define "own" the same way (spec/permissions.yaml), so this one dict covers every order capability's
+# scope check.
+def _assigned_clause(actor: Actor) -> ColumnElement[bool]:
+    """TECHNICIAN `assigned` scope (M4-01a): "a task where the user has (or had) an assignment"
+    (spec/permissions.yaml) — no status filter, so a rejected/removed assignment still counts.
+    Reads `dispatch.models` directly (Task/Assignment), the same kind of cross-module model read as
+    the `identity.models.Employee` join documented in ARCHITECTURE §3."""
+    return Order.id.in_(
+        select(Task.order_id)
+        .join(Assignment, Assignment.task_id == Task.id)
+        .where(Assignment.employee_id == actor.id)
+    )
+
+
+RULES: ScopeRules = {"own": lambda actor: Order.created_by == actor.id, "assigned": _assigned_clause}
 
 _GUARD_MESSAGES = {
     "customer_present": "Đơn cần có khách hàng trước khi gửi.",
@@ -192,7 +205,7 @@ def _require_editable_after_submit(order: Order) -> None:
         raise _order_locked()
 
 
-def _locked(session: Session, actor: Actor, order_id: uuid.UUID, version: int) -> Order:
+def lock_order(session: Session, actor: Actor, order_id: uuid.UUID, version: int) -> Order:
     stmt = apply_scope(select(Order).where(Order.id == order_id), actor, RULES)
     stmt = stmt.options(selectinload(Order.lines)).with_for_update().execution_options(populate_existing=True)
     order = session.scalars(stmt).one_or_none()
@@ -487,6 +500,7 @@ def list_orders(
     *,
     q: str | None,
     status: str | None,
+    sort: str = "created_at_desc",
     limit: int,
     offset: int,
 ) -> OrderPage:
@@ -505,7 +519,19 @@ def list_orders(
     if status is not None:
         query = query.where(Order.status == status)
     total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
-    ordered = query.order_by(Order.created_at.desc())
+    if sort == "dispatch":
+        # M4-01a dispatch queue (spec §4): priority desc, then requested_date asc (null last).
+        priority_rank = case(
+            (Order.priority == "URGENT", 4),
+            (Order.priority == "HIGH", 3),
+            (Order.priority == "NORMAL", 2),
+            else_=1,
+        )
+        ordered = query.order_by(
+            priority_rank.desc(), Order.requested_date.asc().nulls_last(), Order.created_at.asc()
+        )
+    else:
+        ordered = query.order_by(Order.created_at.desc())
     rows = session.execute(ordered.limit(limit).offset(offset)).all()
     return OrderPage(
         items=[_summary(o, employee.full_name if employee else None) for o, employee in rows],
@@ -527,7 +553,7 @@ def get_order_history(
     )
 
 
-def _check_guards(order: Order, guard_names: list[str], reason: str | None) -> None:
+def _check_guards(session: Session, order: Order, guard_names: list[str], reason: str | None) -> None:
     for name in guard_names:
         if name == "customer_present":
             ok = GUARDS[name](order.customer_id, order.customer_name, order.customer_phone)
@@ -536,8 +562,10 @@ def _check_guards(order: Order, guard_names: list[str], reason: str | None) -> N
         elif name == "service_address_present":
             ok = GUARDS[name](order.service_address)
         elif name == "order_has_no_tasks":
-            # `tasks` doesn't exist until M4-01 — always 0 at this milestone (spec §8).
-            ok = GUARDS[name](0)
+            task_count = session.scalar(
+                select(func.count()).select_from(Task).where(Task.order_id == order.id)
+            )
+            ok = GUARDS[name](task_count or 0)
         elif name == "reason_present":
             ok = GUARDS[name](reason)
         else:
@@ -558,11 +586,11 @@ def _apply_transition(
     specs: Specs,
     request_id: str | None,
 ) -> Order:
-    order = _locked(session, actor, order_id, version)
+    order = lock_order(session, actor, order_id, version)
     t = domain.find_transition(specs.state_machines.order, command)
     if order.status not in t.from_:
         raise AppError(409, "INVALID_TRANSITION", "Không thể thực hiện thao tác này ở trạng thái hiện tại.")
-    _check_guards(order, t.guards, reason)
+    _check_guards(session, order, t.guards, reason)
 
     from_status = order.status
     order.status = t.to
@@ -668,7 +696,7 @@ def update_order(
     specs: Specs,
     request_id: str | None = None,
 ) -> OrderDetail:
-    order = _locked(session, actor, order_id, body.version)
+    order = lock_order(session, actor, order_id, body.version)
     _require_draft(order)
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
     changed_fields: list[str] = []
@@ -811,7 +839,7 @@ def add_line(
     specs: Specs,
     request_id: str | None = None,
 ) -> OrderDetail:
-    order = _locked(session, actor, order_id, body.version)
+    order = lock_order(session, actor, order_id, body.version)
     _require_draft(order)
     line = _build_line(session, order, body)
     order.lines.append(line)
@@ -839,7 +867,7 @@ def update_line(
     specs: Specs,
     request_id: str | None = None,
 ) -> OrderDetail:
-    order = _locked(session, actor, order_id, body.version)
+    order = lock_order(session, actor, order_id, body.version)
     _require_draft(order)
     line = _find_line(order, line_id)
     _apply_line_changes(line, body)
@@ -868,7 +896,7 @@ def remove_line(
     specs: Specs,
     request_id: str | None = None,
 ) -> OrderDetail:
-    order = _locked(session, actor, order_id, body.version)
+    order = lock_order(session, actor, order_id, body.version)
     _require_draft(order)
     line = _find_line(order, line_id)
 
@@ -899,7 +927,7 @@ def update_contact(
     specs: Specs,
     request_id: str | None = None,
 ) -> OrderDetail:
-    order = _locked(session, actor, order_id, body.version)
+    order = lock_order(session, actor, order_id, body.version)
     _require_editable_after_submit(order)
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
 
@@ -936,7 +964,7 @@ def add_line_after_submit(
     specs: Specs,
     request_id: str | None = None,
 ) -> OrderDetail:
-    order = _locked(session, actor, order_id, body.version)
+    order = lock_order(session, actor, order_id, body.version)
     _require_editable_after_submit(order)
     line = _build_line(session, order, body)
     order.lines.append(line)
@@ -965,7 +993,7 @@ def update_line_after_submit(
     specs: Specs,
     request_id: str | None = None,
 ) -> OrderDetail:
-    order = _locked(session, actor, order_id, body.version)
+    order = lock_order(session, actor, order_id, body.version)
     _require_editable_after_submit(order)
     line = _find_line(order, line_id)
     diff = _apply_line_changes(line, body)
@@ -995,7 +1023,7 @@ def remove_line_after_submit(
     specs: Specs,
     request_id: str | None = None,
 ) -> OrderDetail:
-    order = _locked(session, actor, order_id, body.version)
+    order = lock_order(session, actor, order_id, body.version)
     _require_editable_after_submit(order)
     line = _find_line(order, line_id)
     removed_item, removed_total = line.name_snapshot, line.line_total

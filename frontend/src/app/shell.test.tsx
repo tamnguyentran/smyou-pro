@@ -108,6 +108,10 @@ function signedInAs(p: Person, counters: Record<string, number> = {}) {
     http.post("/api/v1/auth/refresh", () => HttpResponse.json(session(p))),
     http.get("/api/v1/me", () => HttpResponse.json(me(p, counters))),
     http.post("/api/v1/auth/logout", () => new HttpResponse(null, { status: 204 })),
+    // "/dispatch/queue" là trang thật từ M4-01b: nó tự gọi hàng đợi, các test menu ở đây không quan tâm.
+    http.get("/api/v1/orders", () =>
+      HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+    ),
   );
   markSignedIn();
 }

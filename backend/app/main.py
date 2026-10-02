@@ -16,6 +16,8 @@ from app.modules.audit.router import router as audit_router
 from app.modules.catalog.router import router as catalog_router
 from app.modules.catalog.router import services_router
 from app.modules.customers.router import router as customers_router
+from app.modules.dispatch import service as dispatch_service
+from app.modules.dispatch.router import router as dispatch_router
 from app.modules.employees.router import router as employees_router
 from app.modules.files.router import router as files_router
 from app.modules.identity.router import me_router
@@ -25,8 +27,8 @@ from app.modules.orders.router import router as orders_router
 from app.modules.system.router import router as system_router
 from app.modules.workflow.guards import GUARDS, PENDING_GUARDS
 
-# Menu badge counters (GET /me), registered by the modules that own the data (M4-01, M5-01, M6-03).
-COUNTERS: dict[str, CounterProvider] = {}
+# Menu badge counters (GET /me), registered by the modules that own the data (M4-01a, M5-01, M6-03).
+COUNTERS: dict[str, CounterProvider] = {"pending_dispatch_count": dispatch_service.count_pending_dispatch}
 
 
 def create_app(
@@ -75,6 +77,7 @@ def create_app(
     app.include_router(files_router)
     app.include_router(customers_router)
     app.include_router(orders_router)
+    app.include_router(dispatch_router)
     return app
 
 

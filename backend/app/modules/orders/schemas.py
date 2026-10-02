@@ -25,6 +25,7 @@ OrderStatus = Literal[
 ]
 PaymentStatus = Literal["UNPAID", "PAID", "PAY_LATER"]
 PaymentMethod = Literal["CASH", "BANK_TRANSFER"]
+OrderSort = Literal["created_at_desc", "dispatch"]
 ItemType = Literal["PRODUCT", "SERVICE", "CUSTOM"]
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
 TaxCode = Annotated[str, StringConstraints(strip_whitespace=True, max_length=20)]

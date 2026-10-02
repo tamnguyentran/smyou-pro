@@ -176,8 +176,9 @@ describe("AC-ORD-026 thêm dòng sản phẩm từ tìm kiếm", () => {
       }),
       http.post("/api/v1/orders/:id/lines", () => HttpResponse.json(order(), { status: 201 })),
       // react-query's background refetch for the freshly-created id, once the URL swaps from
-      // "/orders/new" to "/orders/:id" — must agree with the POST responses above, not the empty
-      // draft, or a refetch that lands after addLine's response would wipe the line back out.
+      // "/orders/new" to "/orders/:id". It agrees with the POST responses above, like a real
+      // server would; a refetch that lands late with an *older* snapshot is M3-07's own case
+      // (AC-ORD-119/120) and is now ignored by `freshestOrder`.
       http.get("/api/v1/orders/:id", () => HttpResponse.json(order())),
     );
     renderApp("/orders/new");

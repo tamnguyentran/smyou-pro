@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import type { components, operations } from "../../lib/api/schema";
 import { toApiError } from "../auth/errors";
+import { freshestOrder } from "./orderCache";
 
 export type OrderStatus = NonNullable<
   NonNullable<operations["orders_list"]["parameters"]["query"]>["status"]
@@ -66,6 +67,7 @@ export function useOrderHistory(orderId: string | undefined) {
 }
 
 export function useOrder(orderId: string | undefined) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: [ORDER_KEY, orderId],
     enabled: orderId !== undefined,
@@ -75,7 +77,9 @@ export function useOrder(orderId: string | undefined) {
         params: { path: { order_id: orderId } },
       });
       if (!data) throw toApiError(response, error);
-      return data;
+      // AC-ORD-119/120: một phản hồi bay song song có thể về sau một lệnh ghi đã tăng `version` —
+      // giữ bản mới hơn thay vì để bản chụp cũ này thành dữ liệu của query (M3-07).
+      return freshestOrder(queryClient.getQueryData<Order>([ORDER_KEY, orderId]), data);
     },
   });
 }
@@ -83,7 +87,10 @@ export function useOrder(orderId: string | undefined) {
 function useSetOrder() {
   const queryClient = useQueryClient();
   return (order: Order) => {
-    queryClient.setQueryData([ORDER_KEY, order.id], order);
+    // AC-ORD-123: cùng bất biến cho phản hồi của mutation, không chỉ cho `GET`.
+    queryClient.setQueryData<Order>([ORDER_KEY, order.id], (cached) =>
+      freshestOrder(cached, order),
+    );
   };
 }
 

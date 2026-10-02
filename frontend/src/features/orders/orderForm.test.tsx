@@ -250,7 +250,8 @@ describe("AC-ORD-034 lưu nháp", () => {
         return HttpResponse.json(order(), { status: 201 });
       }),
       // react-query's background refetch for the id we just navigated to (same order route, no
-      // remount) must agree with the POST/PATCH responses below, not a stale/empty draft.
+      // remount); it agrees with the POST/PATCH responses below, like a real server would. A late
+      // refetch carrying an older snapshot is M3-07's case (AC-ORD-119) and is ignored there.
       http.get("/api/v1/orders/:id", () => HttpResponse.json(order())),
       http.patch("/api/v1/orders/:id", async ({ request }) => {
         patches += 1;
