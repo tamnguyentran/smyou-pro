@@ -63,6 +63,8 @@ test("AC-SYS-089 footer bấm được khi form lỗi trên mobile; lỗi hiện
   await page.setViewportSize({ width: 390, height: 420 });
   const dialog = await openCustomerForm(page);
   await dialog.getByRole("button", { name: "Lưu" }).click();
-  await expect(dialog.getByTestId("sheet-body").getByRole("alert").first()).toBeVisible();
+  await expect(
+    dialog.getByTestId("sheet-body").locator("[aria-invalid=true]").first(),
+  ).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Lưu" })).toBeInViewport();
 });
