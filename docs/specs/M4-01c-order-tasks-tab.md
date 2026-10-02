@@ -1,6 +1,6 @@
 # M4-01c — Tab "Đầu việc" trên trang chi tiết đơn
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M4-01c (tách từ M4-01b — Q64) · **Milestone:** M4
 - **Liên quan:** `spec/state_machines.yaml#task.derived_status` + `#task.states` (6 trạng thái task + nhãn + màu — **nguồn sự thật** cho badge) và `#task.commands[create].guards[order_in_dispatchable_state]` (`PENDING_DISPATCH`/`IN_PROGRESS`/`REVISION` — `backend/app/modules/workflow/guards.py:35`); `spec/permissions.yaml` (`order.read` để xem danh sách task — Q61; `task.manage` để hiện nút "Tạo đầu việc"); `M4-01a-dispatch-task-create-api.md` (API dùng ở item này: `GET /orders/{id}/tasks` → `TaskSummary`, `POST /orders/{id}/tasks`); `M4-01b-dispatch-task-create-ui.md` (`TaskCreateSheet` + `AssigneePicker` + `useCreateTask` — dùng lại nguyên, cùng các AC panel tạo task của item đó); `M3-03b-order-list-detail-ui.md` (`OrderDetailTabs`: header sticky + thanh tab pill, mẫu loading/empty/error của `OrderHistoryTab`); `docs/design/UI_GUIDELINES.md` §5 hàng "Chi tiết đơn" (thứ tự tab: Thông tin · Dòng hàng · **Đầu việc** · Tệp đính kèm · Lịch sử) + §6 (`Badge`, `EmptyState`, vùng chạm ≥44px)
 
