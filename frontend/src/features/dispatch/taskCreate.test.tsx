@@ -391,7 +391,7 @@ describe("Panel tạo đầu việc", () => {
     expect(await within(dialog).findByText("Tiêu đề tối đa 200 ký tự.")).toBeInTheDocument();
 
     const hoursMessage = "Số giờ phải từ 0,25 đến 200 và là bội số của 0,25.";
-    for (const value of ["0", "201", "1,3"]) {
+    for (const value of ["0", "201", "1,3", "0,251"]) {
       await user.clear(within(dialog).getByLabelText("Số giờ ước tính"));
       await user.type(within(dialog).getByLabelText("Số giờ ước tính"), value);
       await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
