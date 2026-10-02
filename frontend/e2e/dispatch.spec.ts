@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 // Hai test trong file này đều tạo + gửi một đơn qua giao diện Kinh doanh. Chạy song song (mặc
@@ -32,6 +33,14 @@ function shot(info: TestInfo, file: string) {
 }
 
 const isMobile = (info: TestInfo) => info.project.name === "mobile";
+
+// AC-ORD-124 (M3-07): hai test tạo đơn trong file này phải chạy song song được (`fullyParallel`).
+// Chúng từng phải chạy tuần tự vì race ghi đè cache `GET /orders/{id}` làm "Lưu nháp" nhận 409
+// STALE_VERSION oan khi backend chậm; M3-07 sửa gốc nên không được đặt lại `describe.configure`.
+test("AC-ORD-124 file này không ép chạy tuần tự", () => {
+  const source = readFileSync(resolve(import.meta.dirname, "dispatch.spec.ts"), "utf8");
+  expect(source).not.toContain("describe.configure");
+});
 
 async function evidence(
   page: Page,
