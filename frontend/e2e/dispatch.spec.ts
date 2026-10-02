@@ -3,14 +3,6 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-// Hai test trong file này đều tạo + gửi một đơn qua giao diện Kinh doanh. Chạy song song (mặc
-// định `fullyParallel`) thì backend chậm đi và `DraftOrderForm` lộ một race có sẵn: một
-// `GET /orders/{id}` bay song song trả về bản chụp cũ hơn và ghi đè cache sau khi lệnh thêm dòng
-// hàng đã tăng `version` → "Lưu nháp" bị 409 STALE_VERSION oan. Lỗi nằm ở M3-02b/M3-04b, không
-// phải ở điều phối — xem backlog M3-07. Tạm cho file này chạy tuần tự (vẫn độc lập, không "serial":
-// test sau không bị skip khi test trước fail).
-test.describe.configure({ mode: "default" });
-
 // Accounts/catalog created by backend/scripts/seed_e2e.py (reset before every `make e2e`).
 const PASSWORD = "E2e@SmYou2026";
 const SALE = "hoa.e2e@smyou.vn";
