@@ -19,7 +19,12 @@ export function parseHours(value: string): number {
 function hoursValid(value: string): boolean {
   const hours = parseHours(value);
   if (!Number.isFinite(hours) || hours < 0.25 || hours > 200) return false;
-  return Math.round(hours * 100) % 25 === 0;
+  // Phải so khớp đúng như guard `estimated_hours_positive` của backend (Decimal chính xác):
+  // làm tròn trước khi chia hết cho 25 sẽ cho "0,251" lọt qua.
+  const hundredths = hours * 100;
+  const rounded = Math.round(hundredths);
+  if (Math.abs(hundredths - rounded) > 1e-6) return false;
+  return rounded % 25 === 0;
 }
 
 /** `datetime-local` là giờ tường (không múi) — đơn vị nghiệp vụ luôn là Asia/Ho_Chi_Minh. */

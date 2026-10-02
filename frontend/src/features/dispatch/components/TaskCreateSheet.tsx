@@ -215,7 +215,7 @@ export function TaskCreateSheet({ order, onClose }: { order: OrderSummary; onClo
 
           <div
             data-testid="task-create-actions"
-            className="sticky bottom-0 flex gap-2 bg-card pt-3 pb-[env(safe-area-inset-bottom)]"
+            className="sticky bottom-0 -mb-4 flex gap-2 border-t border-line bg-card pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] lg:-mb-6 lg:pb-6"
           >
             {showReload ? (
               <Button
