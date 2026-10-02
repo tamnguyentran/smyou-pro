@@ -157,6 +157,42 @@ test("AC-DSP-015 AC-DSP-016 AC-DSP-019 AC-DSP-022 AC-DSP-026 AC-DSP-027 @a11y @s
   await expect(page.getByRole("button", { name: new RegExp(code) })).toHaveCount(0);
 });
 
+test("AC-SYS-089 form Tạo đầu việc ở 390px: footer bấm được khi form lỗi, nhập đủ rồi tạo thành công", async ({
+  page,
+}) => {
+  const code = await submitUrgentOrder(page);
+  await page.context().clearCookies();
+  await signIn(page, TECH_LEAD, "/dispatch/queue");
+  // Ép khung mobile thấp ở mọi project để body phải cuộn.
+  await page.setViewportSize({ width: 390, height: 520 });
+  await page
+    .getByRole("button", { name: new RegExp(code) })
+    .first()
+    .click();
+  const panel = page.getByRole("dialog", { name: `Tạo đầu việc — ${code}` });
+  await expect(panel).toBeVisible();
+
+  // Bấm khi form còn trống: lỗi hiện trong body, nút footer vẫn trong khung nhìn.
+  const submit = panel.getByTestId("sheet-footer").getByRole("button", { name: "Tạo đầu việc" });
+  await expect(submit).toBeInViewport();
+  await submit.click();
+  const body = panel.getByTestId("sheet-body");
+  await expect(body.locator("[aria-invalid=true]").first()).toBeVisible();
+  await expect(submit).toBeInViewport();
+  await expect(panel.getByRole("heading", { level: 2 })).toBeInViewport();
+
+  // Nhập đủ, bấm lại → tạo thành công như M4-01b.
+  await panel.getByLabel("Tiêu đề đầu việc").fill("Lắp đặt 4 camera tầng 1");
+  await panel.getByLabel("Số giờ ước tính").fill("4");
+  await panel.getByLabel("Hạn hoàn thành").fill(localInput(2));
+  await panel.getByRole("checkbox", { name: new RegExp(TECHNICIAN_CODE) }).check();
+  await submit.click();
+  await expect(
+    page.getByText(`Đã tạo đầu việc ${code}-T1 và giao cho 1 kỹ thuật viên.`),
+  ).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
 /** Mở trang chi tiết của đơn `code` từ danh sách đơn (hàng bấm được — M3-05). */
 async function openOrderDetail(page: Page, code: string) {
   await page.getByLabel("Tìm kiếm").fill(code);
