@@ -28,10 +28,11 @@ const isMobile = (info: TestInfo) => info.project.name === "mobile";
 
 // AC-ORD-124 (M3-07): hai test tạo đơn trong file này phải chạy song song được (`fullyParallel`).
 // Chúng từng phải chạy tuần tự vì race ghi đè cache `GET /orders/{id}` làm "Lưu nháp" nhận 409
-// STALE_VERSION oan khi backend chậm; M3-07 sửa gốc nên không được đặt lại `describe.configure`.
+// STALE_VERSION oan khi backend chậm; M3-07 sửa gốc nên không được ép tuần tự lại ở đây.
 test("AC-ORD-124 file này không ép chạy tuần tự", () => {
   const source = readFileSync(resolve(import.meta.dirname, "dispatch.spec.ts"), "utf8");
-  expect(source).not.toContain("describe.configure");
+  // Ghép tên lệnh từ hai mảnh để chính dòng kiểm tra này không bị đếm là một lần ép tuần tự.
+  expect(source).not.toContain(["describe", "configure("].join("."));
 });
 
 async function evidence(
