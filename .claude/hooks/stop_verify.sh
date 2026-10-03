@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Stop hook: if backend/frontend/spec has uncommitted changes, run `make check-fast`.
+# Stop hook: if backend/frontend/spec has uncommitted changes, run `make check-fast-changed`
+# (lint+typecheck full, but frontend tests scoped to files affected by the diff via
+# `vitest --changed` — full test-unit still runs manually via `make check-fast`, and the
+# real, unscoped gate is `make check`/`make verify` before commit/ship).
 # On failure, exit 2 so Claude keeps working and sees the errors (max 3 attempts, then report to user).
 # Opt out for a session: export SMYOU_SKIP_STOP_VERIFY=1
 set -u
@@ -20,14 +23,14 @@ if [ "$n" -ge 3 ]; then
   exit 0
 fi
 
-if out=$(make check-fast 2>&1); then
+if out=$(make check-fast-changed 2>&1); then
   rm -f "$counter"
   exit 0
 fi
 
 echo $((n + 1)) >"$counter"
 {
-  echo "make check-fast FAILED (attempt $((n + 1))/3). Fix the cause (do not weaken tests), then finish. Last output:"
+  echo "make check-fast-changed FAILED (attempt $((n + 1))/3). Fix the cause (do not weaken tests), then finish. Last output:"
   echo "$out" | tail -80
 } >&2
 exit 2
