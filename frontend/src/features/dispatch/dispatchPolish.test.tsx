@@ -92,7 +92,7 @@ async function openPanel(
     http.get("/api/v1/orders", () =>
       HttpResponse.json({ items: orders, total: orders.length, limit: 20, offset: 0 }),
     ),
-    http.get("/api/v1/orders/:id", () => HttpResponse.json(detail(priority))),
+    http.get("/api/v1/orders/:id", () => HttpResponse.json({ ...detail(priority), code: orders[0]?.code ?? "" })),
     http.get("/api/v1/employees", () => {
       const next = employeeResponses[Math.min(calls, employeeResponses.length - 1)];
       calls += 1;
@@ -105,7 +105,7 @@ async function openPanel(
   renderApp("/dispatch/queue");
   const user = userEvent.setup();
   await user.click(await screen.findByRole("button", { name: new RegExp(orders[0]?.code ?? "") }));
-  const dialog = await screen.findByRole("dialog", { name: `Tạo đầu việc — ${DON_I.code}` });
+  const dialog = await screen.findByRole("dialog", { name: `Tạo đầu việc — ${orders[0]?.code ?? ""}` });
   return { user, dialog, calls: () => calls };
 }
 
