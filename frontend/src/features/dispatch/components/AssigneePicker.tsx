@@ -1,3 +1,4 @@
+import { Button } from "../../../components/ui/Button";
 import type { Employee } from "../../employees/api";
 
 /** AC-DSP-021: chọn nhiều kỹ thuật viên — checkbox có `<label>`, vùng chạm ≥44px. */
@@ -6,17 +7,32 @@ export function AssigneePicker({
   selected,
   onToggle,
   error,
+  loadError = false,
+  onRetry,
 }: {
   /** Panel chỉ mở sau khi gọi xong `GET /employees`, nên rỗng = không có ai (hoặc lỗi tải). */
   technicians: Employee[];
   selected: string[];
   onToggle: (id: string) => void;
   error?: string | undefined;
+  /** `GET /employees` lỗi: báo lỗi + "Thử lại" thay vì báo nhầm "không có ai" (AC-DSP-038). */
+  loadError?: boolean;
+  onRetry?: () => void;
 }) {
   return (
     <fieldset className="space-y-1.5">
       <legend className="block text-sm font-medium text-heading">Giao cho kỹ thuật viên</legend>
-      {technicians.length === 0 ? (
+      {loadError ? (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center gap-2 rounded-xl border border-urgent-border bg-urgent-bg p-3 text-sm text-urgent-fg"
+        >
+          <span>Không tải được danh sách kỹ thuật viên.</span>
+          <Button type="button" variant="secondary" onClick={onRetry}>
+            Thử lại
+          </Button>
+        </div>
+      ) : technicians.length === 0 ? (
         <p className="text-sm text-muted">Không có kỹ thuật viên nào đang hoạt động.</p>
       ) : (
         <ul className="max-h-56 divide-y divide-line overflow-y-auto rounded-xl border border-line">

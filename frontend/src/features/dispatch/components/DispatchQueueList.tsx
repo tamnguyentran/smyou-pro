@@ -2,11 +2,15 @@ import { Badge } from "../../../components/ui/Badge";
 import { formatCurrency, formatDate } from "../../../lib/format";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
 import type { OrderSummary } from "../../orders/api";
-import { PRIORITY_LABELS, type Priority } from "../../orders/schemas";
-import { PRIORITY_TONE } from "../schemas";
+import { priorityBadge } from "../schemas";
 
 const CODE_BUTTON =
   "min-h-11 rounded font-semibold text-heading underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2";
+
+function PriorityBadge({ priority }: { priority: string }) {
+  const { label, tone } = priorityBadge(priority);
+  return <Badge tone={tone}>{label}</Badge>;
+}
 
 /** AC-DSP-015/016: bảng trên desktop, thẻ trên mobile — thứ tự giữ nguyên như API trả về
  * (`sort=dispatch`: ưu tiên rồi ngày hẹn), client không bao giờ tự sắp lại. */
@@ -54,9 +58,7 @@ export function DispatchQueueList({
               </td>
               <td className="px-4 py-3 text-body">{order.customer_name ?? "Khách lẻ"}</td>
               <td className="px-4 py-3">
-                <Badge tone={PRIORITY_TONE[order.priority as Priority]}>
-                  {PRIORITY_LABELS[order.priority as Priority]}
-                </Badge>
+                <PriorityBadge priority={order.priority} />
               </td>
               <td className="px-4 py-3 text-body">
                 {order.requested_date ? formatDate(order.requested_date) : "—"}
@@ -83,13 +85,18 @@ export function DispatchQueueList({
           >
             <div className="flex w-full items-center justify-between gap-2">
               <span className="font-semibold text-heading">{order.code}</span>
-              <Badge tone={PRIORITY_TONE[order.priority as Priority]}>
-                {PRIORITY_LABELS[order.priority as Priority]}
-              </Badge>
+              <PriorityBadge priority={order.priority} />
             </div>
             <p className="text-sm text-body">{order.customer_name ?? "Khách lẻ"}</p>
             <p className="text-sm text-body">
-              {order.requested_date ? formatDate(order.requested_date) : "—"}
+              <span className="text-muted">Ngày hẹn:</span>{" "}
+              <span>
+                {order.requested_date ? formatDate(order.requested_date) : "Chưa hẹn ngày"}
+              </span>
+            </p>
+            <p className="text-sm text-body">
+              <span className="text-muted">Người tạo:</span>{" "}
+              <span>{order.created_by_name ?? "—"}</span>
             </p>
             <p className="text-sm font-medium text-heading">{formatCurrency(order.total)}</p>
           </button>
