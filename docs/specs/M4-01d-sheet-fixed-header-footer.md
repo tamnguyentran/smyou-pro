@@ -1,6 +1,6 @@
 # M4-01d — Component `Sheet`: header + footer ngoài vùng cuộn
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M4-01d · **Milestone:** M4
 - **Liên quan:** `docs/design/UI_GUIDELINES.md` §6 (hộp thoại = bottom sheet mobile / modal desktop), `reports/review-M4-01b.md` #4. Không đụng `spec/*.yaml`, không đổi API/DB/phân quyền.
 

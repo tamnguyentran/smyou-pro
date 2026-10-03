@@ -6,9 +6,9 @@ Bằng chứng này nằm trong `docs/evidence/` (được git theo dõi) thay v
 
 | Lần | Kết quả    | Thời gian                                        | Test chậm nhất      |
 | --- | ---------- | ------------------------------------------------ | ------------------- |
-| 1   | 144 passed | 171 s (tổng gồm dựng stack; Playwright 2,1 phút) | AC-ORD-061 · 15,1 s |
-| 2   | 144 passed | 150 s (Playwright 1,7 phút)                      | AC-ORD-061 · 12,9 s |
-| 3   | 144 passed | 136 s (Playwright 1,7 phút)                      | AC-ORD-061 · 12,9 s |
+| 1 | 144 passed | 171 s (tổng gồm dựng stack; Playwright 2,1 phút) | AC-ORD-061 · 15,1 s |
+| 2 | 144 passed | 150 s (Playwright 1,7 phút)                      | AC-ORD-061 · 12,9 s |
+| 3 | 144 passed | 136 s (Playwright 1,7 phút)                      | AC-ORD-061 · 12,9 s |
 
 Cả 3 log chỉ có dòng `144 passed`, không có dòng nào báo test đỏ, flaky hay bị bỏ qua.
 
