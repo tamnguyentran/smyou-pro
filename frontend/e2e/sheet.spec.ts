@@ -58,8 +58,7 @@ test("AC-SYS-083 AC-SYS-084 AC-SYS-092 tiêu đề + footer luôn trong khung nh
 
 test("AC-SYS-089 footer bấm được khi form lỗi trên mobile; lỗi hiện trong body", async ({
   page,
-}, info) => {
-  test.skip(info.project.name !== "mobile", "chỉ kiểm trên mobile");
+}) => {
   await page.setViewportSize({ width: 390, height: 420 });
   const dialog = await openCustomerForm(page);
   await dialog.getByRole("button", { name: "Lưu" }).click();

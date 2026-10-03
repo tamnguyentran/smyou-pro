@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 
-const REPORT = resolve(import.meta.dirname, "../../reports/verification.md");
+const REPORT = resolve(import.meta.dirname, "../../docs/evidence/M3-08-e2e-stability.md");
 
 // `make e2e` itself cannot run inside vitest, so these guard the recorded evidence instead.
 describe("Bằng chứng e2e ổn định (M3-08)", () => {

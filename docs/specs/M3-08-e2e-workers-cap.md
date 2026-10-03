@@ -27,7 +27,7 @@ Dữ liệu: suite hiện có 138 test (mobile + desktop), backend dev là 1 ti�
 | AC-SYS-078 | như trên | nạp cấu hình với `E2E_WORKERS=2` | `workers === 2`; với `E2E_WORKERS=abc` hoặc `0` thì rơi về giá trị mặc định (không ném lỗi, không `NaN`) | unit |
 | AC-SYS-079 | cấu hình mới | `grep` toàn bộ `frontend/e2e/**/*.ts` tìm `describe.configure` và `mode: "serial"` | không có kết quả (kế thừa tinh thần AC-ORD-124 cho mọi file) | unit |
 | AC-SYS-080 | Docker dev stack khoẻ, DB đã seed | chạy `make e2e` **3 lần liên tiếp**, mỗi lần dùng stack mới (`--renew-anon-volumes` đã có trong target) | cả 3 lần: 0 test đỏ, 0 test "flaky", số test passed bằng nhau (138 + test mới của item này nếu có); không test nào bị skip | e2e (thủ công có bằng chứng) |
-| AC-SYS-081 | kết quả 3 lần chạy của AC-SYS-080 | ghi vào `reports/verification.md` | có bảng 3 dòng (lần, passed/failed, thời gian chạy, test chậm nhất) và nêu thời gian tổng so với trước (~ thời gian cũ ở M3-07); không có assertion/timeout nào trong `frontend/e2e/**` bị đổi so với `main` (kiểm bằng `git diff main -- frontend/e2e`: chỉ được thêm file test cho AC-SYS-079 nếu cần) | thủ công |
+| AC-SYS-081 | kết quả 3 lần chạy của AC-SYS-080 | ghi vào `docs/evidence/M3-08-e2e-stability.md` (git theo dõi; `reports/` bị gitignore) | có bảng 3 dòng (lần, passed/failed, thời gian chạy, test chậm nhất) và nêu thời gian tổng so với trước (~ thời gian cũ ở M3-07); không có assertion/timeout nào trong `frontend/e2e/**` bị đổi so với `main` (kiểm bằng `git diff main -- frontend/e2e`: chỉ được thêm file test cho AC-SYS-079 nếu cần) | thủ công |
 
 ## 4. API
 Không có.
