@@ -177,7 +177,15 @@ describe("Sheet: header + footer ngoài vùng cuộn (M4-01d)", () => {
           open
           onClose={vi.fn()}
           title="Sửa đầu việc"
-          footer={<button onClick={() => toast("Đã lưu thay đổi đầu việc.")}>Lưu</button>}
+          footer={
+            <button
+              onClick={() => {
+                toast("Đã lưu thay đổi đầu việc.");
+              }}
+            >
+              Lưu
+            </button>
+          }
         >
           <p>x</p>
         </Sheet>

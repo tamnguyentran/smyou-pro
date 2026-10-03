@@ -70,7 +70,9 @@ export function Sheet({
 
   if (!open) return null;
   return (
-    <div role="dialog" aria-modal="true" aria-label={title} className="fixed inset-0 z-40">
+    // z-[60] > Toast's z-50 (review M4-02b): a sheet that stays open after a save (AC-DSP-059)
+    // must keep its footer above the success toast, not hidden behind it for 4s.
+    <div role="dialog" aria-modal="true" aria-label={title} className="fixed inset-0 z-[60]">
       <div
         data-testid="sheet-overlay"
         aria-hidden="true"

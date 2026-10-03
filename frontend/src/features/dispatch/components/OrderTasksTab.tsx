@@ -20,6 +20,9 @@ import { TaskEditSheet } from "./TaskEditSheet";
 
 const COLUMNS = ["Mã", "Tiêu đề", "Trạng thái", "Số giờ", "Hạn hoàn thành", "Người được giao"];
 
+const CODE_BUTTON =
+  "min-h-11 rounded font-semibold text-heading underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2";
+
 function StatusBadge({ status }: { status: string }) {
   const known = knownTaskStatus(status);
   return (
@@ -70,7 +73,18 @@ function TaskList({
                 onSelect(task.id);
               }}
             >
-              <td className="px-4 py-3 font-semibold text-heading">{task.code}</td>
+              <td className="px-4 py-3">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelect(task.id);
+                  }}
+                  className={CODE_BUTTON}
+                >
+                  {task.code}
+                </button>
+              </td>
               <td className="px-4 py-3 text-body">{task.title}</td>
               <td className="px-4 py-3">
                 <StatusBadge status={task.status} />
