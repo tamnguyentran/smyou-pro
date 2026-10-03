@@ -9,13 +9,13 @@ import { useMe } from "../../me/api";
 import type { Order } from "../../orders/api";
 import { useOrderTasks, type TaskSummary } from "../api";
 import { hoursLabel } from "../schemas";
-import { knownTaskStatus, TASK_STATUS_LABEL, TASK_STATUS_TONE } from "../taskStatus";
+import {
+  DISPATCHABLE_STATUSES,
+  knownTaskStatus,
+  TASK_STATUS_LABEL,
+  TASK_STATUS_TONE,
+} from "../taskStatus";
 import { TaskCreateSheet } from "./TaskCreateSheet";
-
-/** Đúng guard `order_in_dispatchable_state` của lệnh tạo đầu việc
- * (`spec/state_machines.yaml#task.commands[create]`, `backend/app/modules/workflow/guards.py`) —
- * một nguồn quy tắc duy nhất cho nút "Tạo đầu việc" (Q65). Server vẫn là nơi chặn thật. */
-const DISPATCHABLE_STATUSES = new Set(["PENDING_DISPATCH", "IN_PROGRESS", "REVISION"]);
 
 const COLUMNS = ["Mã", "Tiêu đề", "Trạng thái", "Số giờ", "Hạn hoàn thành", "Người được giao"];
 
