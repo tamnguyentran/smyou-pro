@@ -220,6 +220,10 @@ test("AC-DSP-041 AC-DSP-044 thẻ hàng đợi có nhãn Ngày hẹn/Người t�
   if (isMobile(info)) {
     // Xếp dọc, `w-full`: nút chính lấp gần hết chiều rộng footer (chỉ trừ padding ngang).
     expect((submit?.width ?? 0) / (footer?.width ?? 1)).toBeGreaterThanOrEqual(0.85);
+    // Nút chính ("Tạo đầu việc") phải đứng trên nút "Đóng" khi xếp dọc.
+    const footerButtons = panel.getByTestId("sheet-footer").getByRole("button");
+    await expect(footerButtons.first()).toHaveText("Tạo đầu việc");
+    await expect(footerButtons.last()).toHaveText("Đóng");
   } else {
     // `sm:w-auto`: nút trở về bề rộng theo nội dung, rõ ràng hẹp hơn footer.
     expect((submit?.width ?? 0) / (footer?.width ?? 1)).toBeLessThan(0.45);
