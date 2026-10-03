@@ -310,3 +310,62 @@ test("AC-DSP-028 AC-DSP-032 AC-DSP-033 AC-DSP-035 AC-DSP-036 AC-DSP-037 @a11y @s
   await expect(page.getByTestId("order-tasks").getByText(`${code}-T1`)).toBeVisible();
   await expect(page.getByRole("button", { name: "Tạo đầu việc" })).toHaveCount(0);
 });
+
+test("AC-DSP-092 @a11y @screenshot bảng đầu việc: vùng chạm ≥44px (gồm thẻ), không cuộn ngang, axe sạch", async ({
+  page,
+}, info) => {
+  // Có 1 đầu việc thật trên bảng (mẫu AC-DSP-015) để kiểm vùng chạm của thẻ, không chỉ bộ lọc.
+  const orderCode = await submitUrgentOrder(page);
+  await page.context().clearCookies();
+  await signIn(page, TECH_LEAD, "/dispatch/queue");
+  await page
+    .getByRole("button", { name: new RegExp(orderCode) })
+    .first()
+    .click();
+  const createPanel = page.getByRole("dialog", { name: `Tạo đầu việc — ${orderCode}` });
+  await createPanel.getByLabel("Tiêu đề đầu việc").fill("Lắp đặt 4 camera tầng 1");
+  await createPanel.getByLabel("Số giờ ước tính").fill("4");
+  await createPanel.getByLabel("Hạn hoàn thành").fill(localInput(2));
+  await createPanel.getByRole("checkbox", { name: new RegExp(TECHNICIAN_CODE) }).check();
+  await createPanel.getByRole("button", { name: "Tạo đầu việc" }).click();
+  const taskCode = `${orderCode}-T1`;
+  await expect(
+    page.getByText(`Đã tạo đầu việc ${taskCode} và giao cho 1 kỹ thuật viên.`),
+  ).toBeVisible();
+
+  // Viewport mặc định theo project ("mobile" = 390px, "desktop" = 1440px — xem playwright.config.ts)
+  // để test này tự kiểm cả danh sách mobile và Kanban desktop, không chỉ luôn ép 390px.
+  await page.goto("./dispatch/board");
+  await expect(page.getByRole("heading", { name: "Bảng đầu việc", level: 1 })).toBeVisible();
+
+  const card = page.getByRole("button", { name: new RegExp(taskCode) });
+  await expect(card).toBeVisible();
+  expect((await card.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+  const priorityAll = page
+    .getByRole("radiogroup", { name: "Ưu tiên" })
+    .getByRole("radio", { name: "Tất cả" });
+  await expect(priorityAll).toBeVisible();
+  expect((await priorityAll.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+  const technicianSelect = page.getByLabel("Kỹ thuật viên");
+  expect((await technicianSelect.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+  if (isMobile(info)) {
+    const statusAll = page
+      .getByRole("radiogroup", { name: "Trạng thái" })
+      .getByRole("radio", { name: "Tất cả" });
+    expect((await statusAll.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  } else {
+    await expect(page.getByTestId("task-board-column-PENDING_ACCEPTANCE")).toContainText(taskCode);
+  }
+
+  await evidence(
+    page,
+    info,
+    isMobile(info) ? "dispatch-board-390.png" : "dispatch-board-1440.png",
+    {
+      checkOverflow: true,
+    },
+  );
+});

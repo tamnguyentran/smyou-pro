@@ -1,6 +1,6 @@
 # M4-03b — Bảng đầu việc: giao diện
 
-- **Status:** Draft
+- **Status:** Done
 - **Backlog:** M4-03b (phần giao diện, sau `M4-03a-dispatch-board-api.md`) · **Milestone:** M4
 - **Liên quan:** `spec/permissions.yaml` (menu `dispatch-board` → `/dispatch/board`, capability thừa kế từ mục cha `task.manage` — giống `DispatchQueuePage`); `spec/state_machines.yaml#task.states` (6 trạng thái + nhãn + màu — thứ tự cột Kanban); `docs/design/UI_GUIDELINES.md` §5 ("Bảng đầu việc — Kanban theo trạng thái task (desktop), danh sách lọc theo trạng thái (mobile). Task `NEEDS_ASSIGNEE` nổi đỏ đầu cột.") §4 (bottom nav mục `dispatch-board` theo vai trò) §6 (`ChipGroup`, `Skeleton`, `EmptyState`); `M4-03a-dispatch-board-api.md` (`GET /api/v1/tasks`); `frontend/src/features/dispatch/taskStatus.ts` (nhãn/màu trạng thái, tái dùng); `frontend/src/features/dispatch/api.ts` (`useActiveTechnicians`, tái dùng cho ô lọc KTV); `frontend/src/components/ui/Chip.tsx` (`ChipGroup`, đã dùng cho lọc trạng thái đơn ở M3-06 và VAT — tái dùng cho lọc ưu tiên); `frontend/src/features/audit/pages/AuditPage.tsx` (mẫu 2 ô `<input type="date">` cho `occurred_from`/`occurred_to` — tái dùng tên biến cho `due_from`/`due_to`)
 

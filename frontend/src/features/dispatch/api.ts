@@ -4,7 +4,10 @@ import type { components } from "../../lib/api/schema";
 import { toApiError } from "../auth/errors";
 import { ME_KEY } from "../me/api";
 import { ORDER_KEY, ORDER_LIST_KEY, type Order } from "../orders/api";
+import type { Priority } from "../orders/schemas";
+import type { TaskStatus } from "./taskStatus";
 
+export type TaskBoardItem = components["schemas"]["TaskBoardItem"];
 export type TaskCreateBody = components["schemas"]["TaskCreate"];
 export type TaskDetail = components["schemas"]["TaskDetail"];
 export type TaskSummary = components["schemas"]["TaskSummary"];
@@ -17,6 +20,39 @@ export type TaskCancelBody = components["schemas"]["TaskCancel"];
 export const DISPATCH_QUEUE_KEY = "dispatch-queue";
 export const ORDER_TASKS_KEY = "order-tasks";
 export const TASK_KEY = "task";
+export const TASK_BOARD_KEY = "task-board";
+
+export interface TaskBoardFilters {
+  status: TaskStatus | "";
+  priority: Priority | "";
+  assigneeId: string;
+  dueFrom: string;
+  dueTo: string;
+}
+
+/** AC-DSP-082…091: bảng đầu việc toàn công ty (M4-03b) — `GET /api/v1/tasks` của M4-03a. */
+export function useTaskBoard(filters: TaskBoardFilters, { enabled = true } = {}) {
+  return useQuery({
+    enabled,
+    queryKey: [TASK_BOARD_KEY, filters],
+    queryFn: async () => {
+      const { data, error, response } = await api.GET("/api/v1/tasks", {
+        params: {
+          query: {
+            status: filters.status || undefined,
+            priority: filters.priority || undefined,
+            assignee_id: filters.assigneeId || undefined,
+            due_from: filters.dueFrom || undefined,
+            due_to: filters.dueTo || undefined,
+          },
+        },
+      });
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    placeholderData: (previous) => previous,
+  });
+}
 
 /** AC-DSP-028: danh sách đầu việc của 1 đơn (capability `order.read` — Q61). Chỉ gọi khi tab
  * "Đầu việc" được mở: `OrderTasksTab` chỉ được render khi tab đó đang chọn. */

@@ -5,6 +5,7 @@ import { ChangePasswordPage } from "../features/auth/pages/ChangePasswordPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { CustomersPage } from "../features/customers/pages/CustomersPage";
 import { DispatchQueuePage } from "../features/dispatch/pages/DispatchQueuePage";
+import { TaskBoardPage } from "../features/dispatch/pages/TaskBoardPage";
 import { EmployeesPage } from "../features/employees/pages/EmployeesPage";
 import { HomeRoute } from "../features/home/pages/HomeRoute";
 import { NotificationsPage } from "../features/notifications/pages/NotificationsPage";
@@ -31,6 +32,7 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/orders" (list) is real (M3-03b) and checks order.read itself — narrower than the menu entry's
 // order.create (Q56: TECH_LEAD reads it via direct URL without seeing the "Đơn hàng" menu item).
 // "/dispatch/queue" is real (M4-01b) and checks task.manage itself — same capability as the menu entry.
+// "/dispatch/board" is real (M4-03b), same capability (task.manage) as the menu entry.
 const REAL_PAGES = new Set([
   "/",
   "/employees",
@@ -41,6 +43,7 @@ const REAL_PAGES = new Set([
   "/orders/new",
   "/orders",
   "/dispatch/queue",
+  "/dispatch/board",
 ]);
 const menuRoutes: RouteObject[] = menuPages()
   .filter(({ item }) => !REAL_PAGES.has(item.path ?? ""))
@@ -81,6 +84,7 @@ export const routes: RouteObject[] = [
       { path: "/catalog/services", element: <ServicesPage /> },
       { path: "/customers", element: <CustomersPage /> },
       { path: "/dispatch/queue", element: <DispatchQueuePage /> },
+      { path: "/dispatch/board", element: <TaskBoardPage /> },
       { path: "/orders", element: <OrdersListPage /> },
       // One route object (not two) for "/orders/new" and "/orders/:id": creating the first line
       // silently saves the draft and navigate()s from "new" to the real id — same route match, same

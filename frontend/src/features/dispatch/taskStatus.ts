@@ -12,6 +12,9 @@ export const TASK_STATUS_LABEL = {
 
 export type TaskStatus = keyof typeof TASK_STATUS_LABEL;
 
+/** Thứ tự cột Kanban của "Bảng đầu việc" (M4-03b) — đúng thứ tự khai báo trên. */
+export const TASK_STATUS_ORDER = Object.keys(TASK_STATUS_LABEL) as TaskStatus[];
+
 export const TASK_STATUS_TONE: Record<
   TaskStatus,
   "todo" | "in_progress" | "review" | "completed" | "urgent"
