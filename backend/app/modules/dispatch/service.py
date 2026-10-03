@@ -2,13 +2,14 @@
 
 import uuid
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.orm import Session
 
-from app.core.authz import Actor, ScopeRules, get_in_scope_or_404
+from app.core.authz import Actor, ScopeRules, apply_scope, get_in_scope_or_404
 from app.core.errors import AppError
 from app.core.spec_loader import Specs, TaskCommand, Transition
 from app.modules.audit import service as audit
@@ -18,6 +19,8 @@ from app.modules.dispatch.schemas import (
     TaskAddAssignee,
     TaskAssigneeOut,
     TaskAssigneeRemove,
+    TaskBoardItem,
+    TaskBoardOut,
     TaskCancel,
     TaskCreate,
     TaskDetail,
@@ -30,6 +33,13 @@ from app.modules.identity.models import Employee, EmployeeRole
 from app.modules.orders import service as orders_service
 from app.modules.orders.models import Order
 from app.modules.workflow.guards import GUARDS
+
+VIETNAM = ZoneInfo("Asia/Ho_Chi_Minh")
+
+
+def _vn_day_start_utc(day: date) -> datetime:
+    return datetime.combine(day, time.min, tzinfo=VIETNAM)
+
 
 # "active" here follows spec/state_machines.yaml#task.derived_status's notion: every assignment
 # status except REJECTED/REMOVED counts (same tuple as domain._INACTIVE_ASSIGNMENT_STATUSES, kept
@@ -519,4 +529,83 @@ def list_order_tasks(session: Session, actor: Actor, order_id: uuid.UUID) -> Tas
 def count_pending_dispatch(session: Session, actor: Actor) -> int:  # CounterProvider shape
     return (
         session.scalar(select(func.count()).select_from(Order).where(Order.status == "PENDING_DISPATCH")) or 0
+    )
+
+
+def list_tasks(
+    session: Session,
+    actor: Actor,
+    *,
+    status: str | None,
+    priority: str | None,
+    assignee_id: uuid.UUID | None,
+    due_from: date | None,
+    due_to: date | None,
+) -> TaskBoardOut:
+    """GET /api/v1/tasks (M4-03a) — every task across every order, for the dispatch board.
+
+    Scope reuses TASK_RULES/_task_assigned_clause as-is (Q61): TECHNICIAN sees every task they
+    ever had an assignment on, REJECTED/REMOVED included — same rule `get_task` already applies.
+    `assignee_id` is a separate, narrower filter (active assignments only) that intersects with
+    scope rather than replacing it, so it can never surface a task outside the caller's scope.
+    """
+    if due_from is not None and due_to is not None and due_from > due_to:
+        message = "Từ ngày không được sau Đến ngày."
+        raise AppError(
+            422,
+            "VALIDATION_ERROR",
+            message,
+            errors=[{"field": "due_from", "code": "invalid_range", "message": message}],
+        )
+
+    query = apply_scope(select(Task, Order.code).join(Order, Order.id == Task.order_id), actor, TASK_RULES)
+    if status is not None:
+        query = query.where(Task.status == status)
+    if priority is not None:
+        query = query.where(Task.priority == priority)
+    if due_from is not None:
+        query = query.where(Task.due_at >= _vn_day_start_utc(due_from))
+    if due_to is not None:
+        query = query.where(Task.due_at < _vn_day_start_utc(due_to) + timedelta(days=1))
+    if assignee_id is not None:
+        query = query.where(
+            Task.id.in_(
+                select(Assignment.task_id).where(
+                    Assignment.employee_id == assignee_id,
+                    Assignment.status.notin_(_INACTIVE_ASSIGNMENT_STATUSES),
+                )
+            )
+        )
+
+    rows = session.execute(query.order_by(Task.due_at.asc())).all()
+    order_code_by_task = {task.id: order_code for task, order_code in rows}
+
+    by_task: dict[uuid.UUID, list[TaskSummaryAssigneeOut]] = defaultdict(list)
+    task_ids = list(order_code_by_task)
+    if task_ids:
+        assignee_rows = session.execute(
+            select(Assignment.task_id, Employee.id, Employee.full_name)
+            .join(Employee, Employee.id == Assignment.employee_id)
+            .where(Assignment.task_id.in_(task_ids), Assignment.status.notin_(_INACTIVE_ASSIGNMENT_STATUSES))
+            .order_by(Assignment.created_at.asc())
+        ).all()
+        for task_id, employee_id, full_name in assignee_rows:
+            by_task[task_id].append(TaskSummaryAssigneeOut(employee_id=employee_id, full_name=full_name))
+
+    return TaskBoardOut(
+        items=[
+            TaskBoardItem(
+                id=task.id,
+                code=task.code,
+                order_id=task.order_id,
+                order_code=order_code_by_task[task.id],
+                title=task.title,
+                status=task.status,
+                priority=task.priority,
+                estimated_hours=task.estimated_hours,
+                due_at=task.due_at,
+                assignees=by_task.get(task.id, []),
+            )
+            for task, _ in rows
+        ]
     )

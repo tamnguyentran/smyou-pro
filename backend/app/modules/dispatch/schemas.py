@@ -1,15 +1,18 @@
-"""Request/response bodies for /api/v1/orders/{order_id}/tasks (M4-01a)."""
+"""Request/response bodies for /api/v1/orders/{order_id}/tasks (M4-01a) and /api/v1/tasks (M4-03a)."""
 
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from app.modules.orders.schemas import Priority
 
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+
+# spec/state_machines.yaml#task.states — same 6 values as models.TASK_STATUSES.
+TaskStatus = Literal["NEEDS_ASSIGNEE", "PENDING_ACCEPTANCE", "ACCEPTED", "IN_PROGRESS", "DONE", "CANCELLED"]
 
 
 class TaskCreate(BaseModel):
@@ -105,3 +108,20 @@ class TaskSummary(BaseModel):
 
 class TaskListOut(BaseModel):
     items: list[TaskSummary]
+
+
+class TaskBoardItem(BaseModel):
+    id: uuid.UUID
+    code: str
+    order_id: uuid.UUID
+    order_code: str
+    title: str
+    status: str
+    priority: str
+    estimated_hours: Decimal
+    due_at: datetime
+    assignees: list[TaskSummaryAssigneeOut]
+
+
+class TaskBoardOut(BaseModel):
+    items: list[TaskBoardItem]
