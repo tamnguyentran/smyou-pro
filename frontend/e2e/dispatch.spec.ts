@@ -269,6 +269,18 @@ test("AC-DSP-028 AC-DSP-032 AC-DSP-033 AC-DSP-035 AC-DSP-036 AC-DSP-037 @a11y @s
   const taskList = page.getByTestId("order-tasks");
   await expect(taskList.getByText(`${code}-T1`)).toBeVisible();
 
+  // M4-02b AC-DSP-058: bấm vào task mở TaskEditSheet, điền sẵn dữ liệu vừa tạo.
+  await taskList.getByText(`${code}-T1`).click();
+  const editPanel = page.getByRole("dialog", { name: `Sửa đầu việc — ${code}-T1` });
+  await expect(editPanel).toBeVisible();
+  await expect(editPanel.getByLabel("Tiêu đề đầu việc")).toHaveValue("Nghiệm thu với khách");
+  // Không dùng checkOverflow: thu nhỏ viewport xuống <1024px ở giữa bước này làm AppShell đổi bố
+  // cục (sidebar → menu trượt) và cuốn theo state cục bộ (tab đang chọn, sheet đang mở) — AC-DSP-069
+  // (vùng chạm/cuộn dọc) đã được kiểm ở lớp component (`taskEditSheet.test.tsx`).
+  await evidence(page, info, "task-edit-sheet.png");
+  await editPanel.getByRole("button", { name: "Đóng hộp thoại" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
   // AC-DSP-033: task đầu tiên đưa đơn sang IN_PROGRESS → header + hành động đổi theo.
   await expect(page.getByText("Đang thực hiện").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Thu hồi" })).toHaveCount(0);
