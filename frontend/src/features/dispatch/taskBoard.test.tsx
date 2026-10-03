@@ -208,11 +208,11 @@ describe("Bảng đầu việc", () => {
     renderApp("/dispatch/board");
     await screen.findByText("DH2610-N01-T3");
 
-    await userEvent
-      .setup()
-      .click(
-        screen.getByRole("radiogroup", { name: "Ưu tiên" }).getByRole("radio", { name: "Khẩn" }),
-      );
+    await userEvent.setup().click(
+      within(screen.getByRole("radiogroup", { name: "Ưu tiên" })).getByRole("radio", {
+        name: "Khẩn",
+      }),
+    );
     await waitFor(() => {
       expect(queries).toContain("?priority=URGENT");
     });
@@ -390,6 +390,7 @@ describe("Bảng đầu việc", () => {
   });
 
   test("AC-DSP-089 lỗi tải: EmptyState + Thử lại gọi lại", async () => {
+    mobile();
     signedInAs(tuanId, TUAN);
     let calls = 0;
     server.use(
