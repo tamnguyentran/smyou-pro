@@ -5,6 +5,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Sheet } from "./Sheet";
+import { ToastProvider, useToast } from "./Toast";
+
+function zIndexOf(element: HTMLElement): number {
+  const match = /(?:^|\s)z-(?:\[(\d+)\]|(\d+))(?:\s|$)/.exec(element.className);
+  if (!match) throw new Error(`no z-index class on: ${element.className}`);
+  return Number(match[1] ?? match[2]);
+}
 
 const longBody = Array.from({ length: 40 }, (_, i) => <p key={i}>Dòng nội dung {i + 1}</p>);
 
@@ -160,6 +167,31 @@ describe("Sheet: header + footer ngoài vùng cuộn (M4-01d)", () => {
       />,
     );
     expect(screen.getByRole("button", { name: "Đóng hộp thoại" })).toBeDisabled();
+  });
+
+  test("review M4-02b: toast không được đè lên footer của sheet đang mở", async () => {
+    function Harness() {
+      const toast = useToast();
+      return (
+        <Sheet
+          open
+          onClose={vi.fn()}
+          title="Sửa đầu việc"
+          footer={<button onClick={() => toast("Đã lưu thay đổi đầu việc.")}>Lưu</button>}
+        >
+          <p>x</p>
+        </Sheet>
+      );
+    }
+    render(
+      <ToastProvider>
+        <Harness />
+      </ToastProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Lưu" }));
+    const toastEl = screen.getByRole("status");
+    const dialog = screen.getByRole("dialog");
+    expect(zIndexOf(dialog)).toBeGreaterThan(zIndexOf(toastEl));
   });
 
   test("AC-SYS-092 footer chừa safe-area và panel không vượt 85% viewport", () => {

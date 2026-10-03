@@ -299,6 +299,18 @@ describe("TaskEditSheet — sửa/thêm/gỡ người/huỷ đầu việc", () =
     expect(within(assigneeList).getAllByText("Chờ tiếp nhận")).toHaveLength(2);
   });
 
+  test("AC-DSP-058 bàn phím: Tab tới mã đầu việc rồi Enter mở sheet (desktop)", async () => {
+    stubEdit();
+    renderApp(`/orders/${orderId}`);
+    const user = userEvent.setup();
+    await screen.findByText(orderCode);
+    await user.click(screen.getByRole("tab", { name: "Đầu việc" }));
+    const codeButton = await screen.findByRole("button", { name: taskCode });
+    codeButton.focus();
+    await user.keyboard("{Enter}");
+    await screen.findByRole("dialog", { name: `Sửa đầu việc — ${taskCode}` });
+  });
+
   test("AC-DSP-059 sửa title, Lưu → PATCH đúng version, toast, sheet không đóng, danh sách cập nhật", async () => {
     const calls = stubEdit({ tasksAfter: [summary({ title: "Lắp đặt 5 camera tầng 1" })] });
     const user = await openEditSheet();
