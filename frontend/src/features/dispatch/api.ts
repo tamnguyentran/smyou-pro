@@ -8,9 +8,15 @@ import { ORDER_KEY, ORDER_LIST_KEY, type Order } from "../orders/api";
 export type TaskCreateBody = components["schemas"]["TaskCreate"];
 export type TaskDetail = components["schemas"]["TaskDetail"];
 export type TaskSummary = components["schemas"]["TaskSummary"];
+export type TaskAssignee = components["schemas"]["TaskAssigneeOut"];
+export type TaskUpdateBody = components["schemas"]["TaskUpdate"];
+export type TaskAddAssigneeBody = components["schemas"]["TaskAddAssignee"];
+export type TaskAssigneeRemoveBody = components["schemas"]["TaskAssigneeRemove"];
+export type TaskCancelBody = components["schemas"]["TaskCancel"];
 
 export const DISPATCH_QUEUE_KEY = "dispatch-queue";
 export const ORDER_TASKS_KEY = "order-tasks";
+export const TASK_KEY = "task";
 
 /** AC-DSP-028: danh sách đầu việc của 1 đơn (capability `order.read` — Q61). Chỉ gọi khi tab
  * "Đầu việc" được mở: `OrderTasksTab` chỉ được render khi tab đó đang chọn. */
@@ -122,6 +128,144 @@ export function useCreateTask() {
       void queryClient.invalidateQueries({ queryKey: [ORDER_KEY, task.order_id] });
       void queryClient.invalidateQueries({ queryKey: [ORDER_TASKS_KEY, task.order_id] });
       void queryClient.invalidateQueries({ queryKey: ME_KEY });
+    },
+  });
+}
+
+/** AC-DSP-058: chi tiết 1 đầu việc cho `TaskEditSheet` — `order_version` của phản hồi là
+ * "version" thật sự phải gửi lại ở mọi lệnh sửa/thêm/gỡ/huỷ (order là aggregate root, task không
+ * có cột version riêng — xem `backend/app/modules/dispatch/service.py`). */
+export function useTask(orderId: string, taskId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [TASK_KEY, taskId],
+    enabled,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET("/api/v1/orders/{order_id}/tasks/{task_id}", {
+        params: { path: { order_id: orderId, task_id: taskId } },
+      });
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+  });
+}
+
+/** AC-DSP-059: sửa title/description/estimated_hours/due_at/priority. */
+export function useUpdateTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      orderId,
+      taskId,
+      body,
+    }: {
+      orderId: string;
+      taskId: string;
+      body: TaskUpdateBody;
+    }) => {
+      const { data, error, response } = await api.PATCH(
+        "/api/v1/orders/{order_id}/tasks/{task_id}",
+        { params: { path: { order_id: orderId, task_id: taskId } }, body },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: (_task, { orderId, taskId }) => {
+      void queryClient.invalidateQueries({ queryKey: [ORDER_TASKS_KEY, orderId] });
+      void queryClient.invalidateQueries({ queryKey: [ORDER_KEY, orderId] });
+      void queryClient.invalidateQueries({ queryKey: ME_KEY });
+      void queryClient.invalidateQueries({ queryKey: [TASK_KEY, taskId] });
+    },
+  });
+}
+
+/** AC-DSP-062: thêm 1 kỹ thuật viên đang hoạt động, chưa có trong task. */
+export function useAddAssignee() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      orderId,
+      taskId,
+      body,
+    }: {
+      orderId: string;
+      taskId: string;
+      body: TaskAddAssigneeBody;
+    }) => {
+      const { data, error, response } = await api.POST(
+        "/api/v1/orders/{order_id}/tasks/{task_id}/assignees",
+        { params: { path: { order_id: orderId, task_id: taskId } }, body },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: (_task, { orderId, taskId }) => {
+      void queryClient.invalidateQueries({ queryKey: [ORDER_TASKS_KEY, orderId] });
+      void queryClient.invalidateQueries({ queryKey: [ORDER_KEY, orderId] });
+      void queryClient.invalidateQueries({ queryKey: ME_KEY });
+      void queryClient.invalidateQueries({ queryKey: [TASK_KEY, taskId] });
+    },
+  });
+}
+
+/** AC-DSP-064: gỡ 1 người được giao (server vẫn là nơi chặn thật — client chỉ lọc hiển thị). */
+export function useRemoveAssignee() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      orderId,
+      taskId,
+      assignmentId,
+      body,
+    }: {
+      orderId: string;
+      taskId: string;
+      assignmentId: string;
+      body: TaskAssigneeRemoveBody;
+    }) => {
+      const { data, error, response } = await api.POST(
+        "/api/v1/orders/{order_id}/tasks/{task_id}/assignees/{assignment_id}/remove",
+        {
+          params: { path: { order_id: orderId, task_id: taskId, assignment_id: assignmentId } },
+          body,
+        },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: (_task, { orderId, taskId }) => {
+      void queryClient.invalidateQueries({ queryKey: [ORDER_TASKS_KEY, orderId] });
+      void queryClient.invalidateQueries({ queryKey: [ORDER_KEY, orderId] });
+      void queryClient.invalidateQueries({ queryKey: ME_KEY });
+      void queryClient.invalidateQueries({ queryKey: [TASK_KEY, taskId] });
+    },
+  });
+}
+
+/** AC-DSP-067: huỷ đầu việc — không đảo ngược, gỡ hết người đang hoạt động ở server. */
+export function useCancelTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      orderId,
+      taskId,
+      body,
+    }: {
+      orderId: string;
+      taskId: string;
+      body: TaskCancelBody;
+    }) => {
+      const { data, error, response } = await api.POST(
+        "/api/v1/orders/{order_id}/tasks/{task_id}/cancel",
+        { params: { path: { order_id: orderId, task_id: taskId } }, body },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: (_task, { orderId, taskId }) => {
+      void queryClient.invalidateQueries({ queryKey: [ORDER_TASKS_KEY, orderId] });
+      void queryClient.invalidateQueries({ queryKey: [ORDER_KEY, orderId] });
+      void queryClient.invalidateQueries({ queryKey: ME_KEY });
+      void queryClient.invalidateQueries({ queryKey: [TASK_KEY, taskId] });
     },
   });
 }
