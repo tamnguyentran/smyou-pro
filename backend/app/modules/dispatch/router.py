@@ -1,6 +1,8 @@
-"""/api/v1/orders/{order_id}/tasks — thin HTTP layer for task creation & listing (M4-01a)."""
+"""/api/v1/orders/{order_id}/tasks — thin HTTP layer for task creation & listing (M4-01a).
+/api/v1/tasks — company-wide task board (M4-03a), separate router: a different URL prefix."""
 
 import uuid
+from datetime import date
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Request
@@ -12,17 +14,22 @@ from app.modules.dispatch import service
 from app.modules.dispatch.schemas import (
     TaskAddAssignee,
     TaskAssigneeRemove,
+    TaskBoardOut,
     TaskCancel,
     TaskCreate,
     TaskDetail,
     TaskListOut,
+    TaskStatus,
     TaskUpdate,
 )
+from app.modules.orders.schemas import Priority
 
 router = APIRouter(prefix="/api/v1/orders", tags=["dispatch"])
 Dispatcher = Annotated[Actor, Depends(require("task.manage"))]
 Reader = Annotated[Actor, Depends(require("order.read"))]
 TaskReader = Annotated[Actor, Depends(require("task.read"))]
+
+tasks_router = APIRouter(prefix="/api/v1/tasks", tags=["dispatch"])
 
 
 def _docs(*lines: tuple[int, str]) -> dict[int | str, dict[str, Any]]:
@@ -187,4 +194,34 @@ def cancel_task(
         now=now,
         specs=request.app.state.specs,
         request_id=get_request_id(request),
+    )
+
+
+VALIDATION_ERROR = (422, "VALIDATION_ERROR")
+
+
+@tasks_router.get(
+    "",
+    operation_id="tasks_board",
+    summary="Bảng đầu việc toàn công ty (lọc trạng thái/ưu tiên/KTV/hạn)",
+    response_model=TaskBoardOut,
+    responses=_docs(VALIDATION_ERROR),
+)
+def list_board_tasks(
+    session: DbSession,
+    actor: TaskReader,
+    status: TaskStatus | None = None,
+    priority: Priority | None = None,
+    assignee_id: uuid.UUID | None = None,
+    due_from: date | None = None,
+    due_to: date | None = None,
+) -> TaskBoardOut:
+    return service.list_tasks(
+        session,
+        actor,
+        status=status,
+        priority=priority,
+        assignee_id=assignee_id,
+        due_from=due_from,
+        due_to=due_to,
     )

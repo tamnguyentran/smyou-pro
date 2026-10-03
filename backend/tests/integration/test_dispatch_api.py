@@ -421,7 +421,9 @@ def test_list_order_tasks_scope(app: FastAPI, db: Connection, people: dict[str, 
 @pytest.mark.ac("AC-DSP-014")
 @pytest.mark.ac("AC-DSP-057")
 def test_routes_declare_capability(app: FastAPI) -> None:
-    routes = {r for r in declared_routes(app) if "/tasks" in r[1]}
+    # "/orders/{order_id}/tasks..." only — excludes the unrelated company-wide "/api/v1/tasks"
+    # board route (M4-03a, covered by its own test_dispatch_board_api.py).
+    routes = {r for r in declared_routes(app) if "/orders/{order_id}/tasks" in r[1]}
     assert routes == {
         ("POST", "/api/v1/orders/{order_id}/tasks", "task.manage"),
         ("GET", "/api/v1/orders/{order_id}/tasks", "order.read"),

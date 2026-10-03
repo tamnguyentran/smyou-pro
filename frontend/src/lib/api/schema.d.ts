@@ -815,6 +815,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/tasks": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Bảng đầu việc toàn công ty (lọc trạng thái/ưu tiên/KTV/hạn) */
+    get: operations["tasks_board"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1820,6 +1837,43 @@ export interface components {
     TaskAssigneeRemove: {
       /** Version */
       version: number;
+    };
+    /** TaskBoardItem */
+    TaskBoardItem: {
+      /** Assignees */
+      assignees: components["schemas"]["TaskSummaryAssigneeOut"][];
+      /** Code */
+      code: string;
+      /**
+       * Due At
+       * Format: date-time
+       */
+      due_at: string;
+      /** Estimated Hours */
+      estimated_hours: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Order Code */
+      order_code: string;
+      /**
+       * Order Id
+       * Format: uuid
+       */
+      order_id: string;
+      /** Priority */
+      priority: string;
+      /** Status */
+      status: string;
+      /** Title */
+      title: string;
+    };
+    /** TaskBoardOut */
+    TaskBoardOut: {
+      /** Items */
+      items: components["schemas"]["TaskBoardItem"][];
     };
     /** TaskCancel */
     TaskCancel: {
@@ -4514,6 +4568,48 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+    };
+  };
+  tasks_board: {
+    parameters: {
+      query?: {
+        status?:
+          | (
+              | "NEEDS_ASSIGNEE"
+              | "PENDING_ACCEPTANCE"
+              | "ACCEPTED"
+              | "IN_PROGRESS"
+              | "DONE"
+              | "CANCELLED"
+            )
+          | null;
+        priority?: ("LOW" | "NORMAL" | "HIGH" | "URGENT") | null;
+        assignee_id?: string | null;
+        due_from?: string | null;
+        due_to?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskBoardOut"];
+        };
+      };
+      /** @description problem+json — VALIDATION_ERROR */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

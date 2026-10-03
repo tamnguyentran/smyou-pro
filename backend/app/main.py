@@ -18,6 +18,7 @@ from app.modules.catalog.router import services_router
 from app.modules.customers.router import router as customers_router
 from app.modules.dispatch import service as dispatch_service
 from app.modules.dispatch.router import router as dispatch_router
+from app.modules.dispatch.router import tasks_router
 from app.modules.employees.router import router as employees_router
 from app.modules.files.router import router as files_router
 from app.modules.identity.router import me_router
@@ -78,6 +79,7 @@ def create_app(
     app.include_router(customers_router)
     app.include_router(orders_router)
     app.include_router(dispatch_router)
+    app.include_router(tasks_router)
     return app
 
 

@@ -3054,6 +3054,85 @@
         "title": "TaskAssigneeRemove",
         "type": "object"
       },
+      "TaskBoardItem": {
+        "properties": {
+          "assignees": {
+            "items": {
+              "$ref": "#/components/schemas/TaskSummaryAssigneeOut"
+            },
+            "title": "Assignees",
+            "type": "array"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "due_at": {
+            "format": "date-time",
+            "title": "Due At",
+            "type": "string"
+          },
+          "estimated_hours": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Estimated Hours",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "order_code": {
+            "title": "Order Code",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "order_id",
+          "order_code",
+          "title",
+          "status",
+          "priority",
+          "estimated_hours",
+          "due_at",
+          "assignees"
+        ],
+        "title": "TaskBoardItem",
+        "type": "object"
+      },
+      "TaskBoardOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TaskBoardItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": ["items"],
+        "title": "TaskBoardOut",
+        "type": "object"
+      },
       "TaskCancel": {
         "additionalProperties": false,
         "properties": {
@@ -6819,6 +6898,122 @@
         },
         "summary": "Ngừng kinh doanh",
         "tags": ["services"]
+      }
+    },
+    "/api/v1/tasks": {
+      "get": {
+        "operationId": "tasks_board",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "NEEDS_ASSIGNEE",
+                    "PENDING_ACCEPTANCE",
+                    "ACCEPTED",
+                    "IN_PROGRESS",
+                    "DONE",
+                    "CANCELLED"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "priority",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["LOW", "NORMAL", "HIGH", "URGENT"],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Priority"
+            }
+          },
+          {
+            "in": "query",
+            "name": "assignee_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Assignee Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "due_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Due From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "due_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Due To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskBoardOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "problem+json — VALIDATION_ERROR"
+          }
+        },
+        "summary": "Bảng đầu việc toàn công ty (lọc trạng thái/ưu tiên/KTV/hạn)",
+        "tags": ["dispatch"]
       }
     }
   }

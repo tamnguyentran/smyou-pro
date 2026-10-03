@@ -13,7 +13,7 @@ Tách theo mẫu M4-01/M4-02: item này là **API**. Giao diện (Kanban desktop
 - **Trong phạm vi:**
   - `GET /api/v1/tasks` (mới, không nằm dưới `/orders/{id}`): trả **toàn bộ** task (không phân trang — giống `GET /orders/{id}/tasks`, quy mô công ty nhỏ, xem giả định §8), kèm `order_id`/`order_code` để biết task thuộc đơn nào.
   - Tham số lọc (đều tuỳ chọn, kết hợp được — AND): `status` (1 trong 6 trạng thái task), `priority` (`LOW`/`NORMAL`/`HIGH`/`URGENT`), `assignee_id` (uuid — khớp task có **phân công đang hoạt động** của nhân viên này, tức `status` phân công không phải `REJECTED`/`REMOVED`), `due_from`/`due_to` (date, so theo `due_at`, biên bao gồm cả hai đầu).
-  - Capability `task.read` (đã khai trong `spec/permissions.yaml`): `TECH_LEAD`/`MANAGER` scope `all` → thấy mọi task; `TECHNICIAN` scope `assigned` → chỉ thấy task mình đang có phân công đang hoạt động (kể cả khi gửi `assignee_id` của người khác → trả rỗng, không lộ dữ liệu KTV khác).
+  - Capability `task.read` (đã khai trong `spec/permissions.yaml`), scope dùng lại nguyên `TASK_RULES`/`_task_assigned_clause` đã có ở `backend/app/modules/dispatch/service.py` (dùng cho `GET .../tasks/{task_id}`, Q61): `TECH_LEAD`/`MANAGER` scope `all` → thấy mọi task; `TECHNICIAN` scope `assigned` → thấy mọi task mình **từng** có phân công (kể cả `REJECTED`/`REMOVED` — cùng quy tắc "không lọc theo trạng thái" của `orders/service.py:_assigned_clause`, không phải chỉ phân công đang hoạt động). Lọc `assignee_id` (xem dưới) là tham số **riêng**, luôn chỉ tính phân công đang hoạt động, và giao với scope — TECHNICIAN gửi `assignee_id` của người khác chỉ thấy phần giao nhau với scope của chính họ (không lộ task ngoài scope).
   - Mỗi item trả: `id, code, order_id, order_code, title, status, priority, estimated_hours, due_at, assignees` — `assignees` chỉ gồm phân công đang hoạt động (sửa cách tính so với `TaskSummary.assignees` hiện tại của `GET /orders/{id}/tasks`, vốn không lọc trạng thái phân công — **không sửa endpoint cũ đó ở item này**, chỉ áp dụng đúng cho endpoint mới).
 - **Ngoài phạm vi:**
   - Phân trang (giả định mặc định: không cần ở quy mô hiện tại — xem §8).
@@ -23,24 +23,24 @@ Tách theo mẫu M4-01/M4-02: item này là **API**. Giao diện (Kanban desktop
 
 ## 3. Acceptance Criteria
 > Fixture: Tuấn (TECH_LEAD, `task.manage`+`task.read` scope `all`), An (MANAGER, `task.read` scope `all`, **không** có `task.manage` — Q05), Hoa (SALE, không có `task.read`). Khoa, Minh (TECHNICIAN đang hoạt động).
-> "Đơn D" `IN_PROGRESS`: T1 (`code=…-T1`, `priority=HIGH`, `due_at="2026-10-05T09:00:00+07:00"`, giao Khoa — còn `PENDING` → `status=PENDING_ACCEPTANCE`), T2 (`priority=NORMAL`, `due_at="2026-10-06T09:00:00+07:00"`, giao Khoa+Minh).
-> "Đơn N" `IN_PROGRESS`: T3 (`priority=URGENT`, `due_at="2026-10-04T09:00:00+07:00"`) — người được giao ban đầu đã bị gỡ hết (`assignment.status=REMOVED`) → `status=NEEDS_ASSIGNEE`, `assignees=[]`.
-> "Đơn O" `AWAITING_CONFIRMATION`: T4 (`priority=LOW`, `due_at="2026-10-01T09:00:00+07:00"`, giao Minh, `status=DONE`).
-> "Đơn D" có thêm T5 đã `CANCELLED` (giao Khoa trước khi huỷ — phân công vẫn `PENDING` trong DB, không bị gỡ, vì huỷ task không đổi trạng thái phân công theo `cancel` effect `remove_open_assignments`… — seed T5 với 1 phân công `REMOVED` để khớp effect thật).
+> "Đơn D" `IN_PROGRESS`: T1 (`code=…-T1`, `priority=HIGH`, `due_at="2026-10-05T09:00:00+07:00"`, `status=PENDING_ACCEPTANCE`, Khoa `PENDING`), T2 (`priority=NORMAL`, `due_at="2026-10-06T09:00:00+07:00"`, `status=IN_PROGRESS`, Khoa `ACCEPTED` + Minh `IN_PROGRESS` — cả hai đang active), T5 (`priority=NORMAL`, `due_at="2026-10-07T09:00:00+07:00"`, `status=CANCELLED`, Khoa `REMOVED` — giống effect `remove_open_assignments` thật khi huỷ task).
+> "Đơn N" `IN_PROGRESS`: T3 (`priority=URGENT`, `due_at="2026-10-04T09:00:00+07:00"`, `status=NEEDS_ASSIGNEE`) — Minh từng được giao rồi bị gỡ (`status=REMOVED`), Khoa **chưa bao giờ** có phân công ở T3.
+> "Đơn O" `AWAITING_CONFIRMATION`: T4 (`priority=LOW`, `due_at="2026-10-01T09:00:00+07:00"`, `status=DONE`, Minh `DONE` — đang active; Khoa không liên quan T4).
 
 | ID | Given (bối cảnh, dữ liệu, vai trò) | When (hành động) | Then (kết quả quan sát được) | Lớp test |
 |---|---|---|---|---|
-| AC-DSP-070 | Như fixture trên | Tuấn `GET /api/v1/tasks` (không lọc) | 200 `{items}` đủ 5 task (T1..T5), mỗi item có `order_id`/`order_code` đúng đơn chứa nó; T3.`assignees=[]`; T5.`assignees=[]` (phân công `REMOVED` không tính) | integration |
+| AC-DSP-070 | Như fixture trên | Tuấn `GET /api/v1/tasks` (không lọc) | 200 `{items}` đủ 5 task (T1..T5), mỗi item có `order_id`/`order_code` đúng đơn chứa nó; T1.`assignees`=[Khoa]; T2.`assignees`=[Khoa, Minh]; T3.`assignees=[]` (Minh `REMOVED` không tính); T4.`assignees`=[Minh]; T5.`assignees=[]` (Khoa `REMOVED` không tính) | integration |
 | AC-DSP-071 | Như trên | Tuấn `GET /api/v1/tasks?status=NEEDS_ASSIGNEE` | 200 chỉ gồm T3 | integration |
-| AC-DSP-072 | Như trên | Tuấn `GET /api/v1/tasks?assignee_id={Khoa.id}` | 200 gồm T1, T2 (Khoa đang active ở cả hai); **không** gồm T3 (đã gỡ hết), T4 (chỉ Minh), T5 (phân công của Khoa đã `REMOVED`) | integration |
+| AC-DSP-072 | Như trên | Tuấn `GET /api/v1/tasks?assignee_id={Khoa.id}` | 200 gồm T1, T2 (Khoa đang active ở cả hai — `PENDING`/`ACCEPTED`); **không** gồm T3 (chưa từng liên quan), T4 (chỉ Minh), T5 (phân công của Khoa ở T5 đã `REMOVED`, không tính là đang active) | integration |
 | AC-DSP-073 | Như trên | Tuấn `GET /api/v1/tasks?priority=URGENT` | 200 chỉ gồm T3 | integration |
-| AC-DSP-074 | Như trên | Tuấn `GET /api/v1/tasks?due_from=2026-10-05&due_to=2026-10-06` | 200 gồm T1 (`10-05`), T2 (`10-06`); không gồm T3 (`10-04`)/T4 (`10-01`) | integration |
+| AC-DSP-074 | Như trên | Tuấn `GET /api/v1/tasks?due_from=2026-10-05&due_to=2026-10-06` | 200 gồm T1 (`10-05`), T2 (`10-06`); không gồm T3 (`10-04`), T4 (`10-01`), T5 (`10-07`) | integration |
 | AC-DSP-075 | Như trên | Tuấn `GET /api/v1/tasks?status=PENDING_ACCEPTANCE&priority=HIGH` | 200 chỉ gồm T1 (giao giữa 2 bộ lọc, AND không phải OR) | integration |
 | AC-DSP-076 | Như trên | An (MANAGER) `GET /api/v1/tasks` (không lọc) | 200, cùng 5 task như Tuấn (scope `all` áp dụng cho cả MANAGER) | integration |
-| AC-DSP-077 | Như trên | Khoa (TECHNICIAN) `GET /api/v1/tasks` (không lọc) | 200 chỉ gồm T1, T2 (task Khoa đang active); Khoa `GET /api/v1/tasks?assignee_id={Minh.id}` | 200 rỗng (giao giữa scope `assigned` của Khoa và lọc theo Minh — không lộ task của Minh) | integration |
-| AC-DSP-078 | Hoa (SALE, không có `task.read`) | Hoa `GET /api/v1/tasks` | 403 `FORBIDDEN` | integration |
-| AC-DSP-079 | — | route `GET /api/v1/tasks` | khai đúng 1 capability (`task.read`); nằm trong ma trận RBAC route thật (test sinh tự động) | generated |
-| AC-DSP-080 | Như fixture trên | Tuấn `GET /api/v1/tasks?due_from=2026-10-10&due_to=2026-10-01` (đảo ngược) → 422; `?priority=KHAC` → 422; `?assignee_id=khong-phai-uuid` → 422; `?status=HOAN_THANH` (sai enum) → 422 | mỗi trường hợp 422 `VALIDATION_ERROR`, không có request nào trả 200/500 | integration |
+| AC-DSP-077 | Như trên | Khoa (TECHNICIAN) `GET /api/v1/tasks` (không lọc) | 200 gồm **T1, T2, T5** — scope `assigned` dùng lại `TASK_RULES` hiện có, tính mọi task Khoa từng có phân công **kể cả `REMOVED`** (Q61, giống `GET .../tasks/{id}`), không chỉ phân công đang hoạt động; **không** gồm T3/T4 (Khoa chưa bao giờ có phân công ở đó) | integration |
+| AC-DSP-078 | Như trên | Khoa `GET /api/v1/tasks?assignee_id={Minh.id}` | 200 chỉ gồm **T2** (Minh đang active ở T2, và T2 cũng thuộc scope của Khoa); **không** gồm T4 (Minh đang active ở T4, nhưng T4 ngoài scope `assigned` của Khoa — lọc `assignee_id` giao với scope, không thay thế scope, nên không lộ task của Minh mà Khoa không liên quan) | integration |
+| AC-DSP-079 | Hoa (SALE, không có `task.read`) | Hoa `GET /api/v1/tasks` | 403 `FORBIDDEN` | integration |
+| AC-DSP-080 | — | route `GET /api/v1/tasks` | khai đúng 1 capability (`task.read`); nằm trong ma trận RBAC route thật (test sinh tự động) | generated |
+| AC-DSP-081 | Như fixture trên | Tuấn `GET /api/v1/tasks?due_from=2026-10-10&due_to=2026-10-01` (đảo ngược) → 422; `?priority=KHAC` → 422; `?assignee_id=khong-phai-uuid` → 422; `?status=HOAN_THANH` (sai enum) → 422 | mỗi trường hợp 422 `VALIDATION_ERROR`, không có request nào trả 200/500 | integration |
 
 ## 4. API
 
