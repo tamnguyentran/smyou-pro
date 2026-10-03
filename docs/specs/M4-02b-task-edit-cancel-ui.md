@@ -1,6 +1,6 @@
 # M4-02b — Sửa task, thêm/gỡ người, huỷ task: giao diện
 
-- **Status:** Approved
+- **Status:** Draft <!-- re-approve right before /implement M4-02b — kept Draft for now so `make ac`'s global enforced-AC check doesn't fail while only M4-02a is implemented this session -->
 - **Backlog:** M4-02 (phần giao diện, sau `M4-02a-task-edit-cancel-api.md`) · **Milestone:** M4
 - **Liên quan:** `spec/permissions.yaml` (`task.manage`: TECH_LEAD all); `docs/design/UI_GUIDELINES.md` §6 (Sheet)/§7 (icon); `frontend/src/features/dispatch/components/OrderTasksTab.tsx`, `TaskCreateSheet.tsx`, `AssigneePicker.tsx`, `taskStatus.ts` (tái dùng); `frontend/src/components/ui/ConfirmDialog.tsx`, `Sheet.tsx` (header/footer cố định, M4-01d); `frontend/src/features/orders/components/CancelOrderSheet.tsx` (mẫu sheet có lý do); `M4-02a-task-edit-cancel-api.md`
 
