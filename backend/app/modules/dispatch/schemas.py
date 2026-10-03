@@ -28,7 +28,39 @@ class TaskCreate(BaseModel):
     assignee_ids: list[uuid.UUID]
 
 
+class TaskUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: int
+    title: Title | None = None
+    description: str | None = None
+    estimated_hours: Decimal | None = None
+    due_at: datetime | None = None
+    priority: Priority | None = None
+
+
+class TaskAddAssignee(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: int
+    employee_id: uuid.UUID
+
+
+class TaskAssigneeRemove(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: int
+
+
+class TaskCancel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: int
+    reason: str | None = None
+
+
 class TaskAssigneeOut(BaseModel):
+    id: uuid.UUID
     employee_id: uuid.UUID
     full_name: str
     status: str

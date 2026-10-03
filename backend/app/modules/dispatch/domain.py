@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 
-from app.core.spec_loader import TaskCommand, TaskMachine
+from app.core.spec_loader import Machine, TaskCommand, TaskMachine, Transition
 
 # Assignment statuses excluded when deriving task status (spec/state_machines.yaml#task.derived_status
 # talks about "active" assignments — rejected/removed ones no longer count).
@@ -14,6 +14,13 @@ def find_task_command(machine: TaskMachine, command: str) -> TaskCommand:
         if c.command == command:
             return c
     raise AssertionError(f"unknown task command: {command!r}")  # routes only ever pass known commands
+
+
+def find_assignment_transition(machine: Machine, command: str) -> Transition:
+    for t in machine.transitions:
+        if t.command == command:
+            return t
+    raise AssertionError(f"unknown assignment command: {command!r}")  # routes only ever pass known commands
 
 
 def task_code(order_code: str, sequence: int) -> str:
