@@ -1,6 +1,6 @@
 # M4-01e — Đánh bóng UI điều phối
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M4-01e · **Milestone:** M4
 - **Liên quan:** `reports/review-M4-01b.md` #5–#8, spec `M4-01b-dispatch-task-create-ui.md`, `M4-01c-order-tasks-tab.md`. Không đụng `spec/*.yaml`, không đổi API/DB/phân quyền (chỉ frontend, ~60–90 dòng non-test).
 
