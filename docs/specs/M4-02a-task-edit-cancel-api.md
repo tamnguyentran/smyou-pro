@@ -1,6 +1,6 @@
 # M4-02a — Sửa task, thêm/gỡ người, huỷ task: API
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M4-02 (tách thành M4-02a API / M4-02b giao diện, theo mẫu M4-01) · **Milestone:** M4
 - **Liên quan:** `spec/state_machines.yaml#task` (lệnh `update`/`add_assignee`/`cancel`), `#assignment` (chuyển `remove`), guard `order_in_dispatchable_state`/`assignees_are_active_technicians`/`estimated_hours_positive`/`due_at_not_in_past`/`reason_present` (đã cài), `not_already_active_assignee`/`task_not_cancelled` (đang ở `PENDING_GUARDS` ghi `"M4-02"`); `spec/permissions.yaml` (`task.manage`: TECH_LEAD all — **không** có MANAGER; `task.read`: MANAGER/TECH_LEAD all, TECHNICIAN assigned); `docs/product/DOMAIN_MODEL.md` §8/§9; `docs/product/WORKFLOWS.md` §3 (trạng thái task suy ra) §4 (phân công) §6 (khoá `FOR UPDATE`); `backend/app/modules/dispatch/service.py` (`create_task` chưa kiểm `order_line_ids` thuộc đơn — BACKLOG.md mục M4-02, **không sửa ở item này**, xem Q68); `M4-01a-dispatch-task-create-api.md`; Q61 (task.read dành cho route hành động M4-02+), Q62 (Order là aggregate root), Q69 (mới, xem §8); Q67/Q68 đã hỏi chủ dự án và **không áp dụng** ở item này (xem §8) — không sửa `spec/state_machines.yaml`.
 
