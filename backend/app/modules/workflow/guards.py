@@ -54,6 +54,14 @@ def due_at_not_in_past(due_at: datetime, now: datetime) -> bool:
     return due_at >= now
 
 
+def not_already_active_assignee(already_active: bool) -> bool:
+    return not already_active
+
+
+def task_not_cancelled(cancelled_at: datetime | None) -> bool:
+    return cancelled_at is None
+
+
 GUARDS: dict[str, Callable[..., bool]] = {
     "customer_present": customer_present,
     "has_lines_or_description": has_lines_or_description,
@@ -65,11 +73,11 @@ GUARDS: dict[str, Callable[..., bool]] = {
     "assignees_are_active_technicians": assignees_are_active_technicians,
     "estimated_hours_positive": estimated_hours_positive,
     "due_at_not_in_past": due_at_not_in_past,
+    "not_already_active_assignee": not_already_active_assignee,
+    "task_not_cancelled": task_not_cancelled,
 }
 
 PENDING_GUARDS: dict[str, str] = {
-    "not_already_active_assignee": "M4-02",
-    "task_not_cancelled": "M4-02",
     # technician responses
     "reject_reason_code_present": "M5-02",
     "reject_reason_text_present": "M5-02",

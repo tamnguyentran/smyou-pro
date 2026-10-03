@@ -14,7 +14,7 @@ BACKLOG = Path(__file__).resolve().parents[3] / "docs" / "backlog" / "BACKLOG.md
 
 def backlog_status() -> dict[str, str]:
     text = BACKLOG.read_text(encoding="utf-8")
-    return {m.group(2): m.group(1) for m in re.finditer(r"^- \[(.)\] \*\*(M\d-\d\d)\b", text, re.M)}
+    return {m.group(2): m.group(1) for m in re.finditer(r"^- \[(.)\] \*\*(M\d-\d\d[a-z]?)\b", text, re.M)}
 
 
 @pytest.mark.ac("AC-SYS-026")
