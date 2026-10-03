@@ -13,11 +13,12 @@ import { useToast } from "../../../components/ui/Toast";
 import { formatDate } from "../../../lib/format";
 import { ApiError } from "../../auth/errors";
 import { useOrder } from "../../orders/api";
-import { PRIORITY_LABELS, PRIORITY_ORDER, type Priority } from "../../orders/schemas";
+import { PRIORITY_LABELS, PRIORITY_ORDER } from "../../orders/schemas";
 import { DISPATCH_QUEUE_KEY, useActiveTechnicians, useCreateTask, useSuggestedHours } from "../api";
 import {
   hoursLabel,
   parseHours,
+  priorityOrDefault,
   taskCreateSchema,
   toOffsetIso,
   type TaskCreateFormValues,
@@ -77,7 +78,7 @@ export function TaskCreateSheet({
         description: "",
         estimated_hours: "",
         due_at: "",
-        priority: order.priority as Priority,
+        priority: priorityOrDefault(order.priority),
         assignee_ids: [],
       },
     });
@@ -144,6 +145,7 @@ export function TaskCreateSheet({
               <Button
                 type="button"
                 variant="secondary"
+                className="flex-1 sm:flex-none"
                 onClick={() => {
                   setShowReload(false);
                   setFormMessage(null);
@@ -153,11 +155,21 @@ export function TaskCreateSheet({
                 Tải lại
               </Button>
             ) : (
-              <Button type="submit" form={FORM_ID} loading={createTask.isPending}>
+              <Button
+                type="submit"
+                form={FORM_ID}
+                loading={createTask.isPending}
+                className="flex-1 sm:flex-none"
+              >
                 Tạo đầu việc
               </Button>
             )}
-            <Button type="button" variant="secondary" onClick={onClose}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              className="flex-1 sm:flex-none"
+            >
               Đóng
             </Button>
           </div>
@@ -250,6 +262,10 @@ export function TaskCreateSheet({
           </Select>
           <AssigneePicker
             technicians={technicians.data ?? []}
+            loadError={technicians.isError}
+            onRetry={() => {
+              void technicians.refetch();
+            }}
             selected={assigneeIds}
             error={formState.errors.assignee_ids?.message}
             onToggle={(id) => {

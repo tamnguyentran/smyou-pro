@@ -20,6 +20,11 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
 };
 export const PRIORITY_ORDER = Object.keys(PRIORITY_LABELS) as Priority[];
 
+/** Type guard cho giá trị `priority` server trả về dạng chuỗi (không ép kiểu). */
+export function isPriority(value: string): value is Priority {
+  return Object.hasOwn(PRIORITY_LABELS, value);
+}
+
 /** VAT chip choices (UI_GUIDELINES §5): 0/8/10% quick picks, "Khác" opens a free-entry field. */
 export const VAT_CHIP_RATES = [0, 8, 10] as const;
 export const VAT_OTHER = "other" as const;

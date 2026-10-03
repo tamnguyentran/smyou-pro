@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { PRIORITY_ORDER, type Priority } from "../orders/schemas";
+import { isPriority, PRIORITY_LABELS, PRIORITY_ORDER, type Priority } from "../orders/schemas";
+
+type BadgeTone = "urgent" | "review" | "todo" | "neutral";
 
 /** Ưu tiên → tone Badge (UI_GUIDELINES §2: màu luôn đi kèm chữ). */
 export const PRIORITY_TONE: Record<Priority, "urgent" | "review" | "todo"> = {
@@ -8,6 +10,16 @@ export const PRIORITY_TONE: Record<Priority, "urgent" | "review" | "todo"> = {
   NORMAL: "todo",
   LOW: "todo",
 };
+
+/** Q66: giá trị ngoài enum → hiện nguyên chuỗi, tông trung tính; mặc định form = NORMAL. */
+export function priorityBadge(value: string): { label: string; tone: BadgeTone } {
+  return isPriority(value)
+    ? { label: PRIORITY_LABELS[value], tone: PRIORITY_TONE[value] }
+    : { label: value, tone: "neutral" };
+}
+export function priorityOrDefault(value: string): Priority {
+  return isPriority(value) ? value : "NORMAL";
+}
 
 const HOURS_MESSAGE = "Số giờ phải từ 0,25 đến 200 và là bội số của 0,25.";
 
