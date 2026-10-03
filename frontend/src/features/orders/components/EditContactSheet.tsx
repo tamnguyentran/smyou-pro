@@ -13,6 +13,7 @@ import { fieldErrors } from "../errors";
 import { orderContactSchema, type OrderContactFormValues } from "../schemas";
 import type { RunOrderWrite } from "./writeQueue";
 
+const FORM_ID = "edit-contact-form";
 const SHOWN_FIELDS = [
   "customer_name",
   "customer_phone",
@@ -90,8 +91,40 @@ export function EditContactSheet({
   });
 
   return (
-    <Sheet open onClose={onClose} title="Sửa liên hệ" dismissible={!updateContact.isPending}>
-      <form noValidate onSubmit={(event) => void onSubmit(event)} className="space-y-4">
+    <Sheet
+      open
+      onClose={onClose}
+      title="Sửa liên hệ"
+      dismissible={!updateContact.isPending}
+      footer={
+        showReload ? (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              onReload();
+            }}
+          >
+            Tải lại
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            form={FORM_ID}
+            loading={updateContact.isPending}
+            disabled={Object.keys(formState.errors).length > 0}
+          >
+            Lưu
+          </Button>
+        )
+      }
+    >
+      <form
+        id={FORM_ID}
+        noValidate
+        onSubmit={(event) => void onSubmit(event)}
+        className="space-y-4"
+      >
         {formMessage ? <Alert>{formMessage}</Alert> : null}
         <TextField
           label="Tên khách hàng"
@@ -125,26 +158,6 @@ export function EditContactSheet({
           error={formState.errors.work_description?.message ?? serverErrors.work_description}
           {...register("work_description")}
         />
-
-        {showReload ? (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              onReload();
-            }}
-          >
-            Tải lại
-          </Button>
-        ) : (
-          <Button
-            type="submit"
-            loading={updateContact.isPending}
-            disabled={Object.keys(formState.errors).length > 0}
-          >
-            Lưu
-          </Button>
-        )}
       </form>
     </Sheet>
   );

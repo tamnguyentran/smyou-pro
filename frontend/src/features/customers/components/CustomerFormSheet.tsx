@@ -56,6 +56,8 @@ function DuplicatePhoneWarning({
   );
 }
 
+const FORM_ID = "customer-form";
+
 /** Create or edit a customer (AC-CUS-010/011); read-only detail view for TECH_LEAD (AC-CUS-012).
  * No image, no activate/deactivate (unlike Product/Service) — DOMAIN_MODEL §4 has no status field. */
 export function CustomerFormSheet({
@@ -158,6 +160,24 @@ export function CustomerFormSheet({
       onClose={onClose}
       title={title}
       dismissible={!(create.isPending || update.isPending)}
+      footer={
+        readOnly ? undefined : showReload ? (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              invalidateList();
+              onClose();
+            }}
+          >
+            Tải lại
+          </Button>
+        ) : (
+          <Button type="submit" form={FORM_ID} loading={create.isPending || update.isPending}>
+            Lưu
+          </Button>
+        )
+      }
     >
       {readOnly ? (
         <div className="space-y-4">
@@ -183,7 +203,12 @@ export function CustomerFormSheet({
           </dl>
         </div>
       ) : (
-        <form noValidate onSubmit={(event) => void onSubmit(event)} className="space-y-4">
+        <form
+          id={FORM_ID}
+          noValidate
+          onSubmit={(event) => void onSubmit(event)}
+          className="space-y-4"
+        >
           {formMessage ? <Alert>{formMessage}</Alert> : null}
           <DuplicatePhoneWarning matches={duplicateMatches} />
           <Select
@@ -230,23 +255,6 @@ export function CustomerFormSheet({
             {...register("address")}
           />
           <Textarea label="Ghi chú" error={serverErrors.note} {...register("note")} />
-
-          {showReload ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                invalidateList();
-                onClose();
-              }}
-            >
-              Tải lại
-            </Button>
-          ) : (
-            <Button type="submit" loading={create.isPending || update.isPending}>
-              Lưu
-            </Button>
-          )}
         </form>
       )}
     </Sheet>

@@ -12,12 +12,16 @@ export function Sheet({
   onClose,
   title,
   children,
+  footer,
   dismissible = true,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  /** Action row pinned below the scrolling body. A submit button here targets a form in the body
+   * via its `form` attribute. */
+  footer?: ReactNode;
   /** false while a confirmed action is in flight: Esc/overlay/✕ must not abandon it mid-request
    * (review round 1 — the mutation still completes and its result would surprise a "cancelled" user). */
   dismissible?: boolean;
@@ -75,12 +79,16 @@ export function Sheet({
       />
       <div
         ref={panel}
+        data-testid="sheet-panel"
         className={cn(
-          "absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-card p-4 shadow-card-hover",
-          "lg:inset-0 lg:m-auto lg:h-fit lg:max-h-[85vh] lg:w-full lg:max-w-lg lg:rounded-2xl lg:p-6",
+          "absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col rounded-t-2xl bg-card shadow-card-hover",
+          "lg:inset-0 lg:m-auto lg:h-fit lg:max-h-[85vh] lg:w-full lg:max-w-lg lg:rounded-2xl",
         )}
       >
-        <div className="mb-4 flex items-center justify-between gap-4">
+        <div
+          data-testid="sheet-header"
+          className="flex shrink-0 items-center justify-between gap-4 px-4 pt-4 pb-4 lg:px-6 lg:pt-6"
+        >
           <h2 className="text-lg font-semibold text-heading">{title}</h2>
           <button
             type="button"
@@ -92,7 +100,23 @@ export function Sheet({
             <X aria-hidden="true" className="size-5" />
           </button>
         </div>
-        {children}
+        <div
+          data-testid="sheet-body"
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto px-4 lg:px-6",
+            footer ? undefined : "pb-4 lg:pb-6",
+          )}
+        >
+          {children}
+        </div>
+        {footer ? (
+          <div
+            data-testid="sheet-footer"
+            className="shrink-0 border-t border-line px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:px-6 lg:pb-6"
+          >
+            {footer}
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -529,9 +529,12 @@ describe("Panel tạo đầu việc", () => {
     stubQueue();
     const { user, dialog } = await openPanel();
 
+    // M4-01d: hàng nút nằm trong footer của Sheet (ngoài vùng cuộn, chừa safe-area).
     const actions = within(dialog).getByTestId("task-create-actions");
-    expect(actions.className).toContain("sticky bottom-0");
-    expect(actions.className).toContain("env(safe-area-inset-bottom)");
+    expect(within(dialog).getByTestId("sheet-footer")).toContainElement(actions);
+    expect(within(dialog).getByTestId("sheet-footer").className).toContain(
+      "env(safe-area-inset-bottom)",
+    );
     expect(within(dialog).getByRole("button", { name: "Đóng" })).toBeInTheDocument();
 
     await user.keyboard("{Escape}");
