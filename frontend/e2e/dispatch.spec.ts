@@ -310,3 +310,29 @@ test("AC-DSP-028 AC-DSP-032 AC-DSP-033 AC-DSP-035 AC-DSP-036 AC-DSP-037 @a11y @s
   await expect(page.getByTestId("order-tasks").getByText(`${code}-T1`)).toBeVisible();
   await expect(page.getByRole("button", { name: "Tạo đầu việc" })).toHaveCount(0);
 });
+
+test("AC-DSP-092 bảng đầu việc ở 390px: vùng chạm ≥44px, không cuộn ngang, axe sạch", async ({
+  page,
+}, info) => {
+  // Ép 390px ở mọi project (mẫu AC-SYS-089): AC này kiểm riêng khung mobile, không phụ thuộc
+  // viewport mặc định của project "desktop" (1440px).
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, TECH_LEAD, "/dispatch/board");
+  await expect(page.getByRole("heading", { name: "Bảng đầu việc", level: 1 })).toBeVisible();
+
+  const priorityAll = page
+    .getByRole("radiogroup", { name: "Ưu tiên" })
+    .getByRole("radio", { name: "Tất cả" });
+  await expect(priorityAll).toBeVisible();
+  expect((await priorityAll.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+  const technicianSelect = page.getByLabel("Kỹ thuật viên");
+  expect((await technicianSelect.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+  const statusAll = page
+    .getByRole("radiogroup", { name: "Trạng thái" })
+    .getByRole("radio", { name: "Tất cả" });
+  expect((await statusAll.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+  await evidence(page, info, "dispatch-board-390.png", { checkOverflow: true });
+});
