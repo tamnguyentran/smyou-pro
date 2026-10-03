@@ -26,7 +26,7 @@ Là Quản lý kỹ thuật dùng điện thoại, tôi muốn panel "Tạo đ�
 | AC-DSP-041 | Hàng đợi có ĐH DH2609-0003 (khách "Công ty TNHH Việt Tiến", ngày hẹn 2026-10-05, người tạo "Nguyễn Thị Mai") trên viewport 390px | xem thẻ | thẻ có dòng "Ngày hẹn: 05/10/2026" và dòng "Người tạo: Nguyễn Thị Mai" | component + e2e (mobile) |
 | AC-DSP-042 | ĐH không có ngày hẹn và `created_by_name = null` | xem thẻ mobile | hiện "Ngày hẹn: Chưa hẹn ngày" và "Người tạo: —"; không còn dấu "—" đứng trần không nhãn | component |
 | AC-DSP-043 | Như AC-DSP-041 trên desktop 1440px | xem bảng | bảng giữ nguyên các cột "Mã, Khách, Ưu tiên, Ngày hẹn, Tổng tiền, Người tạo" (không đổi, không có nhãn "Ngày hẹn:" trong ô) | component |
-| AC-DSP-044 | Panel "Tạo đầu việc" sẵn sàng, viewport 390px | đo footer | nút "Tạo đầu việc" chiếm ≥ 45% bề rộng footer (hiện ~55% của cả hàng nhưng nút nhỏ, không đều) và cao ≥ 44px; ở ≥ 640px (`sm`) nút trở về bề rộng theo nội dung | e2e (mobile + desktop) |
+| AC-DSP-044 | Panel "Tạo đầu việc" sẵn sàng, viewport 390px | đo footer | nút "Tạo đầu việc" và nút "Đóng" xếp dọc, mỗi nút rộng hết footer (`w-full`), nút chính ở trên; cao ≥ 44px; ở ≥ 640px (`sm`) cả hai xếp ngang và trở về bề rộng theo nội dung (`w-auto`) | e2e (mobile + desktop) |
 | AC-DSP-045 | Đơn có `priority = "HIGH"` | mở panel / xem thẻ | ô độ ưu tiên mặc định "Cao"; huy hiệu thẻ "Cao" (hành vi cũ giữ nguyên) | component |
 | AC-DSP-046 | Server trả đơn có `priority = "CRITICAL"` (giá trị lạ, ngoài enum) | xem thẻ hàng đợi / mở panel | không văng lỗi; huy hiệu hiện đúng chuỗi "CRITICAL" tông trung tính (`neutral`); ô độ ưu tiên của task mặc định "Bình thường" (`NORMAL`) | unit (`isPriority`) + component |
 | AC-DSP-047 | Toàn bộ test component/e2e dispatch hiện có (AC-DSP-015…037) | chạy lại | xanh, **không sửa assertion** (chỉ sửa selector nếu DOM đổi, nêu rõ trong báo cáo); không còn `as Priority` trong `features/dispatch/**` | component + e2e |
@@ -40,7 +40,7 @@ Không có.
 ## 6. UI
 - Lỗi tải KTV: khung nhỏ viền `urgent`, chữ "Không tải được danh sách kỹ thuật viên." + `Button` variant secondary "Thử lại" (≥ 44px); `AssigneePicker` nhận thêm prop `loadError`/`onRetry` — `TaskCreateSheet` truyền `technicians.isError` và `technicians.refetch`.
 - Thẻ mobile: các dòng phụ dạng `Ngày hẹn: 05/10/2026`, `Người tạo: Nguyễn Thị Mai` (chữ `text-sm text-body`, nhãn `text-muted`… dùng `text-body` nếu nền hover làm tụt tương phản như ở AssigneePicker).
-- Footer panel: `div` chứa nút dùng `[&>*]:flex-1 sm:[&>*]:flex-none` (hoặc `w-full sm:w-auto` trên từng nút).
+- Footer panel: `div` chứa nút dùng `flex flex-col gap-2 sm:flex-row sm:justify-end`; mỗi nút `w-full sm:w-auto`.
 - Copy chính xác: "Không tải được danh sách kỹ thuật viên." · "Thử lại" · "Ngày hẹn:" · "Chưa hẹn ngày" · "Người tạo:".
 
 ## 7. Kịch bản UAT thủ công (cho chủ dự án)

@@ -140,12 +140,15 @@ export function TaskCreateSheet({
       title={ready ? `Tạo đầu việc — ${order.code}` : "Tạo đầu việc"}
       footer={
         ready ? (
-          <div data-testid="task-create-actions" className="flex gap-2">
+          <div
+            data-testid="task-create-actions"
+            className="flex flex-col gap-2 sm:flex-row sm:justify-end"
+          >
             {showReload ? (
               <Button
                 type="button"
                 variant="secondary"
-                className="flex-1 sm:flex-none"
+                className="w-full sm:w-auto"
                 onClick={() => {
                   setShowReload(false);
                   setFormMessage(null);
@@ -159,7 +162,7 @@ export function TaskCreateSheet({
                 type="submit"
                 form={FORM_ID}
                 loading={createTask.isPending}
-                className="flex-1 sm:flex-none"
+                className="w-full sm:w-auto"
               >
                 Tạo đầu việc
               </Button>
@@ -168,7 +171,7 @@ export function TaskCreateSheet({
               type="button"
               variant="secondary"
               onClick={onClose}
-              className="flex-1 sm:flex-none"
+              className="w-full sm:w-auto"
             >
               Đóng
             </Button>
