@@ -51,6 +51,25 @@ export function toOffsetIso(value: string): string {
   return `${value}:00+07:00`;
 }
 
+const LOCAL_INPUT_PARTS = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/** Nghịch đảo của `toOffsetIso`: ISO UTC (API trả về) → chuỗi `datetime-local` giờ VN, để điền sẵn
+ * form sửa đầu việc (M4-02b, AC-DSP-058). */
+export function fromOffsetIso(iso: string): string {
+  const part = Object.fromEntries(
+    LOCAL_INPUT_PARTS.formatToParts(new Date(iso)).map(({ type, value }) => [type, value]),
+  ) as Record<Intl.DateTimeFormatPartTypes, string>;
+  return `${part.year}-${part.month}-${part.day}T${part.hour}:${part.minute}`;
+}
+
 function inThePast(value: string): boolean {
   const due = new Date(toOffsetIso(value));
   return Number.isFinite(due.getTime()) && due.getTime() < Date.now();
@@ -74,3 +93,18 @@ export const taskCreateSchema = z.object({
   assignee_ids: z.array(z.string()).min(1, "Chọn ít nhất 1 kỹ thuật viên."),
 });
 export type TaskCreateFormValues = z.infer<typeof taskCreateSchema>;
+
+/** AC-DSP-059: form sửa đầu việc — không kiểm "due_at không ở quá khứ" như lúc tạo (task cũ có
+ * thể đã quá hạn; sửa tiêu đề không nên bị chặn vì hạn cũ). */
+export const taskUpdateSchema = z.object({
+  title: z.string().trim().min(1, "Nhập tiêu đề đầu việc.").max(200, "Tiêu đề tối đa 200 ký tự."),
+  description: z.string().trim().optional(),
+  estimated_hours: z
+    .string()
+    .trim()
+    .min(1, "Nhập số giờ ước tính.")
+    .refine((value) => value === "" || hoursValid(value), HOURS_MESSAGE),
+  due_at: z.string().min(1, "Chọn hạn hoàn thành."),
+  priority: z.enum(PRIORITY_ORDER as [Priority, ...Priority[]]),
+});
+export type TaskEditFormValues = z.infer<typeof taskUpdateSchema>;

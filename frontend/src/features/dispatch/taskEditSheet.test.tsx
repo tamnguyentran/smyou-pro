@@ -196,7 +196,7 @@ function stubEdit({
           { status: patchStatus },
         );
       }
-      current = { ...current, ...body, order_version: current.order_version + 1 } as TaskDetail;
+      current = { ...current, ...body, order_version: current.order_version + 1 };
       return HttpResponse.json(current);
     }),
     http.post("/api/v1/orders/:orderId/tasks/:taskId/assignees", async ({ request }) => {
@@ -431,7 +431,9 @@ describe("TaskEditSheet — sửa/thêm/gỡ người/huỷ đầu việc", () =
     expect(calls.removes).toEqual([{ assignmentId: minhAssignmentId, body: { version: 7 } }]);
 
     await waitFor(() => {
-      expect(screen.getByText("Cần giao lại")).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId("order-tasks")).getByText("Cần giao lại"),
+      ).toBeInTheDocument();
     });
   });
 

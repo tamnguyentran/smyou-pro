@@ -16,6 +16,7 @@ import {
   TASK_STATUS_TONE,
 } from "../taskStatus";
 import { TaskCreateSheet } from "./TaskCreateSheet";
+import { TaskEditSheet } from "./TaskEditSheet";
 
 const COLUMNS = ["Mã", "Tiêu đề", "Trạng thái", "Số giờ", "Hạn hoàn thành", "Người được giao"];
 
@@ -32,9 +33,16 @@ function assigneeNames(task: TaskSummary): string {
   return task.assignees.map((assignee) => assignee.full_name).join(", ");
 }
 
-/** AC-DSP-028/036: bảng trên desktop, thẻ trên mobile — thứ tự giữ nguyên như API trả về
- * (`created_at asc`), client không tự sắp lại. */
-function TaskList({ tasks }: { tasks: TaskSummary[] }) {
+/** AC-DSP-028/036/058: bảng trên desktop, thẻ trên mobile — thứ tự giữ nguyên như API trả về
+ * (`created_at asc`), client không tự sắp lại. Bấm vào dòng/thẻ mở `TaskEditSheet` (khuôn
+ * `M3-05-clickable-list-rows.md`, như `OrderList.tsx`). */
+function TaskList({
+  tasks,
+  onSelect,
+}: {
+  tasks: TaskSummary[];
+  onSelect: (taskId: string) => void;
+}) {
   const desktop = useMediaQuery("(min-width: 1024px)", true);
 
   if (desktop) {
@@ -55,7 +63,13 @@ function TaskList({ tasks }: { tasks: TaskSummary[] }) {
         </thead>
         <tbody className="divide-y divide-line">
           {tasks.map((task) => (
-            <tr key={task.id}>
+            <tr
+              key={task.id}
+              className="cursor-pointer hover:bg-sidebar-sub"
+              onClick={() => {
+                onSelect(task.id);
+              }}
+            >
               <td className="px-4 py-3 font-semibold text-heading">{task.code}</td>
               <td className="px-4 py-3 text-body">{task.title}</td>
               <td className="px-4 py-3">
@@ -76,27 +90,32 @@ function TaskList({ tasks }: { tasks: TaskSummary[] }) {
   return (
     <ul data-testid="order-tasks" aria-label="Đầu việc của đơn" className="space-y-3">
       {tasks.map((task) => (
-        <li
-          key={task.id}
-          className="space-y-1 rounded-2xl border border-line bg-card p-4 shadow-card"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-semibold text-heading">{task.code}</span>
-            <StatusBadge status={task.status} />
-          </div>
-          <p className="text-sm text-body">{task.title}</p>
-          <p className="flex items-center gap-2 text-sm text-body">
-            <Timer aria-hidden="true" className="size-4 shrink-0 text-muted" />
-            Số giờ: {hoursLabel(task.estimated_hours)} giờ
-          </p>
-          <p className="flex items-center gap-2 text-sm text-body">
-            <CalendarClock aria-hidden="true" className="size-4 shrink-0 text-muted" />
-            Hạn: {formatDateTime(task.due_at)}
-          </p>
-          <p className="flex items-center gap-2 text-sm text-body">
-            <Users aria-hidden="true" className="size-4 shrink-0 text-muted" />
-            Người được giao: {assigneeNames(task)}
-          </p>
+        <li key={task.id}>
+          <button
+            type="button"
+            onClick={() => {
+              onSelect(task.id);
+            }}
+            className="w-full space-y-1 rounded-2xl border border-line bg-card p-4 text-left shadow-card transition duration-200 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold text-heading">{task.code}</span>
+              <StatusBadge status={task.status} />
+            </div>
+            <p className="text-sm text-body">{task.title}</p>
+            <p className="flex items-center gap-2 text-sm text-body">
+              <Timer aria-hidden="true" className="size-4 shrink-0 text-muted" />
+              Số giờ: {hoursLabel(task.estimated_hours)} giờ
+            </p>
+            <p className="flex items-center gap-2 text-sm text-body">
+              <CalendarClock aria-hidden="true" className="size-4 shrink-0 text-muted" />
+              Hạn: {formatDateTime(task.due_at)}
+            </p>
+            <p className="flex items-center gap-2 text-sm text-body">
+              <Users aria-hidden="true" className="size-4 shrink-0 text-muted" />
+              Người được giao: {assigneeNames(task)}
+            </p>
+          </button>
         </li>
       ))}
     </ul>
@@ -110,6 +129,7 @@ export function OrderTasksTab({ order }: { order: Order }) {
   const me = useMe();
   const tasks = useOrderTasks(order.id);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editTaskId, setEditTaskId] = useState<string | null>(null);
   const canCreate =
     me.data !== undefined &&
     "task.manage" in me.data.capabilities &&
@@ -168,7 +188,7 @@ export function OrderTasksTab({ order }: { order: Order }) {
           }
         />
       ) : (
-        <TaskList tasks={tasks.data.items} />
+        <TaskList tasks={tasks.data.items} onSelect={setEditTaskId} />
       )}
 
       {createOpen ? (
@@ -176,6 +196,16 @@ export function OrderTasksTab({ order }: { order: Order }) {
           order={order}
           onClose={() => {
             setCreateOpen(false);
+          }}
+        />
+      ) : null}
+
+      {editTaskId !== null ? (
+        <TaskEditSheet
+          orderId={order.id}
+          taskId={editTaskId}
+          onClose={() => {
+            setEditTaskId(null);
           }}
         />
       ) : null}

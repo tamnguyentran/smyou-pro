@@ -31,7 +31,7 @@ export function knownTaskStatus(status: string): TaskStatus | undefined {
 }
 
 /** Task đã xong/huỷ: `TaskEditSheet` chỉ hiện chế độ xem (M4-02b, AC-DSP-065). */
-export const TERMINAL_TASK_STATUSES = new Set<TaskStatus>(["DONE", "CANCELLED"]);
+export const TERMINAL_TASK_STATUSES = new Set<string>(["DONE", "CANCELLED"]);
 
 /** Đúng guard `order_in_dispatchable_state` của các lệnh task (`spec/state_machines.yaml`,
  * `backend/app/modules/workflow/guards.py`) — một nguồn quy tắc duy nhất cho nút "Tạo đầu việc"
