@@ -1,6 +1,6 @@
 # M4-03a — Bảng đầu việc: API
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M4-03a (tách thành M4-03a API / M4-03b giao diện, theo mẫu M4-01/M4-02) · **Milestone:** M4
 - **Liên quan:** `spec/state_machines.yaml#task` (`derived_status`, 6 trạng thái `task.states` — thứ tự cột Kanban lấy đúng thứ tự khai báo ở đây: `NEEDS_ASSIGNEE, PENDING_ACCEPTANCE, ACCEPTED, IN_PROGRESS, DONE, CANCELLED`); `spec/permissions.yaml` (`task.read`: `MANAGER: all, TECH_LEAD: all, TECHNICIAN: assigned` — capability đã có, không sửa YAML ở item này); `docs/product/DOMAIN_MODEL.md` §8 (Task) §9 (Assignment); `backend/app/modules/dispatch/domain.py` (`_INACTIVE_ASSIGNMENT_STATUSES = ("REJECTED", "REMOVED")` — định nghĩa "phân công đang hoạt động" dùng lại cho cả danh sách `assignees` của mỗi task và bộ lọc `assignee_id`); `backend/app/modules/audit/router.py` (mẫu `occurred_from`/`occurred_to` cho bộ lọc theo ngày — dùng lại tên cho `due_from`/`due_to`); `M4-01a-dispatch-task-create-api.md` (`TaskSummary`/`TaskListOut`, ghi rõ "bảng/Kanban đầy đủ là M4-03"); `M4-02a-task-edit-cancel-api.md` (ghi rõ "Kanban/bảng đầu việc đầy đủ (M4-03)" ngoài phạm vi)
 
