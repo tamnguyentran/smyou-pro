@@ -521,6 +521,75 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/orders/{order_id}/tasks/{task_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Chi tiết 1 đầu việc */
+    get: operations["orders_tasks_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Sửa thông tin đầu việc */
+    patch: operations["orders_tasks_update"];
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/tasks/{task_id}/assignees": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Thêm kỹ thuật viên vào đầu việc */
+    post: operations["orders_tasks_add_assignee"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/tasks/{task_id}/assignees/{assignment_id}/remove": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Gỡ kỹ thuật viên khỏi đầu việc */
+    post: operations["orders_tasks_remove_assignee"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/tasks/{task_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Huỷ đầu việc */
+    post: operations["orders_tasks_cancel"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/products": {
     parameters: {
       query?: never;
@@ -1073,7 +1142,7 @@ export interface components {
      * EntityType
      * @enum {string}
      */
-    EntityType: "EMPLOYEE" | "PRODUCT" | "SERVICE" | "CUSTOMER" | "ORDER" | "TASK";
+    EntityType: "EMPLOYEE" | "PRODUCT" | "SERVICE" | "CUSTOMER" | "ORDER" | "TASK" | "ASSIGNMENT";
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -1720,6 +1789,16 @@ export interface components {
       /** Version */
       version: number;
     };
+    /** TaskAddAssignee */
+    TaskAddAssignee: {
+      /**
+       * Employee Id
+       * Format: uuid
+       */
+      employee_id: string;
+      /** Version */
+      version: number;
+    };
     /** TaskAssigneeOut */
     TaskAssigneeOut: {
       /**
@@ -1729,8 +1808,25 @@ export interface components {
       employee_id: string;
       /** Full Name */
       full_name: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
       /** Status */
       status: string;
+    };
+    /** TaskAssigneeRemove */
+    TaskAssigneeRemove: {
+      /** Version */
+      version: number;
+    };
+    /** TaskCancel */
+    TaskCancel: {
+      /** Reason */
+      reason?: string | null;
+      /** Version */
+      version: number;
     };
     /** TaskCreate */
     TaskCreate: {
@@ -1847,6 +1943,21 @@ export interface components {
       employee_id: string;
       /** Full Name */
       full_name: string;
+    };
+    /** TaskUpdate */
+    TaskUpdate: {
+      /** Description */
+      description?: string | null;
+      /** Due At */
+      due_at?: string | null;
+      /** Estimated Hours */
+      estimated_hours?: number | string | null;
+      /** Priority */
+      priority?: ("LOW" | "NORMAL" | "HIGH" | "URGENT") | null;
+      /** Title */
+      title?: string | null;
+      /** Version */
+      version: number;
     };
     /** ValidationError */
     ValidationError: {
@@ -3434,6 +3545,246 @@ export interface operations {
         content?: never;
       };
       /** @description problem+json — STALE_VERSION | GUARD_FAILED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_tasks_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_tasks_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | GUARD_FAILED | INVALID_TRANSITION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_tasks_add_assignee: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskAddAssignee"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | GUARD_FAILED | INVALID_TRANSITION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_tasks_remove_assignee: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+        task_id: string;
+        assignment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskAssigneeRemove"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | GUARD_FAILED | INVALID_TRANSITION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_tasks_cancel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskCancel"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | GUARD_FAILED | INVALID_TRANSITION */
       409: {
         headers: {
           [name: string]: unknown;

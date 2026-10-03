@@ -59,6 +59,10 @@
       "Bash(docker system prune:*)"
     ]
   },
+  "statusLine": {
+    "type": "command",
+    "command": "[ -f \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/statusline.py ] || exit 0; python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/statusline.py"
+  },
   "hooks": {
     "SessionStart": [
       {

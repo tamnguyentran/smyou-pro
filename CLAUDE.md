@@ -11,7 +11,7 @@ Luồng lõi: Sale/Manager tạo đơn → Quản lý kỹ thuật tạo task & 
 | Trạng thái & chuyển trạng thái (máy đọc được — **nguồn sự thật**) | `spec/state_machines.yaml` (+ giải thích ở `docs/product/WORKFLOWS.md`) |
 | Vai trò, quyền, menu (máy đọc được — **nguồn sự thật**) | `spec/permissions.yaml` (+ `docs/product/PERMISSIONS.md`) |
 | Thuật ngữ Việt ↔ tên trong code | `docs/product/GLOSSARY.md` |
-| Câu hỏi chưa chốt + giả định mặc định đang dùng | `docs/product/OPEN_QUESTIONS.md` |
+| Câu hỏi chưa chốt + giả định mặc định đang dùng | `docs/product/OPEN_QUESTIONS.md` (câu đã chốt → `OPEN_QUESTIONS_ARCHIVE.md`, không cần đọc trừ khi cần lịch sử) |
 | Kiến trúc, cấu trúc thư mục, quy ước code/API/DB | `docs/architecture/ARCHITECTURE.md` |
 | Các quyết định kiến trúc (ADR) | `docs/architecture/DECISIONS.md` |
 | Build/deploy Mac M2 → AlmaLinux | `docs/architecture/DEPLOYMENT.md` |
@@ -53,6 +53,9 @@ Nếu tài liệu mâu thuẫn: `spec/*.yaml` > `docs/specs/<feature>.md` đã A
 - [ ] Cập nhật `docs/backlog/BACKLOG.md` (trạng thái) và docs liên quan nếu hành vi thay đổi
 
 ## Tiết kiệm token (bắt buộc — context dài làm MỌI lượt sau đắt hơn)
+- Status line (`.claude/hooks/statusline.py`) hiện token lượt hiện tại + % context đã dùng mỗi lượt trả lời. Ngưỡng cảnh báo: **● xanh** bình thường; **● vàng ≥ 50%** → `/clear` sau khi xong việc đang làm; **● đỏ ≥ 80%** → `/clear` ngay, đừng để Claude Code tự `/compact` (tóm tắt cũng tốn token và có thể mất chi tiết).
+- Ngưỡng cho file bị đọc lại nhiều lần (mỗi `/spec`/`/implement`): `CLAUDE.md` > 120 dòng (~3.000 token) → cắt; "sổ tay sống" tích luỹ lịch sử (`OPEN_QUESTIONS.md`, `docs/backlog/BACKLOG.md`) > 80 dòng phần đang hoạt động → tách phần đã xong/đã chốt sang file `*_ARCHIVE.md` (đã tự động cho `OPEN_QUESTIONS.md` qua hook `archive_resolved_questions.py`). File nguồn-sự-thật tĩnh (`DOMAIN_MODEL.md`, `spec/*.yaml`, `GLOSSARY.md`, `WORKFLOWS.md`, `PERMISSIONS.md`) không đặt ngưỡng cắt — `grep` theo module cần, không đọc hết.
+- 1 lần đọc file hoặc 1 output lệnh > ~2.000 token (~500 dòng) → phải qua `grep`/`tail -n`, không đọc nguyên văn (xem dòng dưới).
 - `/clear` giữa các backlog item **và** giữa các giai đoạn của item lớn: `/spec` | `/implement` | `/review` + `/ship`. Trạng thái nằm trong file (spec, commit, `reports/`), không cần giữ trong context.
 - Item nào đụng cả backend + sửa module cũ + UI (~>400 dòng không tính test) → tách `<ID>a`/`<ID>b` ngay lúc `/spec`.
 - Output lệnh vào context phải gọn: test → `| grep -E "FAILED|ERROR|passed|failed|^E "` hoặc `-q ... | tail -5`; không `tail -150`, không dán log dài. Đọc file theo đoạn cần (offset/limit), không đọc lại file vừa sửa.
