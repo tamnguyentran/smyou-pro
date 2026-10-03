@@ -932,6 +932,7 @@ def test_task_mutation_not_found_wrong_order_or_task(
     created = tuan.post(f"/api/v1/orders/{order_d}/tasks", json=_valid_body(people)).json()
     task_id = created["id"]
     version = created["order_version"]
+    duc_id = seed(db, DUC)
 
     problem(
         tuan.patch(f"/api/v1/orders/{order_f}/tasks/{task_id}", json={"version": 1, "title": "x"}),
@@ -939,10 +940,26 @@ def test_task_mutation_not_found_wrong_order_or_task(
         "NOT_FOUND",
     )
     problem(tuan.get(f"/api/v1/orders/{order_f}/tasks/{task_id}"), 404, "NOT_FOUND")
+    problem(
+        tuan.post(
+            f"/api/v1/orders/{order_f}/tasks/{task_id}/assignees",
+            json={"version": 1, "employee_id": str(duc_id)},
+        ),
+        404,
+        "NOT_FOUND",
+    )
 
     random_task = uuid.uuid4()
     problem(
         tuan.patch(f"/api/v1/orders/{order_d}/tasks/{random_task}", json={"version": version, "title": "x"}),
+        404,
+        "NOT_FOUND",
+    )
+    problem(
+        tuan.post(
+            f"/api/v1/orders/{order_d}/tasks/{random_task}/assignees",
+            json={"version": version, "employee_id": str(duc_id)},
+        ),
         404,
         "NOT_FOUND",
     )
