@@ -10,7 +10,7 @@ argument-hint: <backlog-ID>
 Goal: turn backlog item `$ARGUMENTS` into a spec the owner can approve in ~10 minutes. **Do not write code.**
 
 1. Read `docs/backlog/BACKLOG.md` for the item; read `docs/specs/_TEMPLATE.md`.
-2. Read only what the item needs: relevant parts of `spec/state_machines.yaml`, `spec/permissions.yaml`, `docs/product/DOMAIN_MODEL.md`, `WORKFLOWS.md`, `PERMISSIONS.md`, `GLOSSARY.md`, `OPEN_QUESTIONS.md`, `docs/design/UI_GUIDELINES.md`, and existing specs of items it depends on.
+2. Read only what the item needs. `spec/state_machines.yaml` and `spec/permissions.yaml` are large and keyed by module — `grep -n -A20 "^  <module>:"` for just this item's entity instead of reading the whole file. For the rest, read relevant sections only: `docs/product/DOMAIN_MODEL.md`, `WORKFLOWS.md`, `PERMISSIONS.md`, `GLOSSARY.md`, `OPEN_QUESTIONS.md` (small — only open items now; resolved history is in `OPEN_QUESTIONS_ARCHIVE.md`, skip unless this item needs that history), `docs/design/UI_GUIDELINES.md`, and existing specs of items it depends on.
 3. Create `docs/specs/$ARGUMENTS-<kebab-slug>.md` from the template, `Status: Draft`. Acceptance Criteria:
    - Prefix per module (see BACKLOG.md), numbered continuing from the highest existing number for that prefix (`grep -rhoE "AC-<PFX>-[0-9]{3}" docs/specs`).
    - Concrete data (real-looking Vietnamese names, amounts from the reference quotes), explicit actor role, observable result (HTTP code + error `code`, resulting state, audit/notification, UI text).

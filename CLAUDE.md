@@ -11,7 +11,7 @@ Luồng lõi: Sale/Manager tạo đơn → Quản lý kỹ thuật tạo task & 
 | Trạng thái & chuyển trạng thái (máy đọc được — **nguồn sự thật**) | `spec/state_machines.yaml` (+ giải thích ở `docs/product/WORKFLOWS.md`) |
 | Vai trò, quyền, menu (máy đọc được — **nguồn sự thật**) | `spec/permissions.yaml` (+ `docs/product/PERMISSIONS.md`) |
 | Thuật ngữ Việt ↔ tên trong code | `docs/product/GLOSSARY.md` |
-| Câu hỏi chưa chốt + giả định mặc định đang dùng | `docs/product/OPEN_QUESTIONS.md` |
+| Câu hỏi chưa chốt + giả định mặc định đang dùng | `docs/product/OPEN_QUESTIONS.md` (câu đã chốt → `OPEN_QUESTIONS_ARCHIVE.md`, không cần đọc trừ khi cần lịch sử) |
 | Kiến trúc, cấu trúc thư mục, quy ước code/API/DB | `docs/architecture/ARCHITECTURE.md` |
 | Các quyết định kiến trúc (ADR) | `docs/architecture/DECISIONS.md` |
 | Build/deploy Mac M2 → AlmaLinux | `docs/architecture/DEPLOYMENT.md` |
