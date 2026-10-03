@@ -9,6 +9,9 @@ case "$file" in
   "$root"/docs/product/OPEN_QUESTIONS.md)
     python3 "$root/.claude/hooks/archive_resolved_questions.py" >/dev/null 2>&1
     ;;
+  "$root"/docs/backlog/BACKLOG.md)
+    python3 "$root/.claude/hooks/archive_shipped_backlog.py" >/dev/null 2>&1
+    ;;
   "$root"/backend/*.py)
     if [ -f "$root/backend/pyproject.toml" ] && command -v uv >/dev/null 2>&1; then
       (cd "$root/backend" && uv run --quiet ruff check --fix --quiet "$file" >/dev/null 2>&1; uv run --quiet ruff format --quiet "$file" >/dev/null 2>&1)
