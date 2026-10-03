@@ -63,16 +63,22 @@ def _valid_technician_count(session: Session, assignee_ids: list[uuid.UUID]) -> 
     return session.scalar(stmt) or 0
 
 
-def _check_task_guards(
+def _check_guards(
     guard_names: list[str],
     *,
     order_status: str,
-    assignee_count: int,
-    valid_technician_count: int,
-    estimated_hours: Decimal,
-    due_at: datetime,
-    now: datetime,
+    assignee_count: int | None = None,
+    valid_technician_count: int | None = None,
+    estimated_hours: Decimal | None = None,
+    due_at: datetime | None = None,
+    now: datetime | None = None,
+    reason: str | None = None,
+    already_active: bool | None = None,
 ) -> None:
+    """Shared by every task command (`create`/`update`/`add_assignee`/`cancel`) and the
+    `assignment.remove` transition — each only ever passes the subset of guard names its own
+    `spec/state_machines.yaml` entry declares, same single-dispatcher shape as
+    `orders/service.py:_check_guards`."""
     for name in guard_names:
         if name == "order_in_dispatchable_state":
             ok = GUARDS[name](order_status)
@@ -84,34 +90,12 @@ def _check_task_guards(
             ok = GUARDS[name](estimated_hours)
         elif name == "due_at_not_in_past":
             ok = GUARDS[name](due_at, now)
-        else:
-            raise AssertionError(f"task create doesn't use guard {name!r}")
-        if not ok:
-            raise AppError(409, "GUARD_FAILED", _GUARD_MESSAGES[name], extra={"guard": name})
-
-
-def _check_mutation_guards(
-    guard_names: list[str],
-    *,
-    order_status: str,
-    reason: str | None = None,
-    already_active: bool | None = None,
-    valid_technician_count: int | None = None,
-    requested_count: int | None = None,
-) -> None:
-    """Shared by update/add_assignee/cancel (task) and remove (assignment) — their guard lists are
-    each a subset of these names (spec/state_machines.yaml#task.commands / #assignment.transitions)."""
-    for name in guard_names:
-        if name == "order_in_dispatchable_state":
-            ok = GUARDS[name](order_status)
         elif name == "reason_present":
             ok = GUARDS[name](reason)
         elif name == "not_already_active_assignee":
             ok = GUARDS[name](already_active)
-        elif name == "assignees_are_active_technicians":
-            ok = GUARDS[name](valid_technician_count, requested_count)
         else:
-            raise AssertionError(f"task mutation doesn't use guard {name!r}")
+            raise AssertionError(f"task/assignment command doesn't use guard {name!r}")
         if not ok:
             raise AppError(409, "GUARD_FAILED", _GUARD_MESSAGES[name], extra={"guard": name})
 
@@ -213,7 +197,7 @@ def create_task(
         session.scalar(select(func.count()).select_from(Task).where(Task.order_id == order.id)) or 0
     )
     valid_technician_count = _valid_technician_count(session, body.assignee_ids)
-    _check_task_guards(
+    _check_guards(
         command.guards,
         order_status=order.status,
         assignee_count=len(body.assignee_ids),
@@ -296,7 +280,7 @@ def update_task(
     task = _find_task(session, order.id, task_id)
     command = domain.find_task_command(specs.state_machines.task, "update")
     _check_task_status_allowed(task, command)
-    _check_mutation_guards(command.guards, order_status=order.status)
+    _check_guards(command.guards, order_status=order.status)
 
     if body.title is not None:
         task.title = body.title
@@ -353,12 +337,12 @@ def add_assignee(
         )
         or 0
     ) > 0
-    _check_mutation_guards(
+    _check_guards(
         command.guards,
         order_status=order.status,
         already_active=already_active,
         valid_technician_count=valid_technician_count,
-        requested_count=1,
+        assignee_count=1,
     )
 
     assignment = Assignment(
@@ -404,7 +388,7 @@ def remove_assignee(
     assignment = _find_assignment(session, task.id, assignment_id)
     transition = domain.find_assignment_transition(specs.state_machines.assignment, "remove")
     _check_assignment_transition(assignment, transition)
-    _check_mutation_guards(transition.guards, order_status=order.status)
+    _check_guards(transition.guards, order_status=order.status)
 
     from_status = assignment.status
     assignment.status = "REMOVED"
@@ -445,7 +429,7 @@ def cancel_task(
     task = _find_task(session, order.id, task_id)
     command = domain.find_task_command(specs.state_machines.task, "cancel")
     _check_task_status_allowed(task, command)
-    _check_mutation_guards(command.guards, order_status=order.status, reason=body.reason)
+    _check_guards(command.guards, order_status=order.status, reason=body.reason)
 
     from_status = task.status
     task.cancelled_at = now
