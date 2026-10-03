@@ -369,7 +369,7 @@ describe("Bảng đầu việc", () => {
     expect(screen.queryByText("DH2610-D01-T1")).not.toBeInTheDocument();
   });
 
-  test("AC-DSP-088 đang tải: skeleton đúng hình, aria-busy", async () => {
+  test("AC-DSP-088 đang tải desktop: 6 khối skeleton (1/cột), aria-busy", async () => {
     signedInAs(tuanId, TUAN);
     server.use(
       http.get("/api/v1/tasks", async () => {
@@ -380,16 +380,35 @@ describe("Bảng đầu việc", () => {
     );
     renderApp("/dispatch/board");
 
-    expect(await screen.findByLabelText("Đang tải bảng đầu việc")).toHaveAttribute(
-      "aria-busy",
-      "true",
-    );
+    const waiting = await screen.findByLabelText("Đang tải bảng đầu việc");
+    expect(waiting).toHaveAttribute("aria-busy", "true");
+    expect(waiting.children).toHaveLength(6);
     await waitFor(() => {
       expect(screen.queryByLabelText("Đang tải bảng đầu việc")).not.toBeInTheDocument();
     });
   });
 
-  test("AC-DSP-089 lỗi tải: EmptyState + Thử lại gọi lại", async () => {
+  test("AC-DSP-088 đang tải mobile: 3 khối skeleton, aria-busy", async () => {
+    mobile();
+    signedInAs(tuanId, TUAN);
+    server.use(
+      http.get("/api/v1/tasks", async () => {
+        await delay(50);
+        return HttpResponse.json({ items: [] });
+      }),
+      http.get("/api/v1/employees", () => HttpResponse.json({ items: [], total: 0 })),
+    );
+    renderApp("/dispatch/board");
+
+    const waiting = await screen.findByLabelText("Đang tải bảng đầu việc");
+    expect(waiting).toHaveAttribute("aria-busy", "true");
+    expect(waiting.children).toHaveLength(3);
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Đang tải bảng đầu việc")).not.toBeInTheDocument();
+    });
+  });
+
+  test("AC-DSP-089 lỗi tải mobile: EmptyState + Thử lại gọi lại", async () => {
     mobile();
     signedInAs(tuanId, TUAN);
     let calls = 0;
@@ -406,6 +425,27 @@ describe("Bảng đầu việc", () => {
     expect(await screen.findByText("Không tải được bảng đầu việc.")).toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole("button", { name: "Thử lại" }));
     expect(await screen.findByText("Không có đầu việc phù hợp.")).toBeInTheDocument();
+    expect(calls).toBe(2);
+  });
+
+  test("AC-DSP-089 lỗi tải desktop: EmptyState + Thử lại gọi lại", async () => {
+    signedInAs(tuanId, TUAN);
+    let calls = 0;
+    server.use(
+      http.get("/api/v1/tasks", () => {
+        calls += 1;
+        if (calls === 1) return HttpResponse.json({ status: 500 }, { status: 500 });
+        return HttpResponse.json({ items: [] });
+      }),
+      http.get("/api/v1/employees", () => HttpResponse.json({ items: [], total: 0 })),
+    );
+    renderApp("/dispatch/board");
+
+    expect(await screen.findByText("Không tải được bảng đầu việc.")).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Thử lại" }));
+    await waitFor(() => {
+      expect(screen.getAllByText("Không có đầu việc phù hợp.")).toHaveLength(6);
+    });
     expect(calls).toBe(2);
   });
 
