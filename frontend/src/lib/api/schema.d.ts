@@ -832,6 +832,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/tasks/workload": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Tải việc theo từng kỹ thuật viên đang hoạt động */
+    get: operations["tasks_workload"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1154,6 +1171,27 @@ export interface components {
       employee: components["schemas"]["EmployeeOut"];
       /** Temporary Password */
       temporary_password: string;
+    };
+    /** EmployeeWorkloadItem */
+    EmployeeWorkloadItem: {
+      /**
+       * Employee Id
+       * Format: uuid
+       */
+      employee_id: string;
+      /** Full Name */
+      full_name: string;
+      /** Nearest Due At */
+      nearest_due_at: string | null;
+      /** Open Task Count */
+      open_task_count: number;
+      /** Total Estimated Hours */
+      total_estimated_hours: string;
+    };
+    /** EmployeeWorkloadOut */
+    EmployeeWorkloadOut: {
+      /** Items */
+      items: components["schemas"]["EmployeeWorkloadItem"][];
     };
     /**
      * EntityType
@@ -4610,6 +4648,26 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  tasks_workload: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EmployeeWorkloadOut"];
+        };
       };
     };
   };

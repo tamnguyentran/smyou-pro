@@ -950,6 +950,63 @@
         "title": "EmployeeWithPassword",
         "type": "object"
       },
+      "EmployeeWorkloadItem": {
+        "properties": {
+          "employee_id": {
+            "format": "uuid",
+            "title": "Employee Id",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "nearest_due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nearest Due At"
+          },
+          "open_task_count": {
+            "title": "Open Task Count",
+            "type": "integer"
+          },
+          "total_estimated_hours": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Estimated Hours",
+            "type": "string"
+          }
+        },
+        "required": [
+          "employee_id",
+          "full_name",
+          "open_task_count",
+          "total_estimated_hours",
+          "nearest_due_at"
+        ],
+        "title": "EmployeeWorkloadItem",
+        "type": "object"
+      },
+      "EmployeeWorkloadOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EmployeeWorkloadItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": ["items"],
+        "title": "EmployeeWorkloadOut",
+        "type": "object"
+      },
       "EntityType": {
         "enum": ["EMPLOYEE", "PRODUCT", "SERVICE", "CUSTOMER", "ORDER", "TASK", "ASSIGNMENT"],
         "title": "EntityType",
@@ -7013,6 +7070,25 @@
           }
         },
         "summary": "Bảng đầu việc toàn công ty (lọc trạng thái/ưu tiên/KTV/hạn)",
+        "tags": ["dispatch"]
+      }
+    },
+    "/api/v1/tasks/workload": {
+      "get": {
+        "operationId": "tasks_workload",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeWorkloadOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Tải việc theo từng kỹ thuật viên đang hoạt động",
         "tags": ["dispatch"]
       }
     }
