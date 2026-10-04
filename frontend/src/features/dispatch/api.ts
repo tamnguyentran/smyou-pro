@@ -8,6 +8,7 @@ import type { Priority } from "../orders/schemas";
 import type { TaskStatus } from "./taskStatus";
 
 export type TaskBoardItem = components["schemas"]["TaskBoardItem"];
+export type EmployeeWorkload = components["schemas"]["EmployeeWorkloadItem"];
 export type TaskCreateBody = components["schemas"]["TaskCreate"];
 export type TaskDetail = components["schemas"]["TaskDetail"];
 export type TaskSummary = components["schemas"]["TaskSummary"];
@@ -21,6 +22,7 @@ export const DISPATCH_QUEUE_KEY = "dispatch-queue";
 export const ORDER_TASKS_KEY = "order-tasks";
 export const TASK_KEY = "task";
 export const TASK_BOARD_KEY = "task-board";
+export const WORKLOAD_KEY = "dispatch-workload";
 
 export interface TaskBoardFilters {
   status: TaskStatus | "";
@@ -51,6 +53,19 @@ export function useTaskBoard(filters: TaskBoardFilters, { enabled = true } = {})
       return data;
     },
     placeholderData: (previous) => previous,
+  });
+}
+
+/** AC-DSP-101…105: tải việc theo từng KTV đang hoạt động (M4-04) — `GET /api/v1/tasks/workload`. */
+export function useWorkload(enabled: boolean) {
+  return useQuery({
+    enabled,
+    queryKey: [WORKLOAD_KEY],
+    queryFn: async () => {
+      const { data, error, response } = await api.GET("/api/v1/tasks/workload", {});
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
   });
 }
 
