@@ -30,7 +30,7 @@ fe = $(if $(HAS_FE),cd frontend && $(1),@echo "⏭  skip frontend step (not scaf
 
 .PHONY: help setup up down logs ps db-shell migrate migration \
         lint format typecheck test-unit test contract ac migrations-check \
-        check-fast check e2e e2e-a11y screenshots verify mutation mutation-changed \
+        check-fast check-fast-changed check e2e e2e-a11y screenshots verify mutation mutation-changed \
         build-prod smoke-prod
 
 help: ## List targets
@@ -105,7 +105,11 @@ migrations-check: ## upgrade → downgrade -1 → upgrade on test DB, and model/
 	$(call be,export DATABASE_URL=$${TEST_DATABASE_URL:-postgresql+psycopg://smyou:change-me-dev@localhost:5442/smyou_test} && uv run alembic upgrade head && uv run alembic downgrade -1 && uv run alembic upgrade head && uv run alembic check)
 
 # ---------- gates ----------
-check-fast: lint typecheck test-unit ## Quick gate (Stop hook runs this)
+check-fast: lint typecheck test-unit ## Quick gate (full test-unit; run this by hand during /implement)
+
+check-fast-changed: lint typecheck ## Quick gate scoped to changed files (Stop hook runs this, not check-fast)
+	$(call be,uv run pytest tests/unit -q)
+	$(call fe,npx vitest run --changed)
 
 check: lint typecheck test contract ac migrations-check ## Full gate before commit/PR
 

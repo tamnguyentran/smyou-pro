@@ -25,7 +25,8 @@ Nếu tài liệu mâu thuẫn: `spec/*.yaml` > `docs/specs/<feature>.md` đã A
 
 ## Lệnh (luôn dùng Makefile, không tự chế lệnh)
 - `make up` / `make down` — chạy stack dev (Postgres, backend, frontend) bằng Docker Compose
-- `make check-fast` — lint + typecheck + unit test (chạy sau mỗi thay đổi đáng kể; Stop hook tự chạy)
+- `make check-fast` — lint + typecheck + unit test đầy đủ (chạy tay sau mỗi thay đổi đáng kể trong `/implement`)
+- `make check-fast-changed` — như trên nhưng test FE chỉ chạy phần bị ảnh hưởng (`vitest --changed`); Stop hook tự chạy lệnh này, không phải `check-fast`
 - `make check` — toàn bộ cổng trước commit: lint, typecheck, unit + integration, contract, AC coverage, migration
 - `make e2e` — Playwright (mobile + desktop) trên stack Docker
 - `make verify` — `check` + `e2e` + in báo cáo bằng chứng; bắt buộc trước khi nói "xong"
@@ -54,9 +55,10 @@ Nếu tài liệu mâu thuẫn: `spec/*.yaml` > `docs/specs/<feature>.md` đã A
 
 ## Tiết kiệm token (bắt buộc — context dài làm MỌI lượt sau đắt hơn)
 - Status line (`.claude/hooks/statusline.py`) hiện token lượt hiện tại + % context đã dùng mỗi lượt trả lời. Ngưỡng cảnh báo: **● xanh** bình thường; **● vàng ≥ 50%** → `/clear` sau khi xong việc đang làm; **● đỏ ≥ 80%** → `/clear` ngay, đừng để Claude Code tự `/compact` (tóm tắt cũng tốn token và có thể mất chi tiết).
-- Ngưỡng cho file bị đọc lại nhiều lần (mỗi `/spec`/`/implement`): `CLAUDE.md` > 120 dòng (~3.000 token) → cắt; "sổ tay sống" tích luỹ lịch sử (`OPEN_QUESTIONS.md`, `docs/backlog/BACKLOG.md`) > 80 dòng phần đang hoạt động → tách phần đã xong/đã chốt sang file `*_ARCHIVE.md` (đã tự động cho `OPEN_QUESTIONS.md` qua hook `archive_resolved_questions.py`). File nguồn-sự-thật tĩnh (`DOMAIN_MODEL.md`, `spec/*.yaml`, `GLOSSARY.md`, `WORKFLOWS.md`, `PERMISSIONS.md`) không đặt ngưỡng cắt — `grep` theo module cần, không đọc hết.
+- Ngưỡng cho file bị đọc lại nhiều lần (mỗi `/spec`/`/implement`): `CLAUDE.md` > 120 dòng (~3.000 token) → cắt; "sổ tay sống" tích luỹ lịch sử (`OPEN_QUESTIONS.md`, `docs/backlog/BACKLOG.md`) > 80 dòng phần đang hoạt động → tách phần đã xong/đã chốt sang file `*_ARCHIVE.md` — tự động qua hook khi sửa file (`archive_resolved_questions.py` cho câu hỏi đã chốt `✅`, `archive_shipped_backlog.py` cho milestone backlog đã `[x]` toàn bộ). File nguồn-sự-thật tĩnh (`DOMAIN_MODEL.md`, `spec/*.yaml`, `GLOSSARY.md`, `WORKFLOWS.md`, `PERMISSIONS.md`) không đặt ngưỡng cắt — `grep` theo module cần, không đọc hết. `reports/ac-matrix.md` lớn dần theo cả dự án (489 dòng+) nhưng luôn gọi `check_ac_coverage.py --spec <ID>` trước khi đọc — lệnh đó tự ghi lại file chỉ còn hàng của spec đó, không cần tự `grep`.
 - 1 lần đọc file hoặc 1 output lệnh > ~2.000 token (~500 dòng) → phải qua `grep`/`tail -n`, không đọc nguyên văn (xem dòng dưới).
 - `/clear` giữa các backlog item **và** giữa các giai đoạn của item lớn: `/spec` | `/implement` | `/review` + `/ship`. Trạng thái nằm trong file (spec, commit, `reports/`), không cần giữ trong context.
+- Sự cố hạ tầng ngoài kế hoạch (Docker/DB/disk/CI) xảy ra giữa một giai đoạn, không phải lỗi code: sau khi xác nhận nguyên nhân + sửa xong, nếu phần việc chính chưa xong → `/clear` rồi tóm tắt lại trạng thái cần thiết trước khi tiếp tục, không mang theo toàn bộ log chẩn đoán.
 - Item nào đụng cả backend + sửa module cũ + UI (~>400 dòng không tính test) → tách `<ID>a`/`<ID>b` ngay lúc `/spec`.
 - Output lệnh vào context phải gọn: test → `| grep -E "FAILED|ERROR|passed|failed|^E "` hoặc `-q ... | tail -5`; không `tail -150`, không dán log dài. Đọc file theo đoạn cần (offset/limit), không đọc lại file vừa sửa.
 - Thêm import **trong cùng lần sửa** với chỗ dùng đầu tiên (hook format tự xoá import chưa dùng).
@@ -69,5 +71,6 @@ Nếu tài liệu mâu thuẫn: `spec/*.yaml` > `docs/specs/<feature>.md` đã A
 - Luồng chuẩn: `/spec <ID>` → người duyệt → `/implement <ID>` → `/review` → `/ship`. Chi tiết: `docs/process/WORKFLOW.md`.
 - Việc nhiều file: bật plan mode, trình bày kế hoạch trước khi sửa.
 - Dùng subagent cho việc tìm kiếm rộng và review; review phải chạy trong context sạch, không phải context đã viết code.
+- Sự cố hạ tầng/môi trường không do code (Docker, DB, disk, CI) → giao cho subagent `general-purpose` điều tra, chỉ mang về bản tóm tắt + lệnh sửa đề xuất; không tự chạy nhiều lệnh chẩn đoán thô (dump schema, `docker images`, log dài…) ngay ở luồng chính.
 - `/clear` giữa hai backlog item. Khi sửa sai 2 lần cùng một chỗ → dừng, tóm tắt, hỏi người dùng.
 - Báo cáo trung thực: test fail thì nói fail kèm output; bước nào bỏ qua thì nói rõ.
