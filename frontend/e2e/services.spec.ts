@@ -54,7 +54,11 @@ test("AC-CAT-027 AC-CAT-032 @a11y @screenshot danh sách Dịch vụ (Manager)",
   await signIn(page, MANAGER);
   await expect(page.getByRole("heading", { level: 1, name: "Dịch vụ" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Thêm dịch vụ" })).toBeVisible();
-  await expect(page.getByText("E2E-DV-001")).toBeVisible();
+  // Lọc theo mã cố định của fixture — dev DB tích lũy nhiều dịch vụ thủ công nên
+  // E2E-DV-001 không chắc còn ở trang 1 nếu không lọc (M4-03c).
+  await page.getByLabel("Tìm kiếm").fill("E2E-DV-001");
+  // .first(): tránh strict-mode lỗi nếu có dịch vụ khác trùng chuỗi con (M4-03c review).
+  await expect(page.getByText("E2E-DV-001").first()).toBeVisible();
   // no further interaction after this — safe to also check the 360px breakpoint
   await evidence(page, info, "services.png", { checkOverflow: true });
 });
@@ -105,7 +109,10 @@ test("AC-CAT-031 Sale (chỉ đọc): không có nút Thêm/Sửa/Ngừng", asyn
   await signIn(page, SALE);
   await expect(page.getByRole("heading", { level: 1, name: "Dịch vụ" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Thêm dịch vụ" })).toHaveCount(0);
-  await page.getByText("Lắp đặt camera E2E").click();
+  // Lọc theo tên cố định của fixture — xem ghi chú ở test AC-CAT-027 (M4-03c).
+  await page.getByLabel("Tìm kiếm").fill("Lắp đặt camera E2E");
+  // .first(): tránh strict-mode lỗi nếu có dịch vụ khác trùng chuỗi con (M4-03c review).
+  await page.getByText("Lắp đặt camera E2E").first().click();
   const dialog = page.getByRole("dialog", { name: "Chi tiết dịch vụ" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Lưu" })).toHaveCount(0);
