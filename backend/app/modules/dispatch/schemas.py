@@ -125,3 +125,15 @@ class TaskBoardItem(BaseModel):
 
 class TaskBoardOut(BaseModel):
     items: list[TaskBoardItem]
+
+
+class EmployeeWorkloadItem(BaseModel):
+    employee_id: uuid.UUID
+    full_name: str
+    open_task_count: int
+    total_estimated_hours: Decimal
+    nearest_due_at: datetime | None
+
+
+class EmployeeWorkloadOut(BaseModel):
+    items: list[EmployeeWorkloadItem]
