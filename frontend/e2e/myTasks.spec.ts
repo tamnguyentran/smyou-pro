@@ -72,3 +72,44 @@ test("AC-ASG-015 AC-ASG-016 @a11y @screenshot Việc của tôi: 3 tab, gọi/b�
 
   await evidence(page, info, isMobile(info) ? "my-tasks-390.png" : "my-tasks-1440.png");
 });
+
+// M5-02: 1 (chấp nhận, từ chối) cho mỗi project — order riêng mỗi project (xem
+// backend/scripts/seed_e2e.py#RESPOND_ORDERS) để 2 project chạy song song không đụng version.
+function respondOrderCode(info: TestInfo) {
+  return isMobile(info) ? "E2E-DH-M502A" : "E2E-DH-M502B";
+}
+
+function rowFor(page: Page, taskCode: string) {
+  return page.locator(`li:has-text("${taskCode}"), tr:has-text("${taskCode}")`).first();
+}
+
+test("AC-ASG-040 AC-ASG-041 @a11y tiếp nhận 1 thẻ, từ chối 1 thẻ khác, không cuộn ngang, axe sạch", async ({
+  page,
+}, info) => {
+  const orderCode = respondOrderCode(info);
+  const acceptCode = `${orderCode}-T1`;
+  const rejectCode = `${orderCode}-T2`;
+
+  await signIn(page, "/my-tasks");
+  const tabs = page.getByRole("tablist", { name: "Việc của tôi" });
+  await tabs.getByRole("tab", { name: /Chờ nhận/ }).click();
+  await expect(page.getByText(acceptCode, { exact: true })).toBeVisible();
+
+  await rowFor(page, acceptCode).getByRole("button", { name: "Tiếp nhận" }).click();
+  await expect(page.getByText("Đã tiếp nhận đầu việc.")).toBeVisible();
+  await expect(page.getByText(acceptCode, { exact: true })).not.toBeVisible();
+
+  await rowFor(page, rejectCode).getByRole("button", { name: "Từ chối" }).click();
+  const dialog = page.getByRole("dialog", { name: `Từ chối đầu việc ${rejectCode}?` });
+  await dialog.getByLabel("Lý do từ chối").selectOption({ label: "Không phù hợp chuyên môn" });
+  await dialog.getByLabel("Lý do chi tiết").fill("Không có kỹ năng lắp camera loại này");
+  await dialog.getByRole("button", { name: "Xác nhận từ chối" }).click();
+  await expect(page.getByText("Đã từ chối đầu việc.")).toBeVisible();
+  await expect(page.getByText(rejectCode, { exact: true })).not.toBeVisible();
+
+  await evidence(
+    page,
+    info,
+    isMobile(info) ? "my-tasks-respond-390.png" : "my-tasks-respond-1440.png",
+  );
+});

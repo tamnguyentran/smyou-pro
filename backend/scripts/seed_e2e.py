@@ -67,6 +67,15 @@ MY_TASKS = [
     ("E2E-DH-M501-T3", "DONE", "DONE", "2.0", -1),
 ]
 
+# M5-02: accept/reject e2e (myTasks.spec.ts) — mobile and desktop Playwright projects run in
+# parallel against the same khoa.shell@smyou.vn account, so each project needs its own order (the
+# command bumps orders.version; sharing one order between two concurrent mutations would race into
+# a spurious STALE_VERSION). One (accept, reject) task pair per project.
+RESPOND_ORDERS = [
+    ("E2E-DH-M502A", "E2E-DH-M502A-T1", "E2E-DH-M502A-T2"),  # mobile: accept T1 / reject T2
+    ("E2E-DH-M502B", "E2E-DH-M502B-T1", "E2E-DH-M502B-T2"),  # desktop: accept T1 / reject T2
+]
+
 
 def main() -> int:
     settings = Settings()
@@ -124,19 +133,30 @@ def main() -> int:
             customer.phone = phone
             customer.tax_code = tax_code
         khoa_id = session.scalars(select(Employee.id).where(Employee.email == "khoa.shell@smyou.vn")).one()
-        order = session.scalars(select(Order).where(Order.code == MY_TASKS_ORDER_CODE)).one_or_none()
-        if order is None:
-            order = Order(
-                code=MY_TASKS_ORDER_CODE,
-                status="IN_PROGRESS",
-                customer_name="Cty TNHH Phát Đạt E2E",
-                customer_phone="0932068787",
-                service_address="45 Nguyễn Trãi, P. Bến Thành, Q.1, TP.HCM",
-                created_by=creator_id,
-            )
-            session.add(order)
-            session.flush()
-        for task_code, task_status, assignment_status, hours, due_offset_days in MY_TASKS:
+
+        def upsert_order(code: str) -> Order:
+            order = session.scalars(select(Order).where(Order.code == code)).one_or_none()
+            if order is None:
+                order = Order(
+                    code=code,
+                    status="IN_PROGRESS",
+                    customer_name="Cty TNHH Phát Đạt E2E",
+                    customer_phone="0932068787",
+                    service_address="45 Nguyễn Trãi, P. Bến Thành, Q.1, TP.HCM",
+                    created_by=creator_id,
+                )
+                session.add(order)
+                session.flush()
+            return order
+
+        def upsert_task_assignment(
+            order: Order,
+            task_code: str,
+            task_status: str,
+            assignment_status: str,
+            hours: str,
+            due_offset_days: int,
+        ) -> None:
             task = session.scalars(select(Task).where(Task.code == task_code)).one_or_none()
             if task is None:
                 task = Task(
@@ -172,6 +192,17 @@ def main() -> int:
                 )
             else:
                 assignment.status = assignment_status
+
+        my_tasks_order = upsert_order(MY_TASKS_ORDER_CODE)
+        for task_code, task_status, assignment_status, hours, due_offset_days in MY_TASKS:
+            upsert_task_assignment(
+                my_tasks_order, task_code, task_status, assignment_status, hours, due_offset_days
+            )
+
+        for order_code, accept_task_code, reject_task_code in RESPOND_ORDERS:
+            respond_order = upsert_order(order_code)
+            upsert_task_assignment(respond_order, accept_task_code, "PENDING_ACCEPTANCE", "PENDING", "1.0", 3)
+            upsert_task_assignment(respond_order, reject_task_code, "PENDING_ACCEPTANCE", "PENDING", "1.0", 3)
     sys.stdout.write(
         f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products, {len(SERVICES)} E2E services,"
         f" {len(CUSTOMERS)} E2E customers, {len(MY_TASKS)} E2E my-tasks assignments\n"
