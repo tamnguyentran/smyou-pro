@@ -1,6 +1,6 @@
 # M4-04 — Lịch & tải việc theo nhân viên
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M4-04 · **Milestone:** M4
 - **Liên quan:** `spec/state_machines.yaml#task` (`derived_status`; hiệu ứng `remove_open_assignments` của lệnh `cancel` — đảm bảo task đã huỷ không còn phân công nào ở trạng thái mở) `#assignment` (6 trạng thái: `PENDING, ACCEPTED, REJECTED, IN_PROGRESS, DONE, REMOVED`); `spec/permissions.yaml` (`task.read`: `MANAGER: all, TECH_LEAD: all, TECHNICIAN: assigned` — capability đã có, không sửa YAML; menu `dispatch-load` → `/dispatch/workload`, capability thừa kế từ mục cha `task.manage`, giống `dispatch-queue`/`dispatch-board`); `docs/product/DOMAIN_MODEL.md` §8 (Task) §9 (Assignment); `docs/design/UI_GUIDELINES.md` §5 ("Lịch & tải việc — theo nhân viên: tổng giờ ước tính task đang mở, hạn chót gần nhất — giúp chọn người khi giao"); `M4-03a-dispatch-board-api.md` (`tasks_router` tiền tố `/api/v1/tasks`, `TaskReader = require("task.read")`, `_INACTIVE_ASSIGNMENT_STATUSES`); `M4-01b-dispatch-task-create-ui.md` (`useActiveTechnicians` — chỉ KTV `is_active=true`, tái dùng tiêu chí cho danh sách người ở màn này); `frontend/src/features/employees/components/EmployeeList.tsx` (mẫu bảng desktop / thẻ mobile tái dùng)
 
