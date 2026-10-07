@@ -1,4 +1,4 @@
-import { CalendarClock, Check, MapPin, Phone, Timer, X } from "lucide-react";
+import { CalendarClock, CheckCircle2, MapPin, Phone, Timer, XCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../components/ui/Button";
 import { formatDateTime, formatPhone, mapHref } from "../../../lib/format";
@@ -69,7 +69,7 @@ function ResponseActions({
   return (
     <div className="flex gap-2">
       <Button
-        icon={<Check aria-hidden="true" className="size-4" />}
+        icon={<CheckCircle2 aria-hidden="true" className="size-4" />}
         loading={busy}
         onClick={() => {
           onAccept(item);
@@ -80,7 +80,7 @@ function ResponseActions({
       <Button
         variant="secondary"
         className="border-urgent-border text-urgent-fg hover:bg-urgent-bg"
-        icon={<X aria-hidden="true" className="size-4" />}
+        icon={<XCircle aria-hidden="true" className="size-4" />}
         disabled={busy}
         onClick={() => {
           onReject(item);
