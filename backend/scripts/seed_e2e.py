@@ -76,6 +76,14 @@ RESPOND_ORDERS = [
     ("E2E-DH-M502B", "E2E-DH-M502B-T1", "E2E-DH-M502B-T2"),  # desktop: accept T1 / reject T2
 ]
 
+# M5-03: start/complete e2e (myTasks.spec.ts) — same one-order-per-project idiom as RESPOND_ORDERS,
+# to avoid a concurrent orders.version race between the mobile/desktop Playwright projects. One
+# (ACCEPTED, IN_PROGRESS) task pair per project: start the first, complete the second.
+WORK_ORDERS = [
+    ("E2E-DH-M503A", "E2E-DH-M503A-T1", "E2E-DH-M503A-T2"),  # mobile: start T1 / complete T2
+    ("E2E-DH-M503B", "E2E-DH-M503B-T1", "E2E-DH-M503B-T2"),  # desktop: start T1 / complete T2
+]
+
 
 def main() -> int:
     settings = Settings()
@@ -203,6 +211,11 @@ def main() -> int:
             respond_order = upsert_order(order_code)
             upsert_task_assignment(respond_order, accept_task_code, "PENDING_ACCEPTANCE", "PENDING", "1.0", 3)
             upsert_task_assignment(respond_order, reject_task_code, "PENDING_ACCEPTANCE", "PENDING", "1.0", 3)
+
+        for order_code, start_task_code, complete_task_code in WORK_ORDERS:
+            work_order = upsert_order(order_code)
+            upsert_task_assignment(work_order, start_task_code, "ACCEPTED", "ACCEPTED", "1.0", 3)
+            upsert_task_assignment(work_order, complete_task_code, "IN_PROGRESS", "IN_PROGRESS", "1.0", 3)
     sys.stdout.write(
         f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products, {len(SERVICES)} E2E services,"
         f" {len(CUSTOMERS)} E2E customers, {len(MY_TASKS)} E2E my-tasks assignments\n"
