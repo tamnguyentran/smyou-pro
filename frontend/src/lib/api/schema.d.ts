@@ -21,6 +21,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/assignments/{assignment_id}/accept": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Tiếp nhận đầu việc */
+    post: operations["assignments_accept"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/assignments/{assignment_id}/reject": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Từ chối đầu việc (có lý do) */
+    post: operations["assignments_reject"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/attachments/{attachment_id}": {
     parameters: {
       query?: never;
@@ -865,6 +899,23 @@ export interface components {
        */
       id: string;
     };
+    /** AssignmentAccept */
+    AssignmentAccept: {
+      /** Version */
+      version: number;
+    };
+    /** AssignmentReject */
+    AssignmentReject: {
+      /**
+       * Reason Code
+       * @enum {string}
+       */
+      reason_code: "BUSY" | "SICK" | "SKILL" | "DISTANCE" | "OTHER";
+      /** Reason Text */
+      reason_text: string;
+      /** Version */
+      version: number;
+    };
     /** AuditEventOut */
     AuditEventOut: {
       /** Action */
@@ -1313,6 +1364,8 @@ export interface components {
        * Format: uuid
        */
       order_id: string;
+      /** Order Version */
+      order_version: number;
       /** Priority */
       priority: string;
       /** Service Address */
@@ -2121,6 +2174,104 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["MyAssignmentsOut"];
+        };
+      };
+    };
+  };
+  assignments_accept: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        assignment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AssignmentAccept"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MyAssignmentOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  assignments_reject: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        assignment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AssignmentReject"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MyAssignmentOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

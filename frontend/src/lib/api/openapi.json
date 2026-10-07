@@ -21,6 +21,37 @@
         "title": "ActorSummary",
         "type": "object"
       },
+      "AssignmentAccept": {
+        "properties": {
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["version"],
+        "title": "AssignmentAccept",
+        "type": "object"
+      },
+      "AssignmentReject": {
+        "properties": {
+          "reason_code": {
+            "enum": ["BUSY", "SICK", "SKILL", "DISTANCE", "OTHER"],
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "reason_text": {
+            "title": "Reason Text",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["version", "reason_code", "reason_text"],
+        "title": "AssignmentReject",
+        "type": "object"
+      },
       "AuditEventOut": {
         "properties": {
           "action": {
@@ -1245,6 +1276,10 @@
             "title": "Order Id",
             "type": "string"
           },
+          "order_version": {
+            "title": "Order Version",
+            "type": "integer"
+          },
           "priority": {
             "title": "Priority",
             "type": "string"
@@ -1297,6 +1332,7 @@
           "priority",
           "order_id",
           "order_code",
+          "order_version",
           "customer_name",
           "customer_phone",
           "service_address"
@@ -3717,6 +3753,120 @@
           }
         },
         "summary": "Phân công của chính tôi (chờ nhận/đang làm/đã xong)",
+        "tags": ["assignments"]
+      }
+    },
+    "/api/v1/assignments/{assignment_id}/accept": {
+      "post": {
+        "operationId": "assignments_accept",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentAccept"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAssignmentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Tiếp nhận đầu việc",
+        "tags": ["assignments"]
+      }
+    },
+    "/api/v1/assignments/{assignment_id}/reject": {
+      "post": {
+        "operationId": "assignments_reject",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentReject"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAssignmentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Từ chối đầu việc (có lý do)",
         "tags": ["assignments"]
       }
     },

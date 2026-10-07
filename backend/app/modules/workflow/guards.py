@@ -62,6 +62,22 @@ def task_not_cancelled(cancelled_at: datetime | None) -> bool:
     return cancelled_at is None
 
 
+# Mirrors spec/state_machines.yaml#reject_reason_codes (= dispatch.models.REJECT_REASON_CODES) — not
+# imported from there to keep this module free of feature-module dependencies (same pure-function
+# spirit as the rest of the file); the pydantic schema layer already enforces this set with a 422
+# before the service ever reaches this guard (AC-ASG-029), so in practice it is only exercised here
+# for name parity with the YAML.
+_REJECT_REASON_CODES = ("BUSY", "SICK", "SKILL", "DISTANCE", "OTHER")
+
+
+def reject_reason_code_present(reason_code: str | None) -> bool:
+    return reason_code in _REJECT_REASON_CODES
+
+
+def reject_reason_text_present(reason_text: str | None) -> bool:
+    return reason_text is not None and len(reason_text.strip()) >= 5
+
+
 GUARDS: dict[str, Callable[..., bool]] = {
     "customer_present": customer_present,
     "has_lines_or_description": has_lines_or_description,
@@ -75,12 +91,12 @@ GUARDS: dict[str, Callable[..., bool]] = {
     "due_at_not_in_past": due_at_not_in_past,
     "not_already_active_assignee": not_already_active_assignee,
     "task_not_cancelled": task_not_cancelled,
+    "reject_reason_code_present": reject_reason_code_present,
+    "reject_reason_text_present": reject_reason_text_present,
 }
 
 PENDING_GUARDS: dict[str, str] = {
     # technician responses
-    "reject_reason_code_present": "M5-02",
-    "reject_reason_text_present": "M5-02",
     "has_active_tasks": "M5-03",
     "all_active_tasks_done": "M5-03",
     # completion & revision
