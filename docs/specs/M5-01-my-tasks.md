@@ -1,6 +1,6 @@
 # M5-01 — Việc của tôi (danh sách, thẻ, gọi/bản đồ)
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M5-01 · **Milestone:** M5
 - **Liên quan:** `spec/state_machines.yaml#assignment` (6 trạng thái; `cycle`; chỉ `PENDING`/`ACCEPTED`/`IN_PROGRESS`/`DONE` còn là "việc của tôi", `REJECTED`/`REMOVED` là terminal và ẩn); `spec/permissions.yaml` (`assignment.respond: { TECHNICIAN: self }` — capability đã có, dùng luôn cho cả đọc, không sửa YAML; menu `my-work` → `/my-tasks`, badge `pending_assignments_count`); `docs/product/DOMAIN_MODEL.md` §8 (Task) §9 (Assignment) §5 (Order — `customer_name`/`customer_phone`/`service_address` snapshot); `docs/design/UI_GUIDELINES.md` §3 (desktop ≥1024px) §4 (mobile <768px) dòng "Việc của tôi | KTV | Tab: Chờ nhận / Đang làm / Đã xong…"; `docs/specs/M1-02-authz-scope-me.md` AC-AUTH-032 (đăng ký bộ đếm `pending_assignments_count` — hiện là bộ đếm **thử** chỉ trong test, M5-01 thay bằng bộ đếm thật); `docs/architecture/ARCHITECTURE.md` §86 ("Lệnh là POST có tên": `POST /assignments/{id}/reject`… — router `assignments` mới mở ở item này, M5-02/M5-03 thêm các lệnh); `M4-03a-dispatch-board-api.md` (mẫu `TaskBoardItem`, join Order cho `order_code`)
 

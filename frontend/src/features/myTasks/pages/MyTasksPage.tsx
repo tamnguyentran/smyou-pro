@@ -76,9 +76,11 @@ export function MyTasksPage() {
         {TAB_ORDER.map((id) => (
           <button
             key={id}
+            id={`my-tasks-tab-${id}`}
             type="button"
             role="tab"
             aria-selected={tab === id}
+            aria-controls="my-tasks-tabpanel"
             onClick={() => {
               setTab(id);
             }}
@@ -95,7 +97,7 @@ export function MyTasksPage() {
         ))}
       </div>
 
-      <div role="tabpanel">
+      <div role="tabpanel" id="my-tasks-tabpanel" aria-labelledby={`my-tasks-tab-${tab}`}>
         {assignments.isPending ? (
           <Waiting />
         ) : assignments.isError ? (
