@@ -1193,6 +1193,131 @@
         "title": "MeResponse",
         "type": "object"
       },
+      "MyAssignmentOut": {
+        "properties": {
+          "assignment_id": {
+            "format": "uuid",
+            "title": "Assignment Id",
+            "type": "string"
+          },
+          "assignment_status": {
+            "title": "Assignment Status",
+            "type": "string"
+          },
+          "customer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Name"
+          },
+          "customer_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Phone"
+          },
+          "due_at": {
+            "format": "date-time",
+            "title": "Due At",
+            "type": "string"
+          },
+          "estimated_hours": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Estimated Hours",
+            "type": "string"
+          },
+          "order_code": {
+            "title": "Order Code",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "string"
+          },
+          "service_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Address"
+          },
+          "task_code": {
+            "title": "Task Code",
+            "type": "string"
+          },
+          "task_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Description"
+          },
+          "task_id": {
+            "format": "uuid",
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_title": {
+            "title": "Task Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assignment_id",
+          "assignment_status",
+          "task_id",
+          "task_code",
+          "task_title",
+          "task_description",
+          "estimated_hours",
+          "due_at",
+          "priority",
+          "order_id",
+          "order_code",
+          "customer_name",
+          "customer_phone",
+          "service_address"
+        ],
+        "title": "MyAssignmentOut",
+        "type": "object"
+      },
+      "MyAssignmentsOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MyAssignmentOut"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": ["items"],
+        "title": "MyAssignmentsOut",
+        "type": "object"
+      },
       "OrderCancel": {
         "additionalProperties": false,
         "properties": {
@@ -3576,6 +3701,25 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/assignments/me": {
+      "get": {
+        "operationId": "assignments_me",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAssignmentsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Phân công của chính tôi (chờ nhận/đang làm/đã xong)",
+        "tags": ["assignments"]
+      }
+    },
     "/api/v1/attachments/{attachment_id}": {
       "get": {
         "operationId": "attachments_get",

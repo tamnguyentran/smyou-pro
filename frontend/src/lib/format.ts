@@ -37,3 +37,16 @@ const CURRENCY = new Intl.NumberFormat("vi-VN");
 export function formatCurrency(amount: number): string {
   return `${CURRENCY.format(amount)} ₫`;
 }
+
+/** "0932068787" → "0932 06 8787" (spec §UI). Số chưa chuẩn hoá thì để nguyên. */
+export function formatPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return /^\d{10}$/.test(digits)
+    ? `${digits.slice(0, 4)} ${digits.slice(4, 6)} ${digits.slice(6)}`
+    : phone;
+}
+
+/** Địa chỉ thi công → link Google Maps mở tab mới. */
+export function mapHref(address: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+}

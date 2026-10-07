@@ -10,7 +10,7 @@ import { Sheet } from "../../../components/ui/Sheet";
 import { Textarea } from "../../../components/ui/Textarea";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
-import { formatDate } from "../../../lib/format";
+import { formatDate, formatPhone, mapHref } from "../../../lib/format";
 import { ApiError } from "../../auth/errors";
 import { useOrder } from "../../orders/api";
 import { PRIORITY_LABELS, PRIORITY_ORDER } from "../../orders/schemas";
@@ -26,18 +26,6 @@ import {
 import { AssigneePicker } from "./AssigneePicker";
 
 const GENERIC_ERROR = "Không tạo được đầu việc. Vui lòng thử lại.";
-
-/** "0932068787" → "0932 06 8787" (spec §UI). Số chưa chuẩn hoá thì để nguyên. */
-function formatPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  return /^\d{10}$/.test(digits)
-    ? `${digits.slice(0, 4)} ${digits.slice(4, 6)} ${digits.slice(6)}`
-    : phone;
-}
-
-function mapHref(address: string): string {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-}
 
 /** Ba trường panel thật sự cần — nhận được cả `OrderSummary` (hàng đợi điều phối, M4-01b) và
  * `OrderDetail` (tab "Đầu việc" của trang chi tiết đơn, M4-01c; `OrderDetail` không có
