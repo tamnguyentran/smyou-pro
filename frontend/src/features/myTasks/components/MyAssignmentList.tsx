@@ -1,5 +1,6 @@
-import { CalendarClock, MapPin, Phone, Timer } from "lucide-react";
+import { CalendarClock, Check, MapPin, Phone, Timer, X } from "lucide-react";
 import { useState } from "react";
+import { Button } from "../../../components/ui/Button";
 import { formatDateTime, formatPhone, mapHref } from "../../../lib/format";
 import { cn } from "../../../lib/cn";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
@@ -53,8 +54,58 @@ function CustomerLinks({ item }: { item: MyAssignment }) {
   );
 }
 
-/** AC-ASG-008…014: thẻ (mobile) / bảng (desktop ≥1024px), mẫu `CustomerList.tsx`. */
-export function MyAssignmentList({ items }: { items: MyAssignment[] }) {
+/** AC-ASG-035: nút Tiếp nhận/Từ chối, chỉ hiện ở tab Chờ nhận (`showActions`). */
+function ResponseActions({
+  item,
+  busy,
+  onAccept,
+  onReject,
+}: {
+  item: MyAssignment;
+  busy: boolean;
+  onAccept: (item: MyAssignment) => void;
+  onReject: (item: MyAssignment) => void;
+}) {
+  return (
+    <div className="flex gap-2">
+      <Button
+        icon={<Check aria-hidden="true" className="size-4" />}
+        loading={busy}
+        onClick={() => {
+          onAccept(item);
+        }}
+      >
+        Tiếp nhận
+      </Button>
+      <Button
+        variant="secondary"
+        className="border-urgent-border text-urgent-fg hover:bg-urgent-bg"
+        icon={<X aria-hidden="true" className="size-4" />}
+        disabled={busy}
+        onClick={() => {
+          onReject(item);
+        }}
+      >
+        Từ chối
+      </Button>
+    </div>
+  );
+}
+
+/** AC-ASG-008…014/035…039: thẻ (mobile) / bảng (desktop ≥1024px), mẫu `CustomerList.tsx`. */
+export function MyAssignmentList({
+  items,
+  showActions = false,
+  acceptingId = null,
+  onAccept = () => undefined,
+  onReject = () => undefined,
+}: {
+  items: MyAssignment[];
+  showActions?: boolean;
+  acceptingId?: string | null;
+  onAccept?: (item: MyAssignment) => void;
+  onReject?: (item: MyAssignment) => void;
+}) {
   const desktop = useMediaQuery("(min-width: 1024px)", true);
   const [now] = useState(() => Date.now());
 
@@ -63,7 +114,14 @@ export function MyAssignmentList({ items }: { items: MyAssignment[] }) {
       <table className="w-full overflow-hidden rounded-2xl border border-line bg-card text-left text-sm">
         <thead className="bg-sidebar-sub text-xs font-semibold text-body uppercase">
           <tr>
-            {["Mã", "Tiêu đề", "Khách & địa chỉ", "Hạn chót", "Giờ ước tính"].map((heading) => (
+            {[
+              "Mã",
+              "Tiêu đề",
+              "Khách & địa chỉ",
+              "Hạn chót",
+              "Giờ ước tính",
+              ...(showActions ? ["Thao tác"] : []),
+            ].map((heading) => (
               <th key={heading} scope="col" className="px-4 py-3">
                 {heading}
               </th>
@@ -82,6 +140,16 @@ export function MyAssignmentList({ items }: { items: MyAssignment[] }) {
                 <DueAt dueAt={item.due_at} now={now} />
               </td>
               <td className="px-4 py-3 text-body">{item.estimated_hours} giờ</td>
+              {showActions ? (
+                <td className="px-4 py-3">
+                  <ResponseActions
+                    item={item}
+                    busy={acceptingId === item.assignment_id}
+                    onAccept={onAccept}
+                    onReject={onReject}
+                  />
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>
@@ -106,6 +174,14 @@ export function MyAssignmentList({ items }: { items: MyAssignment[] }) {
           <p className="text-sm text-body">{item.task_title}</p>
           <CustomerLinks item={item} />
           <DueAt dueAt={item.due_at} now={now} />
+          {showActions ? (
+            <ResponseActions
+              item={item}
+              busy={acceptingId === item.assignment_id}
+              onAccept={onAccept}
+              onReject={onReject}
+            />
+          ) : null}
         </li>
       ))}
     </ul>

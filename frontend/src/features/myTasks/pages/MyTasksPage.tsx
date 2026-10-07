@@ -3,12 +3,28 @@ import { useState } from "react";
 import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
 import { ForbiddenPage } from "../../../app/shell/StatusPage";
+import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { useToast } from "../../../components/ui/Toast";
 import { cn } from "../../../lib/cn";
+import { ApiError } from "../../auth/errors";
 import { useMe } from "../../me/api";
-import { useMyAssignments, type MyAssignment } from "../api";
+import {
+  useAcceptAssignment,
+  useMyAssignments,
+  useRejectAssignment,
+  type AssignmentRejectBody,
+  type MyAssignment,
+} from "../api";
 import { MyAssignmentList } from "../components/MyAssignmentList";
+import { RejectAssignmentSheet } from "../components/RejectAssignmentSheet";
+
+const GENERIC_ERROR = "Không thực hiện được. Vui lòng thử lại.";
+
+function describeError(error: unknown): string {
+  return error instanceof ApiError ? (error.problem.detail ?? GENERIC_ERROR) : GENERIC_ERROR;
+}
 
 type TabId = "pending" | "active" | "done";
 interface Tab {
@@ -46,13 +62,67 @@ function countByTab(items: MyAssignment[], statuses: readonly string[]): number 
   return items.filter((item) => statuses.includes(item.assignment_status)).length;
 }
 
-/** AC-ASG-008…014: trang `/my-tasks` — capability `assignment.respond`, API của M5-01. */
+/** AC-ASG-008…014/017…041: trang `/my-tasks` — capability `assignment.respond`, API của M5-01/M5-02. */
 export function MyTasksPage() {
   usePageTitle("Việc của tôi");
+  const toast = useToast();
   const me = useMe();
   const [tab, setTab] = useState<TabId>("pending");
   const allowed = me.data !== undefined && "assignment.respond" in me.data.capabilities;
   const assignments = useMyAssignments({ enabled: allowed });
+  const acceptAssignment = useAcceptAssignment();
+  const rejectAssignment = useRejectAssignment();
+  const [acceptStale, setAcceptStale] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<MyAssignment | null>(null);
+  const [rejectError, setRejectError] = useState<string | null>(null);
+  const [rejectStale, setRejectStale] = useState(false);
+
+  function handleAccept(item: MyAssignment) {
+    setAcceptStale(false);
+    acceptAssignment.mutate(
+      { assignmentId: item.assignment_id, body: { version: item.order_version } },
+      {
+        onSuccess: () => {
+          toast("Đã tiếp nhận đầu việc.");
+        },
+        onError: (error: unknown) => {
+          if (error instanceof ApiError && error.problem.code === "STALE_VERSION") {
+            setAcceptStale(true);
+          } else {
+            toast(describeError(error));
+          }
+        },
+      },
+    );
+  }
+
+  function submitReject(reasonCode: AssignmentRejectBody["reason_code"], reasonText: string) {
+    if (rejectTarget === null) return;
+    setRejectError(null);
+    rejectAssignment.mutate(
+      {
+        assignmentId: rejectTarget.assignment_id,
+        body: {
+          version: rejectTarget.order_version,
+          reason_code: reasonCode,
+          reason_text: reasonText,
+        },
+      },
+      {
+        onSuccess: () => {
+          setRejectTarget(null);
+          toast("Đã từ chối đầu việc.");
+        },
+        onError: (error: unknown) => {
+          if (error instanceof ApiError && error.problem.code === "STALE_VERSION") {
+            setRejectStale(true);
+          } else {
+            setRejectError(describeError(error));
+          }
+        },
+      },
+    );
+  }
 
   if (!me.data && me.isError) {
     return (
@@ -97,6 +167,21 @@ export function MyTasksPage() {
         ))}
       </div>
 
+      {acceptStale ? (
+        <Alert>
+          Thông tin đã bị người khác thay đổi. Vui lòng tải lại.{" "}
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setAcceptStale(false);
+              void assignments.refetch();
+            }}
+          >
+            Tải lại
+          </Button>
+        </Alert>
+      ) : null}
+
       <div role="tabpanel" id="my-tasks-tabpanel" aria-labelledby={`my-tasks-tab-${tab}`}>
         {assignments.isPending ? (
           <Waiting />
@@ -118,9 +203,40 @@ export function MyTasksPage() {
         ) : tabItems.length === 0 ? (
           <EmptyState icon={Inbox} message={activeTab.empty} />
         ) : (
-          <MyAssignmentList items={tabItems} />
+          <MyAssignmentList
+            items={tabItems}
+            showActions={tab === "pending"}
+            acceptingId={
+              acceptAssignment.isPending ? acceptAssignment.variables.assignmentId : null
+            }
+            onAccept={handleAccept}
+            onReject={(item) => {
+              setRejectError(null);
+              setRejectStale(false);
+              setRejectTarget(item);
+            }}
+          />
         )}
       </div>
+
+      {rejectTarget ? (
+        <RejectAssignmentSheet
+          open
+          onClose={() => {
+            setRejectTarget(null);
+          }}
+          taskCode={rejectTarget.task_code}
+          loading={rejectAssignment.isPending}
+          error={rejectError}
+          staleVersion={rejectStale}
+          onReload={() => {
+            setRejectTarget(null);
+            setRejectStale(false);
+            void assignments.refetch();
+          }}
+          onConfirm={submitReject}
+        />
+      ) : null}
     </div>
   );
 }
