@@ -12,11 +12,14 @@ import { ApiError } from "../../auth/errors";
 import { useMe } from "../../me/api";
 import {
   useAcceptAssignment,
+  useCompleteAssignment,
   useMyAssignments,
   useRejectAssignment,
+  useStartAssignment,
   type AssignmentRejectBody,
   type MyAssignment,
 } from "../api";
+import { CompleteAssignmentSheet } from "../components/CompleteAssignmentSheet";
 import { MyAssignmentList } from "../components/MyAssignmentList";
 import { RejectAssignmentSheet } from "../components/RejectAssignmentSheet";
 
@@ -72,10 +75,16 @@ export function MyTasksPage() {
   const assignments = useMyAssignments({ enabled: allowed });
   const acceptAssignment = useAcceptAssignment();
   const rejectAssignment = useRejectAssignment();
+  const startAssignment = useStartAssignment();
+  const completeAssignment = useCompleteAssignment();
   const [acceptStale, setAcceptStale] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<MyAssignment | null>(null);
   const [rejectError, setRejectError] = useState<string | null>(null);
   const [rejectStale, setRejectStale] = useState(false);
+  const [startStale, setStartStale] = useState(false);
+  const [completeTarget, setCompleteTarget] = useState<MyAssignment | null>(null);
+  const [completeError, setCompleteError] = useState<string | null>(null);
+  const [completeStale, setCompleteStale] = useState(false);
 
   function handleAccept(item: MyAssignment) {
     setAcceptStale(false);
@@ -90,6 +99,53 @@ export function MyTasksPage() {
             setAcceptStale(true);
           } else {
             toast(describeError(error));
+          }
+        },
+      },
+    );
+  }
+
+  function handleStart(item: MyAssignment) {
+    setStartStale(false);
+    startAssignment.mutate(
+      { assignmentId: item.assignment_id, body: { version: item.order_version } },
+      {
+        onSuccess: () => {
+          toast("Đã bắt đầu đầu việc.");
+        },
+        onError: (error: unknown) => {
+          if (error instanceof ApiError && error.problem.code === "STALE_VERSION") {
+            setStartStale(true);
+          } else {
+            toast(describeError(error));
+          }
+        },
+      },
+    );
+  }
+
+  function submitComplete(completionNote: string, actualHours: string) {
+    if (completeTarget === null) return;
+    setCompleteError(null);
+    completeAssignment.mutate(
+      {
+        assignmentId: completeTarget.assignment_id,
+        body: {
+          version: completeTarget.order_version,
+          completion_note: completionNote === "" ? null : completionNote,
+          actual_hours: actualHours === "" ? null : Number(actualHours),
+        },
+      },
+      {
+        onSuccess: () => {
+          setCompleteTarget(null);
+          toast("Đã báo hoàn thành đầu việc.");
+        },
+        onError: (error: unknown) => {
+          if (error instanceof ApiError && error.problem.code === "STALE_VERSION") {
+            setCompleteStale(true);
+          } else {
+            setCompleteError(describeError(error));
           }
         },
       },
@@ -182,6 +238,21 @@ export function MyTasksPage() {
         </Alert>
       ) : null}
 
+      {startStale ? (
+        <Alert>
+          Thông tin đã bị người khác thay đổi. Vui lòng tải lại.{" "}
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setStartStale(false);
+              void assignments.refetch();
+            }}
+          >
+            Tải lại
+          </Button>
+        </Alert>
+      ) : null}
+
       <div role="tabpanel" id="my-tasks-tabpanel" aria-labelledby={`my-tasks-tab-${tab}`}>
         {assignments.isPending ? (
           <Waiting />
@@ -206,18 +277,46 @@ export function MyTasksPage() {
           <MyAssignmentList
             items={tabItems}
             showActions={tab === "pending"}
+            showWorkActions={tab === "active"}
             acceptingId={
               acceptAssignment.isPending ? acceptAssignment.variables.assignmentId : null
             }
+            startingId={startAssignment.isPending ? startAssignment.variables.assignmentId : null}
             onAccept={handleAccept}
             onReject={(item) => {
               setRejectError(null);
               setRejectStale(false);
               setRejectTarget(item);
             }}
+            onStart={handleStart}
+            onComplete={(item) => {
+              setCompleteError(null);
+              setCompleteStale(false);
+              setCompleteTarget(item);
+            }}
           />
         )}
       </div>
+
+      {completeTarget ? (
+        <CompleteAssignmentSheet
+          open
+          onClose={() => {
+            setCompleteTarget(null);
+          }}
+          taskCode={completeTarget.task_code}
+          estimatedHours={completeTarget.estimated_hours}
+          loading={completeAssignment.isPending}
+          error={completeError}
+          staleVersion={completeStale}
+          onReload={() => {
+            setCompleteTarget(null);
+            setCompleteStale(false);
+            void assignments.refetch();
+          }}
+          onConfirm={submitComplete}
+        />
+      ) : null}
 
       {rejectTarget ? (
         <RejectAssignmentSheet
