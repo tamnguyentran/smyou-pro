@@ -49,7 +49,7 @@ describe("Review M1-03a — vòng 2", () => {
       }),
     );
     markSignedIn();
-    renderApp("/dispatch/workload");
+    renderApp("/dispatch/revisions");
     // wait for the shell (the session guard shows its own <main> skeleton first)
     expect(await screen.findByText("Tính năng đang được phát triển.")).toBeInTheDocument();
     const main = screen.getByRole("main");
@@ -74,7 +74,7 @@ describe("Review M1-03a — vòng 2", () => {
       http.get("/api/v1/me", () => HttpResponse.json(me)),
     );
     markSignedIn();
-    renderApp("/dispatch/workload");
+    renderApp("/dispatch/revisions");
 
     expect(await screen.findByText("Tính năng đang được phát triển.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Về trang chủ" })).toHaveAttribute("href", "/");

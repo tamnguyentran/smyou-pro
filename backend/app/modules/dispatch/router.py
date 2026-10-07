@@ -12,6 +12,7 @@ from app.core.db import DbSession
 from app.core.request_id import get_request_id
 from app.modules.dispatch import service
 from app.modules.dispatch.schemas import (
+    EmployeeWorkloadOut,
     TaskAddAssignee,
     TaskAssigneeRemove,
     TaskBoardOut,
@@ -225,3 +226,13 @@ def list_board_tasks(
         due_from=due_from,
         due_to=due_to,
     )
+
+
+@tasks_router.get(
+    "/workload",
+    operation_id="tasks_workload",
+    summary="Tải việc theo từng kỹ thuật viên đang hoạt động",
+    response_model=EmployeeWorkloadOut,
+)
+def get_workload(session: DbSession, actor: TaskReader) -> EmployeeWorkloadOut:
+    return service.list_workload(session, actor)

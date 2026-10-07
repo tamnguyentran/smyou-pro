@@ -369,3 +369,31 @@ test("AC-DSP-092 @a11y @screenshot bảng đầu việc: vùng chạm ≥44px (g
     },
   );
 });
+
+test("AC-DSP-106 @a11y @screenshot lịch & tải việc: không cuộn ngang, axe sạch", async ({
+  page,
+}, info) => {
+  await signIn(page, TECH_LEAD, "/dispatch/workload");
+  await expect(page.getByRole("heading", { name: "Lịch & tải việc", level: 1 })).toBeVisible();
+
+  await evidence(
+    page,
+    info,
+    isMobile(info) ? "dispatch-workload-390.png" : "dispatch-workload-1440.png",
+    { checkOverflow: true },
+  );
+});
+
+test("AC-DSP-107 vào menu Điều phối kỹ thuật → Lịch & tải việc: trang thật, không còn placeholder", async ({
+  page,
+}, info) => {
+  await signIn(page, TECH_LEAD, "/");
+  if (isMobile(info)) await page.getByRole("button", { name: "Mở menu" }).click();
+  const nav = page.getByRole("navigation", { name: "Menu chính" });
+  await nav.getByRole("button", { name: "Điều phối kỹ thuật" }).click();
+  await nav.getByRole("link", { name: "Lịch & tải việc" }).click();
+
+  await expect(page).toHaveURL(/\/dispatch\/workload$/);
+  await expect(page.getByRole("heading", { name: "Lịch & tải việc", level: 1 })).toBeVisible();
+  await expect(page.getByText("Tính năng đang được phát triển.")).toBeHidden();
+});

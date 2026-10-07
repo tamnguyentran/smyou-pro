@@ -240,21 +240,24 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
   test("AC-SYS-038 desktop: mục đang chọn, nhóm tự mở và thu/mở được, nút hành động chính", async () => {
     mockViewport(true);
     signedInAs(TUAN);
-    // "/dispatch/board" là trang thật từ M4-03b; dùng "/dispatch/workload" (vẫn placeholder) để
-    // test này không phải mock `GET /api/v1/tasks`/`employees` — nó chỉ kiểm hành vi menu chung.
-    renderApp("/dispatch/workload");
+    // "/dispatch/board" và "/dispatch/workload" là trang thật từ M4-03b/M4-04; dùng
+    // "/dispatch/revisions" (vẫn placeholder) để test này không phải mock API — nó chỉ kiểm
+    // hành vi menu chung.
+    renderApp("/dispatch/revisions");
 
     const nav = await mainMenu();
-    const board = await within(nav).findByRole("link", { name: "Lịch & tải việc" });
+    const board = await within(nav).findByRole("link", { name: "Đơn cần chỉnh sửa" });
     expect(board).toHaveAttribute("aria-current", "page");
     const group = within(nav).getByRole("button", { name: "Điều phối kỹ thuật" });
     expect(group).toHaveAttribute("aria-expanded", "true");
 
     await userEvent.setup().click(group);
     expect(group).toHaveAttribute("aria-expanded", "false");
-    expect(within(nav).queryByRole("link", { name: "Lịch & tải việc" })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: "Đơn cần chỉnh sửa" })).not.toBeInTheDocument();
 
-    expect(screen.getByRole("heading", { level: 1, name: "Lịch & tải việc" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Đơn cần chỉnh sửa" }),
+    ).toBeInTheDocument();
     const cta = screen.getByRole("link", { name: "Tạo đầu việc" });
     expect(cta).toHaveAttribute("href", "/dispatch/queue");
     expect(screen.queryByRole("button", { name: "Mở menu" })).not.toBeInTheDocument();
@@ -415,12 +418,12 @@ describe("Khung ứng dụng — chặn trang & trạng thái", () => {
   test("AC-SYS-045 tiêu đề tab theo trang; nút chỉ có icon đều có nhãn", async () => {
     mockViewport(false);
     signedInAs(TUAN);
-    // "/dispatch/board" là trang thật từ M4-03b (cần mock GET /api/v1/tasks/employees);
-    // "/dispatch/workload" vẫn placeholder, đủ cho test tiêu đề tab chung này.
-    renderApp("/dispatch/workload");
+    // "/dispatch/board" và "/dispatch/workload" là trang thật từ M4-03b/M4-04 (cần mock API);
+    // "/dispatch/revisions" vẫn placeholder, đủ cho test tiêu đề tab chung này.
+    renderApp("/dispatch/revisions");
 
-    await screen.findByRole("heading", { level: 1, name: "Lịch & tải việc" });
-    expect(document.title).toBe("Lịch & tải việc · SMYou Pro");
+    await screen.findByRole("heading", { level: 1, name: "Đơn cần chỉnh sửa" });
+    expect(document.title).toBe("Đơn cần chỉnh sửa · SMYou Pro");
     for (const button of screen.getAllByRole("button")) {
       expect(button).toHaveAccessibleName();
     }
