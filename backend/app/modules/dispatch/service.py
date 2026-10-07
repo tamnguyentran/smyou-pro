@@ -666,5 +666,5 @@ def list_workload(session: Session, actor: Actor) -> EmployeeWorkloadOut:
         )
         for employee_id, full_name in employees
     ]
-    items.sort(key=lambda item: item.total_estimated_hours)
+    items.sort(key=lambda item: (item.total_estimated_hours, item.full_name))
     return EmployeeWorkloadOut(items=items)
