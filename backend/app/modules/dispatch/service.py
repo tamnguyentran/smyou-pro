@@ -16,6 +16,8 @@ from app.modules.audit import service as audit
 from app.modules.dispatch import domain
 from app.modules.dispatch.models import Assignment, Task
 from app.modules.dispatch.schemas import (
+    EmployeeWorkloadItem,
+    EmployeeWorkloadOut,
     TaskAddAssignee,
     TaskAssigneeOut,
     TaskAssigneeRemove,
@@ -609,3 +611,60 @@ def list_tasks(
             for task, _ in rows
         ]
     )
+
+
+_OPEN_ASSIGNMENT_STATUSES = ("PENDING", "ACCEPTED", "IN_PROGRESS")
+
+
+def list_workload(session: Session, actor: Actor) -> EmployeeWorkloadOut:
+    """GET /api/v1/tasks/workload (M4-04) — per active technician: how many assignments of
+    theirs are currently open, total estimated hours, nearest due date.
+
+    "Open" here is narrower than `_INACTIVE_ASSIGNMENT_STATUSES`: DONE is also excluded
+    (AC-DSP-095), since workload counts by the caller's own assignment status, not the
+    task's `derived_status` — one person can be DONE on a task while another is still
+    IN_PROGRESS on it.
+
+    Scope (Q70): `task.read`'s `assigned` scope has no natural meaning for "which employees
+    appear in this aggregate," so a TECHNICIAN gets exactly their own row, nothing else.
+    """
+    employees_query = (
+        select(Employee.id, Employee.full_name)
+        .where(Employee.roles.any(EmployeeRole.role == "TECHNICIAN"), Employee.is_active.is_(True))
+        .order_by(Employee.full_name)
+    )
+    if "all" not in actor.scopes:
+        employees_query = employees_query.where(Employee.id == actor.id)
+    employees = session.execute(employees_query).all()
+
+    employee_ids = [employee_id for employee_id, _ in employees]
+    aggregates: dict[uuid.UUID, tuple[int, Decimal, datetime]] = {}
+    if employee_ids:
+        agg_rows = session.execute(
+            select(
+                Assignment.employee_id,
+                func.count(Assignment.id),
+                func.sum(Task.estimated_hours),
+                func.min(Task.due_at),
+            )
+            .join(Task, Task.id == Assignment.task_id)
+            .where(
+                Assignment.employee_id.in_(employee_ids),
+                Assignment.status.in_(_OPEN_ASSIGNMENT_STATUSES),
+            )
+            .group_by(Assignment.employee_id)
+        ).all()
+        aggregates = {employee_id: (count, hours, due) for employee_id, count, hours, due in agg_rows}
+
+    items = [
+        EmployeeWorkloadItem(
+            employee_id=employee_id,
+            full_name=full_name,
+            open_task_count=aggregates.get(employee_id, (0, Decimal(0), None))[0],
+            total_estimated_hours=aggregates.get(employee_id, (0, Decimal(0), None))[1],
+            nearest_due_at=aggregates.get(employee_id, (0, Decimal(0), None))[2],
+        )
+        for employee_id, full_name in employees
+    ]
+    items.sort(key=lambda item: (item.total_estimated_hours, item.full_name))
+    return EmployeeWorkloadOut(items=items)
