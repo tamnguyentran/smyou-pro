@@ -12,6 +12,8 @@ from app.core.db import create_db_engine, create_session_factory
 from app.core.errors import register_error_handlers
 from app.core.request_id import RequestIdMiddleware
 from app.core.spec_loader import check_guard_registry, load_specs
+from app.modules.assignments import service as assignments_service
+from app.modules.assignments.router import router as assignments_router
 from app.modules.audit.router import router as audit_router
 from app.modules.catalog.router import router as catalog_router
 from app.modules.catalog.router import services_router
@@ -29,7 +31,10 @@ from app.modules.system.router import router as system_router
 from app.modules.workflow.guards import GUARDS, PENDING_GUARDS
 
 # Menu badge counters (GET /me), registered by the modules that own the data (M4-01a, M5-01, M6-03).
-COUNTERS: dict[str, CounterProvider] = {"pending_dispatch_count": dispatch_service.count_pending_dispatch}
+COUNTERS: dict[str, CounterProvider] = {
+    "pending_dispatch_count": dispatch_service.count_pending_dispatch,
+    "pending_assignments_count": assignments_service.count_pending_assignments,
+}
 
 
 def create_app(
@@ -69,6 +74,7 @@ def create_app(
     register_error_handlers(app)
     app.add_middleware(RequestIdMiddleware)
     app.include_router(system_router)
+    app.include_router(assignments_router)
     app.include_router(auth_router)
     app.include_router(me_router)
     app.include_router(employees_router)
