@@ -21,6 +21,37 @@
         "title": "ActorSummary",
         "type": "object"
       },
+      "AssignmentAccept": {
+        "properties": {
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["version"],
+        "title": "AssignmentAccept",
+        "type": "object"
+      },
+      "AssignmentReject": {
+        "properties": {
+          "reason_code": {
+            "enum": ["BUSY", "SICK", "SKILL", "DISTANCE", "OTHER"],
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "reason_text": {
+            "title": "Reason Text",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["version", "reason_code", "reason_text"],
+        "title": "AssignmentReject",
+        "type": "object"
+      },
       "AuditEventOut": {
         "properties": {
           "action": {
@@ -1248,6 +1279,136 @@
         },
         "required": ["employee", "roles", "capabilities", "counters"],
         "title": "MeResponse",
+        "type": "object"
+      },
+      "MyAssignmentOut": {
+        "properties": {
+          "assignment_id": {
+            "format": "uuid",
+            "title": "Assignment Id",
+            "type": "string"
+          },
+          "assignment_status": {
+            "title": "Assignment Status",
+            "type": "string"
+          },
+          "customer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Name"
+          },
+          "customer_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Phone"
+          },
+          "due_at": {
+            "format": "date-time",
+            "title": "Due At",
+            "type": "string"
+          },
+          "estimated_hours": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Estimated Hours",
+            "type": "string"
+          },
+          "order_code": {
+            "title": "Order Code",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "order_version": {
+            "title": "Order Version",
+            "type": "integer"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "string"
+          },
+          "service_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Address"
+          },
+          "task_code": {
+            "title": "Task Code",
+            "type": "string"
+          },
+          "task_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Description"
+          },
+          "task_id": {
+            "format": "uuid",
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_title": {
+            "title": "Task Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assignment_id",
+          "assignment_status",
+          "task_id",
+          "task_code",
+          "task_title",
+          "task_description",
+          "estimated_hours",
+          "due_at",
+          "priority",
+          "order_id",
+          "order_code",
+          "order_version",
+          "customer_name",
+          "customer_phone",
+          "service_address"
+        ],
+        "title": "MyAssignmentOut",
+        "type": "object"
+      },
+      "MyAssignmentsOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MyAssignmentOut"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": ["items"],
+        "title": "MyAssignmentsOut",
         "type": "object"
       },
       "OrderCancel": {
@@ -3633,6 +3794,139 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/assignments/me": {
+      "get": {
+        "operationId": "assignments_me",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAssignmentsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Phân công của chính tôi (chờ nhận/đang làm/đã xong)",
+        "tags": ["assignments"]
+      }
+    },
+    "/api/v1/assignments/{assignment_id}/accept": {
+      "post": {
+        "operationId": "assignments_accept",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentAccept"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAssignmentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Tiếp nhận đầu việc",
+        "tags": ["assignments"]
+      }
+    },
+    "/api/v1/assignments/{assignment_id}/reject": {
+      "post": {
+        "operationId": "assignments_reject",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentReject"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAssignmentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Từ chối đầu việc (có lý do)",
+        "tags": ["assignments"]
+      }
+    },
     "/api/v1/attachments/{attachment_id}": {
       "get": {
         "operationId": "attachments_get",

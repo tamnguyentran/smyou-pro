@@ -4,7 +4,8 @@ Never run against production: the passwords below are public.
 """
 
 import sys
-from datetime import UTC, datetime
+import uuid
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select, update
 
@@ -14,7 +15,9 @@ from app.core.db import create_db_engine, create_session_factory
 from app.core.security import hash_password
 from app.modules.catalog.models import Product, Service
 from app.modules.customers.models import Customer
+from app.modules.dispatch.models import Assignment, Task
 from app.modules.identity.models import AuthSession, Employee, EmployeeRole
+from app.modules.orders.models import Order
 
 # (email, code, full name, roles, password, must change password) — one technician per Playwright
 # project so the mobile and desktop runs can each do the first-login password change in parallel.
@@ -52,6 +55,25 @@ SERVICES = [
 CUSTOMERS = [
     ("E2E-KH-001", "COMPANY", "Cty Sáng Tạo Mới E2E", "0909123456", "0312345678"),
     ("E2E-KH-002", "INDIVIDUAL", "Anh Ngọc E2E - Grand Hotel", "0918234567", None),
+]
+
+# M5-01: one order + 3 tasks, one per "Việc của tôi" tab, all assigned to khoa.shell@smyou.vn
+# (E2E08 — password already changed, so the e2e test can sign in directly without the forced
+# first-login flow). (task code, task status, assignment status, estimated hours, due offset days).
+MY_TASKS_ORDER_CODE = "E2E-DH-M501"
+MY_TASKS = [
+    ("E2E-DH-M501-T1", "PENDING_ACCEPTANCE", "PENDING", "3.5", 2),
+    ("E2E-DH-M501-T2", "ACCEPTED", "ACCEPTED", "1.5", 1),
+    ("E2E-DH-M501-T3", "DONE", "DONE", "2.0", -1),
+]
+
+# M5-02: accept/reject e2e (myTasks.spec.ts) — mobile and desktop Playwright projects run in
+# parallel against the same khoa.shell@smyou.vn account, so each project needs its own order (the
+# command bumps orders.version; sharing one order between two concurrent mutations would race into
+# a spurious STALE_VERSION). One (accept, reject) task pair per project.
+RESPOND_ORDERS = [
+    ("E2E-DH-M502A", "E2E-DH-M502A-T1", "E2E-DH-M502A-T2"),  # mobile: accept T1 / reject T2
+    ("E2E-DH-M502B", "E2E-DH-M502B-T1", "E2E-DH-M502B-T2"),  # desktop: accept T1 / reject T2
 ]
 
 
@@ -110,9 +132,80 @@ def main() -> int:
             customer.name = name
             customer.phone = phone
             customer.tax_code = tax_code
+        khoa_id = session.scalars(select(Employee.id).where(Employee.email == "khoa.shell@smyou.vn")).one()
+
+        def upsert_order(code: str) -> Order:
+            order = session.scalars(select(Order).where(Order.code == code)).one_or_none()
+            if order is None:
+                order = Order(
+                    code=code,
+                    status="IN_PROGRESS",
+                    customer_name="Cty TNHH Phát Đạt E2E",
+                    customer_phone="0932068787",
+                    service_address="45 Nguyễn Trãi, P. Bến Thành, Q.1, TP.HCM",
+                    created_by=creator_id,
+                )
+                session.add(order)
+                session.flush()
+            return order
+
+        def upsert_task_assignment(
+            order: Order,
+            task_code: str,
+            task_status: str,
+            assignment_status: str,
+            hours: str,
+            due_offset_days: int,
+        ) -> None:
+            task = session.scalars(select(Task).where(Task.code == task_code)).one_or_none()
+            if task is None:
+                task = Task(
+                    order_id=order.id,
+                    code=task_code,
+                    title=f"Lắp đặt camera E2E ({task_code})",
+                    origin="INITIAL",
+                    created_in_revision=0,
+                    status=task_status,
+                    estimated_hours=hours,
+                    due_at=now + timedelta(days=due_offset_days),
+                    priority="NORMAL",
+                    created_by=creator_id,
+                )
+                session.add(task)
+                session.flush()
+            else:
+                task.status = task_status
+                task.due_at = now + timedelta(days=due_offset_days)
+            assignment = session.scalars(
+                select(Assignment).where(Assignment.task_id == task.id, Assignment.employee_id == khoa_id)
+            ).one_or_none()
+            if assignment is None:
+                session.add(
+                    Assignment(
+                        id=uuid.uuid4(),
+                        task_id=task.id,
+                        employee_id=khoa_id,
+                        cycle=1,
+                        status=assignment_status,
+                        assigned_by=creator_id,
+                    )
+                )
+            else:
+                assignment.status = assignment_status
+
+        my_tasks_order = upsert_order(MY_TASKS_ORDER_CODE)
+        for task_code, task_status, assignment_status, hours, due_offset_days in MY_TASKS:
+            upsert_task_assignment(
+                my_tasks_order, task_code, task_status, assignment_status, hours, due_offset_days
+            )
+
+        for order_code, accept_task_code, reject_task_code in RESPOND_ORDERS:
+            respond_order = upsert_order(order_code)
+            upsert_task_assignment(respond_order, accept_task_code, "PENDING_ACCEPTANCE", "PENDING", "1.0", 3)
+            upsert_task_assignment(respond_order, reject_task_code, "PENDING_ACCEPTANCE", "PENDING", "1.0", 3)
     sys.stdout.write(
         f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products, {len(SERVICES)} E2E services,"
-        f" {len(CUSTOMERS)} E2E customers\n"
+        f" {len(CUSTOMERS)} E2E customers, {len(MY_TASKS)} E2E my-tasks assignments\n"
     )
     return 0
 

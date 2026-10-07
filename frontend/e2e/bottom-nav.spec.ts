@@ -77,8 +77,11 @@ for (const role of Object.keys(ACCOUNTS) as Role[]) {
 }
 
 test("AC-SYS-048 ô đang chọn và nội dung không bị che", async ({ page }, info) => {
+  // "/my-tasks" is a real page since M5-01 (no longer the generic placeholder this test used to
+  // check against) — the "Đã xong" tab has exactly 1 seeded card (backend/scripts/seed_e2e.py),
+  // stable regardless of how many extra PENDING assignments other e2e specs create along the way.
   await signIn(page, "technician", "/my-tasks");
-  await expect(page.getByText("Tính năng đang được phát triển.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Việc của tôi", level: 1 })).toBeVisible();
   if (isMobile(info)) {
     const nav = page.getByRole("navigation", { name: "Điều hướng nhanh" });
     await expect(nav.getByRole("link", { name: "Việc của tôi" })).toHaveAttribute(
@@ -86,11 +89,10 @@ test("AC-SYS-048 ô đang chọn và nội dung không bị che", async ({ page 
       "page",
     );
     const navTop = (await nav.boundingBox())?.y ?? 0;
-    await page.evaluate(() => {
-      window.scrollTo(0, document.body.scrollHeight);
-    });
-    const home = page.getByRole("main").getByRole("link", { name: "Về trang chủ" });
-    const box = await home.boundingBox();
+    await page.getByRole("tab", { name: /Đã xong/ }).click();
+    const card = page.getByText("E2E-DH-M501-T3", { exact: true });
+    await card.scrollIntoViewIfNeeded();
+    const box = await card.boundingBox();
     expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(navTop);
   } else {
     await expect(page.getByRole("navigation", { name: "Điều hướng nhanh" })).toHaveCount(0);
