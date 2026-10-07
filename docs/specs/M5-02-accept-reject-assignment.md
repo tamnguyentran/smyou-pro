@@ -1,6 +1,6 @@
 # M5-02 — Tiếp nhận / Từ chối (lý do)
 
-- **Status:** approved
+- **Status:** Done
 - **Backlog:** M5-02 · **Milestone:** M5
 - **Liên quan:** `spec/state_machines.yaml#assignment` (transitions `accept` PENDING→ACCEPTED, `reject` PENDING→REJECTED, guards `order_in_dispatchable_state`/`task_not_cancelled`/`reject_reason_code_present`/`reject_reason_text_present`; `reject_reason_codes` BUSY/SICK/SKILL/DISTANCE/OTHER); `spec/permissions.yaml` (`assignment.respond: { TECHNICIAN: self }` — capability đã có, dùng lại, không sửa YAML); `backend/app/modules/workflow/guards.py` (2 guard còn `PENDING_GUARDS` gắn nhãn M5-02 — item này implement và chuyển sang `GUARDS`); `backend/app/modules/dispatch/service.py` (`remove_assignee`/`add_assignee` — mẫu derive lại `task.status` sau khi đổi 1 assignment, `_check_assignment_transition`); `docs/architecture/ARCHITECTURE.md` §86 (lệnh POST có tên, body luôn có `version`, `orders.version` là aggregate root — Q62 archive); `docs/design/UI_GUIDELINES.md` §6 ("từ chối" nằm trong nhóm hành động cần `ConfirmDialog`/sheet nêu rõ hậu quả, "Tiếp nhận" không thuộc nhóm đó); `docs/specs/M5-01-my-tasks.md` (trang `/my-tasks`, 3 tab, `MyAssignmentOut`, router `assignments` đã mở sẵn).
 
