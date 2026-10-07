@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 ReasonCode = Literal["BUSY", "SICK", "SKILL", "DISTANCE", "OTHER"]
 
@@ -26,6 +26,8 @@ class MyAssignmentOut(BaseModel):
     customer_name: str | None
     customer_phone: str | None
     service_address: str | None
+    completion_note: str | None
+    actual_hours: Decimal | None
 
 
 class MyAssignmentsOut(BaseModel):
@@ -40,3 +42,15 @@ class AssignmentReject(BaseModel):
     version: int
     reason_code: ReasonCode
     reason_text: str
+
+
+class AssignmentStart(BaseModel):
+    version: int
+
+
+class AssignmentComplete(BaseModel):
+    version: int
+    completion_note: str | None = None
+    # No business guard for this in spec/state_machines.yaml (unlike estimated_hours_positive) —
+    # ge=0 alone gives the 422 VALIDATION_ERROR AC-ASG-055 expects (spec §8).
+    actual_hours: Decimal | None = Field(default=None, ge=0)
