@@ -58,9 +58,12 @@ test("AC-SYS-041 AC-SYS-042 AC-SYS-043 @screenshot trang 403, 404, đang phát t
   if (!isMobile(info)) await openMenu(page, info); // sidebar loaded, not the skeleton
   await page.screenshot({ path: shot(info, "page-404.png"), fullPage: true });
 
-  await page.goto("./my-tasks");
+  // "/my-tasks" is a real page since M5-01, no longer a placeholder — "/dispatch/workload"
+  // (M4-04, not built yet) is the next still-unimplemented page TECH_LEAD can reach.
+  await page.context().clearCookies();
+  await signIn(page, TECH_LEAD, "/dispatch/workload");
   await expect(page.getByText("Tính năng đang được phát triển.")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1, name: "Việc của tôi" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Lịch & tải việc" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Về trang chủ" })).toBeVisible();
   if (!isMobile(info)) await openMenu(page, info);
   await page.screenshot({ path: shot(info, "page-coming-soon.png"), fullPage: true });

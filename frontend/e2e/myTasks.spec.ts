@@ -21,6 +21,9 @@ const isMobile = (info: TestInfo) => info.project.name === "mobile";
 
 async function evidence(page: Page, info: TestInfo, file: string) {
   await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() =>
+    Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))),
+  );
   const results = await new AxeBuilder({ page }).analyze();
   expect(
     results.violations
