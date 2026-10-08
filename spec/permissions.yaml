@@ -61,6 +61,11 @@ public_routes:
   - POST /api/v1/auth/refresh
   - POST /api/v1/auth/logout
 
+# Routes whose capability is chosen per-record, not statically (M6-01): `GET /attachments/{id}`
+# picks `catalog.read` or `order.read` depending on the attachment's `owner_type` at runtime.
+dynamic_routes:
+  - GET /api/v1/attachments/{attachment_id}
+
 # Navigation (2 levels). Frontend renders from GET /api/v1/me (roles + capabilities) + this structure,
 # copied into frontend/src/app/menu.ts; a test asserts the two stay identical.
 menu:

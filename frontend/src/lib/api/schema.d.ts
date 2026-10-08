@@ -96,7 +96,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Tải tệp đính kèm (ảnh sản phẩm) */
+    /** Tải tệp đính kèm (ảnh sản phẩm, ảnh phiếu xác nhận) */
     get: operations["attachments_get"];
     put?: never;
     post?: never;
@@ -412,6 +412,24 @@ export interface paths {
     put?: never;
     /** Huỷ đơn */
     post: operations["orders_cancel"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/confirmation-attachments": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách ảnh phiếu xác nhận */
+    get: operations["orders_list_confirmation_attachments"];
+    put?: never;
+    /** Tải ảnh phiếu xác nhận */
+    post: operations["orders_upload_confirmation_attachment"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1023,6 +1041,11 @@ export interface components {
       /** Total */
       total: number;
     };
+    /** Body_orders_upload_confirmation_attachment */
+    Body_orders_upload_confirmation_attachment: {
+      /** File */
+      file: string;
+    };
     /** Body_products_import_commit */
     Body_products_import_commit: {
       /** File */
@@ -1054,6 +1077,37 @@ export interface components {
       current_password: string;
       /** New Password */
       new_password: string;
+    };
+    /** ConfirmationAttachment */
+    ConfirmationAttachment: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Mime Type */
+      mime_type: string;
+      /** Revision No */
+      revision_no: number;
+      /** Size Bytes */
+      size_bytes: number;
+      /**
+       * Uploaded By
+       * Format: uuid
+       */
+      uploaded_by: string;
+      /** Uploaded By Name */
+      uploaded_by_name: string;
+    };
+    /** ConfirmationAttachmentPage */
+    ConfirmationAttachmentPage: {
+      /** Items */
+      items: components["schemas"]["ConfirmationAttachment"][];
     };
     /** CustomerCreate */
     CustomerCreate: {
@@ -1556,6 +1610,8 @@ export interface components {
       can_edit_contact: boolean;
       /** Can Edit Lines After Submit */
       can_edit_lines_after_submit: boolean;
+      /** Can Upload Confirmation */
+      can_upload_confirmation: boolean;
       /** Code */
       code: string;
       /**
@@ -2481,6 +2537,13 @@ export interface operations {
         content: {
           "application/json": unknown;
         };
+      };
+      /** @description problem+json — FORBIDDEN */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description problem+json — NOT_FOUND */
       404: {
@@ -3462,6 +3525,84 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+    };
+  };
+  orders_list_confirmation_attachments: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConfirmationAttachmentPage"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_upload_confirmation_attachment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_orders_upload_confirmation_attachment"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConfirmationAttachment"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — INVALID_FILE_TYPE | FILE_TOO_LARGE | UNSUPPORTED_MEDIA_TYPE */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

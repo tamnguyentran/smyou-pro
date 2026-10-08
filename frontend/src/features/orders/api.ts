@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import type { components, operations } from "../../lib/api/schema";
+import { resolveBasePath } from "../../lib/basePath";
 import { toApiError } from "../auth/errors";
 import { freshestOrder } from "./orderCache";
 
@@ -17,6 +18,7 @@ export type OrderLineUpdateBody = components["schemas"]["OrderLineUpdate"];
 export type OrderContactUpdateBody = components["schemas"]["OrderContactUpdate"];
 export type OrderCancelBody = components["schemas"]["OrderCancel"];
 export type AuditEventOut = components["schemas"]["AuditEventOut"];
+export type ConfirmationAttachment = components["schemas"]["ConfirmationAttachment"];
 
 export const ORDER_KEY = "order";
 export const ORDER_LIST_KEY = "orders";
@@ -64,6 +66,29 @@ export function useOrderHistory(orderId: string | undefined) {
       return data;
     },
   });
+}
+
+export const CONFIRMATION_ATTACHMENTS_KEY = "order-confirmation-attachments";
+
+/** AC-CMP-011: ảnh phiếu xác nhận đã tải, mới nhất trước — tab "Tệp đính kèm". */
+export function useConfirmationAttachments(orderId: string | undefined) {
+  return useQuery({
+    queryKey: [CONFIRMATION_ATTACHMENTS_KEY, orderId],
+    enabled: orderId !== undefined,
+    queryFn: async () => {
+      if (orderId === undefined) throw new Error("useConfirmationAttachments called without an id");
+      const { data, error, response } = await api.GET(
+        "/api/v1/orders/{order_id}/confirmation-attachments",
+        { params: { path: { order_id: orderId } } },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+  });
+}
+
+export function attachmentUrl(attachmentId: string): string {
+  return `${resolveBasePath(import.meta.env.BASE_URL).apiPrefix}/api/v1/attachments/${attachmentId}`;
 }
 
 export function useOrder(orderId: string | undefined) {

@@ -10,6 +10,7 @@ from sqlalchemy import ColumnElement, case, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.authz import Actor, ScopeRules, apply_scope, effective_scopes, get_in_scope_or_404
+from app.core.config import Settings
 from app.core.errors import AppError
 from app.core.sequences import next_value
 from app.core.spec_loader import Specs
@@ -18,10 +19,14 @@ from app.modules.audit.schemas import AuditEventPage
 from app.modules.catalog.models import Product, Service
 from app.modules.customers.models import Customer
 from app.modules.dispatch.models import Assignment, Task
+from app.modules.files import service as files
+from app.modules.files.models import Attachment
 from app.modules.identity.models import Employee
 from app.modules.orders import domain
 from app.modules.orders.models import Order, OrderLine
 from app.modules.orders.schemas import (
+    ConfirmationAttachment,
+    ConfirmationAttachmentPage,
     OrderCancel,
     OrderCommand,
     OrderContactUpdate,
@@ -288,6 +293,16 @@ def _can_edit_after_submit(order: Order, actor: Actor, specs: Specs, capability:
     return "all" in scopes or ("own" in scopes and order.created_by == actor.id)
 
 
+def _can_upload_confirmation(order: Order, actor: Actor, specs: Specs) -> bool:
+    """`order.upload_confirmation`'s scopes are all/assigned (no `own`). `assigned` needs no extra
+    query here: it's the same capability-independent `RULES["assigned"]` task/assignment clause
+    `order.read` already checked to fetch this order in the first place — see `_assigned_clause`."""
+    if order.status != "AWAITING_CONFIRMATION":
+        return False
+    scopes = effective_scopes(specs.permissions, actor.roles, "order.upload_confirmation")
+    return "all" in scopes or "assigned" in scopes
+
+
 def _out(order: Order, actor: Actor, specs: Specs) -> OrderDetail:
     lines = sorted(order.lines, key=lambda line: line.position)
     return OrderDetail(
@@ -319,6 +334,7 @@ def _out(order: Order, actor: Actor, specs: Specs) -> OrderDetail:
         can_edit_lines_after_submit=_can_edit_after_submit(
             order, actor, specs, "order.edit_lines_after_submit"
         ),
+        can_upload_confirmation=_can_upload_confirmation(order, actor, specs),
     )
 
 
@@ -550,6 +566,94 @@ def get_order_history(
     order = get_in_scope_or_404(session, select(Order).where(Order.id == order_id), actor, RULES)
     return audit.list_events_for_entity(
         session, entity_type="ORDER", entity_id=order.id, limit=limit, offset=offset
+    )
+
+
+def order_in_scope(session: Session, actor: Actor, order_id: uuid.UUID) -> bool:
+    """Non-raising scope check for `files/router.py`'s dynamic `attachments_get` (M6-01) — it needs
+    to tell "order outside caller's scope" from "order exists and is visible" without importing
+    `orders.models`/`RULES` directly (ARCHITECTURE §3: cross-module calls go through a service's
+    public function, not its models). `actor.scopes` must already be bound to the capability the
+    caller decided applies (`order.read`)."""
+    stmt = apply_scope(select(Order.id).where(Order.id == order_id), actor, RULES)
+    return session.scalars(stmt).first() is not None
+
+
+def upload_confirmation_attachment(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    *,
+    file_bytes: bytes,
+    filename: str,
+    declared_mime: str,
+    settings: Settings,
+    now: datetime,
+    request_id: str | None = None,
+) -> ConfirmationAttachment:
+    order = get_in_scope_or_404(session, select(Order).where(Order.id == order_id), actor, RULES)
+    attachment = files.store_image(
+        session,
+        owner_type="ORDER",
+        owner_id=order.id,
+        kind="CUSTOMER_CONFIRMATION",
+        revision_no=order.revision_no,
+        file_bytes=file_bytes,
+        filename=filename,
+        declared_mime=declared_mime,
+        uploaded_by=actor.id,
+        settings=settings,
+        now=now,
+    )
+    session.flush()
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ORDER",
+        entity_id=order.id,
+        action="confirmation_upload",
+        data={"attachment_id": str(attachment.id), "revision_no": order.revision_no},
+        request_id=request_id,
+    )
+    uploader = session.scalars(select(Employee).where(Employee.id == actor.id)).one()
+    return ConfirmationAttachment(
+        id=attachment.id,
+        revision_no=attachment.revision_no,
+        mime_type=attachment.mime_type,
+        size_bytes=attachment.size_bytes,
+        uploaded_by=attachment.uploaded_by,
+        uploaded_by_name=uploader.full_name,
+        created_at=attachment.created_at,
+    )
+
+
+def list_confirmation_attachments(
+    session: Session, actor: Actor, order_id: uuid.UUID
+) -> ConfirmationAttachmentPage:
+    order = get_in_scope_or_404(session, select(Order).where(Order.id == order_id), actor, RULES)
+    rows = session.execute(
+        select(Attachment, Employee)
+        .join(Employee, Employee.id == Attachment.uploaded_by)
+        .where(
+            Attachment.owner_type == "ORDER",
+            Attachment.owner_id == order.id,
+            Attachment.kind == "CUSTOMER_CONFIRMATION",
+        )
+        .order_by(Attachment.created_at.desc())
+    ).all()
+    return ConfirmationAttachmentPage(
+        items=[
+            ConfirmationAttachment(
+                id=attachment.id,
+                revision_no=attachment.revision_no,
+                mime_type=attachment.mime_type,
+                size_bytes=attachment.size_bytes,
+                uploaded_by=attachment.uploaded_by,
+                uploaded_by_name=employee.full_name,
+                created_at=attachment.created_at,
+            )
+            for attachment, employee in rows
+        ]
     )
 
 

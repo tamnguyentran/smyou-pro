@@ -224,6 +224,21 @@ class OrderDetail(BaseModel):
     allowed_commands: list[str]
     can_edit_contact: bool
     can_edit_lines_after_submit: bool
+    can_upload_confirmation: bool
+
+
+class ConfirmationAttachment(BaseModel):
+    id: uuid.UUID
+    revision_no: int
+    mime_type: str
+    size_bytes: int
+    uploaded_by: uuid.UUID
+    uploaded_by_name: str
+    created_at: datetime
+
+
+class ConfirmationAttachmentPage(BaseModel):
+    items: list[ConfirmationAttachment]
 
 
 class OrderSummary(BaseModel):

@@ -79,12 +79,7 @@ def get_in_scope_or_404(session: Session, stmt: Select[Any], actor: Actor, rules
 
 def require(capability: str, *, allow_pending_password_change: bool = False) -> Callable[..., Actor]:
     def dependency(request: Request, session: DbSession) -> Actor:
-        authenticate: Authenticator | None = getattr(request.app.state, "authenticator", None)
-        actor = authenticate(request, session) if authenticate is not None else None
-        if actor is None:
-            raise AppError(401, "UNAUTHENTICATED", "Vui lòng đăng nhập.")
-        if actor.must_change_password and not allow_pending_password_change:
-            raise AppError(403, "PASSWORD_CHANGE_REQUIRED", "Bạn cần đổi mật khẩu trước khi tiếp tục.")
+        actor = _authenticate(request, session, allow_pending_password_change=allow_pending_password_change)
         specs: Specs = request.app.state.specs
         scopes = effective_scopes(specs.permissions, actor.roles, capability)
         if not scopes:
@@ -92,6 +87,27 @@ def require(capability: str, *, allow_pending_password_change: bool = False) -> 
         return replace(actor, capability=capability, scopes=scopes)
 
     setattr(dependency, CAPABILITY_ATTR, capability)
+    return dependency
+
+
+def _authenticate(request: Request, session: Session, *, allow_pending_password_change: bool) -> Actor:
+    authenticate: Authenticator | None = getattr(request.app.state, "authenticator", None)
+    actor = authenticate(request, session) if authenticate is not None else None
+    if actor is None:
+        raise AppError(401, "UNAUTHENTICATED", "Vui lòng đăng nhập.")
+    if actor.must_change_password and not allow_pending_password_change:
+        raise AppError(403, "PASSWORD_CHANGE_REQUIRED", "Bạn cần đổi mật khẩu trước khi tiếp tục.")
+    return actor
+
+
+def require_authenticated(*, allow_pending_password_change: bool = False) -> Callable[..., Actor]:
+    """Same as `require()` minus the capability/scope check — for the one route
+    (spec/permissions.yaml#dynamic_routes) that picks its capability per-record at runtime instead
+    of statically, so `_declared()` must see zero capabilities here, not one chosen in advance."""
+
+    def dependency(request: Request, session: DbSession) -> Actor:
+        return _authenticate(request, session, allow_pending_password_change=allow_pending_password_change)
+
     return dependency
 
 
@@ -106,8 +122,9 @@ def _declared(dependant: Dependant) -> list[str]:
 
 
 def undeclared_routes(app: FastAPI, permissions: PermissionsSpec) -> list[str]:
-    """Routes that are neither public nor guarded by exactly one known capability."""
+    """Routes that are neither public, dynamic, nor guarded by exactly one known capability."""
     public = set(permissions.public_routes)
+    dynamic = set(permissions.dynamic_routes)
     problems: list[str] = []
     # FastAPI's own docs/OpenAPI routes (disabled in production) are the only non-API routes allowed.
     framework = {app.openapi_url, app.docs_url, app.redoc_url} - {None}
@@ -130,8 +147,13 @@ def undeclared_routes(app: FastAPI, permissions: PermissionsSpec) -> list[str]:
             if key in public:
                 if capabilities:
                     problems.append(f"{key}: listed in public_routes but also requires {capabilities}")
+            elif key in dynamic:
+                if capabilities:
+                    problems.append(f"{key}: listed in dynamic_routes but also declares {capabilities}")
             elif not capabilities:
-                problems.append(f"{key}: declares no capability and is not in public_routes")
+                problems.append(
+                    f"{key}: declares no capability and is not in public_routes or dynamic_routes"
+                )
             elif len(capabilities) > 1:
                 problems.append(
                     f"{key}: declares {len(capabilities)} capabilities {capabilities}; exactly one"

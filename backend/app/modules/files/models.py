@@ -1,9 +1,10 @@
-"""Attachment storage (DOMAIN_MODEL §11). Shared across owners; only PRODUCT_IMAGE is used until M6-01."""
+"""Attachment storage (DOMAIN_MODEL §11). Shared across owners (PRODUCT_IMAGE, CUSTOMER_CONFIRMATION
+since M6-01)."""
 
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Uuid, func, text
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Uuid, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -11,6 +12,9 @@ from app.core.db import Base
 
 class Attachment(Base):
     __tablename__ = "attachments"
+    __table_args__ = (
+        Index("ix_attachments_owner_kind_revision", "owner_type", "owner_id", "kind", "revision_no"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     owner_type: Mapped[str] = mapped_column(String(20))
