@@ -17,6 +17,7 @@ export type TaskUpdateBody = components["schemas"]["TaskUpdate"];
 export type TaskAddAssigneeBody = components["schemas"]["TaskAddAssignee"];
 export type TaskAssigneeRemoveBody = components["schemas"]["TaskAssigneeRemove"];
 export type TaskCancelBody = components["schemas"]["TaskCancel"];
+export type TaskReopenBody = components["schemas"]["TaskReopen"];
 
 export const DISPATCH_QUEUE_KEY = "dispatch-queue";
 export const ORDER_TASKS_KEY = "order-tasks";
@@ -279,6 +280,35 @@ export function useRemoveAssignee() {
           params: { path: { order_id: orderId, task_id: taskId, assignment_id: assignmentId } },
           body,
         },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: (_task, { orderId, taskId }) => {
+      void queryClient.invalidateQueries({ queryKey: [ORDER_TASKS_KEY, orderId] });
+      void queryClient.invalidateQueries({ queryKey: [ORDER_KEY, orderId] });
+      void queryClient.invalidateQueries({ queryKey: ME_KEY });
+      void queryClient.invalidateQueries({ queryKey: [TASK_KEY, taskId] });
+    },
+  });
+}
+
+/** AC-DSP-123: mở lại 1 đầu việc `DONE` khi đơn đang `REVISION` — ghi nhận lỗi cho người đã làm. */
+export function useReopenTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      orderId,
+      taskId,
+      body,
+    }: {
+      orderId: string;
+      taskId: string;
+      body: TaskReopenBody;
+    }) => {
+      const { data, error, response } = await api.POST(
+        "/api/v1/orders/{order_id}/tasks/{task_id}/reopen",
+        { params: { path: { order_id: orderId, task_id: taskId } }, body },
       );
       if (!data) throw toApiError(response, error);
       return data;

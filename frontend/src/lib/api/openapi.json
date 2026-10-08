@@ -2593,6 +2593,10 @@
             ],
             "title": "Requested Date"
           },
+          "revision_no": {
+            "title": "Revision No",
+            "type": "integer"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -2614,7 +2618,8 @@
           "requested_date",
           "created_by",
           "created_by_name",
-          "created_at"
+          "created_at",
+          "revision_no"
         ],
         "title": "OrderSummary",
         "type": "object"

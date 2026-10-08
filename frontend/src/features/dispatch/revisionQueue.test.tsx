@@ -62,7 +62,7 @@ describe("Đơn cần chỉnh sửa — /dispatch/revisions (M6-03b)", () => {
     await waitFor(() => {
       expect(lastQuery).toContain("status=REVISION");
     });
-    expect(screen.getByText("Cty Sáng Tạo Mới")).toBeInTheDocument();
+    expect(screen.getAllByText("Cty Sáng Tạo Mới")).toHaveLength(2);
     expect(screen.getByText("Lần chỉnh sửa 1")).toBeInTheDocument();
     expect(screen.getByText("Lần chỉnh sửa 2")).toBeInTheDocument();
 
@@ -96,11 +96,13 @@ describe("Đơn cần chỉnh sửa — /dispatch/revisions (M6-03b)", () => {
     const nav = await screen.findByRole("navigation", { name: "Menu chính" });
     const link = within(nav).getByRole("link", { name: /Đơn cần chỉnh sửa/ });
     expect(await within(link).findByText("2")).toBeInTheDocument();
+  });
 
+  test("AC-DSP-129b Hoa (không task.manage) không thấy mục menu Đơn cần chỉnh sửa", async () => {
     signedInAs(hoaId, HOA);
     renderApp("/");
-    const nav2 = await screen.findByRole("navigation", { name: "Menu chính" });
-    expect(within(nav2).queryByRole("link", { name: /Đơn cần chỉnh sửa/ })).not.toBeInTheDocument();
+    const nav = await screen.findByRole("navigation", { name: "Menu chính" });
+    expect(within(nav).queryByRole("link", { name: /Đơn cần chỉnh sửa/ })).not.toBeInTheDocument();
   });
 
   test("Hoa/An (không có task.manage) mở /dispatch/revisions → 403, không gọi GET /orders", async () => {

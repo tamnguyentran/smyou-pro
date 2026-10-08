@@ -240,9 +240,13 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
   test("AC-SYS-038 desktop: mục đang chọn, nhóm tự mở và thu/mở được, nút hành động chính", async () => {
     mockViewport(true);
     signedInAs(TUAN);
-    // "/dispatch/board" và "/dispatch/workload" là trang thật từ M4-03b/M4-04; dùng
-    // "/dispatch/revisions" (vẫn placeholder) để test này không phải mock API — nó chỉ kiểm
-    // hành vi menu chung.
+    // "/dispatch/board", "/dispatch/workload" và "/dispatch/revisions" đều là trang thật (M4-03b/
+    // M4-04/M6-03b) nên cần mock GET /orders — chỉ kiểm hành vi menu chung, không phải nội dung trang.
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+      ),
+    );
     renderApp("/dispatch/revisions");
 
     const nav = await mainMenu();
@@ -418,8 +422,13 @@ describe("Khung ứng dụng — chặn trang & trạng thái", () => {
   test("AC-SYS-045 tiêu đề tab theo trang; nút chỉ có icon đều có nhãn", async () => {
     mockViewport(false);
     signedInAs(TUAN);
-    // "/dispatch/board" và "/dispatch/workload" là trang thật từ M4-03b/M4-04 (cần mock API);
-    // "/dispatch/revisions" vẫn placeholder, đủ cho test tiêu đề tab chung này.
+    // "/dispatch/revisions" là trang thật từ M6-03b — cần mock GET /orders, đủ cho test tiêu đề
+    // tab chung này.
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+      ),
+    );
     renderApp("/dispatch/revisions");
 
     await screen.findByRole("heading", { level: 1, name: "Đơn cần chỉnh sửa" });

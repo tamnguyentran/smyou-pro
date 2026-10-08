@@ -48,10 +48,17 @@ describe("Review M1-03a — vòng 2", () => {
           : HttpResponse.json({ status: 503 }, { status: 503 });
       }),
     );
+    // "/dispatch/revisions" là trang thật từ M6-03b (còn trong nhóm "Điều phối kỹ thuật" như cũ);
+    // cần mock GET /orders để trang tự render xong thay vì kẹt ở skeleton.
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+      ),
+    );
     markSignedIn();
     renderApp("/dispatch/revisions");
     // wait for the shell (the session guard shows its own <main> skeleton first)
-    expect(await screen.findByText("Tính năng đang được phát triển.")).toBeInTheDocument();
+    expect(await screen.findByText("Không có đơn cần chỉnh sửa.")).toBeInTheDocument();
     const main = screen.getByRole("main");
 
     act(() => {
@@ -64,7 +71,7 @@ describe("Review M1-03a — vòng 2", () => {
 
     const nav = screen.getByRole("navigation", { name: "Menu chính" });
     expect(within(nav).getByRole("link", { name: "Bảng đầu việc" })).toBeInTheDocument();
-    expect(within(main).getByText("Tính năng đang được phát triển.")).toBeInTheDocument();
+    expect(within(main).getByText("Không có đơn cần chỉnh sửa.")).toBeInTheDocument();
     expect(screen.queryByText("Không tải được thông tin tài khoản.")).not.toBeInTheDocument();
   });
 
@@ -74,7 +81,8 @@ describe("Review M1-03a — vòng 2", () => {
       http.get("/api/v1/me", () => HttpResponse.json(me)),
     );
     markSignedIn();
-    renderApp("/dispatch/revisions");
+    // "/reports/kpi" (M8, chưa làm) vẫn placeholder.
+    renderApp("/reports/kpi");
 
     expect(await screen.findByText("Tính năng đang được phát triển.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Về trang chủ" })).toHaveAttribute("href", "/");

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Badge } from "../../../components/ui/Badge";
 import { formatCurrency, formatDate } from "../../../lib/format";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
@@ -8,8 +9,21 @@ import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, type OrderStatus } from "../orde
 const CODE_BUTTON =
   "min-h-11 rounded font-semibold text-heading underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2";
 
-/** AC-ORD-069: table on desktop, cards on mobile — same idiom as CustomerList. */
-export function OrderList({ items }: { items: OrderSummary[] }) {
+export interface OrderListExtraColumn {
+  heading: string;
+  render: (order: OrderSummary) => ReactNode;
+}
+
+/** AC-ORD-069: table on desktop, cards on mobile — same idiom as CustomerList.
+ * `extraColumn` (M6-03b, `/dispatch/revisions`): một cột/dòng tuỳ chọn thêm vào cuối, không đổi
+ * bố cục mặc định của `OrdersListPage`. */
+export function OrderList({
+  items,
+  extraColumn,
+}: {
+  items: OrderSummary[];
+  extraColumn?: OrderListExtraColumn;
+}) {
   const navigate = useNavigate();
   const desktop = useMediaQuery("(min-width: 1024px)", true);
 
@@ -22,7 +36,15 @@ export function OrderList({ items }: { items: OrderSummary[] }) {
       <table className="w-full overflow-hidden rounded-2xl border border-line bg-card text-left text-sm">
         <thead className="bg-sidebar-sub text-xs font-semibold text-body uppercase">
           <tr>
-            {["Mã", "Khách", "Trạng thái", "Tổng tiền", "Ngày hẹn", "Người tạo"].map((heading) => (
+            {[
+              "Mã",
+              "Khách",
+              "Trạng thái",
+              "Tổng tiền",
+              "Ngày hẹn",
+              "Người tạo",
+              ...(extraColumn ? [extraColumn.heading] : []),
+            ].map((heading) => (
               <th key={heading} scope="col" className="px-4 py-3">
                 {heading}
               </th>
@@ -61,6 +83,9 @@ export function OrderList({ items }: { items: OrderSummary[] }) {
                   {order.requested_date ? formatDate(order.requested_date) : "—"}
                 </td>
                 <td className="px-4 py-3 text-body">{order.created_by_name ?? "—"}</td>
+                {extraColumn ? (
+                  <td className="px-4 py-3 text-body">{extraColumn.render(order)}</td>
+                ) : null}
               </tr>
             );
           })}
@@ -88,6 +113,9 @@ export function OrderList({ items }: { items: OrderSummary[] }) {
               </div>
               <p className="text-sm text-body">{order.customer_name ?? "Khách lẻ"}</p>
               <p className="text-sm font-medium text-heading">{formatCurrency(order.total)}</p>
+              {extraColumn ? (
+                <p className="text-sm text-body">{extraColumn.render(order)}</p>
+              ) : null}
             </button>
           </li>
         );

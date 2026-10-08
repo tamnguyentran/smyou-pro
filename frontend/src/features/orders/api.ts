@@ -18,6 +18,7 @@ export type OrderLineUpdateBody = components["schemas"]["OrderLineUpdate"];
 export type OrderContactUpdateBody = components["schemas"]["OrderContactUpdate"];
 export type OrderCancelBody = components["schemas"]["OrderCancel"];
 export type OrderCompleteBody = components["schemas"]["OrderComplete"];
+export type OrderReviseBody = components["schemas"]["OrderRevise"];
 export type AuditEventOut = components["schemas"]["AuditEventOut"];
 export type ConfirmationAttachment = components["schemas"]["ConfirmationAttachment"];
 
@@ -33,8 +34,9 @@ export interface OrderFilters {
 }
 
 /** AC-ORD-069: danh sách đơn — tìm theo mã/tên khách/SĐT, lọc theo trạng thái. */
-export function useOrders(filters: OrderFilters) {
+export function useOrders(filters: OrderFilters, { enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
+    enabled,
     queryKey: [ORDER_LIST_KEY, filters],
     queryFn: async () => {
       const { data, error, response } = await api.GET("/api/v1/orders", {
@@ -118,6 +120,22 @@ function useSetOrder() {
       freshestOrder(cached, order),
     );
   };
+}
+
+/** AC-ORD-154: AWAITING_CONFIRMATION|COMPLETED → REVISION. */
+export function useReviseOrder() {
+  const setOrder = useSetOrder();
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: OrderReviseBody }) => {
+      const { data, error, response } = await api.POST("/api/v1/orders/{order_id}/revise", {
+        params: { path: { order_id: id } },
+        body,
+      });
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: setOrder,
+  });
 }
 
 export function useCreateOrder() {

@@ -1887,6 +1887,8 @@ export interface components {
       priority: string;
       /** Requested Date */
       requested_date: string | null;
+      /** Revision No */
+      revision_no: number;
       /** Status */
       status: string;
       /** Total */

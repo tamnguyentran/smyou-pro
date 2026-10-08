@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Ban, ClipboardList, UserMinus, UserPlus } from "lucide-react";
+import { Ban, ClipboardList, RotateCcw, UserMinus, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { Alert } from "../../../components/ui/Alert";
@@ -20,9 +20,11 @@ import {
   useAddAssignee,
   useCancelTask,
   useRemoveAssignee,
+  useReopenTask,
   useTask,
   useUpdateTask,
   type TaskAssignee,
+  type TaskReopenBody,
 } from "../api";
 import {
   fromOffsetIso,
@@ -44,6 +46,7 @@ import {
   TERMINAL_TASK_STATUSES,
 } from "../taskStatus";
 import { CancelTaskSheet } from "./CancelTaskSheet";
+import { ReopenTaskSheet } from "./ReopenTaskSheet";
 
 const GENERIC_ERROR = "Không thực hiện được. Vui lòng thử lại.";
 const FORM_ID = "task-edit-form";
@@ -71,6 +74,7 @@ export function TaskEditSheet({
   const addAssignee = useAddAssignee();
   const removeAssignee = useRemoveAssignee();
   const cancelTask = useCancelTask();
+  const reopenTask = useReopenTask();
 
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [showReload, setShowReload] = useState(false);
@@ -81,6 +85,9 @@ export function TaskEditSheet({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [cancelStale, setCancelStale] = useState(false);
+  const [reopenOpen, setReopenOpen] = useState(false);
+  const [reopenError, setReopenError] = useState<string | null>(null);
+  const [reopenStale, setReopenStale] = useState(false);
 
   const { register, handleSubmit, formState, reset } = useForm<TaskEditFormValues>({
     resolver: zodResolver(taskUpdateSchema) as Resolver<TaskEditFormValues>,
@@ -110,6 +117,15 @@ export function TaskEditSheet({
     "task.manage" in me.data.capabilities &&
     DISPATCHABLE_STATUSES.has(detail.data.order_status) &&
     !TERMINAL_TASK_STATUSES.has(detail.data.status);
+
+  // AC-DSP-120/121: chỉ khi task đã DONE và đơn đang đúng REVISION (không phải mọi trạng thái
+  // điều phối được của DISPATCHABLE_STATUSES) — khác gate của canManage ở trên.
+  const canReopen =
+    me.data !== undefined &&
+    detail.data !== undefined &&
+    "task.reopen" in me.data.capabilities &&
+    detail.data.status === "DONE" &&
+    detail.data.order_status === "REVISION";
 
   const assignedIds = new Set(detail.data?.assignees.map((assignee) => assignee.employee_id) ?? []);
   const candidates = (technicians.data ?? []).filter(
@@ -198,6 +214,27 @@ export function TaskEditSheet({
     );
   }
 
+  function submitReopen(reason: string, severity: TaskReopenBody["severity"]) {
+    if (detail.data === undefined) return;
+    setReopenError(null);
+    reopenTask.mutate(
+      { orderId, taskId, body: { version: detail.data.order_version, reason, severity } },
+      {
+        onSuccess: (updated) => {
+          setReopenOpen(false);
+          toast(`Đã mở lại đầu việc ${updated.code}.`);
+        },
+        onError: (error: unknown) => {
+          if (error instanceof ApiError && error.problem.code === "STALE_VERSION") {
+            setReopenStale(true);
+          } else {
+            setReopenError(describeError(error));
+          }
+        },
+      },
+    );
+  }
+
   const title = detail.data ? `Sửa đầu việc — ${detail.data.code}` : "Sửa đầu việc";
 
   return (
@@ -205,7 +242,7 @@ export function TaskEditSheet({
       <Sheet
         open
         onClose={onClose}
-        dismissible={!updateTask.isPending && !cancelTask.isPending}
+        dismissible={!updateTask.isPending && !cancelTask.isPending && !reopenTask.isPending}
         title={title}
         footer={
           detail.data !== undefined && canManage ? (
@@ -430,10 +467,42 @@ export function TaskEditSheet({
               >
                 Huỷ đầu việc
               </Button>
+            ) : canReopen ? (
+              <Button
+                type="button"
+                variant="secondary"
+                icon={<RotateCcw aria-hidden="true" className="size-4" />}
+                className="border-urgent-border text-urgent-fg hover:bg-urgent-bg"
+                onClick={() => {
+                  setReopenError(null);
+                  setReopenOpen(true);
+                }}
+              >
+                Mở lại
+              </Button>
             ) : null}
           </div>
         )}
       </Sheet>
+
+      {detail.data !== undefined ? (
+        <ReopenTaskSheet
+          open={reopenOpen}
+          onClose={() => {
+            setReopenOpen(false);
+            setReopenStale(false);
+          }}
+          taskCode={detail.data.code}
+          loading={reopenTask.isPending}
+          error={reopenError}
+          staleVersion={reopenStale}
+          onReload={() => {
+            setReopenStale(false);
+            void detail.refetch();
+          }}
+          onConfirm={submitReopen}
+        />
+      ) : null}
 
       {detail.data !== undefined ? (
         <CancelTaskSheet

@@ -270,6 +270,7 @@ class OrderSummary(BaseModel):
     created_by: uuid.UUID
     created_by_name: str | None
     created_at: datetime
+    revision_no: int
 
 
 class OrderPage(BaseModel):

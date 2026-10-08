@@ -381,6 +381,7 @@ def _summary(order: Order, created_by_name: str | None) -> OrderSummary:
         created_by=order.created_by,
         created_by_name=created_by_name,
         created_at=order.created_at,
+        revision_no=order.revision_no,
     )
 
 
