@@ -7,6 +7,8 @@ import { toApiError } from "../auth/errors";
 export type MyAssignment = components["schemas"]["MyAssignmentOut"];
 export type AssignmentAcceptBody = components["schemas"]["AssignmentAccept"];
 export type AssignmentRejectBody = components["schemas"]["AssignmentReject"];
+export type AssignmentStartBody = components["schemas"]["AssignmentStart"];
+export type AssignmentCompleteBody = components["schemas"]["AssignmentComplete"];
 export const MY_ASSIGNMENTS_KEY = "my-assignments";
 
 /** AC-ASG-001…004: phân công của chính tôi (M5-01) — `GET /api/v1/assignments/me`. */
@@ -63,6 +65,62 @@ export function useRejectAssignment() {
     }) => {
       const { data, error, response } = await api.POST(
         "/api/v1/assignments/{assignment_id}/reject",
+        {
+          params: { path: { assignment_id: assignmentId } },
+          body,
+        },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [MY_ASSIGNMENTS_KEY] });
+      void queryClient.invalidateQueries({ queryKey: ME_KEY });
+    },
+  });
+}
+
+/** AC-ASG-042…050 (M5-03): bắt đầu làm 1 phân công của chính mình. */
+export function useStartAssignment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      assignmentId,
+      body,
+    }: {
+      assignmentId: string;
+      body: AssignmentStartBody;
+    }) => {
+      const { data, error, response } = await api.POST(
+        "/api/v1/assignments/{assignment_id}/start",
+        {
+          params: { path: { assignment_id: assignmentId } },
+          body,
+        },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [MY_ASSIGNMENTS_KEY] });
+      void queryClient.invalidateQueries({ queryKey: ME_KEY });
+    },
+  });
+}
+
+/** AC-ASG-051…061 (M5-03): báo hoàn thành 1 phân công của chính mình. */
+export function useCompleteAssignment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      assignmentId,
+      body,
+    }: {
+      assignmentId: string;
+      body: AssignmentCompleteBody;
+    }) => {
+      const { data, error, response } = await api.POST(
+        "/api/v1/assignments/{assignment_id}/complete",
         {
           params: { path: { assignment_id: assignmentId } },
           body,

@@ -53,6 +53,8 @@ function assignment(overrides: Partial<MyAssignmentOut> = {}): MyAssignmentOut {
     customer_name: "Công ty TNHH Phát Đạt",
     customer_phone: "0932068787",
     service_address: "45 Nguyễn Trãi, P. Bến Thành, Q.1, TP.HCM",
+    completion_note: null,
+    actual_hours: null,
     ...overrides,
   };
 }
@@ -369,6 +371,179 @@ describe("Việc của tôi", () => {
     await screen.findByText("T1");
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Tiếp nhận" }));
+
+    await screen.findByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại.");
+    reloaded = true;
+    await user.click(screen.getByRole("button", { name: "Tải lại" }));
+    await waitFor(() => {
+      expect(screen.queryByText("T1")).not.toBeInTheDocument();
+    });
+  });
+
+  test("AC-ASG-062 tab Đang làm: ACCEPTED có nút Bắt đầu, IN_PROGRESS có nút Báo hoàn thành", async () => {
+    signedInAs(khoaId, KHOA);
+    mockAssignments([
+      assignment({ assignment_id: "a1", assignment_status: "ACCEPTED", task_code: "T1" }),
+      assignment({ assignment_id: "a2", assignment_status: "IN_PROGRESS", task_code: "T2" }),
+    ]);
+    renderApp("/my-tasks");
+
+    await screen.findByRole("tablist");
+    await userEvent.setup().click(screen.getByRole("tab", { name: /Đang làm/ }));
+    await screen.findByText("T1");
+
+    const t1Card = screen.getByText("T1").closest("li, tr") as HTMLElement;
+    expect(within(t1Card).getByRole("button", { name: "Bắt đầu" })).toBeInTheDocument();
+    expect(
+      within(t1Card).queryByRole("button", { name: "Báo hoàn thành" }),
+    ).not.toBeInTheDocument();
+
+    const t2Card = screen.getByText("T2").closest("li, tr") as HTMLElement;
+    expect(within(t2Card).getByRole("button", { name: "Báo hoàn thành" })).toBeInTheDocument();
+    expect(within(t2Card).queryByRole("button", { name: "Bắt đầu" })).not.toBeInTheDocument();
+  });
+
+  test("AC-ASG-063 bấm Bắt đầu: gọi start đúng version, toast, nhãn+nút đổi", async () => {
+    signedInAs(khoaId, KHOA);
+    const calls: Record<string, unknown>[] = [];
+    let started = false;
+    server.use(
+      http.get("/api/v1/assignments/me", () =>
+        HttpResponse.json({
+          items: [
+            assignment({
+              assignment_id: "a1",
+              task_code: "T1",
+              order_version: 3,
+              assignment_status: started ? "IN_PROGRESS" : "ACCEPTED",
+            }),
+          ],
+        }),
+      ),
+      http.post("/api/v1/assignments/:id/start", async ({ request }) => {
+        calls.push((await request.json()) as Record<string, unknown>);
+        started = true;
+        return HttpResponse.json(
+          assignment({ assignment_id: "a1", task_code: "T1", assignment_status: "IN_PROGRESS" }),
+        );
+      }),
+    );
+    renderApp("/my-tasks");
+
+    await screen.findByRole("tablist");
+    await userEvent.setup().click(screen.getByRole("tab", { name: /Đang làm/ }));
+    await screen.findByText("T1");
+    expect(screen.getByText("Đã tiếp nhận")).toBeInTheDocument();
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Bắt đầu" }));
+
+    expect(calls).toEqual([{ version: 3 }]);
+    await screen.findByText("Đã bắt đầu đầu việc.");
+    await screen.findByText("Đang thực hiện");
+    expect(screen.getByRole("button", { name: "Báo hoàn thành" })).toBeInTheDocument();
+  });
+
+  test("AC-ASG-064 bấm Báo hoàn thành: mở Sheet, Xác nhận không disabled khi trống", async () => {
+    signedInAs(khoaId, KHOA);
+    mockAssignments([
+      assignment({ assignment_id: "a1", assignment_status: "IN_PROGRESS", task_code: "T1" }),
+    ]);
+    renderApp("/my-tasks");
+
+    await screen.findByRole("tablist");
+    await userEvent.setup().click(screen.getByRole("tab", { name: /Đang làm/ }));
+    await screen.findByText("T1");
+    await userEvent.setup().click(screen.getByRole("button", { name: "Báo hoàn thành" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Báo hoàn thành đầu việc T1?" });
+    expect(within(dialog).getByLabelText("Ghi chú")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Giờ thực tế")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Xác nhận hoàn thành" })).not.toBeDisabled();
+  });
+
+  test("AC-ASG-065 Xác nhận hoàn thành (trống 2 trường): gọi complete, toast, thẻ biến mất", async () => {
+    signedInAs(khoaId, KHOA);
+    const calls: Record<string, unknown>[] = [];
+    let completed = false;
+    server.use(
+      http.get("/api/v1/assignments/me", () =>
+        HttpResponse.json({
+          items: completed
+            ? []
+            : [
+                assignment({
+                  assignment_id: "a1",
+                  task_code: "T1",
+                  order_version: 3,
+                  assignment_status: "IN_PROGRESS",
+                }),
+              ],
+        }),
+      ),
+      http.post("/api/v1/assignments/:id/complete", async ({ request }) => {
+        calls.push((await request.json()) as Record<string, unknown>);
+        completed = true;
+        return HttpResponse.json(
+          assignment({ assignment_id: "a1", task_code: "T1", assignment_status: "DONE" }),
+        );
+      }),
+    );
+    renderApp("/my-tasks");
+
+    await screen.findByRole("tablist");
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: /Đang làm/ }));
+    await screen.findByText("T1");
+    await user.click(screen.getByRole("button", { name: "Báo hoàn thành" }));
+    const dialog = await screen.findByRole("dialog", { name: "Báo hoàn thành đầu việc T1?" });
+    await user.click(within(dialog).getByRole("button", { name: "Xác nhận hoàn thành" }));
+
+    expect(calls).toEqual([{ version: 3, completion_note: null, actual_hours: null }]);
+    await screen.findByText("Đã báo hoàn thành đầu việc.");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("T1")).not.toBeInTheDocument();
+    });
+  });
+
+  test("AC-ASG-066 STALE_VERSION ở start/complete hiện banner Tải lại", async () => {
+    signedInAs(khoaId, KHOA);
+    let reloaded = false;
+    server.use(
+      http.get("/api/v1/assignments/me", () =>
+        HttpResponse.json({
+          items: reloaded
+            ? []
+            : [
+                assignment({
+                  assignment_id: "a1",
+                  task_code: "T1",
+                  order_version: 3,
+                  assignment_status: "ACCEPTED",
+                }),
+              ],
+        }),
+      ),
+      http.post("/api/v1/assignments/:id/start", () =>
+        HttpResponse.json(
+          {
+            status: 409,
+            code: "STALE_VERSION",
+            detail: "Thông tin đã bị người khác thay đổi. Vui lòng tải lại.",
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    renderApp("/my-tasks");
+
+    await screen.findByRole("tablist");
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: /Đang làm/ }));
+    await screen.findByText("T1");
+    await user.click(screen.getByRole("button", { name: "Bắt đầu" }));
 
     await screen.findByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại.");
     reloaded = true;

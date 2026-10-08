@@ -38,6 +38,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/assignments/{assignment_id}/complete": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Báo hoàn thành đầu việc */
+    post: operations["assignments_complete"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/assignments/{assignment_id}/reject": {
     parameters: {
       query?: never;
@@ -49,6 +66,23 @@ export interface paths {
     put?: never;
     /** Từ chối đầu việc (có lý do) */
     post: operations["assignments_reject"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/assignments/{assignment_id}/start": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Bắt đầu làm đầu việc */
+    post: operations["assignments_start"];
     delete?: never;
     options?: never;
     head?: never;
@@ -921,6 +955,15 @@ export interface components {
       /** Version */
       version: number;
     };
+    /** AssignmentComplete */
+    AssignmentComplete: {
+      /** Actual Hours */
+      actual_hours?: number | string | null;
+      /** Completion Note */
+      completion_note?: string | null;
+      /** Version */
+      version: number;
+    };
     /** AssignmentReject */
     AssignmentReject: {
       /**
@@ -930,6 +973,11 @@ export interface components {
       reason_code: "BUSY" | "SICK" | "SKILL" | "DISTANCE" | "OTHER";
       /** Reason Text */
       reason_text: string;
+      /** Version */
+      version: number;
+    };
+    /** AssignmentStart */
+    AssignmentStart: {
       /** Version */
       version: number;
     };
@@ -1377,6 +1425,8 @@ export interface components {
     };
     /** MyAssignmentOut */
     MyAssignmentOut: {
+      /** Actual Hours */
+      actual_hours: string | null;
       /**
        * Assignment Id
        * Format: uuid
@@ -1384,6 +1434,8 @@ export interface components {
       assignment_id: string;
       /** Assignment Status */
       assignment_status: string;
+      /** Completion Note */
+      completion_note: string | null;
       /** Customer Name */
       customer_name: string | null;
       /** Customer Phone */
@@ -2265,6 +2317,53 @@ export interface operations {
       };
     };
   };
+  assignments_complete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        assignment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AssignmentComplete"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MyAssignmentOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — VALIDATION_ERROR */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   assignments_reject: {
     parameters: {
       query?: never;
@@ -2277,6 +2376,55 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["AssignmentReject"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MyAssignmentOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  assignments_start: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        assignment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AssignmentStart"];
       };
     };
     responses: {

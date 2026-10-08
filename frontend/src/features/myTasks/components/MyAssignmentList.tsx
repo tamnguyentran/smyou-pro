@@ -1,5 +1,15 @@
-import { CalendarClock, CheckCircle2, MapPin, Phone, Timer, XCircle } from "lucide-react";
+import {
+  BadgeCheck,
+  CalendarClock,
+  CheckCircle2,
+  MapPin,
+  Phone,
+  PlayCircle,
+  Timer,
+  XCircle,
+} from "lucide-react";
 import { useState } from "react";
+import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
 import { formatDateTime, formatPhone, mapHref } from "../../../lib/format";
 import { cn } from "../../../lib/cn";
@@ -7,6 +17,13 @@ import { useMediaQuery } from "../../../lib/useMediaQuery";
 import type { MyAssignment } from "../api";
 
 const URGENT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+// spec/state_machines.yaml#assignment.states — only the 2 statuses shown on the "Đang làm" tab
+// need a visible label today (AC-ASG-063).
+const WORK_STATUS_LABELS: Record<string, { label: string; tone: "review" | "in_progress" }> = {
+  ACCEPTED: { label: "Đã tiếp nhận", tone: "review" },
+  IN_PROGRESS: { label: "Đang thực hiện", tone: "in_progress" },
+};
 
 function isUrgent(dueAt: string, now: number): boolean {
   return new Date(dueAt).getTime() - now <= URGENT_WINDOW_MS;
@@ -92,19 +109,71 @@ function ResponseActions({
   );
 }
 
-/** AC-ASG-008…014/035…039: thẻ (mobile) / bảng (desktop ≥1024px), mẫu `CustomerList.tsx`. */
+function StatusLabel({ status }: { status: string }) {
+  const entry = WORK_STATUS_LABELS[status];
+  if (!entry) return null;
+  return <Badge tone={entry.tone}>{entry.label}</Badge>;
+}
+
+/** AC-ASG-062…066: nút Bắt đầu/Báo hoàn thành, chỉ hiện ở tab Đang làm (`showWorkActions`). */
+function WorkActions({
+  item,
+  busy,
+  onStart,
+  onComplete,
+}: {
+  item: MyAssignment;
+  busy: boolean;
+  onStart: (item: MyAssignment) => void;
+  onComplete: (item: MyAssignment) => void;
+}) {
+  if (item.assignment_status === "ACCEPTED") {
+    return (
+      <Button
+        icon={<PlayCircle aria-hidden="true" className="size-4" />}
+        loading={busy}
+        onClick={() => {
+          onStart(item);
+        }}
+      >
+        Bắt đầu
+      </Button>
+    );
+  }
+  return (
+    <Button
+      icon={<BadgeCheck aria-hidden="true" className="size-4" />}
+      disabled={busy}
+      onClick={() => {
+        onComplete(item);
+      }}
+    >
+      Báo hoàn thành
+    </Button>
+  );
+}
+
+/** AC-ASG-008…014/035…039/062…066: thẻ (mobile) / bảng (desktop ≥1024px), mẫu `CustomerList.tsx`. */
 export function MyAssignmentList({
   items,
   showActions = false,
+  showWorkActions = false,
   acceptingId = null,
+  startingId = null,
   onAccept = () => undefined,
   onReject = () => undefined,
+  onStart = () => undefined,
+  onComplete = () => undefined,
 }: {
   items: MyAssignment[];
   showActions?: boolean;
+  showWorkActions?: boolean;
   acceptingId?: string | null;
+  startingId?: string | null;
   onAccept?: (item: MyAssignment) => void;
   onReject?: (item: MyAssignment) => void;
+  onStart?: (item: MyAssignment) => void;
+  onComplete?: (item: MyAssignment) => void;
 }) {
   const desktop = useMediaQuery("(min-width: 1024px)", true);
   const [now] = useState(() => Date.now());
@@ -120,7 +189,8 @@ export function MyAssignmentList({
               "Khách & địa chỉ",
               "Hạn chót",
               "Giờ ước tính",
-              ...(showActions ? ["Thao tác"] : []),
+              ...(showWorkActions ? ["Trạng thái"] : []),
+              ...(showActions || showWorkActions ? ["Thao tác"] : []),
             ].map((heading) => (
               <th key={heading} scope="col" className="px-4 py-3">
                 {heading}
@@ -140,6 +210,11 @@ export function MyAssignmentList({
                 <DueAt dueAt={item.due_at} now={now} />
               </td>
               <td className="px-4 py-3 text-body">{item.estimated_hours} giờ</td>
+              {showWorkActions ? (
+                <td className="px-4 py-3">
+                  <StatusLabel status={item.assignment_status} />
+                </td>
+              ) : null}
               {showActions ? (
                 <td className="px-4 py-3">
                   <ResponseActions
@@ -147,6 +222,16 @@ export function MyAssignmentList({
                     busy={acceptingId === item.assignment_id}
                     onAccept={onAccept}
                     onReject={onReject}
+                  />
+                </td>
+              ) : null}
+              {showWorkActions ? (
+                <td className="px-4 py-3">
+                  <WorkActions
+                    item={item}
+                    busy={startingId === item.assignment_id}
+                    onStart={onStart}
+                    onComplete={onComplete}
                   />
                 </td>
               ) : null}
@@ -171,6 +256,7 @@ export function MyAssignmentList({
               {item.estimated_hours} giờ
             </span>
           </div>
+          {showWorkActions ? <StatusLabel status={item.assignment_status} /> : null}
           <p className="text-sm text-body">{item.task_title}</p>
           <CustomerLinks item={item} />
           <DueAt dueAt={item.due_at} now={now} />
@@ -180,6 +266,14 @@ export function MyAssignmentList({
               busy={acceptingId === item.assignment_id}
               onAccept={onAccept}
               onReject={onReject}
+            />
+          ) : null}
+          {showWorkActions ? (
+            <WorkActions
+              item={item}
+              busy={startingId === item.assignment_id}
+              onStart={onStart}
+              onComplete={onComplete}
             />
           ) : null}
         </li>

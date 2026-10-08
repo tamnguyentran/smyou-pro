@@ -32,6 +32,44 @@
         "title": "AssignmentAccept",
         "type": "object"
       },
+      "AssignmentComplete": {
+        "properties": {
+          "actual_hours": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Hours"
+          },
+          "completion_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completion Note"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["version"],
+        "title": "AssignmentComplete",
+        "type": "object"
+      },
       "AssignmentReject": {
         "properties": {
           "reason_code": {
@@ -50,6 +88,17 @@
         },
         "required": ["version", "reason_code", "reason_text"],
         "title": "AssignmentReject",
+        "type": "object"
+      },
+      "AssignmentStart": {
+        "properties": {
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["version"],
+        "title": "AssignmentStart",
         "type": "object"
       },
       "AuditEventOut": {
@@ -1283,6 +1332,18 @@
       },
       "MyAssignmentOut": {
         "properties": {
+          "actual_hours": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Hours"
+          },
           "assignment_id": {
             "format": "uuid",
             "title": "Assignment Id",
@@ -1291,6 +1352,17 @@
           "assignment_status": {
             "title": "Assignment Status",
             "type": "string"
+          },
+          "completion_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completion Note"
           },
           "customer_name": {
             "anyOf": [
@@ -1392,7 +1464,9 @@
           "order_version",
           "customer_name",
           "customer_phone",
-          "service_address"
+          "service_address",
+          "completion_note",
+          "actual_hours"
         ],
         "title": "MyAssignmentOut",
         "type": "object"
@@ -3870,6 +3944,56 @@
         "tags": ["assignments"]
       }
     },
+    "/api/v1/assignments/{assignment_id}/complete": {
+      "post": {
+        "operationId": "assignments_complete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentComplete"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAssignmentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED"
+          },
+          "422": {
+            "description": "problem+json — VALIDATION_ERROR"
+          }
+        },
+        "summary": "Báo hoàn thành đầu việc",
+        "tags": ["assignments"]
+      }
+    },
     "/api/v1/assignments/{assignment_id}/reject": {
       "post": {
         "operationId": "assignments_reject",
@@ -3924,6 +4048,63 @@
           }
         },
         "summary": "Từ chối đầu việc (có lý do)",
+        "tags": ["assignments"]
+      }
+    },
+    "/api/v1/assignments/{assignment_id}/start": {
+      "post": {
+        "operationId": "assignments_start",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAssignmentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Bắt đầu làm đầu việc",
         "tags": ["assignments"]
       }
     },

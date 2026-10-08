@@ -5,7 +5,7 @@ tests/generated/test_guards_implemented.py fails if a pending item is already do
 """
 
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from decimal import Decimal
 
@@ -78,6 +78,14 @@ def reject_reason_text_present(reason_text: str | None) -> bool:
     return reason_text is not None and len(reason_text.strip()) >= 5
 
 
+def has_active_tasks(active_task_count: int) -> bool:
+    return active_task_count >= 1
+
+
+def all_active_tasks_done(active_task_statuses: Sequence[str]) -> bool:
+    return len(active_task_statuses) > 0 and all(s == "DONE" for s in active_task_statuses)
+
+
 GUARDS: dict[str, Callable[..., bool]] = {
     "customer_present": customer_present,
     "has_lines_or_description": has_lines_or_description,
@@ -93,12 +101,11 @@ GUARDS: dict[str, Callable[..., bool]] = {
     "task_not_cancelled": task_not_cancelled,
     "reject_reason_code_present": reject_reason_code_present,
     "reject_reason_text_present": reject_reason_text_present,
+    "has_active_tasks": has_active_tasks,
+    "all_active_tasks_done": all_active_tasks_done,
 }
 
 PENDING_GUARDS: dict[str, str] = {
-    # technician responses
-    "has_active_tasks": "M5-03",
-    "all_active_tasks_done": "M5-03",
     # completion & revision
     "confirmation_attachment_in_current_revision": "M6-02",
     "signer_name_present": "M6-02",

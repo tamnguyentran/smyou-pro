@@ -19,7 +19,9 @@ from app.core.errors import AppError
 from app.core.spec_loader import Specs, Transition
 from app.modules.assignments.schemas import (
     AssignmentAccept,
+    AssignmentComplete,
     AssignmentReject,
+    AssignmentStart,
     MyAssignmentOut,
     MyAssignmentsOut,
 )
@@ -62,6 +64,8 @@ def _row_out(row: Any) -> MyAssignmentOut:
         customer_name=customer_name,
         customer_phone=customer_phone,
         service_address=service_address,
+        completion_note=assignment.completion_note,
+        actual_hours=assignment.actual_hours,
     )
 
 
@@ -171,6 +175,16 @@ def _reload(session: Session, actor: Actor, assignment_id: uuid.UUID) -> MyAssig
     return _row_out(row)
 
 
+def _active_task_statuses(session: Session, order_id: uuid.UUID) -> list[str]:
+    """Derived status of every non-CANCELLED task of an order — feeds guards
+    `has_active_tasks`/`all_active_tasks_done` (spec/state_machines.yaml#order.all_tasks_done)."""
+    return list(
+        session.scalars(
+            select(Task.status).where(Task.order_id == order_id, Task.cancelled_at.is_(None))
+        ).all()
+    )
+
+
 def accept_assignment(
     session: Session,
     actor: Actor,
@@ -261,4 +275,110 @@ def reject_assignment(
         data={"reason_code": body.reason_code, "reason_text": body.reason_text},
         request_id=request_id,
     )
+    return _reload(session, actor, assignment.id)
+
+
+def start_assignment(
+    session: Session,
+    actor: Actor,
+    assignment_id: uuid.UUID,
+    body: AssignmentStart,
+    *,
+    now: datetime,
+    specs: Specs,
+    request_id: str | None = None,
+) -> MyAssignmentOut:
+    assignment, task = _find_own_assignment(session, actor, assignment_id)
+    order = _lock_order(session, task.order_id, body.version)
+    transition = domain.find_assignment_transition(specs.state_machines.assignment, "start")
+    _check_assignment_transition(assignment, transition)
+    _check_guards(transition.guards, order_status=order.status, cancelled_at=task.cancelled_at)
+
+    from_status = assignment.status
+    assignment.status = "IN_PROGRESS"
+    assignment.started_at = now
+    session.flush()
+
+    task.status = domain.derive_task_status(
+        _active_assignment_statuses(session, task.id), cancelled=task.cancelled_at is not None
+    )
+    order.version += 1  # Order is the aggregate root (Q62).
+    session.flush()
+
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ASSIGNMENT",
+        entity_id=assignment.id,
+        action="start",
+        from_status=from_status,
+        to_status="IN_PROGRESS",
+        request_id=request_id,
+    )
+    return _reload(session, actor, assignment.id)
+
+
+def complete_assignment(
+    session: Session,
+    actor: Actor,
+    assignment_id: uuid.UUID,
+    body: AssignmentComplete,
+    *,
+    now: datetime,
+    specs: Specs,
+    request_id: str | None = None,
+) -> MyAssignmentOut:
+    assignment, task = _find_own_assignment(session, actor, assignment_id)
+    order = _lock_order(session, task.order_id, body.version)
+    transition = domain.find_assignment_transition(specs.state_machines.assignment, "complete")
+    _check_assignment_transition(assignment, transition)
+    _check_guards(transition.guards, order_status=order.status, cancelled_at=task.cancelled_at)
+
+    from_status = assignment.status
+    assignment.status = "DONE"
+    assignment.done_at = now
+    assignment.completion_note = body.completion_note
+    assignment.actual_hours = body.actual_hours
+    session.flush()
+
+    task.status = domain.derive_task_status(
+        _active_assignment_statuses(session, task.id), cancelled=task.cancelled_at is not None
+    )
+    order.version += 1  # Order is the aggregate root (Q62) — bumped once per command.
+    session.flush()
+
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ASSIGNMENT",
+        entity_id=assignment.id,
+        action="complete",
+        from_status=from_status,
+        to_status="DONE",
+        request_id=request_id,
+    )
+
+    # order.all_tasks_done (spec/state_machines.yaml#order): only evaluated while the order is
+    # IN_PROGRESS — REVISION is explicitly out of scope here (guard revision_has_work_if_revision
+    # is still PENDING_GUARDS, M6-03; spec §8). No error surfaced to the actor if the guards don't
+    # pass — the order simply stays put, same contract as dispatch/service.py's start_dispatch
+    # inline system-transition.
+    if task.status == "DONE" and order.status == "IN_PROGRESS":
+        active_statuses = _active_task_statuses(session, order.id)
+        if GUARDS["has_active_tasks"](len(active_statuses)) and GUARDS["all_active_tasks_done"](
+            active_statuses
+        ):
+            order.status = "AWAITING_CONFIRMATION"
+            session.flush()
+            audit.record(
+                session,
+                actor_id=None,
+                entity_type="ORDER",
+                entity_id=order.id,
+                action="all_tasks_done",
+                from_status="IN_PROGRESS",
+                to_status="AWAITING_CONFIRMATION",
+                request_id=request_id,
+            )
+
     return _reload(session, actor, assignment.id)

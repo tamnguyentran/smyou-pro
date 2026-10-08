@@ -113,3 +113,36 @@ test("AC-ASG-040 AC-ASG-041 @a11y tiếp nhận 1 thẻ, từ chối 1 thẻ kh�
     isMobile(info) ? "my-tasks-respond-390.png" : "my-tasks-respond-1440.png",
   );
 });
+
+// M5-03: 1 (bắt đầu, báo hoàn thành) cho mỗi project — order riêng mỗi project (xem
+// backend/scripts/seed_e2e.py#WORK_ORDERS), cùng lý do với RESPOND_ORDERS (tránh đua version).
+function workOrderCode(info: TestInfo) {
+  return isMobile(info) ? "E2E-DH-M503A" : "E2E-DH-M503B";
+}
+
+test("AC-ASG-067 AC-ASG-068 @a11y bắt đầu 1 thẻ, báo hoàn thành 1 thẻ khác, không cuộn ngang, axe sạch", async ({
+  page,
+}, info) => {
+  const orderCode = workOrderCode(info);
+  const startCode = `${orderCode}-T1`;
+  const completeCode = `${orderCode}-T2`;
+
+  await signIn(page, "/my-tasks");
+  const tabs = page.getByRole("tablist", { name: "Việc của tôi" });
+  await tabs.getByRole("tab", { name: /Đang làm/ }).click();
+  await expect(page.getByText(startCode, { exact: true })).toBeVisible();
+
+  await rowFor(page, startCode).getByRole("button", { name: "Bắt đầu" }).click();
+  await expect(page.getByText("Đã bắt đầu đầu việc.")).toBeVisible();
+  await expect(
+    rowFor(page, startCode).getByRole("button", { name: "Báo hoàn thành" }),
+  ).toBeVisible();
+
+  await rowFor(page, completeCode).getByRole("button", { name: "Báo hoàn thành" }).click();
+  const dialog = page.getByRole("dialog", { name: `Báo hoàn thành đầu việc ${completeCode}?` });
+  await dialog.getByRole("button", { name: "Xác nhận hoàn thành" }).click();
+  await expect(page.getByText("Đã báo hoàn thành đầu việc.")).toBeVisible();
+  await expect(page.getByText(completeCode, { exact: true })).not.toBeVisible();
+
+  await evidence(page, info, isMobile(info) ? "my-tasks-work-390.png" : "my-tasks-work-1440.png");
+});
