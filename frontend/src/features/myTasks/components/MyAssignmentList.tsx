@@ -9,6 +9,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
+import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
 import { formatDateTime, formatPhone, mapHref } from "../../../lib/format";
 import { cn } from "../../../lib/cn";
@@ -19,9 +20,9 @@ const URGENT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 // spec/state_machines.yaml#assignment.states — only the 2 statuses shown on the "Đang làm" tab
 // need a visible label today (AC-ASG-063).
-const WORK_STATUS_LABELS: Record<string, string> = {
-  ACCEPTED: "Đã tiếp nhận",
-  IN_PROGRESS: "Đang thực hiện",
+const WORK_STATUS_LABELS: Record<string, { label: string; tone: "review" | "in_progress" }> = {
+  ACCEPTED: { label: "Đã tiếp nhận", tone: "review" },
+  IN_PROGRESS: { label: "Đang thực hiện", tone: "in_progress" },
 };
 
 function isUrgent(dueAt: string, now: number): boolean {
@@ -109,9 +110,9 @@ function ResponseActions({
 }
 
 function StatusLabel({ status }: { status: string }) {
-  const label = WORK_STATUS_LABELS[status];
-  if (!label) return null;
-  return <span className="text-xs font-medium text-muted">{label}</span>;
+  const entry = WORK_STATUS_LABELS[status];
+  if (!entry) return null;
+  return <Badge tone={entry.tone}>{entry.label}</Badge>;
 }
 
 /** AC-ASG-062…066: nút Bắt đầu/Báo hoàn thành, chỉ hiện ở tab Đang làm (`showWorkActions`). */

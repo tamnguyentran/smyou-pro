@@ -1,6 +1,6 @@
 # M5-03 — Bắt đầu / Hoàn thành đầu việc
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M5-03 · **Milestone:** M5
 - **Liên quan:** `spec/state_machines.yaml#assignment` (transitions `start` ACCEPTED→IN_PROGRESS, `complete` IN_PROGRESS→DONE; guards `order_in_dispatchable_state`/`task_not_cancelled` cho `start`, chỉ `task_not_cancelled` cho `complete`); `spec/state_machines.yaml#order` (transition `all_tasks_done` IN_PROGRESS/REVISION→AWAITING_CONFIRMATION, guards `has_active_tasks`/`all_active_tasks_done`/`revision_has_work_if_revision`); `spec/permissions.yaml` (`assignment.respond: { TECHNICIAN: self }` — capability đã có, dùng lại); `backend/app/modules/workflow/guards.py` (2 guard `has_active_tasks`/`all_active_tasks_done` còn `PENDING_GUARDS` gắn nhãn M5-03 — item này implement, chuyển sang `GUARDS`); `backend/app/modules/assignments/service.py` (`accept_assignment`/`reject_assignment` — mẫu lock order theo `version`, derive lại `task.status`, bump `order.version` 1 lần/lệnh); `docs/product/DOMAIN_MODEL.md` §9 (cột `actual_hours`, `completion_note` đã có trên `assignments`, chưa dùng); `docs/product/WORKFLOWS.md` §2 (gợi ý hàm dùng chung `reevaluate_order(order)` — item này là nơi đầu tiên cần nó thật sự chạy, vì trước M5-03 không task nào đạt `DONE`); `docs/specs/M5-02-accept-reject-assignment.md` (trang `/my-tasks`, tab "Đang làm" đã mở sẵn, `MyAssignmentOut`).
 
