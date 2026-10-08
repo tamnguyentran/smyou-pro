@@ -419,7 +419,10 @@ test("AC-DSP-125 AC-DSP-126 AC-DSP-130 @a11y @screenshot Mở lại đầu việ
 
   await page.getByRole("tab", { name: "Đầu việc" }).click();
   const taskList = page.getByTestId("order-tasks");
-  await taskList.getByText(`${code}-T1`).click();
+  // Khác với AC-DSP-028 (task tự tạo trong test, tiêu đề không chứa mã): task này do seed_e2e.py
+  // tạo với tiêu đề mặc định "Lắp đặt camera E2E ({code})" — chứa luôn mã đầu việc, nên cần
+  // `exact: true` để không khớp nhầm ô tiêu đề.
+  await taskList.getByText(`${code}-T1`, { exact: true }).click();
   const editPanel = page.getByRole("dialog", { name: `Sửa đầu việc — ${code}-T1` });
   await editPanel.getByRole("button", { name: "Mở lại" }).click();
 

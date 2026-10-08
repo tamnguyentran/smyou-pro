@@ -58,12 +58,13 @@ test("AC-SYS-041 AC-SYS-042 AC-SYS-043 @screenshot trang 403, 404, đang phát t
   if (!isMobile(info)) await openMenu(page, info); // sidebar loaded, not the skeleton
   await page.screenshot({ path: shot(info, "page-404.png"), fullPage: true });
 
-  // "/my-tasks" (M5-01) and "/dispatch/workload" (M4-04) are both real now — "/dispatch/revisions"
-  // is the next still-unimplemented page TECH_LEAD can reach (same inherited task.manage capability).
+  // "/my-tasks" (M5-01), "/dispatch/workload" (M4-04) and "/dispatch/revisions" (M6-03b) are all
+  // real now — "/reports/kpi" (M8, chưa làm) is the next still-unimplemented page TECH_LEAD can
+  // reach (own `kpi.read` capability).
   await page.context().clearCookies();
-  await signIn(page, TECH_LEAD, "/dispatch/revisions");
+  await signIn(page, TECH_LEAD, "/reports/kpi");
   await expect(page.getByText("Tính năng đang được phát triển.")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1, name: "Đơn cần chỉnh sửa" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Báo cáo KPI" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Về trang chủ" })).toBeVisible();
   if (!isMobile(info)) await openMenu(page, info);
   await page.screenshot({ path: shot(info, "page-coming-soon.png"), fullPage: true });
