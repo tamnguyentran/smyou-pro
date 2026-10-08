@@ -33,6 +33,7 @@ def store_image(
     uploaded_by: uuid.UUID,
     settings: Settings,
     now: datetime,
+    revision_no: int = 1,
 ) -> Attachment:
     try:
         mime = validate_image(file_bytes, declared_mime, max_bytes=settings.upload_max_mb * 1024 * 1024)
@@ -46,6 +47,7 @@ def store_image(
         owner_type=owner_type,
         owner_id=owner_id,
         kind=kind,
+        revision_no=revision_no,
         storage_key=storage_key,
         original_filename=filename,
         mime_type=mime,

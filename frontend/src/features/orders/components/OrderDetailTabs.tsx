@@ -11,6 +11,7 @@ import { useCancelOrder, useRecallOrder, type Order, type OrderCancelBody } from
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, type OrderStatus } from "../orderStatus";
 import { AddLineSheet } from "./AddLineSheet";
 import { CancelOrderSheet } from "./CancelOrderSheet";
+import { ConfirmationAttachmentsTab } from "./ConfirmationAttachmentsTab";
 import { EditContactSheet } from "./EditContactSheet";
 import { OrderHistoryTab } from "./OrderHistoryTab";
 import { OrderInfoTab } from "./OrderInfoTab";
@@ -18,12 +19,12 @@ import { OrderLinesSection } from "./OrderLinesSection";
 import { OrderTotalsSection } from "./OrderTotalsSection";
 import type { RunOrderWrite } from "./writeQueue";
 
-// Thứ tự theo UI_GUIDELINES §5 ("Thông tin · Dòng hàng · Đầu việc · Tệp đính kèm · Lịch sử");
-// "Tệp đính kèm" chưa có (M6).
+// Thứ tự theo UI_GUIDELINES §5: Thông tin · Dòng hàng · Đầu việc · Tệp đính kèm · Lịch sử.
 const TABS = [
   { id: "info", label: "Thông tin" },
   { id: "lines", label: "Dòng hàng" },
   { id: "tasks", label: "Đầu việc" },
+  { id: "attachments", label: "Tệp đính kèm" },
   { id: "history", label: "Lịch sử" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
@@ -232,6 +233,7 @@ export function OrderDetailTabs({
           </div>
         ) : null}
         {tab === "tasks" ? <OrderTasksTab order={order} /> : null}
+        {tab === "attachments" ? <ConfirmationAttachmentsTab order={order} /> : null}
         {tab === "history" ? <OrderHistoryTab orderId={order.id} /> : null}
       </div>
 

@@ -247,8 +247,14 @@ test("AC-DSP-028 AC-DSP-032 AC-DSP-033 AC-DSP-035 AC-DSP-036 AC-DSP-037 @a11y @s
   await signIn(page, TECH_LEAD, "/orders");
   await openOrderDetail(page, code);
 
-  // AC-DSP-028: 4 tab đúng thứ tự, "Đầu việc" trước "Lịch sử".
-  await expect(page.getByRole("tab")).toHaveText(["Thông tin", "Dòng hàng", "Đầu việc", "Lịch sử"]);
+  // AC-DSP-028: tab đúng thứ tự, "Đầu việc" trước "Tệp đính kèm"/"Lịch sử".
+  await expect(page.getByRole("tab")).toHaveText([
+    "Thông tin",
+    "Dòng hàng",
+    "Đầu việc",
+    "Tệp đính kèm",
+    "Lịch sử",
+  ]);
   await expect(page.getByText("Chờ điều phối")).toBeVisible();
   await page.getByRole("tab", { name: "Đầu việc" }).click();
   await expect(page.getByText("Chưa có đầu việc nào.")).toBeVisible();

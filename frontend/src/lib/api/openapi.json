@@ -211,6 +211,18 @@
         "title": "AuditEventPage",
         "type": "object"
       },
+      "Body_orders_upload_confirmation_attachment": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": ["file"],
+        "title": "Body_orders_upload_confirmation_attachment",
+        "type": "object"
+      },
       "Body_products_import_commit": {
         "properties": {
           "file": {
@@ -287,6 +299,66 @@
         },
         "required": ["current_password", "new_password"],
         "title": "ChangePasswordRequest",
+        "type": "object"
+      },
+      "ConfirmationAttachment": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mime_type": {
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "revision_no": {
+            "title": "Revision No",
+            "type": "integer"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "uploaded_by": {
+            "format": "uuid",
+            "title": "Uploaded By",
+            "type": "string"
+          },
+          "uploaded_by_name": {
+            "title": "Uploaded By Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "revision_no",
+          "mime_type",
+          "size_bytes",
+          "uploaded_by",
+          "uploaded_by_name",
+          "created_at"
+        ],
+        "title": "ConfirmationAttachment",
+        "type": "object"
+      },
+      "ConfirmationAttachmentPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConfirmationAttachment"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": ["items"],
+        "title": "ConfirmationAttachmentPage",
         "type": "object"
       },
       "CustomerCreate": {
@@ -1760,6 +1832,10 @@
             "title": "Can Edit Lines After Submit",
             "type": "boolean"
           },
+          "can_upload_confirmation": {
+            "title": "Can Upload Confirmation",
+            "type": "boolean"
+          },
           "code": {
             "title": "Code",
             "type": "string"
@@ -1942,7 +2018,8 @@
           "lines",
           "allowed_commands",
           "can_edit_contact",
-          "can_edit_lines_after_submit"
+          "can_edit_lines_after_submit",
+          "can_upload_confirmation"
         ],
         "title": "OrderDetail",
         "type": "object"
@@ -4132,6 +4209,9 @@
             },
             "description": "Successful Response"
           },
+          "403": {
+            "description": "problem+json — FORBIDDEN"
+          },
           "404": {
             "description": "problem+json — NOT_FOUND"
           },
@@ -4146,7 +4226,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Tải tệp đính kèm (ảnh sản phẩm)",
+        "summary": "Tải tệp đính kèm (ảnh sản phẩm, ảnh phiếu xác nhận)",
         "tags": ["attachments"]
       }
     },
@@ -5423,6 +5503,95 @@
           }
         },
         "summary": "Huỷ đơn",
+        "tags": ["orders"]
+      }
+    },
+    "/api/v1/orders/{order_id}/confirmation-attachments": {
+      "get": {
+        "operationId": "orders_list_confirmation_attachments",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationAttachmentPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Danh sách ảnh phiếu xác nhận",
+        "tags": ["orders"]
+      },
+      "post": {
+        "operationId": "orders_upload_confirmation_attachment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_orders_upload_confirmation_attachment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationAttachment"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "422": {
+            "description": "problem+json — INVALID_FILE_TYPE | FILE_TOO_LARGE | UNSUPPORTED_MEDIA_TYPE"
+          }
+        },
+        "summary": "Tải ảnh phiếu xác nhận",
         "tags": ["orders"]
       }
     },

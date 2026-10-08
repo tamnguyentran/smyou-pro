@@ -118,6 +118,7 @@ function order(overrides: Partial<Order> = {}): Order {
     allowed_commands: [],
     can_edit_contact: false,
     can_edit_lines_after_submit: false,
+    can_upload_confirmation: false,
     ...overrides,
   };
 }

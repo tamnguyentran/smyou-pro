@@ -123,6 +123,7 @@ class PermissionsSpec(_Strict):
     scopes: list[str]
     capabilities: dict[str, dict[str, str]]
     public_routes: list[str]
+    dynamic_routes: list[str] = []
     menu: list[MenuItem]
     mobile_bottom_nav: BottomNav
 
@@ -243,6 +244,9 @@ def _check_permissions(perm: PermissionsSpec) -> list[str]:
     for route in perm.public_routes:
         if not PUBLIC_ROUTE.match(route):
             problems.append(f"{f}: public_routes: {route!r} must look like 'GET /api/v1/...'")
+    for route in perm.dynamic_routes:
+        if not PUBLIC_ROUTE.match(route):
+            problems.append(f"{f}: dynamic_routes: {route!r} must look like 'GET /api/v1/...'")
 
     seen_ids: set[str] = set()
 

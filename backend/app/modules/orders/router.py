@@ -3,7 +3,7 @@
 import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 
 from app.core.authz import Actor, require
 from app.core.db import DbSession
@@ -11,6 +11,8 @@ from app.core.request_id import get_request_id
 from app.modules.audit.schemas import AuditEventPage
 from app.modules.orders import service
 from app.modules.orders.schemas import (
+    ConfirmationAttachment,
+    ConfirmationAttachmentPage,
     OrderCancel,
     OrderCommand,
     OrderContactUpdate,
@@ -33,6 +35,7 @@ Submitter = Annotated[Actor, Depends(require("order.submit"))]
 Canceler = Annotated[Actor, Depends(require("order.cancel"))]
 ContactEditor = Annotated[Actor, Depends(require("order.edit_contact"))]
 AfterSubmitLineEditor = Annotated[Actor, Depends(require("order.edit_lines_after_submit"))]
+ConfirmationUploader = Annotated[Actor, Depends(require("order.upload_confirmation"))]
 
 
 def _docs(*lines: tuple[int, str]) -> dict[int | str, dict[str, Any]]:
@@ -99,6 +102,50 @@ def get_order_history(
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> AuditEventPage:
     return service.get_order_history(session, actor, order_id, limit=limit, offset=offset)
+
+
+@router.post(
+    "/{order_id}/confirmation-attachments",
+    operation_id="orders_upload_confirmation_attachment",
+    summary="Tải ảnh phiếu xác nhận",
+    status_code=201,
+    response_model=ConfirmationAttachment,
+    responses=_docs(NOT_FOUND, (422, "INVALID_FILE_TYPE | FILE_TOO_LARGE | UNSUPPORTED_MEDIA_TYPE")),
+)
+def upload_confirmation_attachment(
+    order_id: uuid.UUID,
+    request: Request,
+    session: DbSession,
+    actor: ConfirmationUploader,
+    file: Annotated[UploadFile, File()],
+) -> ConfirmationAttachment:
+    settings = request.app.state.settings
+    max_bytes = settings.upload_max_mb * 1024 * 1024
+    file_bytes = file.file.read(max_bytes + 1)
+    return service.upload_confirmation_attachment(
+        session,
+        actor,
+        order_id,
+        file_bytes=file_bytes,
+        filename=file.filename or "upload",
+        declared_mime=file.content_type or "application/octet-stream",
+        settings=settings,
+        now=request.app.state.clock(),
+        request_id=get_request_id(request),
+    )
+
+
+@router.get(
+    "/{order_id}/confirmation-attachments",
+    operation_id="orders_list_confirmation_attachments",
+    summary="Danh sách ảnh phiếu xác nhận",
+    response_model=ConfirmationAttachmentPage,
+    responses=_docs(NOT_FOUND),
+)
+def list_confirmation_attachments(
+    order_id: uuid.UUID, session: DbSession, actor: Reader
+) -> ConfirmationAttachmentPage:
+    return service.list_confirmation_attachments(session, actor, order_id)
 
 
 @router.patch(

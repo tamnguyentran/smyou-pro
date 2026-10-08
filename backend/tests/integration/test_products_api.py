@@ -403,7 +403,8 @@ def test_routes_declare_capability(app: FastAPI) -> None:
         ("POST", "/api/v1/products/{product_id}/deactivate", "catalog.manage"),
         ("POST", "/api/v1/products/{product_id}/activate", "catalog.manage"),
         ("POST", "/api/v1/products/{product_id}/image", "catalog.manage"),
-        ("GET", "/api/v1/attachments/{attachment_id}", "catalog.read"),
+        # GET /attachments/{id} is excluded: M6-01 made it a dynamic_routes entry (per-record
+        # capability), so it no longer declares exactly one static capability — see AC-CMP-010.
         ("POST", "/api/v1/products/import/preview", "catalog.manage"),
         ("POST", "/api/v1/products/import/commit", "catalog.manage"),
     }

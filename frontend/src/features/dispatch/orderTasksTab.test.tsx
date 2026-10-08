@@ -80,6 +80,7 @@ function detail(overrides: Partial<OrderDetail> = {}): OrderDetail {
     allowed_commands: [],
     can_edit_contact: true,
     can_edit_lines_after_submit: true,
+    can_upload_confirmation: false,
     lines: [PRODUCT_LINE],
     ...overrides,
   };
@@ -259,6 +260,7 @@ describe("Tab Đầu việc trên trang chi tiết đơn", () => {
       "Thông tin",
       "Dòng hàng",
       "Đầu việc",
+      "Tệp đính kèm",
       "Lịch sử",
     ]);
     expect(calls.tasks).toBe(0);
