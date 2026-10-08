@@ -97,6 +97,22 @@ COMPLETE_ORDERS = [
     ("E2E-DH-M602B", "E2E-DH-M602B-T1"),  # desktop
 ]
 
+# M6-03b: "Chuyển Chỉnh sửa" e2e (orders-revise.spec.ts) — same one-order-per-project idiom.
+# AWAITING_CONFIRMATION, 1 DONE task, logged in as tuan.lead@smyou.vn (TECH_LEAD — only role with
+# `order.revise`).
+REVISE_ORDERS = [
+    ("E2E-DH-M603A", "E2E-DH-M603A-T1"),  # mobile
+    ("E2E-DH-M603B", "E2E-DH-M603B-T1"),  # desktop
+]
+
+# M6-03b: "Mở lại" đầu việc e2e (dispatch.spec.ts) — same one-order-per-project idiom. Order
+# already REVISION (revision_no=1), 1 DONE task to reopen; the same order doubles as the
+# /dispatch/revisions list check (AC-DSP-130) so no separate seed is needed for that page.
+REOPEN_ORDERS = [
+    ("E2E-DH-M603C", "E2E-DH-M603C-T1"),  # mobile
+    ("E2E-DH-M603D", "E2E-DH-M603D-T1"),  # desktop
+]
+
 
 def main() -> int:
     settings = Settings()
@@ -289,6 +305,28 @@ def main() -> int:
                     settings=settings,
                     now=now,
                 )
+
+        for order_code, task_code in REVISE_ORDERS:
+            revise_order = upsert_order(
+                order_code,
+                customer_name="Cty TNHH Chỉnh Sửa E2E",
+                customer_phone="0918444555",
+                service_address="30 Pasteur, P. Bến Nghé, Q.1, TP.HCM",
+            )
+            revise_order.status = "AWAITING_CONFIRMATION"
+            revise_order.revision_no = 0
+            upsert_task_assignment(revise_order, task_code, "DONE", "DONE", "1.0", -1)
+
+        for order_code, task_code in REOPEN_ORDERS:
+            reopen_order = upsert_order(
+                order_code,
+                customer_name="Cty TNHH Mở Lại E2E",
+                customer_phone="0918555666",
+                service_address="40 Hai Bà Trưng, P. Bến Nghé, Q.1, TP.HCM",
+            )
+            reopen_order.status = "REVISION"
+            reopen_order.revision_no = 1
+            upsert_task_assignment(reopen_order, task_code, "DONE", "DONE", "1.0", -1)
     sys.stdout.write(
         f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products, {len(SERVICES)} E2E services,"
         f" {len(CUSTOMERS)} E2E customers, {len(MY_TASKS)} E2E my-tasks assignments\n"

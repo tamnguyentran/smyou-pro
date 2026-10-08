@@ -30,6 +30,8 @@ export const TUAN: Person = {
     "dashboard.read": all,
     "order.read": all,
     "task.manage": all,
+    "order.revise": all,
+    "task.reopen": all,
     "employee.read": all,
     "catalog.read": all,
     "profile.manage": self,
