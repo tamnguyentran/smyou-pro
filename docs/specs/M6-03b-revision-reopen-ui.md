@@ -1,6 +1,6 @@
 # M6-03b — Chuyển Chỉnh sửa + Mở lại task (UI)
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M6-03 (phần `b` — giao diện của `M6-03a`) · **Milestone:** M6
 - **Liên quan:** `M6-03a-revision-reopen-api.md` (API `revise`/`reopen`, `can_revise`, badge `revision_count`); `spec/design/UI_GUIDELINES.md` dòng 80 (hành động không đảo ngược); `frontend/src/features/orders/components/CancelOrderSheet.tsx` (khuôn sheet lý do); `frontend/src/features/dispatch/components/OrderTasksTab.tsx`/`TaskEditSheet.tsx` (M4-02b, nơi hiện "Mở lại" khi task `DONE`); `spec/permissions.yaml` (menu `dispatch-revise` path `/dispatch/revisions`, badge `revision_count`); `frontend/src/features/dispatch/taskStatus.ts` (`DISPATCHABLE_STATUSES` đã có `REVISION` — nút "Tạo đầu việc" đã tự hiện khi đơn `REVISION`, không cần sửa ở item này).
 
