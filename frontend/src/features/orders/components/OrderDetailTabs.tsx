@@ -1,3 +1,4 @@
+import { CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { Alert } from "../../../components/ui/Alert";
 import { Badge } from "../../../components/ui/Badge";
@@ -7,10 +8,19 @@ import { useToast } from "../../../components/ui/Toast";
 import { cn } from "../../../lib/cn";
 import { ApiError } from "../../auth/errors";
 import { OrderTasksTab } from "../../dispatch/components/OrderTasksTab";
-import { useCancelOrder, useRecallOrder, type Order, type OrderCancelBody } from "../api";
+import {
+  useCancelOrder,
+  useCompleteOrder,
+  useConfirmationAttachments,
+  useRecallOrder,
+  type Order,
+  type OrderCancelBody,
+  type OrderCompleteBody,
+} from "../api";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, type OrderStatus } from "../orderStatus";
 import { AddLineSheet } from "./AddLineSheet";
 import { CancelOrderSheet } from "./CancelOrderSheet";
+import { CompleteOrderSheet } from "./CompleteOrderSheet";
 import { ConfirmationAttachmentsTab } from "./ConfirmationAttachmentsTab";
 import { EditContactSheet } from "./EditContactSheet";
 import { OrderHistoryTab } from "./OrderHistoryTab";
@@ -60,11 +70,23 @@ export function OrderDetailTabs({
   const [editContactOpen, setEditContactOpen] = useState(false);
   const [addLineOpen, setAddLineOpen] = useState(false);
   const [linesStale, setLinesStale] = useState(false);
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [completeError, setCompleteError] = useState<string | null>(null);
+  const [completeStale, setCompleteStale] = useState(false);
   const recallOrder = useRecallOrder();
   const cancelOrder = useCancelOrder();
+  const completeOrder = useCompleteOrder();
+  // Query key shared with `ConfirmationAttachmentsTab` (React Query dedupes/caches by key) — needed
+  // here too so the "Hoàn tất đơn" button can gate on "có ảnh ở revision_no hiện tại chưa" (AC-ORD-140)
+  // without calling the API itself (avoid a guaranteed-409 round trip).
+  const attachments = useConfirmationAttachments(order.id);
 
   const canRecall = order.allowed_commands.includes("recall");
   const canCancel = order.allowed_commands.includes("cancel");
+  const canComplete =
+    order.allowed_commands.includes("complete") &&
+    order.can_complete &&
+    (attachments.data?.items.some((a) => a.revision_no === order.revision_no) ?? false);
   const status = order.status as OrderStatus;
 
   function submitRecall() {
@@ -103,6 +125,30 @@ export function OrderDetailTabs({
             setCancelStale(true);
           } else {
             setCancelError(describeError(err));
+          }
+        },
+      },
+    );
+  }
+
+  function submitComplete(signerName: string) {
+    setCompleteError(null);
+    const body: OrderCompleteBody = {
+      version: order.version,
+      confirmation_signer_name: signerName,
+    };
+    completeOrder.mutate(
+      { id: order.id, body },
+      {
+        onSuccess: (updated) => {
+          setCompleteOpen(false);
+          toast(`Đã hoàn tất đơn ${updated.code}.`);
+        },
+        onError: (err: unknown) => {
+          if (err instanceof ApiError && err.problem.code === "STALE_VERSION") {
+            setCompleteStale(true);
+          } else {
+            setCompleteError(describeError(err));
           }
         },
       },
@@ -149,7 +195,7 @@ export function OrderDetailTabs({
           </div>
           <p className="text-sm text-body">{order.customer_name ?? "Khách lẻ"}</p>
         </div>
-        {canRecall || canCancel ? (
+        {canRecall || canCancel || canComplete ? (
           <div
             data-testid="order-detail-actions"
             className="sticky bottom-16 z-10 flex gap-3 bg-page py-3 lg:static lg:bottom-auto lg:bg-transparent lg:py-0"
@@ -174,6 +220,17 @@ export function OrderDetailTabs({
                 }}
               >
                 Huỷ đơn
+              </Button>
+            ) : null}
+            {canComplete ? (
+              <Button
+                type="button"
+                onClick={() => {
+                  setCompleteOpen(true);
+                }}
+              >
+                <CheckCircle2 aria-hidden="true" className="size-4" />
+                Hoàn tất đơn
               </Button>
             ) : null}
           </div>
@@ -265,6 +322,23 @@ export function OrderDetailTabs({
           onReload();
         }}
         onConfirm={submitCancel}
+      />
+      <CompleteOrderSheet
+        open={completeOpen}
+        onClose={() => {
+          setCompleteOpen(false);
+          setCompleteError(null);
+        }}
+        orderCode={order.code}
+        loading={completeOrder.isPending}
+        error={completeError}
+        staleVersion={completeStale}
+        onReload={() => {
+          setCompleteStale(false);
+          setCompleteOpen(false);
+          onReload();
+        }}
+        onConfirm={submitComplete}
       />
       {editContactOpen ? (
         <EditContactSheet

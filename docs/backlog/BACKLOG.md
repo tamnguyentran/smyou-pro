@@ -16,7 +16,7 @@ Chi tiết từng item (ID, mô tả, spec, PR): `docs/backlog/BACKLOG_ARCHIVE.m
 
 ## M6 — Hoàn tất & Chỉnh sửa
 - [x] **M6-01 Tải ảnh phiếu xác nhận** (nén client, kiểm magic bytes, lưu an toàn, xem có kiểm quyền).
-- [ ] **M6-02 Hoàn tất đơn**.
+- [x] **M6-02 Hoàn tất đơn**.
 - [ ] **M6-03 Chuyển Chỉnh sửa + task phát sinh + mở lại task + defect records**.
 - [ ] **M6-04 Stateful test toàn workflow + E2E golden path** (TESTING_STRATEGY §5).
 

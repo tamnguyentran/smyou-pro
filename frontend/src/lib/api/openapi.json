@@ -1593,6 +1593,23 @@
         "title": "OrderCommand",
         "type": "object"
       },
+      "OrderComplete": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmation_signer_name": {
+            "maxLength": 120,
+            "title": "Confirmation Signer Name",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["version", "confirmation_signer_name"],
+        "title": "OrderComplete",
+        "type": "object"
+      },
       "OrderContactUpdate": {
         "additionalProperties": false,
         "description": "M3-04a: liên hệ + mô tả sửa được sau khi gửi (`order.edit_contact`) — không có `customer_id`\n(không đổi liên kết khách hàng) hay các trường điều phối/kế toán (Q57).",
@@ -1824,6 +1841,10 @@
             "title": "Allowed Commands",
             "type": "array"
           },
+          "can_complete": {
+            "title": "Can Complete",
+            "type": "boolean"
+          },
           "can_edit_contact": {
             "title": "Can Edit Contact",
             "type": "boolean"
@@ -2019,7 +2040,8 @@
           "allowed_commands",
           "can_edit_contact",
           "can_edit_lines_after_submit",
-          "can_upload_confirmation"
+          "can_upload_confirmation",
+          "can_complete"
         ],
         "title": "OrderDetail",
         "type": "object"
@@ -5503,6 +5525,63 @@
           }
         },
         "summary": "Huỷ đơn",
+        "tags": ["orders"]
+      }
+    },
+    "/api/v1/orders/{order_id}/complete": {
+      "post": {
+        "operationId": "orders_complete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderComplete"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hoàn tất đơn",
         "tags": ["orders"]
       }
     },

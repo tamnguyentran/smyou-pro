@@ -173,6 +173,13 @@ class OrderCancel(BaseModel):
     reason: str | None = None
 
 
+class OrderComplete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: int
+    confirmation_signer_name: str = Field(max_length=120)
+
+
 class OrderLineOut(BaseModel):
     id: uuid.UUID
     position: int
@@ -225,6 +232,7 @@ class OrderDetail(BaseModel):
     can_edit_contact: bool
     can_edit_lines_after_submit: bool
     can_upload_confirmation: bool
+    can_complete: bool
 
 
 class ConfirmationAttachment(BaseModel):

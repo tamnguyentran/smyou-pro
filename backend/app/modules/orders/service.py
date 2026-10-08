@@ -29,6 +29,7 @@ from app.modules.orders.schemas import (
     ConfirmationAttachmentPage,
     OrderCancel,
     OrderCommand,
+    OrderComplete,
     OrderContactUpdate,
     OrderCreate,
     OrderDetail,
@@ -114,6 +115,10 @@ _GUARD_MESSAGES = {
     "service_address_present": "Đơn cần có địa chỉ thi công.",
     "order_has_no_tasks": "Đơn đang có đầu việc, không thể thực hiện thao tác này.",
     "reason_present": "Vui lòng nhập lý do (ít nhất 5 ký tự).",
+    "confirmation_attachment_in_current_revision": (
+        "Cần tải ảnh phiếu xác nhận có chữ ký khách trước khi hoàn tất đơn."
+    ),
+    "signer_name_present": "Vui lòng nhập tên người ký.",
 }
 
 
@@ -278,7 +283,10 @@ def _allowed_commands(order: Order, actor: Actor, specs: Specs) -> list[str]:
         if order.status not in t.from_:
             continue
         scopes = effective_scopes(specs.permissions, actor.roles, t.capability)
-        if "all" in scopes or ("own" in scopes and order.created_by == actor.id):
+        # "assigned" (order.complete's TECHNICIAN scope) needs no extra check here, same reasoning
+        # as `_can_upload_confirmation`/`_can_complete`: the order was only fetched in the first
+        # place because `order.read`'s own `assigned` scope (`RULES["assigned"]`) already matched it.
+        if "all" in scopes or ("own" in scopes and order.created_by == actor.id) or "assigned" in scopes:
             commands.append(t.command)
     return commands
 
@@ -300,6 +308,15 @@ def _can_upload_confirmation(order: Order, actor: Actor, specs: Specs) -> bool:
     if order.status != "AWAITING_CONFIRMATION":
         return False
     scopes = effective_scopes(specs.permissions, actor.roles, "order.upload_confirmation")
+    return "all" in scopes or "assigned" in scopes
+
+
+def _can_complete(order: Order, actor: Actor, specs: Specs) -> bool:
+    """Same capability-independent `assigned` scope as `_can_upload_confirmation` — guard outcomes
+    (e.g. missing attachment, AC-ORD-137) never factor into this, only capability+scope+status."""
+    if order.status != "AWAITING_CONFIRMATION":
+        return False
+    scopes = effective_scopes(specs.permissions, actor.roles, "order.complete")
     return "all" in scopes or "assigned" in scopes
 
 
@@ -335,6 +352,7 @@ def _out(order: Order, actor: Actor, specs: Specs) -> OrderDetail:
             order, actor, specs, "order.edit_lines_after_submit"
         ),
         can_upload_confirmation=_can_upload_confirmation(order, actor, specs),
+        can_complete=_can_complete(order, actor, specs),
     )
 
 
@@ -657,7 +675,14 @@ def list_confirmation_attachments(
     )
 
 
-def _check_guards(session: Session, order: Order, guard_names: list[str], reason: str | None) -> None:
+def _check_guards(
+    session: Session,
+    order: Order,
+    guard_names: list[str],
+    reason: str | None,
+    *,
+    signer_name: str | None = None,
+) -> None:
     for name in guard_names:
         if name == "customer_present":
             ok = GUARDS[name](order.customer_id, order.customer_name, order.customer_phone)
@@ -672,6 +697,23 @@ def _check_guards(session: Session, order: Order, guard_names: list[str], reason
             ok = GUARDS[name](task_count or 0)
         elif name == "reason_present":
             ok = GUARDS[name](reason)
+        elif name == "confirmation_attachment_in_current_revision":
+            has_attachment = (
+                session.scalar(
+                    select(func.count())
+                    .select_from(Attachment)
+                    .where(
+                        Attachment.owner_type == "ORDER",
+                        Attachment.owner_id == order.id,
+                        Attachment.kind == "CUSTOMER_CONFIRMATION",
+                        Attachment.revision_no == order.revision_no,
+                    )
+                )
+                or 0
+            ) > 0
+            ok = GUARDS[name](has_attachment)
+        elif name == "signer_name_present":
+            ok = GUARDS[name](signer_name)
         else:
             raise AssertionError(f"order transitions don't use guard {name!r}")
         if not ok:
@@ -689,12 +731,13 @@ def _apply_transition(
     now: datetime,
     specs: Specs,
     request_id: str | None,
+    signer_name: str | None = None,
 ) -> Order:
     order = lock_order(session, actor, order_id, version)
     t = domain.find_transition(specs.state_machines.order, command)
     if order.status not in t.from_:
         raise AppError(409, "INVALID_TRANSITION", "Không thể thực hiện thao tác này ở trạng thái hiện tại.")
-    _check_guards(session, order, t.guards, reason)
+    _check_guards(session, order, t.guards, reason, signer_name=signer_name)
 
     from_status = order.status
     order.status = t.to
@@ -703,6 +746,9 @@ def _apply_transition(
     elif command == "cancel":
         order.cancelled_at = now
         order.cancel_reason = reason
+    elif command == "complete":
+        order.completed_at = now
+        order.confirmation_signer_name = signer_name
     _bump(order)
     session.flush()
     audit.record(
@@ -787,6 +833,31 @@ def cancel_order(
         now=now,
         specs=specs,
         request_id=request_id,
+    )
+    return _out(order, actor, specs)
+
+
+def complete_order(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    body: OrderComplete,
+    *,
+    now: datetime,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = _apply_transition(
+        session,
+        actor,
+        order_id,
+        body.version,
+        "complete",
+        reason=None,
+        now=now,
+        specs=specs,
+        request_id=request_id,
+        signer_name=body.confirmation_signer_name,
     )
     return _out(order, actor, specs)
 

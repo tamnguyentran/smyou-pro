@@ -418,6 +418,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/orders/{order_id}/complete": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Hoàn tất đơn */
+    post: operations["orders_complete"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/orders/{order_id}/confirmation-attachments": {
     parameters: {
       query?: never;
@@ -1546,6 +1563,13 @@ export interface components {
       /** Version */
       version: number;
     };
+    /** OrderComplete */
+    OrderComplete: {
+      /** Confirmation Signer Name */
+      confirmation_signer_name: string;
+      /** Version */
+      version: number;
+    };
     /**
      * OrderContactUpdate
      * @description M3-04a: liên hệ + mô tả sửa được sau khi gửi (`order.edit_contact`) — không có `customer_id`
@@ -1606,6 +1630,8 @@ export interface components {
     OrderDetail: {
       /** Allowed Commands */
       allowed_commands: string[];
+      /** Can Complete */
+      can_complete: boolean;
       /** Can Edit Contact */
       can_edit_contact: boolean;
       /** Can Edit Lines After Submit */
@@ -3491,6 +3517,55 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["OrderCancel"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_complete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderComplete"];
       };
     };
     responses: {

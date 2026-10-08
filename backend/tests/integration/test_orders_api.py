@@ -891,6 +891,7 @@ def test_read_scope_all_vs_technician_404(app: FastAPI, db: Connection, people: 
 @pytest.mark.ac("AC-ORD-079")
 @pytest.mark.ac("AC-ORD-089")
 @pytest.mark.ac("AC-CMP-010")
+@pytest.mark.ac("AC-ORD-135")
 def test_routes_declare_capability(app: FastAPI) -> None:
     # M4-01a's /tasks routes share the "/orders" prefix but belong to the dispatch module/router —
     # asserted separately in test_dispatch_api.py::test_routes_declare_capability (AC-DSP-014).
@@ -906,6 +907,7 @@ def test_routes_declare_capability(app: FastAPI) -> None:
         ("POST", "/api/v1/orders/{order_id}/submit", "order.submit"),
         ("POST", "/api/v1/orders/{order_id}/recall", "order.submit"),
         ("POST", "/api/v1/orders/{order_id}/cancel", "order.cancel"),
+        ("POST", "/api/v1/orders/{order_id}/complete", "order.complete"),
         ("GET", "/api/v1/orders/{order_id}/history", "order.read"),
         ("PATCH", "/api/v1/orders/{order_id}/contact", "order.edit_contact"),
         ("POST", "/api/v1/orders/{order_id}/confirmation-attachments", "order.upload_confirmation"),

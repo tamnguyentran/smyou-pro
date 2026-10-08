@@ -41,6 +41,7 @@ export const COMMAND_LABELS: Record<string, string> = {
   submit: "Gửi đơn",
   recall: "Thu hồi",
   cancel: "Huỷ đơn",
+  complete: "Hoàn tất đơn",
   create: "Tạo đơn",
   update: "Cập nhật thông tin",
   add_line: "Thêm dòng hàng",

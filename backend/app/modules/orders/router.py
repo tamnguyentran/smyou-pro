@@ -15,6 +15,7 @@ from app.modules.orders.schemas import (
     ConfirmationAttachmentPage,
     OrderCancel,
     OrderCommand,
+    OrderComplete,
     OrderContactUpdate,
     OrderCreate,
     OrderDetail,
@@ -33,6 +34,7 @@ Reader = Annotated[Actor, Depends(require("order.read"))]
 Editor = Annotated[Actor, Depends(require("order.edit_draft"))]
 Submitter = Annotated[Actor, Depends(require("order.submit"))]
 Canceler = Annotated[Actor, Depends(require("order.cancel"))]
+Completer = Annotated[Actor, Depends(require("order.complete"))]
 ContactEditor = Annotated[Actor, Depends(require("order.edit_contact"))]
 AfterSubmitLineEditor = Annotated[Actor, Depends(require("order.edit_lines_after_submit"))]
 ConfirmationUploader = Annotated[Actor, Depends(require("order.upload_confirmation"))]
@@ -219,6 +221,28 @@ def cancel_order(
 ) -> OrderDetail:
     now = request.app.state.clock()
     return service.cancel_order(
+        session,
+        actor,
+        order_id,
+        body,
+        now=now,
+        specs=request.app.state.specs,
+        request_id=get_request_id(request),
+    )
+
+
+@router.post(
+    "/{order_id}/complete",
+    operation_id="orders_complete",
+    summary="Hoàn tất đơn",
+    response_model=OrderDetail,
+    responses=_docs(NOT_FOUND, TRANSITION_CONFLICTS),
+)
+def complete_order(
+    order_id: uuid.UUID, body: OrderComplete, request: Request, session: DbSession, actor: Completer
+) -> OrderDetail:
+    now = request.app.state.clock()
+    return service.complete_order(
         session,
         actor,
         order_id,

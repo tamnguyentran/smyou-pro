@@ -86,6 +86,14 @@ def all_active_tasks_done(active_task_statuses: Sequence[str]) -> bool:
     return len(active_task_statuses) > 0 and all(s == "DONE" for s in active_task_statuses)
 
 
+def confirmation_attachment_in_current_revision(has_attachment: bool) -> bool:
+    return has_attachment
+
+
+def signer_name_present(signer_name: str | None) -> bool:
+    return signer_name is not None and len(signer_name.strip()) > 0
+
+
 GUARDS: dict[str, Callable[..., bool]] = {
     "customer_present": customer_present,
     "has_lines_or_description": has_lines_or_description,
@@ -103,12 +111,12 @@ GUARDS: dict[str, Callable[..., bool]] = {
     "reject_reason_text_present": reject_reason_text_present,
     "has_active_tasks": has_active_tasks,
     "all_active_tasks_done": all_active_tasks_done,
+    "confirmation_attachment_in_current_revision": confirmation_attachment_in_current_revision,
+    "signer_name_present": signer_name_present,
 }
 
 PENDING_GUARDS: dict[str, str] = {
     # completion & revision
-    "confirmation_attachment_in_current_revision": "M6-02",
-    "signer_name_present": "M6-02",
     "order_in_revision": "M6-03",
     "revision_has_work_if_revision": "M6-03",
 }

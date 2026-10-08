@@ -34,6 +34,7 @@ function order(version: number, overrides: Partial<Order> = {}): Order {
     can_edit_contact: false,
     can_edit_lines_after_submit: false,
     can_upload_confirmation: false,
+    can_complete: false,
     ...overrides,
   };
 }
