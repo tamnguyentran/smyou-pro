@@ -1,6 +1,6 @@
 # M6-02 — Hoàn tất đơn
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M6-02 · **Milestone:** M6
 - **Liên quan:** `spec/state_machines.yaml#order` (transition `complete` AWAITING_CONFIRMATION→COMPLETED, capability `order.complete`, guards `confirmation_attachment_in_current_revision`/`signer_name_present`, effects `notify_order_owner`/`audit`); `spec/permissions.yaml` (`order.complete: { TECH_LEAD: all, TECHNICIAN: assigned }` — Q04 đã chốt KTV được giao **và** QLKT đều được bấm hoàn tất); `backend/app/modules/workflow/guards.py` (2 guard đang ở `PENDING_GUARDS` ghi sẵn `"M6-02"` — item này implement, chuyển sang `GUARDS`); `backend/app/modules/orders/service.py` (`_apply_transition`/`_check_guards`/`lock_order`/`RULES["assigned"]` — mẫu `submit_order`/`cancel_order` tái dùng nguyên khung, chỉ thêm 1 lệnh mới); DOMAIN_MODEL §5 (`confirmation_signer_name varchar(120)`, `completed_at`); M6-01 (bảng `attachments`, tab "Tệp đính kèm", `can_upload_confirmation`).
 
