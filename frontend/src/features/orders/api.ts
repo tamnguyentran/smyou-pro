@@ -17,6 +17,7 @@ export type OrderLineCreateBody = components["schemas"]["OrderLineCreate"];
 export type OrderLineUpdateBody = components["schemas"]["OrderLineUpdate"];
 export type OrderContactUpdateBody = components["schemas"]["OrderContactUpdate"];
 export type OrderCancelBody = components["schemas"]["OrderCancel"];
+export type OrderCompleteBody = components["schemas"]["OrderComplete"];
 export type AuditEventOut = components["schemas"]["AuditEventOut"];
 export type ConfirmationAttachment = components["schemas"]["ConfirmationAttachment"];
 
@@ -169,6 +170,22 @@ export function useCancelOrder() {
   return useMutation({
     mutationFn: async ({ id, body }: { id: string; body: OrderCancelBody }) => {
       const { data, error, response } = await api.POST("/api/v1/orders/{order_id}/cancel", {
+        params: { path: { order_id: id } },
+        body,
+      });
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: setOrder,
+  });
+}
+
+/** AC-ORD-125: AWAITING_CONFIRMATION → COMPLETED. */
+export function useCompleteOrder() {
+  const setOrder = useSetOrder();
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: OrderCompleteBody }) => {
+      const { data, error, response } = await api.POST("/api/v1/orders/{order_id}/complete", {
         params: { path: { order_id: id } },
         body,
       });
