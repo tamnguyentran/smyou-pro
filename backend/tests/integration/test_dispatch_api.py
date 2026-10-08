@@ -420,6 +420,7 @@ def test_list_order_tasks_scope(app: FastAPI, db: Connection, people: dict[str, 
 
 @pytest.mark.ac("AC-DSP-014")
 @pytest.mark.ac("AC-DSP-057")
+@pytest.mark.ac("AC-DSP-116")
 def test_routes_declare_capability(app: FastAPI) -> None:
     # "/orders/{order_id}/tasks..." only — excludes the unrelated company-wide "/api/v1/tasks"
     # board route (M4-03a, covered by its own test_dispatch_board_api.py).
@@ -432,6 +433,7 @@ def test_routes_declare_capability(app: FastAPI) -> None:
         ("POST", "/api/v1/orders/{order_id}/tasks/{task_id}/assignees", "task.manage"),
         ("POST", "/api/v1/orders/{order_id}/tasks/{task_id}/assignees/{assignment_id}/remove", "task.manage"),
         ("POST", "/api/v1/orders/{order_id}/tasks/{task_id}/cancel", "task.manage"),
+        ("POST", "/api/v1/orders/{order_id}/tasks/{task_id}/reopen", "task.reopen"),
     }
     assert {"not_already_active_assignee", "task_not_cancelled"} <= set(GUARDS)
     assert not {"not_already_active_assignee", "task_not_cancelled"} & set(PENDING_GUARDS)
