@@ -40,7 +40,7 @@ def audit_rows(db: Connection, order_id: uuid.UUID) -> list[dict]:
     rows = db.execute(
         text(
             "SELECT action, from_status, to_status FROM audit_events"
-            " WHERE entity_type='ORDER' AND entity_id=:id ORDER BY created_at"
+            " WHERE entity_type='ORDER' AND entity_id=:id ORDER BY occurred_at"
         ),
         {"id": order_id},
     ).mappings()
