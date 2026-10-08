@@ -102,7 +102,7 @@ class OrderRevision(Base):
     order_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("orders.id"), index=True)
     revision_no: Mapped[int] = mapped_column(Integer)
     reason: Mapped[str] = mapped_column(Text)
-    requested_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("employees.id"))
+    requested_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("employees.id"), index=True)
     requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

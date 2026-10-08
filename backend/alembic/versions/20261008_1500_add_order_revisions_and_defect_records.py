@@ -38,6 +38,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_order_revisions")),
     )
     op.create_index(op.f("ix_order_revisions_order_id"), "order_revisions", ["order_id"], unique=False)
+    op.create_index(
+        op.f("ix_order_revisions_requested_by"), "order_revisions", ["requested_by"], unique=False
+    )
     op.create_table(
         "defect_records",
         sa.Column("id", sa.Uuid(), server_default=sa.text("gen_random_uuid()"), nullable=False),
@@ -66,12 +69,19 @@ def upgrade() -> None:
     )
     op.create_index(op.f("ix_defect_records_employee_id"), "defect_records", ["employee_id"], unique=False)
     op.create_index(op.f("ix_defect_records_task_id"), "defect_records", ["task_id"], unique=False)
+    op.create_index(
+        op.f("ix_defect_records_assignment_id"), "defect_records", ["assignment_id"], unique=False
+    )
+    op.create_index(op.f("ix_defect_records_reported_by"), "defect_records", ["reported_by"], unique=False)
 
 
 def downgrade() -> None:
+    op.drop_index(op.f("ix_defect_records_reported_by"), table_name="defect_records")
+    op.drop_index(op.f("ix_defect_records_assignment_id"), table_name="defect_records")
     op.drop_index(op.f("ix_defect_records_task_id"), table_name="defect_records")
     op.drop_index(op.f("ix_defect_records_employee_id"), table_name="defect_records")
     op.drop_table("defect_records")
+    op.drop_index(op.f("ix_order_revisions_requested_by"), table_name="order_revisions")
     op.drop_index(op.f("ix_order_revisions_order_id"), table_name="order_revisions")
     op.drop_table("order_revisions")
     op.drop_column("tasks", "reopen_count")
