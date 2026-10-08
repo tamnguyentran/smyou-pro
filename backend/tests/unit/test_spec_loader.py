@@ -40,6 +40,7 @@ def test_repo_specs_load() -> None:
         "POST /api/v1/auth/refresh",
         "POST /api/v1/auth/logout",
     ]
+    assert perm.dynamic_routes == ["GET /api/v1/attachments/{attachment_id}"]
 
 
 @pytest.mark.ac("AC-SYS-024")

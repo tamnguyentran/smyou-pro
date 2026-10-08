@@ -50,6 +50,7 @@ function detail(overrides: Partial<OrderDetail> = {}): OrderDetail {
     allowed_commands: [],
     can_edit_contact: true,
     can_edit_lines_after_submit: true,
+    can_upload_confirmation: false,
     lines: [],
     ...overrides,
   };

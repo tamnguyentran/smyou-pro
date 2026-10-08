@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Connection, text
 from sqlalchemy.engine import Row
 
-from app.core.authz import declared_routes
+from app.core.authz import declared_routes, undeclared_routes
 from tests.integration.conftest import AN, KHOA, Person, login, seed
 
 HOA = Person("hoa.le@smyou.vn", "Hoa@SmYou26", ("SALE",), "NV005", "Lê Thị Hoa", "SALES")
@@ -890,6 +890,7 @@ def test_read_scope_all_vs_technician_404(app: FastAPI, db: Connection, people: 
 @pytest.mark.ac("AC-ORD-060")
 @pytest.mark.ac("AC-ORD-079")
 @pytest.mark.ac("AC-ORD-089")
+@pytest.mark.ac("AC-CMP-010")
 def test_routes_declare_capability(app: FastAPI) -> None:
     # M4-01a's /tasks routes share the "/orders" prefix but belong to the dispatch module/router —
     # asserted separately in test_dispatch_api.py::test_routes_declare_capability (AC-DSP-014).
@@ -907,6 +908,8 @@ def test_routes_declare_capability(app: FastAPI) -> None:
         ("POST", "/api/v1/orders/{order_id}/cancel", "order.cancel"),
         ("GET", "/api/v1/orders/{order_id}/history", "order.read"),
         ("PATCH", "/api/v1/orders/{order_id}/contact", "order.edit_contact"),
+        ("POST", "/api/v1/orders/{order_id}/confirmation-attachments", "order.upload_confirmation"),
+        ("GET", "/api/v1/orders/{order_id}/confirmation-attachments", "order.read"),
         ("POST", "/api/v1/orders/{order_id}/lines-after-submit", "order.edit_lines_after_submit"),
         (
             "PATCH",
@@ -919,6 +922,18 @@ def test_routes_declare_capability(app: FastAPI) -> None:
             "order.edit_lines_after_submit",
         ),
     }
+
+
+@pytest.mark.ac("AC-CMP-010")
+def test_attachments_get_is_dynamic_not_undeclared(app: FastAPI) -> None:
+    """`GET /attachments/{id}` picks its capability per-record (owner_type), so it can't declare
+    exactly one statically — it must be listed in `permissions.dynamic_routes` instead of tripping
+    `undeclared_routes`'s "declares no capability" check, and it must NOT appear in
+    `declared_routes()` (that function is only for the single-static-capability case)."""
+    permissions = app.state.specs.permissions
+    assert "GET /api/v1/attachments/{attachment_id}" in permissions.dynamic_routes
+    assert undeclared_routes(app, permissions) == []
+    assert not any(r[1] == "/api/v1/attachments/{attachment_id}" for r in declared_routes(app))
 
 
 def test_mutations_write_audit_events(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
