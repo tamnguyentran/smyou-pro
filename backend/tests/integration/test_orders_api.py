@@ -1339,6 +1339,7 @@ def test_list_orders_basic(app: FastAPI, db: Connection, three_orders: dict[str,
         "created_by",
         "created_by_name",
         "created_at",
+        "revision_no",
     }
     # order A was created by HOA (NV005) — M3-03b's list page needs a name, not just the UUID.
     assert body["items"][0]["created_by_name"] == "Lê Thị Hoa"
