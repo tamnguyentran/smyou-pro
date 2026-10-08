@@ -1,6 +1,6 @@
 # M6-03a — Chuyển Chỉnh sửa + Mở lại task (API)
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M6-03 (tách `a`-API / `b`-UI theo mẫu M4-01/Q59 — 2 bảng mới + 1 cột mới + 2 guard đang treo + 2 route + badge, vượt ~400 dòng non-test nếu gộp UI) · **Milestone:** M6
 - **Liên quan:** `spec/state_machines.yaml#order` (lệnh `request_revision`, `AWAITING_CONFIRMATION|COMPLETED → REVISION`, capability `order.revise`, guard `reason_present`, effect `increment_revision_no`/`notify_order_owner`/`audit`); `spec/state_machines.yaml#task` (lệnh `reopen`, `allowed_task_status: [DONE]`, capability `task.reopen`, guard `order_in_revision`/`reason_present`, effect `increment_task_cycle`/`record_defect_for_previous_cycle_assignees`/`create_pending_assignments`/`fire_order_reevaluate`/`notify_assignees`/`audit`); `spec/state_machines.yaml#order` (lệnh hệ thống `all_tasks_done`, guard `revision_has_work_if_revision` — 2 guard này đang ở `PENDING_GUARDS` ghi `"M6-03"` trong `backend/app/modules/workflow/guards.py`); `spec/permissions.yaml` (`order.revise: {TECH_LEAD: all}`, `task.reopen: {TECH_LEAD: all}`); `docs/product/DOMAIN_MODEL.md` §7 (`order_revisions`) §8 (Task, cột `cycle`/`reopen_count`/`created_in_revision`) §10 (`defect_records`); `docs/product/WORKFLOWS.md` §2/§3/§5; `backend/app/modules/orders/service.py` (`_apply_transition`/`_check_guards` — mẫu `complete_order`); `backend/app/modules/dispatch/` (module task, mẫu lệnh `update`/`cancel` của `M4-02a`); M6-02 (mẫu sheet lý do, đã dùng `reason_present`).
 
