@@ -7,14 +7,14 @@ import sys
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 
 from app.core.config import Settings
 from app.core.db import create_db_engine, create_session_factory
 from app.core.security import hash_password
 from app.modules.catalog.models import Product, Service
 from app.modules.customers.models import Customer
-from app.modules.dispatch.models import Assignment, Task
+from app.modules.dispatch.models import Assignment, DefectRecord, Task
 from app.modules.files import service as files_service
 from app.modules.files.models import Attachment
 from app.modules.identity.models import AuthSession, Employee, EmployeeRole
@@ -224,24 +224,30 @@ def main() -> int:
                 session.add(task)
                 session.flush()
             else:
+                # Idempotent on rerun (M6-03b): a previous e2e run may have actually reopened this
+                # task (POST .../reopen bumps `cycle` and adds a 2nd assignment row for the new
+                # cycle) — reset both back to the seed's intended baseline, or the assignment
+                # lookup below finds 2 rows for `khoa_id` and `.one_or_none()` blows up.
                 task.status = task_status
                 task.due_at = now + timedelta(days=due_offset_days)
-            assignment = session.scalars(
-                select(Assignment).where(Assignment.task_id == task.id, Assignment.employee_id == khoa_id)
-            ).one_or_none()
-            if assignment is None:
-                session.add(
-                    Assignment(
-                        id=uuid.uuid4(),
-                        task_id=task.id,
-                        employee_id=khoa_id,
-                        cycle=1,
-                        status=assignment_status,
-                        assigned_by=creator_id,
-                    )
+                task.cycle = 1
+                task.reopen_count = 0
+                task.last_reopened_in_revision = None
+                # defect_records.assignment_id FKs to assignments.id with no ON DELETE CASCADE —
+                # drop those first or the assignment delete below hits a FK violation.
+                session.execute(delete(DefectRecord).where(DefectRecord.task_id == task.id))
+                session.execute(delete(Assignment).where(Assignment.task_id == task.id))
+                session.flush()
+            session.add(
+                Assignment(
+                    id=uuid.uuid4(),
+                    task_id=task.id,
+                    employee_id=khoa_id,
+                    cycle=1,
+                    status=assignment_status,
+                    assigned_by=creator_id,
                 )
-            else:
-                assignment.status = assignment_status
+            )
 
         my_tasks_order = upsert_order(MY_TASKS_ORDER_CODE)
         for task_code, task_status, assignment_status, hours, due_offset_days in MY_TASKS:
