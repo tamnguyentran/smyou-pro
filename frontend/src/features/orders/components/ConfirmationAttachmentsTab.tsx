@@ -22,7 +22,7 @@ function AttachmentCard({ attachment }: { attachment: ConfirmationAttachment }) 
       href={attachmentUrl(attachment.id)}
       target="_blank"
       rel="noreferrer"
-      className="block space-y-1 rounded-2xl border border-line bg-card p-2 shadow-card"
+      className="block space-y-1 rounded-2xl border border-line bg-card p-2 shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
     >
       <img
         src={attachmentUrl(attachment.id)}
@@ -82,7 +82,7 @@ export function ConfirmationAttachmentsTab({ order }: { order: Order }) {
     <div className="space-y-4">
       {canUpload ? (
         <div className="space-y-2">
-          <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-heading hover:bg-sidebar-sub">
+          <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-heading hover:bg-sidebar-sub has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand has-[:focus-visible]:ring-offset-2">
             <Upload aria-hidden="true" className="size-4" />
             Tải ảnh phiếu xác nhận
             <input
