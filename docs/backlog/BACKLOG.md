@@ -5,16 +5,14 @@ Mỗi item là **lát cắt dọc** (DB → API → UI → test) giao được t
 Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatch), `ASG`, `CMP` (completion/revision), `NTF`, `KPI`.
 
 ## Đã xong (tự động lưu trữ)
+- M5 — xem `BACKLOG_ARCHIVE.md`.
+
+## Đã xong (tự động lưu trữ)
 - M4 — xem `BACKLOG_ARCHIVE.md`.
 
 ## M0–M3 — đã xong
 M0 (nền móng) · M1 (danh tính & phân quyền) · M2 (danh mục) · M3 (khách hàng & đơn hàng) — toàn bộ `[x]`.
 Chi tiết từng item (ID, mô tả, spec, PR): `docs/backlog/BACKLOG_ARCHIVE.md`.
-
-## M5 — Kỹ thuật viên (mobile)
-- [x] **M5-01 Việc của tôi** (tab, card, gọi/bản đồ): `GET /api/v1/assignments/me` + trang `/my-tasks` (3 tab, thẻ/bảng, gọi/bản đồ, badge `pending_assignments_count` thật). Spec `M5-01-my-tasks.md`. Q71 còn ⏳ (không chặn — đã dùng giả định mặc định). `make verify` xanh (`reports/verification.md`).
-- [x] **M5-02 Tiếp nhận / Từ chối (lý do)**: `POST /api/v1/assignments/{id}/accept|reject` + nút Tiếp nhận/Từ chối trên tab Chờ nhận của `/my-tasks`. Spec `M5-02-accept-reject-assignment.md`. `make verify` xanh (`reports/verification.md`).
-- [S] **M5-03 Bắt đầu / Hoàn thành** (+ ghi chú, giờ thực tế, ảnh công việc) → task DONE → đơn AWAITING_CONFIRMATION; test đồng thời.
 
 ## M6 — Hoàn tất & Chỉnh sửa
 - [ ] **M6-01 Tải ảnh phiếu xác nhận** (nén client, kiểm magic bytes, lưu an toàn, xem có kiểm quyền).

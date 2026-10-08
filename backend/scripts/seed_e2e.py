@@ -142,19 +142,32 @@ def main() -> int:
             customer.tax_code = tax_code
         khoa_id = session.scalars(select(Employee.id).where(Employee.email == "khoa.shell@smyou.vn")).one()
 
-        def upsert_order(code: str) -> Order:
+        def upsert_order(
+            code: str,
+            *,
+            customer_name: str = "Cty TNHH Phát Đạt E2E",
+            customer_phone: str = "0932068787",
+            service_address: str = "45 Nguyễn Trãi, P. Bến Thành, Q.1, TP.HCM",
+        ) -> Order:
             order = session.scalars(select(Order).where(Order.code == code)).one_or_none()
             if order is None:
                 order = Order(
                     code=code,
                     status="IN_PROGRESS",
-                    customer_name="Cty TNHH Phát Đạt E2E",
-                    customer_phone="0932068787",
-                    service_address="45 Nguyễn Trãi, P. Bến Thành, Q.1, TP.HCM",
+                    customer_name=customer_name,
+                    customer_phone=customer_phone,
+                    service_address=service_address,
                     created_by=creator_id,
                 )
                 session.add(order)
                 session.flush()
+            else:
+                # Idempotent on rerun — a stale row from a previous seed (e.g. before WORK_ORDERS'
+                # customer identity was split out from the shared default) must not linger with the
+                # old contact info, or AC-ASG-015's strict-mode address/phone link lookup breaks.
+                order.customer_name = customer_name
+                order.customer_phone = customer_phone
+                order.service_address = service_address
             return order
 
         def upsert_task_assignment(
@@ -213,7 +226,16 @@ def main() -> int:
             upsert_task_assignment(respond_order, reject_task_code, "PENDING_ACCEPTANCE", "PENDING", "1.0", 3)
 
         for order_code, start_task_code, complete_task_code in WORK_ORDERS:
-            work_order = upsert_order(order_code)
+            # Distinct customer identity (not the shared "Nguyễn Trãi"/"0932…" one upsert_order
+            # defaults to): this e2e test actually completes a task to DONE, so the resulting
+            # assignment lands in khoa's "Đã xong" tab too — AC-ASG-015's strict-mode address/phone
+            # link lookup must keep matching exactly 1 element across the whole e2e run.
+            work_order = upsert_order(
+                order_code,
+                customer_name="Cty TNHH Hoàn Thành E2E",
+                customer_phone="0918222333",
+                service_address="12 Lê Lợi, P. Bến Nghé, Q.1, TP.HCM",
+            )
             upsert_task_assignment(work_order, start_task_code, "ACCEPTED", "ACCEPTED", "1.0", 3)
             upsert_task_assignment(work_order, complete_task_code, "IN_PROGRESS", "IN_PROGRESS", "1.0", 3)
     sys.stdout.write(
