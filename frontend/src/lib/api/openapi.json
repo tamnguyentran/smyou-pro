@@ -1853,6 +1853,10 @@
             "title": "Can Edit Lines After Submit",
             "type": "boolean"
           },
+          "can_revise": {
+            "title": "Can Revise",
+            "type": "boolean"
+          },
           "can_upload_confirmation": {
             "title": "Can Upload Confirmation",
             "type": "boolean"
@@ -2041,7 +2045,8 @@
           "can_edit_contact",
           "can_edit_lines_after_submit",
           "can_upload_confirmation",
-          "can_complete"
+          "can_complete",
+          "can_revise"
         ],
         "title": "OrderDetail",
         "type": "object"
@@ -2482,6 +2487,29 @@
         },
         "required": ["items", "total", "limit", "offset"],
         "title": "OrderPage",
+        "type": "object"
+      },
+      "OrderRevise": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["version"],
+        "title": "OrderRevise",
         "type": "object"
       },
       "OrderSummary": {
@@ -3685,6 +3713,17 @@
             "title": "Id",
             "type": "string"
           },
+          "last_reopened_in_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Reopened In Revision"
+          },
           "order_id": {
             "format": "uuid",
             "title": "Order Id",
@@ -3721,6 +3760,10 @@
             "title": "Priority",
             "type": "string"
           },
+          "reopen_count": {
+            "title": "Reopen Count",
+            "type": "integer"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -3743,6 +3786,8 @@
           "due_at",
           "priority",
           "cycle",
+          "reopen_count",
+          "last_reopened_in_revision",
           "order_line_ids",
           "assignees",
           "created_by",
@@ -3765,6 +3810,34 @@
         },
         "required": ["items"],
         "title": "TaskListOut",
+        "type": "object"
+      },
+      "TaskReopen": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "severity": {
+            "enum": ["MINOR", "MAJOR"],
+            "title": "Severity",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["version", "severity"],
+        "title": "TaskReopen",
         "type": "object"
       },
       "TaskSummary": {
@@ -6237,6 +6310,63 @@
         "tags": ["orders"]
       }
     },
+    "/api/v1/orders/{order_id}/revise": {
+      "post": {
+        "operationId": "orders_revise",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderRevise"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chuyển đơn sang Chỉnh sửa",
+        "tags": ["orders"]
+      }
+    },
     "/api/v1/orders/{order_id}/submit": {
       "post": {
         "operationId": "orders_submit",
@@ -6720,6 +6850,73 @@
           }
         },
         "summary": "Huỷ đầu việc",
+        "tags": ["dispatch"]
+      }
+    },
+    "/api/v1/orders/{order_id}/tasks/{task_id}/reopen": {
+      "post": {
+        "operationId": "orders_tasks_reopen",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskReopen"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | GUARD_FAILED | INVALID_TRANSITION"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mở lại đầu việc đã xong",
         "tags": ["dispatch"]
       }
     },

@@ -93,6 +93,19 @@ class Order(Base):
     )
 
 
+class OrderRevision(Base):
+    """One row per `request_revision` command (DOMAIN_MODEL §7, M6-03a)."""
+
+    __tablename__ = "order_revisions"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
+    order_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("orders.id"), index=True)
+    revision_no: Mapped[int] = mapped_column(Integer)
+    reason: Mapped[str] = mapped_column(Text)
+    requested_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("employees.id"))
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class OrderLine(Base):
     __tablename__ = "order_lines"
     __table_args__ = (

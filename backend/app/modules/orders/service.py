@@ -23,7 +23,7 @@ from app.modules.files import service as files
 from app.modules.files.models import Attachment
 from app.modules.identity.models import Employee
 from app.modules.orders import domain
-from app.modules.orders.models import Order, OrderLine
+from app.modules.orders.models import Order, OrderLine, OrderRevision
 from app.modules.orders.schemas import (
     ConfirmationAttachment,
     ConfirmationAttachmentPage,
@@ -38,6 +38,7 @@ from app.modules.orders.schemas import (
     OrderLineRemove,
     OrderLineUpdate,
     OrderPage,
+    OrderRevise,
     OrderSummary,
     OrderUpdate,
 )
@@ -320,6 +321,15 @@ def _can_complete(order: Order, actor: Actor, specs: Specs) -> bool:
     return "all" in scopes or "assigned" in scopes
 
 
+def _can_revise(order: Order, actor: Actor, specs: Specs) -> bool:
+    """`order.revise` grants only `all` (spec/permissions.yaml) — no `own`/`assigned` branch
+    needed, unlike `_can_complete`."""
+    if order.status not in {"AWAITING_CONFIRMATION", "COMPLETED"}:
+        return False
+    scopes = effective_scopes(specs.permissions, actor.roles, "order.revise")
+    return "all" in scopes
+
+
 def _out(order: Order, actor: Actor, specs: Specs) -> OrderDetail:
     lines = sorted(order.lines, key=lambda line: line.position)
     return OrderDetail(
@@ -353,6 +363,7 @@ def _out(order: Order, actor: Actor, specs: Specs) -> OrderDetail:
         ),
         can_upload_confirmation=_can_upload_confirmation(order, actor, specs),
         can_complete=_can_complete(order, actor, specs),
+        can_revise=_can_revise(order, actor, specs),
     )
 
 
@@ -749,6 +760,13 @@ def _apply_transition(
     elif command == "complete":
         order.completed_at = now
         order.confirmation_signer_name = signer_name
+    elif command == "request_revision":
+        order.revision_no += 1
+        session.add(
+            OrderRevision(
+                order_id=order.id, revision_no=order.revision_no, reason=reason, requested_by=actor.id
+            )
+        )
     _bump(order)
     session.flush()
     audit.record(
@@ -860,6 +878,34 @@ def complete_order(
         signer_name=body.confirmation_signer_name,
     )
     return _out(order, actor, specs)
+
+
+def request_revision(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    body: OrderRevise,
+    *,
+    now: datetime,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = _apply_transition(
+        session,
+        actor,
+        order_id,
+        body.version,
+        "request_revision",
+        reason=body.reason,
+        now=now,
+        specs=specs,
+        request_id=request_id,
+    )
+    return _out(order, actor, specs)
+
+
+def count_revision_orders(session: Session, actor: Actor) -> int:  # CounterProvider shape
+    return session.scalar(select(func.count()).select_from(Order).where(Order.status == "REVISION")) or 0
 
 
 def update_order(

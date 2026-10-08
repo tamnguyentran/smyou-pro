@@ -54,6 +54,8 @@ class Task(Base):
     due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     priority: Mapped[str] = mapped_column(String(20))
     cycle: Mapped[int] = mapped_column(Integer, server_default=text("1"))
+    reopen_count: Mapped[int] = mapped_column(Integer, server_default=text("0"))
+    last_reopened_in_revision: Mapped[int | None] = mapped_column(Integer)
     order_line_ids: Mapped[list[uuid.UUID] | None] = mapped_column(ARRAY(Uuid))
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cancel_reason: Mapped[str | None] = mapped_column(Text)
@@ -97,4 +99,28 @@ class Assignment(Base):
     actual_hours: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
     completion_note: Mapped[str | None] = mapped_column(Text)
     assigned_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("employees.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+DEFECT_SEVERITIES = ("MINOR", "MAJOR")
+
+
+class DefectRecord(Base):
+    """One row per previous-cycle assignee of a reopened task (DOMAIN_MODEL §10, M6-03a).
+    `excluded_from_kpi`/`excluded_reason` exist only for M8-01 to fill in; no route reads/writes them
+    yet."""
+
+    __tablename__ = "defect_records"
+    __table_args__ = (CheckConstraint(_in("severity", DEFECT_SEVERITIES), name="severity"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
+    task_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tasks.id"), index=True)
+    cycle: Mapped[int] = mapped_column(Integer)
+    assignment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assignments.id"))
+    employee_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("employees.id"), index=True)
+    reason: Mapped[str] = mapped_column(Text)
+    severity: Mapped[str] = mapped_column(String(10))
+    reported_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("employees.id"))
+    excluded_from_kpi: Mapped[bool] = mapped_column(server_default=text("false"))
+    excluded_reason: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

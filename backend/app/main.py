@@ -26,14 +26,16 @@ from app.modules.files.router import router as files_router
 from app.modules.identity.router import me_router
 from app.modules.identity.router import router as auth_router
 from app.modules.identity.service import authenticate
+from app.modules.orders import service as orders_service
 from app.modules.orders.router import router as orders_router
 from app.modules.system.router import router as system_router
 from app.modules.workflow.guards import GUARDS, PENDING_GUARDS
 
-# Menu badge counters (GET /me), registered by the modules that own the data (M4-01a, M5-01, M6-03).
+# Menu badge counters (GET /me), registered by the modules that own the data (M4-01a, M5-01, M6-03a).
 COUNTERS: dict[str, CounterProvider] = {
     "pending_dispatch_count": dispatch_service.count_pending_dispatch,
     "pending_assignments_count": assignments_service.count_pending_assignments,
+    "revision_count": orders_service.count_revision_orders,
 }
 
 

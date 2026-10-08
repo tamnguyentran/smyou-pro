@@ -52,6 +52,7 @@ function detail(overrides: Partial<OrderDetail> = {}): OrderDetail {
     can_edit_lines_after_submit: true,
     can_upload_confirmation: false,
     can_complete: false,
+    can_revise: false,
     lines: [],
     ...overrides,
   };
@@ -88,6 +89,8 @@ function taskDetail(overrides: Partial<TaskDetail> = {}): TaskDetail {
     due_at: "2026-10-05T02:00:00Z", // 09:00 giờ VN
     priority: "HIGH",
     cycle: 1,
+    reopen_count: 0,
+    last_reopened_in_revision: null,
     order_line_ids: null,
     assignees: [
       { id: khoaAssignmentId, employee_id: khoaId, full_name: "Trần Minh Khoa", status: "PENDING" },

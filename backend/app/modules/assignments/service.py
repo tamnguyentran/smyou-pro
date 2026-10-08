@@ -160,14 +160,36 @@ def _check_guards(
             raise AppError(409, "GUARD_FAILED", _GUARD_MESSAGES[name], extra={"guard": name})
 
 
-def _active_assignment_statuses(session: Session, task_id: uuid.UUID) -> list[str]:
+def _active_assignment_statuses(session: Session, task_id: uuid.UUID, cycle: int) -> list[str]:
+    """Only the task's CURRENT cycle (spec/state_machines.yaml#task.derived_status) — a previous
+    cycle's DONE assignment must not resurface once the task has been reopened (M6-03a)."""
     return list(
         session.scalars(
             select(Assignment.status).where(
-                Assignment.task_id == task_id, Assignment.status.notin_(_INACTIVE_ASSIGNMENT_STATUSES)
+                Assignment.task_id == task_id,
+                Assignment.cycle == cycle,
+                Assignment.status.notin_(_INACTIVE_ASSIGNMENT_STATUSES),
             )
         ).all()
     )
+
+
+def _has_revision_work(session: Session, order: Order) -> bool:
+    """guard `revision_has_work_if_revision`: ≥1 non-cancelled task of the order was created or
+    reopened in the order's current revision."""
+    return (
+        session.scalar(
+            select(func.count())
+            .select_from(Task)
+            .where(
+                Task.order_id == order.id,
+                Task.cancelled_at.is_(None),
+                (Task.created_in_revision == order.revision_no)
+                | (Task.last_reopened_in_revision == order.revision_no),
+            )
+        )
+        or 0
+    ) > 0
 
 
 def _reload(session: Session, actor: Actor, assignment_id: uuid.UUID) -> MyAssignmentOut:
@@ -207,7 +229,7 @@ def accept_assignment(
     session.flush()
 
     task.status = domain.derive_task_status(
-        _active_assignment_statuses(session, task.id), cancelled=task.cancelled_at is not None
+        _active_assignment_statuses(session, task.id, task.cycle), cancelled=task.cancelled_at is not None
     )
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
@@ -259,7 +281,7 @@ def reject_assignment(
     # (order.all_tasks_done) still needs PENDING_GUARDS has_active_tasks/all_active_tasks_done
     # (M5-03) — same treatment dispatch/service.py:cancel_task already documents.
     task.status = domain.derive_task_status(
-        _active_assignment_statuses(session, task.id), cancelled=task.cancelled_at is not None
+        _active_assignment_statuses(session, task.id, task.cycle), cancelled=task.cancelled_at is not None
     )
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
@@ -300,7 +322,7 @@ def start_assignment(
     session.flush()
 
     task.status = domain.derive_task_status(
-        _active_assignment_statuses(session, task.id), cancelled=task.cancelled_at is not None
+        _active_assignment_statuses(session, task.id, task.cycle), cancelled=task.cancelled_at is not None
     )
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
@@ -342,7 +364,7 @@ def complete_assignment(
     session.flush()
 
     task.status = domain.derive_task_status(
-        _active_assignment_statuses(session, task.id), cancelled=task.cancelled_at is not None
+        _active_assignment_statuses(session, task.id, task.cycle), cancelled=task.cancelled_at is not None
     )
     order.version += 1  # Order is the aggregate root (Q62) — bumped once per command.
     session.flush()
@@ -358,16 +380,18 @@ def complete_assignment(
         request_id=request_id,
     )
 
-    # order.all_tasks_done (spec/state_machines.yaml#order): only evaluated while the order is
-    # IN_PROGRESS — REVISION is explicitly out of scope here (guard revision_has_work_if_revision
-    # is still PENDING_GUARDS, M6-03; spec §8). No error surfaced to the actor if the guards don't
-    # pass — the order simply stays put, same contract as dispatch/service.py's start_dispatch
-    # inline system-transition.
-    if task.status == "DONE" and order.status == "IN_PROGRESS":
+    # order.all_tasks_done (spec/state_machines.yaml#order): evaluated while the order is
+    # IN_PROGRESS or REVISION (M6-03a) — No error surfaced to the actor if the guards don't pass —
+    # the order simply stays put, same contract as dispatch/service.py's start_dispatch inline
+    # system-transition.
+    if task.status == "DONE" and order.status in ("IN_PROGRESS", "REVISION"):
         active_statuses = _active_task_statuses(session, order.id)
-        if GUARDS["has_active_tasks"](len(active_statuses)) and GUARDS["all_active_tasks_done"](
-            active_statuses
+        if (
+            GUARDS["has_active_tasks"](len(active_statuses))
+            and GUARDS["all_active_tasks_done"](active_statuses)
+            and GUARDS["revision_has_work_if_revision"](order.status, _has_revision_work(session, order))
         ):
+            from_status = order.status
             order.status = "AWAITING_CONFIRMATION"
             session.flush()
             audit.record(
@@ -376,7 +400,7 @@ def complete_assignment(
                 entity_type="ORDER",
                 entity_id=order.id,
                 action="all_tasks_done",
-                from_status="IN_PROGRESS",
+                from_status=from_status,
                 to_status="AWAITING_CONFIRMATION",
                 request_id=request_id,
             )

@@ -82,6 +82,7 @@ function detail(overrides: Partial<OrderDetail> = {}): OrderDetail {
     can_edit_lines_after_submit: true,
     can_upload_confirmation: false,
     can_complete: false,
+    can_revise: false,
     lines: [PRODUCT_LINE],
     ...overrides,
   };

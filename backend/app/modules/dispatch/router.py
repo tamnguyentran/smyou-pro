@@ -20,6 +20,7 @@ from app.modules.dispatch.schemas import (
     TaskCreate,
     TaskDetail,
     TaskListOut,
+    TaskReopen,
     TaskStatus,
     TaskUpdate,
 )
@@ -29,6 +30,7 @@ router = APIRouter(prefix="/api/v1/orders", tags=["dispatch"])
 Dispatcher = Annotated[Actor, Depends(require("task.manage"))]
 Reader = Annotated[Actor, Depends(require("order.read"))]
 TaskReader = Annotated[Actor, Depends(require("task.read"))]
+Reopener = Annotated[Actor, Depends(require("task.reopen"))]
 
 tasks_router = APIRouter(prefix="/api/v1/tasks", tags=["dispatch"])
 
@@ -187,6 +189,34 @@ def cancel_task(
 ) -> TaskDetail:
     now = request.app.state.clock()
     return service.cancel_task(
+        session,
+        actor,
+        order_id,
+        task_id,
+        body,
+        now=now,
+        specs=request.app.state.specs,
+        request_id=get_request_id(request),
+    )
+
+
+@router.post(
+    "/{order_id}/tasks/{task_id}/reopen",
+    operation_id="orders_tasks_reopen",
+    summary="Mở lại đầu việc đã xong",
+    response_model=TaskDetail,
+    responses=_docs(NOT_FOUND, MUTATION_CONFLICTS),
+)
+def reopen_task(
+    order_id: uuid.UUID,
+    task_id: uuid.UUID,
+    body: TaskReopen,
+    request: Request,
+    session: DbSession,
+    actor: Reopener,
+) -> TaskDetail:
+    now = request.app.state.clock()
+    return service.reopen_task(
         session,
         actor,
         order_id,

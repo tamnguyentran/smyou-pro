@@ -14,7 +14,7 @@ from app.core.errors import AppError
 from app.core.spec_loader import Specs, TaskCommand, Transition
 from app.modules.audit import service as audit
 from app.modules.dispatch import domain
-from app.modules.dispatch.models import Assignment, Task
+from app.modules.dispatch.models import Assignment, DefectRecord, Task
 from app.modules.dispatch.schemas import (
     EmployeeWorkloadItem,
     EmployeeWorkloadOut,
@@ -27,6 +27,7 @@ from app.modules.dispatch.schemas import (
     TaskCreate,
     TaskDetail,
     TaskListOut,
+    TaskReopen,
     TaskSummary,
     TaskSummaryAssigneeOut,
     TaskUpdate,
@@ -56,6 +57,7 @@ _GUARD_MESSAGES = {
     "due_at_not_in_past": "Hạn hoàn thành không được ở quá khứ.",
     "not_already_active_assignee": "Người này đã được giao đầu việc này.",
     "reason_present": "Vui lòng nhập lý do (ít nhất 5 ký tự).",
+    "order_in_revision": "Đơn phải đang ở trạng thái Chỉnh sửa mới mở lại được đầu việc.",
 }
 
 
@@ -106,6 +108,8 @@ def _check_guards(
             ok = GUARDS[name](reason)
         elif name == "not_already_active_assignee":
             ok = GUARDS[name](already_active)
+        elif name == "order_in_revision":
+            ok = GUARDS[name](order_status)
         else:
             raise AssertionError(f"task/assignment command doesn't use guard {name!r}")
         if not ok:
@@ -138,11 +142,17 @@ def _find_assignment(session: Session, task_id: uuid.UUID, assignment_id: uuid.U
     return assignment
 
 
-def _load_assignees(session: Session, task_id: uuid.UUID) -> list[TaskAssigneeOut]:
+def _load_assignees(session: Session, task_id: uuid.UUID, cycle: int) -> list[TaskAssigneeOut]:
+    """Only the task's CURRENT cycle — same reasoning as `_active_assignment_statuses`: a previous
+    cycle's DONE assignee must not resurface in the team list once the task has been reopened."""
     rows = session.execute(
         select(Assignment.id, Assignment.employee_id, Employee.full_name, Assignment.status)
         .join(Employee, Employee.id == Assignment.employee_id)
-        .where(Assignment.task_id == task_id, Assignment.status.notin_(_INACTIVE_ASSIGNMENT_STATUSES))
+        .where(
+            Assignment.task_id == task_id,
+            Assignment.cycle == cycle,
+            Assignment.status.notin_(_INACTIVE_ASSIGNMENT_STATUSES),
+        )
         .order_by(Assignment.created_at.asc())
     ).all()
     return [
@@ -151,11 +161,15 @@ def _load_assignees(session: Session, task_id: uuid.UUID) -> list[TaskAssigneeOu
     ]
 
 
-def _active_assignment_statuses(session: Session, task_id: uuid.UUID) -> list[str]:
+def _active_assignment_statuses(session: Session, task_id: uuid.UUID, cycle: int) -> list[str]:
+    """Only the task's CURRENT cycle (spec/state_machines.yaml#task.derived_status) — a previous
+    cycle's DONE assignment must not resurface once the task has been reopened (M6-03a)."""
     return list(
         session.scalars(
             select(Assignment.status).where(
-                Assignment.task_id == task_id, Assignment.status.notin_(_INACTIVE_ASSIGNMENT_STATUSES)
+                Assignment.task_id == task_id,
+                Assignment.cycle == cycle,
+                Assignment.status.notin_(_INACTIVE_ASSIGNMENT_STATUSES),
             )
         ).all()
     )
@@ -184,6 +198,8 @@ def _task_detail(task: Task, order: Order, assignees: list[TaskAssigneeOut]) -> 
         due_at=task.due_at,
         priority=task.priority,
         cycle=task.cycle,
+        reopen_count=task.reopen_count,
+        last_reopened_in_revision=task.last_reopened_in_revision,
         order_line_ids=task.order_line_ids,
         assignees=assignees,
         created_by=task.created_by,
@@ -244,7 +260,7 @@ def create_task(
     session.add_all(assignments)
     session.flush()
 
-    assignees = _load_assignees(session, task.id)
+    assignees = _load_assignees(session, task.id, task.cycle)
 
     # effects order (spec/state_machines.yaml#task.commands[create]): create_pending_assignments
     # (above), fire_order_start_dispatch_if_first_task (below, incl. its own `audit`), then this
@@ -317,7 +333,7 @@ def update_task(
         to_status=task.status,
         request_id=request_id,
     )
-    return _task_detail(task, order, _load_assignees(session, task.id))
+    return _task_detail(task, order, _load_assignees(session, task.id, task.cycle))
 
 
 def add_assignee(
@@ -367,7 +383,9 @@ def add_assignee(
     session.add(assignment)
     session.flush()
 
-    task.status = domain.derive_task_status(_active_assignment_statuses(session, task.id), cancelled=False)
+    task.status = domain.derive_task_status(
+        _active_assignment_statuses(session, task.id, task.cycle), cancelled=False
+    )
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
 
@@ -380,7 +398,7 @@ def add_assignee(
         to_status=task.status,
         request_id=request_id,
     )
-    return _task_detail(task, order, _load_assignees(session, task.id))
+    return _task_detail(task, order, _load_assignees(session, task.id, task.cycle))
 
 
 def remove_assignee(
@@ -408,7 +426,7 @@ def remove_assignee(
     session.flush()
 
     task.status = domain.derive_task_status(
-        _active_assignment_statuses(session, task.id), cancelled=task.cancelled_at is not None
+        _active_assignment_statuses(session, task.id, task.cycle), cancelled=task.cancelled_at is not None
     )
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
@@ -423,7 +441,7 @@ def remove_assignee(
         to_status="REMOVED",
         request_id=request_id,
     )
-    return _task_detail(task, order, _load_assignees(session, task.id))
+    return _task_detail(task, order, _load_assignees(session, task.id, task.cycle))
 
 
 def cancel_task(
@@ -478,7 +496,82 @@ def cancel_task(
         to_status=task.status,
         request_id=request_id,
     )
-    return _task_detail(task, order, _load_assignees(session, task.id))
+    return _task_detail(task, order, _load_assignees(session, task.id, task.cycle))
+
+
+def reopen_task(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    task_id: uuid.UUID,
+    body: TaskReopen,
+    *,
+    now: datetime,
+    specs: Specs,
+    request_id: str | None = None,
+) -> TaskDetail:
+    order = orders_service.lock_order(session, actor, order_id, body.version)
+    task = _find_task(session, order.id, task_id)
+    command = domain.find_task_command(specs.state_machines.task, "reopen")
+    _check_task_status_allowed(task, command)
+    _check_guards(command.guards, order_status=order.status, reason=body.reason)
+
+    from_status = task.status
+    previous_cycle = task.cycle
+    done_assignments = session.scalars(
+        select(Assignment).where(
+            Assignment.task_id == task.id, Assignment.cycle == previous_cycle, Assignment.status == "DONE"
+        )
+    ).all()
+
+    task.cycle = previous_cycle + 1
+    task.reopen_count += 1
+    task.last_reopened_in_revision = order.revision_no
+
+    # record_defect_for_previous_cycle_assignees + create_pending_assignments effects: every DONE
+    # assignee of the cycle being closed gets 1 defect_records row and is re-assigned (same person,
+    # no picker in this item — see spec §6) with a fresh PENDING assignment in the new cycle.
+    for old_assignment in done_assignments:
+        session.add(
+            DefectRecord(
+                task_id=task.id,
+                cycle=previous_cycle,
+                assignment_id=old_assignment.id,
+                employee_id=old_assignment.employee_id,
+                reason=body.reason,
+                severity=body.severity,
+                reported_by=actor.id,
+            )
+        )
+        session.add(
+            Assignment(
+                task_id=task.id,
+                employee_id=old_assignment.employee_id,
+                cycle=task.cycle,
+                status="PENDING",
+                assigned_by=actor.id,
+            )
+        )
+    session.flush()
+
+    task.status = domain.derive_task_status(
+        _active_assignment_statuses(session, task.id, task.cycle), cancelled=False
+    )
+    order.version += 1  # Order is the aggregate root (Q62).
+    session.flush()
+
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="TASK",
+        entity_id=task.id,
+        action="reopen",
+        from_status=from_status,
+        to_status=task.status,
+        data={"reason": body.reason, "severity": body.severity},
+        request_id=request_id,
+    )
+    return _task_detail(task, order, _load_assignees(session, task.id, task.cycle))
 
 
 def get_task(session: Session, actor: Actor, order_id: uuid.UUID, task_id: uuid.UUID) -> TaskDetail:
@@ -488,7 +581,7 @@ def get_task(session: Session, actor: Actor, order_id: uuid.UUID, task_id: uuid.
     order = session.get(Order, task.order_id)
     if order is None:
         raise AssertionError("task.order_id FK guarantees an order row exists")
-    return _task_detail(task, order, _load_assignees(session, task.id))
+    return _task_detail(task, order, _load_assignees(session, task.id, task.cycle))
 
 
 def list_order_tasks(session: Session, actor: Actor, order_id: uuid.UUID) -> TaskListOut:

@@ -62,6 +62,14 @@ class TaskCancel(BaseModel):
     reason: str | None = None
 
 
+class TaskReopen(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: int
+    reason: str | None = None
+    severity: Literal["MINOR", "MAJOR"]
+
+
 class TaskAssigneeOut(BaseModel):
     id: uuid.UUID
     employee_id: uuid.UUID
@@ -87,6 +95,8 @@ class TaskDetail(BaseModel):
     due_at: datetime
     priority: str
     cycle: int
+    reopen_count: int
+    last_reopened_in_revision: int | None
     order_line_ids: list[uuid.UUID] | None
     assignees: list[TaskAssigneeOut]
     created_by: uuid.UUID

@@ -94,6 +94,14 @@ def signer_name_present(signer_name: str | None) -> bool:
     return signer_name is not None and len(signer_name.strip()) > 0
 
 
+def order_in_revision(order_status: str) -> bool:
+    return order_status == "REVISION"
+
+
+def revision_has_work_if_revision(order_status: str, has_matching_task: bool) -> bool:
+    return order_status != "REVISION" or has_matching_task
+
+
 GUARDS: dict[str, Callable[..., bool]] = {
     "customer_present": customer_present,
     "has_lines_or_description": has_lines_or_description,
@@ -113,10 +121,8 @@ GUARDS: dict[str, Callable[..., bool]] = {
     "all_active_tasks_done": all_active_tasks_done,
     "confirmation_attachment_in_current_revision": confirmation_attachment_in_current_revision,
     "signer_name_present": signer_name_present,
+    "order_in_revision": order_in_revision,
+    "revision_has_work_if_revision": revision_has_work_if_revision,
 }
 
-PENDING_GUARDS: dict[str, str] = {
-    # completion & revision
-    "order_in_revision": "M6-03",
-    "revision_has_work_if_revision": "M6-03",
-}
+PENDING_GUARDS: dict[str, str] = {}

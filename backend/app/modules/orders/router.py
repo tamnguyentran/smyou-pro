@@ -23,6 +23,7 @@ from app.modules.orders.schemas import (
     OrderLineRemove,
     OrderLineUpdate,
     OrderPage,
+    OrderRevise,
     OrderSort,
     OrderStatus,
     OrderUpdate,
@@ -35,6 +36,7 @@ Editor = Annotated[Actor, Depends(require("order.edit_draft"))]
 Submitter = Annotated[Actor, Depends(require("order.submit"))]
 Canceler = Annotated[Actor, Depends(require("order.cancel"))]
 Completer = Annotated[Actor, Depends(require("order.complete"))]
+Reviser = Annotated[Actor, Depends(require("order.revise"))]
 ContactEditor = Annotated[Actor, Depends(require("order.edit_contact"))]
 AfterSubmitLineEditor = Annotated[Actor, Depends(require("order.edit_lines_after_submit"))]
 ConfirmationUploader = Annotated[Actor, Depends(require("order.upload_confirmation"))]
@@ -243,6 +245,28 @@ def complete_order(
 ) -> OrderDetail:
     now = request.app.state.clock()
     return service.complete_order(
+        session,
+        actor,
+        order_id,
+        body,
+        now=now,
+        specs=request.app.state.specs,
+        request_id=get_request_id(request),
+    )
+
+
+@router.post(
+    "/{order_id}/revise",
+    operation_id="orders_revise",
+    summary="Chuyển đơn sang Chỉnh sửa",
+    response_model=OrderDetail,
+    responses=_docs(NOT_FOUND, TRANSITION_CONFLICTS),
+)
+def revise_order(
+    order_id: uuid.UUID, body: OrderRevise, request: Request, session: DbSession, actor: Reviser
+) -> OrderDetail:
+    now = request.app.state.clock()
+    return service.request_revision(
         session,
         actor,
         order_id,
