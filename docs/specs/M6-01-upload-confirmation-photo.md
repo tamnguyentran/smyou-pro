@@ -1,6 +1,6 @@
 # M6-01 — Tải ảnh phiếu xác nhận
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M6-01 · **Milestone:** M6
 - **Liên quan:** spec/state_machines.yaml#order (guard `confirmation_attachment_in_current_revision` dùng ở `complete`, M6-02 sau sẽ gọi); `spec/permissions.yaml` (`order.upload_confirmation`: TECH_LEAD all / TECHNICIAN assigned; `order.read` cho xem lại); DOMAIN_MODEL §11 (Attachment); WORKFLOWS §1–2; UI_GUIDELINES dòng 71, 76, 84, 98; M2-01a (bảng `attachments`, `files/domain.py` validate_image, `store_image` — nền đã có, dùng chung `kind=PRODUCT_IMAGE`); Q72 (đã chốt: M6-01 xây pipeline chung, M5-03/TASK_PHOTO tái dùng sau)
 
