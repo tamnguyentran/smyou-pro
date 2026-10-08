@@ -7,17 +7,22 @@ import sys
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 
-import app.modules.files.models  # noqa: F401  # registers `attachments` for Product.image_attachment_id's FK
 from app.core.config import Settings
 from app.core.db import create_db_engine, create_session_factory
 from app.core.security import hash_password
 from app.modules.catalog.models import Product, Service
 from app.modules.customers.models import Customer
 from app.modules.dispatch.models import Assignment, Task
+from app.modules.files import service as files_service
+from app.modules.files.models import Attachment
 from app.modules.identity.models import AuthSession, Employee, EmployeeRole
 from app.modules.orders.models import Order
+
+# Tiny valid JPEG (magic bytes + EOI marker) — same idiom as test_orders_confirmation_api.py's
+# JPEG_BYTES, reused here so the seeded confirmation photo passes `files.domain.validate_image`.
+JPEG_BYTES = b"\xff\xd8\xff\xe0\x00\x10JFIF" + b"\x00" * 200 + b"\xff\xd9"
 
 # (email, code, full name, roles, password, must change password) — one technician per Playwright
 # project so the mobile and desktop runs can each do the first-login password change in parallel.
@@ -82,6 +87,14 @@ RESPOND_ORDERS = [
 WORK_ORDERS = [
     ("E2E-DH-M503A", "E2E-DH-M503A-T1", "E2E-DH-M503A-T2"),  # mobile: start T1 / complete T2
     ("E2E-DH-M503B", "E2E-DH-M503B-T1", "E2E-DH-M503B-T2"),  # desktop: start T1 / complete T2
+]
+
+# M6-02: complete-order e2e (orders.spec.ts) — same one-order-per-project idiom as WORK_ORDERS.
+# AWAITING_CONFIRMATION, 1 DONE task+assignment, 1 CUSTOMER_CONFIRMATION photo already at
+# revision_no=0 so the "Tệp đính kèm" tab has something to show before "Hoàn tất đơn" is clicked.
+COMPLETE_ORDERS = [
+    ("E2E-DH-M602A", "E2E-DH-M602A-T1"),  # mobile
+    ("E2E-DH-M602B", "E2E-DH-M602B-T1"),  # desktop
 ]
 
 
@@ -238,6 +251,44 @@ def main() -> int:
             )
             upsert_task_assignment(work_order, start_task_code, "ACCEPTED", "ACCEPTED", "1.0", 3)
             upsert_task_assignment(work_order, complete_task_code, "IN_PROGRESS", "IN_PROGRESS", "1.0", 3)
+
+        for order_code, task_code in COMPLETE_ORDERS:
+            complete_order = upsert_order(
+                order_code,
+                customer_name="Cty TNHH Hoàn Tất E2E",
+                customer_phone="0918333444",
+                service_address="20 Lý Tự Trọng, P. Bến Nghé, Q.1, TP.HCM",
+            )
+            complete_order.status = "AWAITING_CONFIRMATION"
+            complete_order.revision_no = 0
+            upsert_task_assignment(complete_order, task_code, "DONE", "DONE", "1.0", -1)
+            has_attachment = (
+                session.scalar(
+                    select(func.count())
+                    .select_from(Attachment)
+                    .where(
+                        Attachment.owner_type == "ORDER",
+                        Attachment.owner_id == complete_order.id,
+                        Attachment.kind == "CUSTOMER_CONFIRMATION",
+                        Attachment.revision_no == 0,
+                    )
+                )
+                or 0
+            )
+            if has_attachment == 0:
+                files_service.store_image(
+                    session,
+                    owner_type="ORDER",
+                    owner_id=complete_order.id,
+                    kind="CUSTOMER_CONFIRMATION",
+                    revision_no=0,
+                    file_bytes=JPEG_BYTES,
+                    filename="phieu.jpg",
+                    declared_mime="image/jpeg",
+                    uploaded_by=khoa_id,
+                    settings=settings,
+                    now=now,
+                )
     sys.stdout.write(
         f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products, {len(SERVICES)} E2E services,"
         f" {len(CUSTOMERS)} E2E customers, {len(MY_TASKS)} E2E my-tasks assignments\n"
