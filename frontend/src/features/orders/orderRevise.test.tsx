@@ -5,7 +5,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { server } from "../../test/msw";
 import { renderApp } from "../../test/renderApp";
 import type { components } from "../../lib/api/schema";
-import { HOA, hoaId, signedInAs, TUAN, tuanId } from "../dispatch/testFixtures";
+import { HOA, hoaId, meBody, signedInAs, TUAN, tuanId } from "../dispatch/testFixtures";
 
 type OrderDetail = components["schemas"]["OrderDetail"];
 
@@ -144,6 +144,50 @@ describe("Chuyển Chỉnh sửa (M6-03b)", () => {
       ).not.toBeInTheDocument();
     });
     expect(screen.queryByRole("button", { name: "Chuyển Chỉnh sửa" })).not.toBeInTheDocument();
+  });
+
+  test("AC-ORD-154 thành công → badge 'Đơn cần chỉnh sửa' trên menu cập nhật (invalidate /me)", async () => {
+    signedInAs(tuanId, TUAN, { revision_count: 0 });
+    stub();
+    server.use(
+      http.post("/api/v1/orders/:id/revise", () =>
+        HttpResponse.json(
+          detail({
+            status: "REVISION",
+            revision_no: 1,
+            version: 7,
+            allowed_commands: [],
+            can_revise: false,
+          }),
+        ),
+      ),
+    );
+    const user = await openOrder();
+    const nav = await screen.findByRole("navigation", { name: "Menu chính" });
+    await user.click(within(nav).getByRole("button", { name: "Điều phối kỹ thuật" }));
+    const revisions = within(nav).getByRole("link", { name: /Đơn cần chỉnh sửa/ });
+    expect(within(revisions).queryByText("1")).not.toBeInTheDocument();
+
+    server.use(
+      http.get("/api/v1/me", () => HttpResponse.json(meBody(tuanId, TUAN, { revision_count: 1 }))),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Chuyển Chỉnh sửa" }));
+    const dialog = await screen.findByRole("dialog", {
+      name: `Chuyển đơn ${orderCode} sang Chỉnh sửa?`,
+    });
+    await user.type(
+      within(dialog).getByLabelText("Lý do"),
+      "Camera tầng 2 lắp sai vị trí, khách yêu cầu chỉnh",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Xác nhận" }));
+
+    expect(
+      await screen.findByText(`Đã chuyển đơn ${orderCode} sang Chỉnh sửa.`),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(within(revisions).getByText("1")).toBeInTheDocument();
+    });
   });
 
   test("AC-ORD-155 STALE_VERSION khi xác nhận → banner đỏ + nút Tải lại", async () => {

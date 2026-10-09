@@ -1,6 +1,7 @@
 import { ImageOff, Upload } from "lucide-react";
 import { useState, type ChangeEvent } from "react";
 import { Alert } from "../../../components/ui/Alert";
+import { Button } from "../../../components/ui/Button";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { useToast } from "../../../components/ui/Toast";
 import { formatDateTime } from "../../../lib/format";
@@ -127,7 +128,20 @@ export function ConfirmationAttachmentsTab({ order }: { order: Order }) {
           className="h-32 animate-pulse rounded-2xl bg-sidebar-sub"
         />
       ) : attachments.isError ? (
-        <Alert>Không tải được danh sách ảnh.</Alert>
+        <EmptyState
+          icon={ImageOff}
+          message="Không tải được danh sách ảnh."
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => {
+                void attachments.refetch();
+              }}
+            >
+              Thử lại
+            </Button>
+          }
+        />
       ) : attachments.data.items.length === 0 ? (
         <EmptyState icon={ImageOff} message="Chưa có ảnh phiếu xác nhận." />
       ) : (

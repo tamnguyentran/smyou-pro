@@ -3,6 +3,7 @@ import { api } from "../../lib/api";
 import type { components, operations } from "../../lib/api/schema";
 import { resolveBasePath } from "../../lib/basePath";
 import { toApiError } from "../auth/errors";
+import { ME_KEY } from "../me/api";
 import { freshestOrder } from "./orderCache";
 
 export type OrderStatus = NonNullable<
@@ -125,6 +126,7 @@ function useSetOrder() {
 /** AC-ORD-154: AWAITING_CONFIRMATION|COMPLETED → REVISION. */
 export function useReviseOrder() {
   const setOrder = useSetOrder();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, body }: { id: string; body: OrderReviseBody }) => {
       const { data, error, response } = await api.POST("/api/v1/orders/{order_id}/revise", {
@@ -134,7 +136,10 @@ export function useReviseOrder() {
       if (!data) throw toApiError(response, error);
       return data;
     },
-    onSuccess: setOrder,
+    onSuccess: (order) => {
+      setOrder(order);
+      void queryClient.invalidateQueries({ queryKey: ME_KEY });
+    },
   });
 }
 
