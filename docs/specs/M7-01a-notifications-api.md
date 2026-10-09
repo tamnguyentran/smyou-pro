@@ -1,6 +1,6 @@
 # M7-01a — Thông báo in-app (API)
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M7-01 (tách `a`-API / `b`-UI theo mẫu M4-01/M6-03, Q59: bảng mới + module mới + bắn thật 13 điểm `notify_*` đang bị bỏ qua ở 3 service hiện có (Q54/Q60) + API đọc/đánh dấu đã đọc vượt ~400 dòng non-test nếu gộp UI) · **Milestone:** M7
 - **Liên quan:** `spec/state_machines.yaml` (13 điểm effect `notify_tech_leads`/`notify_order_owner`/`notify_assignees`/`notify_assignee`/`notify_tech_leads_if_task_done` ở `order.transitions[submit|all_tasks_done|complete|request_revision|cancel_active]`, `task.commands[create|update|add_assignee|reopen|cancel]`, `assignment.transitions[reject|complete|remove]`); `spec/permissions.yaml#notification.read` (`self` cho cả 4 vai trò — không đổi); `docs/product/DOMAIN_MODEL.md` §13 (`notifications: recipient_id, type, title, body, entity_type, entity_id, read_at`); `docs/product/OPEN_QUESTIONS_ARCHIVE.md` Q54/Q60 (lý do các điểm `notify_*` đang bị bỏ qua, để M7-01 xây thật); `backend/app/modules/audit/` (mẫu module đọc append-only: `router.py`/`schemas.py`/`service.py` cho `GET /audit-events`); `backend/app/modules/orders/service.py` (các điểm `# notify_*... effects skipped` cần nối thật — `submit_order`, `complete_order`, `request_revision`, `_apply_transition` nhánh `all_tasks_done`/`cancel_active`); `backend/app/modules/dispatch/service.py` (`create`/`update`/`add_assignee`/`reopen`/`cancel` của task); `backend/app/modules/assignments/service.py` (`reject`/`complete`/`remove`).
 
