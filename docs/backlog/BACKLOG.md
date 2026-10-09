@@ -22,8 +22,8 @@ Chi tiết từng item (ID, mô tả, spec, PR): `docs/backlog/BACKLOG_ARCHIVE.m
 - [ ] **M6-04 Stateful test toàn workflow + E2E golden path** (TESTING_STRATEGY §5).
 
 ## M7 — Thông báo & Tổng quan
-- [ ] **M7-01 Thông báo in-app** (chuông, badge, đánh dấu đã đọc, polling 30s).
-  - Follow-up (review M1-03b): bọc route `/thong-bao` và `/ca-nhan` bằng kiểm tra capability (`notification.read`, `profile.manage`) như các trang menu.
+- [~] **M7-01 Thông báo in-app** (chuông, badge, đánh dấu đã đọc, polling 30s) — tách `a` (API: bảng `notifications`, nối 13 điểm `notify_*`, đang code) / `b` (UI: chuông/badge/trang danh sách), theo mẫu M4-01/M6-03.
+  - Follow-up (review M1-03b): bọc route `/thong-bao` và `/ca-nhan` bằng kiểm tra capability (`notification.read`, `profile.manage`) như các trang menu — đưa vào `M7-01b`.
 - [ ] **M7-02 Dashboard theo vai trò** (Sale: đơn của tôi theo trạng thái; QLKT: chờ điều phối, cần giao lại, quá hạn; KTV: việc hôm nay; Manager: tổng hợp).
 
 ## M8 — KPI
