@@ -5,6 +5,9 @@ Mỗi item là **lát cắt dọc** (DB → API → UI → test) giao được t
 Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatch), `ASG`, `CMP` (completion/revision), `NTF`, `DASH` (dashboard), `KPI`.
 
 ## Đã xong (tự động lưu trữ)
+- M7 — xem `BACKLOG_ARCHIVE.md`.
+
+## Đã xong (tự động lưu trữ)
 - M5 — xem `BACKLOG_ARCHIVE.md`.
 
 ## Đã xong (tự động lưu trữ)
@@ -20,11 +23,6 @@ Chi tiết từng item (ID, mô tả, spec, PR): `docs/backlog/BACKLOG_ARCHIVE.m
 - [x] **M6-03a Chuyển Chỉnh sửa + mở lại task + defect records — API**: bảng `order_revisions`/`defect_records`, cột `tasks.reopen_count`/`last_reopened_in_revision`, guard `order_in_revision`/`revision_has_work_if_revision`, `POST /orders/{id}/revise`, `POST /orders/{order_id}/tasks/{task_id}/reopen`, badge `revision_count`. Spec `M6-03a-revision-reopen-api.md`. `make verify` xanh (`reports/verification.md`).
 - [x] **M6-03b Chuyển Chỉnh sửa + mở lại task — giao diện**: nút "Chuyển Chỉnh sửa" trên trang đơn, "Mở lại" trên đầu việc, trang `/dispatch/revisions`. Spec `M6-03b-revision-reopen-ui.md`. `make verify` xanh (`reports/verification.md`).
 - [ ] **M6-04 Stateful test toàn workflow + E2E golden path** (TESTING_STRATEGY §5).
-
-## M7 — Thông báo & Tổng quan
-- [x] **M7-01 Thông báo in-app** (chuông, badge, đánh dấu đã đọc, polling 30s) — tách `a` (API: bảng `notifications`, nối 13 điểm `notify_*` — **xong**, spec `M7-01a-notifications-api.md`, `make verify` xanh) / `b` (UI: chuông/badge/trang danh sách — **xong**, spec `M7-01b-notifications-ui.md`, `make verify` xanh ngoại trừ flake có từ trước ở `dispatch.spec.ts`, xem `reports/verification.md`), theo mẫu M4-01/M6-03.
-  - Follow-up (review M1-03b) đã xong trong M7-01b: route `/thong-bao` và `/ca-nhan` đã bọc capability (`notification.read`, `profile.manage`) như các trang menu.
-- [~] **M7-02 Dashboard theo vai trò** (Sale: đơn của tôi theo trạng thái; QLKT: chờ điều phối, cần giao lại, quá hạn; KTV: việc hôm nay; Manager: tổng hợp) — spec `M7-02-role-dashboard.md` (Approved).
 
 ## M8 — KPI
 - [ ] **M8-01 Báo cáo KPI thô** theo KTV & khoảng ngày: số task xong, % đúng hạn, số lần từ chối theo lý do, số lỗi (defect) trừ `excluded_from_kpi`, giờ ước tính vs thực tế; xuất CSV. (Công thức điểm: Q10.)

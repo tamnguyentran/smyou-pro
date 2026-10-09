@@ -18,7 +18,9 @@ export function StatTile({
         isUrgent ? "border-urgent-border bg-urgent-bg" : "border-line bg-card",
       )}
     >
-      <p className="text-sm font-medium text-muted">{label}</p>
+      <p className={cn("text-sm font-medium", isUrgent ? "text-urgent-fg" : "text-muted")}>
+        {label}
+      </p>
       <p className={cn("text-2xl font-bold", isUrgent ? "text-urgent-fg" : "text-heading")}>
         {value}
       </p>
