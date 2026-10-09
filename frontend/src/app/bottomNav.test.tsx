@@ -29,6 +29,7 @@ const AN: Person = {
     "kpi.read": all,
     "audit.read": all,
     "profile.manage": self,
+    "notification.read": self,
   },
 };
 const HOA: Person = {
@@ -41,6 +42,7 @@ const HOA: Person = {
     "order.create": all,
     "customer.manage": all,
     "profile.manage": self,
+    "notification.read": self,
   },
 };
 const TUAN: Person = {
@@ -53,6 +55,7 @@ const TUAN: Person = {
     "task.manage": all,
     "kpi.read": all,
     "profile.manage": self,
+    "notification.read": self,
   },
 };
 const KHOA: Person = {
@@ -65,6 +68,7 @@ const KHOA: Person = {
     "assignment.respond": self,
     "kpi.read": self,
     "profile.manage": self,
+    "notification.read": self,
   },
 };
 const HA: Person = {
@@ -79,6 +83,7 @@ const HA: Person = {
     "customer.manage": all,
     "kpi.read": self,
     "profile.manage": self,
+    "notification.read": self,
   },
 };
 
@@ -241,9 +246,14 @@ describe("Trang Cá nhân và Thông báo", () => {
     expect(screen.queryByRole("button", { name: "Huỷ" })).not.toBeInTheDocument();
   });
 
-  test("AC-SYS-050 chạm Thông báo → trang giữ chỗ", async () => {
+  test("AC-SYS-050 chạm Thông báo → trang thật (nội dung đầy đủ ở M7-01b)", async () => {
     mockViewport(false);
     signedInAs(KHOA);
+    server.use(
+      http.get("/api/v1/notifications", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+      ),
+    );
     const router = renderApp("/");
     await userEvent
       .setup()
@@ -253,6 +263,6 @@ describe("Trang Cá nhân và Thông báo", () => {
       expect(router.state.location.pathname).toBe("/thong-bao");
     });
     expect(screen.getByRole("heading", { level: 1, name: "Thông báo" })).toBeInTheDocument();
-    expect(screen.getByText("Chưa có thông báo.")).toBeInTheDocument();
+    expect(await screen.findByText("Chưa có thông báo.")).toBeInTheDocument();
   });
 });
