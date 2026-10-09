@@ -8,8 +8,8 @@ import { DispatchQueuePage } from "../features/dispatch/pages/DispatchQueuePage"
 import { RevisionQueuePage } from "../features/dispatch/pages/RevisionQueuePage";
 import { TaskBoardPage } from "../features/dispatch/pages/TaskBoardPage";
 import { WorkloadPage } from "../features/dispatch/pages/WorkloadPage";
+import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { EmployeesPage } from "../features/employees/pages/EmployeesPage";
-import { HomeRoute } from "../features/home/pages/HomeRoute";
 import { MyTasksPage } from "../features/myTasks/pages/MyTasksPage";
 import { NotificationsPage } from "../features/notifications/pages/NotificationsPage";
 import { DraftOrderPage } from "../features/orders/pages/DraftOrderPage";
@@ -85,7 +85,7 @@ export const routes: RouteObject[] = [
       </RequireSession>
     ),
     children: [
-      { index: true, element: <HomeRoute /> },
+      { index: true, element: <DashboardPage /> },
       ...menuRoutes,
       { path: "/employees", element: <EmployeesPage /> },
       { path: "/audit", element: <AuditPage /> },

@@ -16,6 +16,28 @@ const AN = {
 const problem = (status: number, code: string, detail: string, errors?: unknown[]) =>
   HttpResponse.json({ status, code, detail, ...(errors ? { errors } : {}) }, { status });
 
+/** M7-02: trang "/" (DashboardPage) tự gọi /me + /dashboard — các test ở đây không quan tâm
+ * nội dung dashboard, chỉ cần 2 API này không bị treo "unhandled request". */
+function mockDashboardApis() {
+  server.use(
+    http.get("/api/v1/me", () =>
+      HttpResponse.json({
+        employee: {
+          id: AN.id,
+          code: AN.code,
+          full_name: AN.full_name,
+          email: "",
+          department: null,
+        },
+        roles: AN.roles,
+        capabilities: { "dashboard.read": ["all"] },
+        counters: {},
+      }),
+    ),
+    http.get("/api/v1/dashboard", () => HttpResponse.json({})),
+  );
+}
+
 async function fillLogin(email: string, password: string) {
   const user = userEvent.setup();
   await user.type(await screen.findByLabelText("Email"), email);
@@ -25,6 +47,7 @@ async function fillLogin(email: string, password: string) {
 
 describe("Review M1-01b — phiên", () => {
   test("AC-AUTH-025 refresh bị từ chối giữa chừng → về /dang-nhap với next = trang hiện tại, xoá dấu đăng nhập", async () => {
+    mockDashboardApis();
     let refreshes = 0;
     server.use(
       http.post("/api/v1/auth/refresh", () => {
@@ -37,7 +60,7 @@ describe("Review M1-01b — phiên", () => {
     );
     markSignedIn();
     const router = renderApp("/?tab=lich-su");
-    expect(await screen.findByText("Xin chào, Nguyễn Văn An")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Tổng quan" })).toBeInTheDocument();
 
     await api.GET("/api/v1/health");
 
@@ -63,6 +86,7 @@ describe("Review M1-01b — phiên", () => {
   });
 
   test("AC-AUTH-025 phiên mới sau khi tự làm mới cập nhật giao diện (vd phải đổi mật khẩu)", async () => {
+    mockDashboardApis();
     let refreshes = 0;
     let healthCalls = 0;
     server.use(
@@ -79,7 +103,7 @@ describe("Review M1-01b — phiên", () => {
     );
     markSignedIn();
     const router = renderApp("/");
-    expect(await screen.findByText("Xin chào, Nguyễn Văn An")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Tổng quan" })).toBeInTheDocument();
 
     await api.GET("/api/v1/health");
 

@@ -22,6 +22,28 @@ const KHOA = {
 const problem = (status: number, code: string, detail: string, errors?: unknown[]) =>
   HttpResponse.json({ status, code, detail, ...(errors ? { errors } : {}) }, { status });
 
+/** M7-02: trang "/" (DashboardPage) tự gọi /me + /dashboard — các test đăng nhập ở đây không
+ * quan tâm nội dung dashboard, chỉ cần 2 API này không bị treo "unhandled request". */
+function mockDashboardApis() {
+  server.use(
+    http.get("/api/v1/me", () =>
+      HttpResponse.json({
+        employee: {
+          id: AN.id,
+          code: AN.code,
+          full_name: AN.full_name,
+          email: "",
+          department: null,
+        },
+        roles: AN.roles,
+        capabilities: { "dashboard.read": ["all"] },
+        counters: {},
+      }),
+    ),
+    http.get("/api/v1/dashboard", () => HttpResponse.json({})),
+  );
+}
+
 async function fillLogin(email: string, password: string) {
   const user = userEvent.setup();
   await user.type(await screen.findByLabelText("Email"), email);
@@ -115,6 +137,7 @@ describe("Trang đăng nhập", () => {
     ["/dang-nhap?next=https%3A%2F%2Fevil.example%2F", "/"],
     ["/dang-nhap", "/"],
   ])("AC-AUTH-023 đăng nhập thành công từ %s → %s", async (start, expected) => {
+    mockDashboardApis();
     server.use(
       http.post("/api/v1/auth/login", () =>
         HttpResponse.json({ employee: AN, must_change_password: false }),
@@ -125,7 +148,7 @@ describe("Trang đăng nhập", () => {
 
     await user.click(screen.getByRole("button", { name: "Đăng nhập" }));
 
-    expect(await screen.findByText("Xin chào, Nguyễn Văn An")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Tổng quan" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe(expected);
   });
 });
@@ -197,6 +220,7 @@ describe("Đổi mật khẩu lần đầu", () => {
 
 describe("Phiên đăng nhập", () => {
   test("AC-AUTH-021 từng đăng nhập → khôi phục phiên bằng refresh, không phải đăng nhập lại", async () => {
+    mockDashboardApis();
     server.use(
       http.post("/api/v1/auth/refresh", () =>
         HttpResponse.json({ employee: AN, must_change_password: false }),
@@ -205,7 +229,7 @@ describe("Phiên đăng nhập", () => {
     markSignedIn();
     const router = renderApp("/");
 
-    expect(await screen.findByText("Xin chào, Nguyễn Văn An")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Tổng quan" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/");
   });
 

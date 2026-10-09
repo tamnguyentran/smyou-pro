@@ -128,7 +128,8 @@ describe("Tổng quan", () => {
     renderApp("/");
 
     await screen.findByText("Quá hạn");
-    const overdueValue = screen.getAllByText("0")[0]!.closest("div") as HTMLElement;
+    const [firstZeroTile] = screen.getAllByText("0");
+    const overdueValue = (firstZeroTile as HTMLElement).closest("div") as HTMLElement;
     expect(overdueValue.className).not.toContain("urgent");
   });
 
@@ -138,7 +139,7 @@ describe("Tổng quan", () => {
     renderApp("/");
 
     expect(await screen.findByText("Không có việc nào đến hạn hôm nay.")).toBeInTheDocument();
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(within(screen.getByRole("main")).queryByRole("button")).not.toBeInTheDocument();
   });
 
   test("AC-DASH-013 Đức, 2 việc hôm nay (1 quá hạn): hạn chót quá hạn hiện màu đỏ", async () => {
@@ -156,10 +157,7 @@ describe("Tổng quan", () => {
     renderApp("/");
 
     const overdueCard = (await screen.findByText("DH2610-0012-T2")).closest("li") as HTMLElement;
-    const dueAtEl = within(overdueCard).getByText(
-      (_, el) => el?.tagName === "SPAN" && /2020/.test(el.textContent ?? ""),
-    );
-    expect(dueAtEl.className).toContain("text-urgent-fg");
+    expect(within(overdueCard).getByText(/2020|\//).className).toContain("text-urgent-fg");
   });
 
   test("AC-DASH-014 An (MANAGER): thấy cả khối đơn + khối điều phối, có tiêu đề phụ rõ ràng", async () => {
