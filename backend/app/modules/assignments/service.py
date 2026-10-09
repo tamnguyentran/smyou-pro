@@ -28,6 +28,7 @@ from app.modules.assignments.schemas import (
 from app.modules.audit import service as audit
 from app.modules.dispatch import domain
 from app.modules.dispatch.models import Assignment, Task
+from app.modules.notifications import service as notifications
 from app.modules.orders.models import Order
 from app.modules.workflow.guards import GUARDS
 
@@ -276,10 +277,7 @@ def reject_assignment(
     assignment.reject_reason_text = body.reason_text
     session.flush()
 
-    # notify_tech_leads/fire_order_reevaluate effects skipped (Q60-style, see spec §2 "Ngoài phạm
-    # vi"): Thông báo module doesn't exist yet (M7-01), and fire_order_reevaluate's only consumer
-    # (order.all_tasks_done) still needs PENDING_GUARDS has_active_tasks/all_active_tasks_done
-    # (M5-03) — same treatment dispatch/service.py:cancel_task already documents.
+    notifications.notify_assignment_rejected(session, task, order, actor.id, body.reason_text)
     task.status = domain.derive_task_status(
         _active_assignment_statuses(session, task.id, task.cycle), cancelled=task.cancelled_at is not None
     )
@@ -369,6 +367,8 @@ def complete_assignment(
     order.version += 1  # Order is the aggregate root (Q62) — bumped once per command.
     session.flush()
 
+    if task.status == "DONE":
+        notifications.notify_assignment_done(session, task, order)
     audit.record(
         session,
         actor_id=actor.id,
@@ -404,5 +404,6 @@ def complete_assignment(
                 to_status="AWAITING_CONFIRMATION",
                 request_id=request_id,
             )
+            notifications.notify_order_awaiting_confirmation(session, order)
 
     return _reload(session, actor, assignment.id)

@@ -50,3 +50,6 @@ class MeResponse(BaseModel):
     capabilities: dict[str, list[str]]
     # menu badge key → count; only badges on menu items the caller can see.
     counters: dict[str, int]
+    # "Thông báo" isn't a menu item (like "Cá nhân"), so it bypasses the counters/menu[].badge
+    # mechanism above and is computed directly (M7-01a).
+    unread_notifications_count: int

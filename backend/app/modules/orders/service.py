@@ -22,6 +22,7 @@ from app.modules.dispatch.models import Assignment, Task
 from app.modules.files import service as files
 from app.modules.files.models import Attachment
 from app.modules.identity.models import Employee
+from app.modules.notifications import service as notifications
 from app.modules.orders import domain
 from app.modules.orders.models import Order, OrderLine, OrderRevision
 from app.modules.orders.schemas import (
@@ -770,6 +771,12 @@ def _apply_transition(
         )
     _bump(order)
     session.flush()
+    if command == "submit":
+        notifications.notify_order_submitted(session, order)
+    elif command == "complete":
+        notifications.notify_order_completed(session, order)
+    elif command == "request_revision":
+        notifications.notify_order_revision_requested(session, order, reason or "")
     audit.record(
         session,
         actor_id=actor.id,

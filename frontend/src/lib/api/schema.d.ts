@@ -365,6 +365,74 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/notifications": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách thông báo của người đang đăng nhập */
+    get: operations["notifications_list"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/notifications/mark-all-read": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Đánh dấu tất cả thông báo của người gọi đã đọc */
+    post: operations["notifications_mark_all_read"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/notifications/unread-count": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Số thông báo chưa đọc của người đang đăng nhập */
+    get: operations["notifications_unread_count"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/notifications/{notification_id}/read": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Đánh dấu 1 thông báo đã đọc */
+    post: operations["notifications_mark_read"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/orders": {
     parameters: {
       query?: never;
@@ -1496,6 +1564,11 @@ export interface components {
       /** Must Change Password */
       must_change_password: boolean;
     };
+    /** MarkAllReadResult */
+    MarkAllReadResult: {
+      /** Count */
+      count: number;
+    };
     /** MeEmployee */
     MeEmployee: {
       /** Code */
@@ -1527,6 +1600,8 @@ export interface components {
       employee: components["schemas"]["MeEmployee"];
       /** Roles */
       roles: string[];
+      /** Unread Notifications Count */
+      unread_notifications_count: number;
     };
     /** MyAssignmentOut */
     MyAssignmentOut: {
@@ -1581,6 +1656,45 @@ export interface components {
     MyAssignmentsOut: {
       /** Items */
       items: components["schemas"]["MyAssignmentOut"][];
+    };
+    /** NotificationOut */
+    NotificationOut: {
+      /** Body */
+      body: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Entity Id
+       * Format: uuid
+       */
+      entity_id: string;
+      /** Entity Type */
+      entity_type: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Read At */
+      read_at: string | null;
+      /** Title */
+      title: string;
+      /** Type */
+      type: string;
+    };
+    /** NotificationPage */
+    NotificationPage: {
+      /** Items */
+      items: components["schemas"]["NotificationOut"][];
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+      /** Total */
+      total: number;
     };
     /** OrderCancel */
     OrderCancel: {
@@ -2363,6 +2477,11 @@ export interface components {
       title?: string | null;
       /** Version */
       version: number;
+    };
+    /** UnreadCount */
+    UnreadCount: {
+      /** Count */
+      count: number;
     };
     /** ValidationError */
     ValidationError: {
@@ -3398,6 +3517,116 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  notifications_list: {
+    parameters: {
+      query?: {
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NotificationPage"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  notifications_mark_all_read: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MarkAllReadResult"];
+        };
+      };
+    };
+  };
+  notifications_unread_count: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UnreadCount"];
+        };
+      };
+    };
+  };
+  notifications_mark_read: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        notification_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NotificationOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND: không thuộc người gọi */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
       };
     };
   };
