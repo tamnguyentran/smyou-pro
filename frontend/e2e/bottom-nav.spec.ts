@@ -64,7 +64,18 @@ for (const role of Object.keys(ACCOUNTS) as Role[]) {
       return;
     }
     await expect(nav.getByRole("link").first()).toBeVisible();
-    await expect(nav.getByRole("link")).toHaveText(SLOTS[role]);
+    // Strip aria-hidden nodes (icon + unread badge, M7-01b) before comparing labels: the real
+    // e2e account may carry a genuine unread count from an earlier spec in the same run.
+    const labels = await nav.getByRole("link").evaluateAll((links) =>
+      links.map((el) => {
+        const clone = el.cloneNode(true) as HTMLElement;
+        clone.querySelectorAll('[aria-hidden="true"]').forEach((n) => {
+          n.remove();
+        });
+        return clone.textContent.trim();
+      }),
+    );
+    expect(labels).toEqual(SLOTS[role]);
     // fixed to the bottom edge of the screen
     expect(await nav.evaluate((e) => getComputedStyle(e).position)).toBe("fixed");
     const box = await nav.boundingBox();

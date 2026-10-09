@@ -42,6 +42,8 @@ test("AC-NTF-034 AC-NTF-035 @a11y @screenshot trang /thong-bao ở 390px và 144
   page,
 }, info) => {
   await submitOneOrder(page);
+  // Đổi người dùng giữa test: xoá cookie phiên trước, nếu không SignedOutOnly sẽ bỏ qua form đăng nhập.
+  await page.context().clearCookies();
   await signIn(page, TECH_LEAD, "/thong-bao");
   await expect(page.getByRole("heading", { level: 1, name: "Thông báo" })).toBeVisible();
   await expect(page.getByText("Đơn hàng mới chờ điều phối").first()).toBeVisible();
