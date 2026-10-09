@@ -1,6 +1,6 @@
 # M7-02 — Dashboard theo vai trò
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M7-02 · **Milestone:** M7
 - **Liên quan:** `spec/permissions.yaml#dashboard.read` (MANAGER: all, SALE: own, TECH_LEAD: all, TECHNICIAN: self — không đổi YAML ở item này); `spec/state_machines.yaml#order.states` (7 trạng thái), `#task.derived_status` (6 trạng thái, cột `tasks.status` đã lưu sẵn giá trị suy ra); `docs/product/DOMAIN_MODEL.md` §5 (Order) §8 (Task) §9 (Assignment); `frontend/src/features/home/pages/HomePage.tsx` (trang giữ chỗ bị thay ở item này, comment đã ghi "replaced by the role dashboards in M7-02"); `backend/app/modules/orders/service.py` `RULES["own"]` (`Order.created_by == actor.id`); `backend/app/modules/dispatch/service.py` `count_pending_dispatch` (mẫu đếm), `_vn_day_start_utc` (mẫu quy đổi ngày VN); `backend/app/modules/assignments/service.py` `MyAssignmentOut`/`count_pending_assignments` (mẫu định dạng đầu việc của 1 KTV); `docs/specs/M5-01-my-tasks.md` (nguồn các trường hiển thị thẻ task), `M4-01a-dispatch-task-create-api.md`/`M6-03a-revision-reopen-api.md` (mẫu badge counter trong `GET /me`, không tái dùng ở item này vì đây là trang riêng, không phải badge).
 
