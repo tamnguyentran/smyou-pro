@@ -10,7 +10,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Link } from "react-router";
-import { formatDateTime } from "../../../lib/format";
+import { formatRelativeTime } from "../../../lib/format";
 import { useMarkRead, type Notification } from "../api";
 
 // UI_GUIDELINES §7 icon glossary; type tên theo M7-01a §3. Loại lạ (không nên xảy ra) → `Bell`.
@@ -60,7 +60,7 @@ function Row({ item }: { item: Notification }) {
             <span className="truncate text-sm font-semibold text-heading">{item.title}</span>
           </span>
           <span className="block text-sm text-body">{item.body}</span>
-          <span className="block text-xs text-muted">{formatDateTime(item.created_at)}</span>
+          <span className="block text-xs text-muted">{formatRelativeTime(item.created_at)}</span>
         </span>
       </Link>
     </li>
