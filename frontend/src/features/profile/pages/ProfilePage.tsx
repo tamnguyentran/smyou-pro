@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { roleLabels } from "../../../app/menu";
 import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
+import { ForbiddenPage } from "../../../app/shell/StatusPage";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { useSignOut } from "../../auth/useSignOut";
@@ -23,6 +24,9 @@ export function ProfilePage() {
   usePageTitle("Cá nhân");
   const me = useMe();
   const { signOut, pending, failed } = useSignOut();
+  // Follow-up review M1-03b: every real role has `profile.manage: self`, so this only trips a
+  // misconfigured account — kept after the loading/error branches so sign-out still works then.
+  if (me.data && !("profile.manage" in me.data.capabilities)) return <ForbiddenPage />;
   let details: ReactNode;
   if (me.data) {
     const { employee, roles } = me.data;
