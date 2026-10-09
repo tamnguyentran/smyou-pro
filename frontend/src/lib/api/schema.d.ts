@@ -227,6 +227,23 @@ export interface paths {
     patch: operations["customers_update"];
     trace?: never;
   };
+  "/api/v1/dashboard": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Tổng quan theo vai trò */
+    get: operations["get_dashboard"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/employees": {
     parameters: {
       query?: never;
@@ -1367,6 +1384,22 @@ export interface components {
       /** Version */
       version: number;
     };
+    /** DashboardOut */
+    DashboardOut: {
+      dispatch_summary?: components["schemas"]["DispatchSummaryOut"] | null;
+      order_summary?: components["schemas"]["OrderSummaryOut"] | null;
+      /** Today Tasks */
+      today_tasks?: components["schemas"]["MyAssignmentOut"][] | null;
+    };
+    /** DispatchSummaryOut */
+    DispatchSummaryOut: {
+      /** Needs Assignee Count */
+      needs_assignee_count: number;
+      /** Overdue Task Count */
+      overdue_task_count: number;
+      /** Pending Dispatch Count */
+      pending_dispatch_count: number;
+    };
     /** EmployeeCreate */
     EmployeeCreate: {
       /**
@@ -1970,6 +2003,23 @@ export interface components {
       /** Version */
       version: number;
     };
+    /** OrderStatusCounts */
+    OrderStatusCounts: {
+      /** Awaiting Confirmation */
+      AWAITING_CONFIRMATION: number;
+      /** Cancelled */
+      CANCELLED: number;
+      /** Completed */
+      COMPLETED: number;
+      /** Draft */
+      DRAFT: number;
+      /** In Progress */
+      IN_PROGRESS: number;
+      /** Pending Dispatch */
+      PENDING_DISPATCH: number;
+      /** Revision */
+      REVISION: number;
+    };
     /** OrderSummary */
     OrderSummary: {
       /** Code */
@@ -2007,6 +2057,15 @@ export interface components {
       status: string;
       /** Total */
       total: number;
+    };
+    /** OrderSummaryOut */
+    OrderSummaryOut: {
+      counts_by_status: components["schemas"]["OrderStatusCounts"];
+      /**
+       * Scope
+       * @enum {string}
+       */
+      scope: "own" | "all";
     };
     /** OrderUpdate */
     OrderUpdate: {
@@ -3097,6 +3156,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_dashboard: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DashboardOut"];
         };
       };
     };
