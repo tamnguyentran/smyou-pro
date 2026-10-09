@@ -5,6 +5,9 @@ Mỗi item là **lát cắt dọc** (DB → API → UI → test) giao được t
 Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatch), `ASG`, `CMP` (completion/revision), `NTF`, `KPI`.
 
 ## Đã xong (tự động lưu trữ)
+- M6 — xem `BACKLOG_ARCHIVE.md`.
+
+## Đã xong (tự động lưu trữ)
 - M5 — xem `BACKLOG_ARCHIVE.md`.
 
 ## Đã xong (tự động lưu trữ)
@@ -13,13 +16,6 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 ## M0–M3 — đã xong
 M0 (nền móng) · M1 (danh tính & phân quyền) · M2 (danh mục) · M3 (khách hàng & đơn hàng) — toàn bộ `[x]`.
 Chi tiết từng item (ID, mô tả, spec, PR): `docs/backlog/BACKLOG_ARCHIVE.md`.
-
-## M6 — Hoàn tất & Chỉnh sửa
-- [x] **M6-01 Tải ảnh phiếu xác nhận** (nén client, kiểm magic bytes, lưu an toàn, xem có kiểm quyền).
-- [x] **M6-02 Hoàn tất đơn**.
-- [x] **M6-03a Chuyển Chỉnh sửa + mở lại task + defect records — API**: bảng `order_revisions`/`defect_records`, cột `tasks.reopen_count`/`last_reopened_in_revision`, guard `order_in_revision`/`revision_has_work_if_revision`, `POST /orders/{id}/revise`, `POST /orders/{order_id}/tasks/{task_id}/reopen`, badge `revision_count`. Spec `M6-03a-revision-reopen-api.md`. `make verify` xanh (`reports/verification.md`).
-- [x] **M6-03b Chuyển Chỉnh sửa + mở lại task — giao diện**: nút "Chuyển Chỉnh sửa" trên trang đơn, "Mở lại" trên đầu việc, trang `/dispatch/revisions`. Spec `M6-03b-revision-reopen-ui.md`. `make verify` xanh (`reports/verification.md`).
-- [ ] **M6-04 Stateful test toàn workflow + E2E golden path** (TESTING_STRATEGY §5).
 
 ## M7 — Thông báo & Tổng quan
 - [x] **M7-01 Thông báo in-app** (chuông, badge, đánh dấu đã đọc, polling 30s) — tách `a` (API: bảng `notifications`, nối 13 điểm `notify_*` — **xong**, spec `M7-01a-notifications-api.md`, `make verify` xanh) / `b` (UI: chuông/badge/trang danh sách — **xong**, spec `M7-01b-notifications-ui.md`, `make verify` xanh ngoại trừ flake có từ trước ở `dispatch.spec.ts`, xem `reports/verification.md`), theo mẫu M4-01/M6-03.

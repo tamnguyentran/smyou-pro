@@ -38,6 +38,9 @@ ACCOUNTS = [
     ("tuan.lead@smyou.vn", "E2E07", "Phạm Quốc Tuấn", ("TECH_LEAD",), "E2e@SmYou2026", False),
     ("khoa.shell@smyou.vn", "E2E08", "Trần Minh Khoa", ("TECHNICIAN",), "E2e@SmYou2026", False),
     ("ha.e2e@smyou.vn", "E2E09", "Phạm Thu Hà", ("SALE", "TECHNICIAN"), "E2e@SmYou2026", False),
+    # M6-04 golden path: 2 more "clean" technicians so the scenario has 3 (khoa.shell + these 2).
+    ("minh.ktv2@smyou.vn", "E2E10", "Nguyễn Thành Minh", ("TECHNICIAN",), "E2e@SmYou2026", False),
+    ("duc.ktv3@smyou.vn", "E2E11", "Đỗ Văn Đức", ("TECHNICIAN",), "E2e@SmYou2026", False),
 ]
 
 # (sku, name, category, brand, unit, price, is_active, price_fixed) — M2-01b: stable data for the
