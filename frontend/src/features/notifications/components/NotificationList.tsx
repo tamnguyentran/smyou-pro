@@ -32,7 +32,9 @@ function Row({ item }: { item: Notification }) {
   const markRead = useMarkRead();
   const unread = item.read_at === null;
   return (
-    <li className={unread ? "bg-brand-light/30" : undefined}>
+    // A tinted background for unread rows failed color-contrast for the muted timestamp text
+    // (#64748b on the mixed #f3f7f8 ≈ 4.41:1, just under AA's 4.5:1) — the dot below is enough.
+    <li>
       <Link
         to={`/orders/${item.entity_id}`}
         onClick={() => {
