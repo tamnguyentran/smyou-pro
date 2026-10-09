@@ -167,6 +167,9 @@ describe("Trang /thong-bao", () => {
         return HttpResponse.json(item);
       }),
       http.get("/api/v1/orders/:id", () => HttpResponse.json(orderDetail())),
+      http.get("/api/v1/orders/:id/confirmation-attachments", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+      ),
     );
     const router = renderApp("/thong-bao");
     const row = await screen.findByText("Thông báo 1");
@@ -236,6 +239,13 @@ describe("Trang /thong-bao", () => {
 
   test("AC-NTF-032 thiếu notification.read → ForbiddenPage", async () => {
     signedInAs(NO_NOTIFICATION_CAPS, 0);
+    // The query fires before the guard check (same pattern as EmployeesPage/AuditPage), so it
+    // still needs a handler even though the result is never rendered.
+    server.use(
+      http.get("/api/v1/notifications", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+      ),
+    );
     renderApp("/thong-bao");
     expect(await screen.findByText(/Bạn không có quyền/)).toBeInTheDocument();
   });
