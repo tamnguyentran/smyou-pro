@@ -45,6 +45,10 @@ test("AC-NTF-034 AC-NTF-035 @a11y @screenshot trang /thong-bao ở 390px và 144
   // Đổi người dùng giữa test: xoá cookie phiên trước, nếu không SignedOutOnly sẽ bỏ qua form đăng nhập.
   await page.context().clearCookies();
   await signIn(page, TECH_LEAD, "/thong-bao");
+  // The mouse pointer position survives navigation (same `page`); the "Gửi đơn" dialog click just
+  // before this can leave it hovering a list row here on desktop, making a real-but-incidental
+  // :hover background part of the a11y scan below.
+  await page.mouse.move(0, 0);
   await expect(page.getByRole("heading", { level: 1, name: "Thông báo" })).toBeVisible();
   await expect(page.getByText("Đơn hàng mới chờ điều phối").first()).toBeVisible();
 
