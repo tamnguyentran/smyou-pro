@@ -33,6 +33,7 @@ from app.modules.audit import service as audit
 from app.modules.identity.domain import is_locked, password_problems, register_failure
 from app.modules.identity.models import AuthSession, Employee, EmployeeRole
 from app.modules.identity.schemas import MeEmployee, MeResponse
+from app.modules.notifications import service as notifications
 
 logger = logging.getLogger(__name__)
 
@@ -370,4 +371,5 @@ def me(
         roles=[role for role in permissions.roles if role in actor.roles],
         capabilities=capabilities,
         counters=compute_counters(session, actor, permissions, counters),
+        unread_notifications_count=notifications.count_unread(session, actor.id),
     )

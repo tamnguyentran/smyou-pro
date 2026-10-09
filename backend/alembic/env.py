@@ -13,6 +13,7 @@ import app.modules.customers.models  # registers tables on Base.metadata
 import app.modules.dispatch.models  # registers tables on Base.metadata
 import app.modules.files.models  # registers tables on Base.metadata
 import app.modules.identity.models  # registers tables on Base.metadata
+import app.modules.notifications.models  # registers tables on Base.metadata
 import app.modules.orders.models  # noqa: F401  # registers tables on Base.metadata
 from app.core.config import Settings
 from app.core.db import Base

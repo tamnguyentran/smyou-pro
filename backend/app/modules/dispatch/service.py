@@ -33,6 +33,7 @@ from app.modules.dispatch.schemas import (
     TaskUpdate,
 )
 from app.modules.identity.models import Employee, EmployeeRole
+from app.modules.notifications import service as notifications
 from app.modules.orders import service as orders_service
 from app.modules.orders.models import Order
 from app.modules.workflow.guards import GUARDS
@@ -263,8 +264,9 @@ def create_task(
     assignees = _load_assignees(session, task.id, task.cycle)
 
     # effects order (spec/state_machines.yaml#task.commands[create]): create_pending_assignments
-    # (above), fire_order_start_dispatch_if_first_task (below, incl. its own `audit`), then this
-    # task's own `audit` last — notify_assignees is skipped (Q60, same treatment as Q54).
+    # (above), fire_order_start_dispatch_if_first_task (below, incl. its own `audit`), notify_assignees
+    # (below), then this task's own `audit` last.
+    notifications.notify_task_assigned(session, task, order, body.assignee_ids)
     if existing_task_count == 0 and order.status == "PENDING_DISPATCH":
         order.status = "IN_PROGRESS"
         audit.record(
@@ -324,6 +326,8 @@ def update_task(
     order.version += 1  # Order is the aggregate root (Q62) — bumped even though only task columns change.
     session.flush()
 
+    active_assignees = _load_assignees(session, task.id, task.cycle)
+    notifications.notify_task_updated(session, task, order, [a.employee_id for a in active_assignees])
     audit.record(
         session,
         actor_id=actor.id,
@@ -333,7 +337,7 @@ def update_task(
         to_status=task.status,
         request_id=request_id,
     )
-    return _task_detail(task, order, _load_assignees(session, task.id, task.cycle))
+    return _task_detail(task, order, active_assignees)
 
 
 def add_assignee(
@@ -389,6 +393,7 @@ def add_assignee(
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
 
+    notifications.notify_task_assigned(session, task, order, [body.employee_id])
     audit.record(
         session,
         actor_id=actor.id,
@@ -431,6 +436,7 @@ def remove_assignee(
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
 
+    notifications.notify_assignment_removed(session, task, order, assignment.employee_id)
     audit.record(
         session,
         actor_id=actor.id,
@@ -480,12 +486,9 @@ def cancel_task(
 
     task.status = domain.derive_task_status([], cancelled=True)
     order.version += 1  # Order is the aggregate root (Q62).
-    # fire_order_reevaluate is a no-op here: its only consumer (order.all_tasks_done) needs guards
-    # has_active_tasks/all_active_tasks_done, still PENDING_GUARDS tagged M5-03 — no task can reach
-    # DONE yet (assignment.complete is M5), so the order can never actually re-evaluate from this
-    # command. Same treatment as the notify_assignees skip (Q60).
     session.flush()
 
+    notifications.notify_task_cancelled(session, task, order, [a.employee_id for a in open_assignments])
     audit.record(
         session,
         actor_id=actor.id,
@@ -560,6 +563,9 @@ def reopen_task(
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
 
+    notifications.notify_task_reopened(
+        session, task, order, [a.employee_id for a in done_assignments], body.reason or ""
+    )
     audit.record(
         session,
         actor_id=actor.id,

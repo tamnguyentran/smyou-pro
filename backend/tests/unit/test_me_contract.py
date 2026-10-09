@@ -64,4 +64,10 @@ def test_openapi_describes_me(make_app: Callable[..., FastAPI]) -> None:
     assert schema["$ref"].endswith("/MeResponse")
     assert {"401", "403"} <= set(operation["responses"])
     me = spec["components"]["schemas"]["MeResponse"]
-    assert set(me["properties"]) == {"employee", "roles", "capabilities", "counters"}
+    assert set(me["properties"]) == {
+        "employee",
+        "roles",
+        "capabilities",
+        "counters",
+        "unread_notifications_count",
+    }
