@@ -54,6 +54,7 @@ function detail(overrides: Partial<OrderDetail> = {}): OrderDetail {
     can_edit_lines_after_submit: false,
     can_upload_confirmation: true,
     can_complete: false,
+    can_revise: false,
     lines: [],
     ...overrides,
   };
@@ -196,6 +197,27 @@ describe("Tab Tệp đính kèm trên trang chi tiết đơn", () => {
     await user.upload(input, file("phieu.jpg", "image/jpeg"));
 
     expect(await screen.findByText("Ảnh vượt quá 10MB.")).toBeInTheDocument();
+  });
+
+  test("lỗi tải danh sách ảnh → hiện nút Thử lại, bấm vào gọi lại API", async () => {
+    signedInAs(hoaId, HOA);
+    let fail = true;
+    server.use(
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(detail())),
+      http.get("/api/v1/orders/:id/confirmation-attachments", () => {
+        if (fail) return HttpResponse.json({ detail: "Lỗi" }, { status: 500 });
+        return HttpResponse.json({ items: [attachment()] });
+      }),
+    );
+    const user = await openAttachmentsTab();
+
+    expect(await screen.findByText("Không tải được danh sách ảnh.")).toBeInTheDocument();
+    const retry = screen.getByRole("button", { name: "Thử lại" });
+
+    fail = false;
+    await user.click(retry);
+
+    expect(await screen.findByText("Lần chỉnh sửa #0")).toBeInTheDocument();
   });
 
   test("ảnh bấm vào mở file gốc qua /attachments/{id}", async () => {

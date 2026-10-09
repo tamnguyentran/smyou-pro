@@ -47,6 +47,7 @@ function summary(overrides: Partial<OrderSummary> = {}): OrderSummary {
     created_by: hoaId,
     created_by_name: "Nguyễn Thị Hoa",
     created_at: "2026-09-30T03:00:00Z",
+    revision_no: 0,
     ...overrides,
   };
 }

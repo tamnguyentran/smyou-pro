@@ -1,4 +1,4 @@
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Alert } from "../../../components/ui/Alert";
 import { Badge } from "../../../components/ui/Badge";
@@ -13,9 +13,11 @@ import {
   useCompleteOrder,
   useConfirmationAttachments,
   useRecallOrder,
+  useReviseOrder,
   type Order,
   type OrderCancelBody,
   type OrderCompleteBody,
+  type OrderReviseBody,
 } from "../api";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, type OrderStatus } from "../orderStatus";
 import { AddLineSheet } from "./AddLineSheet";
@@ -27,6 +29,7 @@ import { OrderHistoryTab } from "./OrderHistoryTab";
 import { OrderInfoTab } from "./OrderInfoTab";
 import { OrderLinesSection } from "./OrderLinesSection";
 import { OrderTotalsSection } from "./OrderTotalsSection";
+import { ReviseOrderSheet } from "./ReviseOrderSheet";
 import type { RunOrderWrite } from "./writeQueue";
 
 // Thứ tự theo UI_GUIDELINES §5: Thông tin · Dòng hàng · Đầu việc · Tệp đính kèm · Lịch sử.
@@ -73,9 +76,13 @@ export function OrderDetailTabs({
   const [completeOpen, setCompleteOpen] = useState(false);
   const [completeError, setCompleteError] = useState<string | null>(null);
   const [completeStale, setCompleteStale] = useState(false);
+  const [reviseOpen, setReviseOpen] = useState(false);
+  const [reviseError, setReviseError] = useState<string | null>(null);
+  const [reviseStale, setReviseStale] = useState(false);
   const recallOrder = useRecallOrder();
   const cancelOrder = useCancelOrder();
   const completeOrder = useCompleteOrder();
+  const reviseOrder = useReviseOrder();
   // Query key shared with `ConfirmationAttachmentsTab` (React Query dedupes/caches by key) — needed
   // here too so the "Hoàn tất đơn" button can gate on "có ảnh ở revision_no hiện tại chưa" (AC-ORD-140)
   // without calling the API itself (avoid a guaranteed-409 round trip).
@@ -87,6 +94,7 @@ export function OrderDetailTabs({
     order.allowed_commands.includes("complete") &&
     order.can_complete &&
     (attachments.data?.items.some((a) => a.revision_no === order.revision_no) ?? false);
+  const canRevise = order.allowed_commands.includes("request_revision") && order.can_revise;
   const status = order.status as OrderStatus;
 
   function submitRecall() {
@@ -155,6 +163,27 @@ export function OrderDetailTabs({
     );
   }
 
+  function submitRevise(reason: string) {
+    setReviseError(null);
+    const body: OrderReviseBody = { version: order.version, reason };
+    reviseOrder.mutate(
+      { id: order.id, body },
+      {
+        onSuccess: (updated) => {
+          setReviseOpen(false);
+          toast(`Đã chuyển đơn ${updated.code} sang Chỉnh sửa.`);
+        },
+        onError: (err: unknown) => {
+          if (err instanceof ApiError && err.problem.code === "STALE_VERSION") {
+            setReviseStale(true);
+          } else {
+            setReviseError(describeError(err));
+          }
+        },
+      },
+    );
+  }
+
   return (
     <div className="space-y-4">
       {recallStale ? (
@@ -195,7 +224,7 @@ export function OrderDetailTabs({
           </div>
           <p className="text-sm text-body">{order.customer_name ?? "Khách lẻ"}</p>
         </div>
-        {canRecall || canCancel || canComplete ? (
+        {canRecall || canCancel || canComplete || canRevise ? (
           <div
             data-testid="order-detail-actions"
             className="sticky bottom-16 z-10 flex gap-3 bg-page py-3 lg:static lg:bottom-auto lg:bg-transparent lg:py-0"
@@ -231,6 +260,18 @@ export function OrderDetailTabs({
               >
                 <CheckCircle2 aria-hidden="true" className="size-4" />
                 Hoàn tất đơn
+              </Button>
+            ) : null}
+            {canRevise ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setReviseOpen(true);
+                }}
+              >
+                <RotateCcw aria-hidden="true" className="size-4" />
+                Chuyển Chỉnh sửa
               </Button>
             ) : null}
           </div>
@@ -339,6 +380,23 @@ export function OrderDetailTabs({
           onReload();
         }}
         onConfirm={submitComplete}
+      />
+      <ReviseOrderSheet
+        open={reviseOpen}
+        onClose={() => {
+          setReviseOpen(false);
+          setReviseError(null);
+        }}
+        orderCode={order.code}
+        loading={reviseOrder.isPending}
+        error={reviseError}
+        staleVersion={reviseStale}
+        onReload={() => {
+          setReviseStale(false);
+          setReviseOpen(false);
+          onReload();
+        }}
+        onConfirm={submitRevise}
       />
       {editContactOpen ? (
         <EditContactSheet

@@ -7,14 +7,14 @@ import sys
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 
 from app.core.config import Settings
 from app.core.db import create_db_engine, create_session_factory
 from app.core.security import hash_password
 from app.modules.catalog.models import Product, Service
 from app.modules.customers.models import Customer
-from app.modules.dispatch.models import Assignment, Task
+from app.modules.dispatch.models import Assignment, DefectRecord, Task
 from app.modules.files import service as files_service
 from app.modules.files.models import Attachment
 from app.modules.identity.models import AuthSession, Employee, EmployeeRole
@@ -95,6 +95,22 @@ WORK_ORDERS = [
 COMPLETE_ORDERS = [
     ("E2E-DH-M602A", "E2E-DH-M602A-T1"),  # mobile
     ("E2E-DH-M602B", "E2E-DH-M602B-T1"),  # desktop
+]
+
+# M6-03b: "Chuyển Chỉnh sửa" e2e (orders-revise.spec.ts) — same one-order-per-project idiom.
+# AWAITING_CONFIRMATION, 1 DONE task, logged in as tuan.lead@smyou.vn (TECH_LEAD — only role with
+# `order.revise`).
+REVISE_ORDERS = [
+    ("E2E-DH-M603A", "E2E-DH-M603A-T1"),  # mobile
+    ("E2E-DH-M603B", "E2E-DH-M603B-T1"),  # desktop
+]
+
+# M6-03b: "Mở lại" đầu việc e2e (dispatch.spec.ts) — same one-order-per-project idiom. Order
+# already REVISION (revision_no=1), 1 DONE task to reopen; the same order doubles as the
+# /dispatch/revisions list check (AC-DSP-130) so no separate seed is needed for that page.
+REOPEN_ORDERS = [
+    ("E2E-DH-M603C", "E2E-DH-M603C-T1"),  # mobile
+    ("E2E-DH-M603D", "E2E-DH-M603D-T1"),  # desktop
 ]
 
 
@@ -208,24 +224,30 @@ def main() -> int:
                 session.add(task)
                 session.flush()
             else:
+                # Idempotent on rerun (M6-03b): a previous e2e run may have actually reopened this
+                # task (POST .../reopen bumps `cycle` and adds a 2nd assignment row for the new
+                # cycle) — reset both back to the seed's intended baseline, or the assignment
+                # lookup below finds 2 rows for `khoa_id` and `.one_or_none()` blows up.
                 task.status = task_status
                 task.due_at = now + timedelta(days=due_offset_days)
-            assignment = session.scalars(
-                select(Assignment).where(Assignment.task_id == task.id, Assignment.employee_id == khoa_id)
-            ).one_or_none()
-            if assignment is None:
-                session.add(
-                    Assignment(
-                        id=uuid.uuid4(),
-                        task_id=task.id,
-                        employee_id=khoa_id,
-                        cycle=1,
-                        status=assignment_status,
-                        assigned_by=creator_id,
-                    )
+                task.cycle = 1
+                task.reopen_count = 0
+                task.last_reopened_in_revision = None
+                # defect_records.assignment_id FKs to assignments.id with no ON DELETE CASCADE —
+                # drop those first or the assignment delete below hits a FK violation.
+                session.execute(delete(DefectRecord).where(DefectRecord.task_id == task.id))
+                session.execute(delete(Assignment).where(Assignment.task_id == task.id))
+                session.flush()
+            session.add(
+                Assignment(
+                    id=uuid.uuid4(),
+                    task_id=task.id,
+                    employee_id=khoa_id,
+                    cycle=1,
+                    status=assignment_status,
+                    assigned_by=creator_id,
                 )
-            else:
-                assignment.status = assignment_status
+            )
 
         my_tasks_order = upsert_order(MY_TASKS_ORDER_CODE)
         for task_code, task_status, assignment_status, hours, due_offset_days in MY_TASKS:
@@ -289,6 +311,28 @@ def main() -> int:
                     settings=settings,
                     now=now,
                 )
+
+        for order_code, task_code in REVISE_ORDERS:
+            revise_order = upsert_order(
+                order_code,
+                customer_name="Cty TNHH Chỉnh Sửa E2E",
+                customer_phone="0918444555",
+                service_address="30 Pasteur, P. Bến Nghé, Q.1, TP.HCM",
+            )
+            revise_order.status = "AWAITING_CONFIRMATION"
+            revise_order.revision_no = 0
+            upsert_task_assignment(revise_order, task_code, "DONE", "DONE", "1.0", -1)
+
+        for order_code, task_code in REOPEN_ORDERS:
+            reopen_order = upsert_order(
+                order_code,
+                customer_name="Cty TNHH Mở Lại E2E",
+                customer_phone="0918555666",
+                service_address="40 Hai Bà Trưng, P. Bến Nghé, Q.1, TP.HCM",
+            )
+            reopen_order.status = "REVISION"
+            reopen_order.revision_no = 1
+            upsert_task_assignment(reopen_order, task_code, "DONE", "DONE", "1.0", -1)
     sys.stdout.write(
         f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products, {len(SERVICES)} E2E services,"
         f" {len(CUSTOMERS)} E2E customers, {len(MY_TASKS)} E2E my-tasks assignments\n"

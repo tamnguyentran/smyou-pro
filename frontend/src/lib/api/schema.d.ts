@@ -606,6 +606,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/orders/{order_id}/revise": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Chuyển đơn sang Chỉnh sửa */
+    post: operations["orders_revise"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/orders/{order_id}/submit": {
     parameters: {
       query?: never;
@@ -704,6 +721,23 @@ export interface paths {
     put?: never;
     /** Huỷ đầu việc */
     post: operations["orders_tasks_cancel"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/tasks/{task_id}/reopen": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Mở lại đầu việc đã xong */
+    post: operations["orders_tasks_reopen"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1636,6 +1670,8 @@ export interface components {
       can_edit_contact: boolean;
       /** Can Edit Lines After Submit */
       can_edit_lines_after_submit: boolean;
+      /** Can Revise */
+      can_revise: boolean;
       /** Can Upload Confirmation */
       can_upload_confirmation: boolean;
       /** Code */
@@ -1813,6 +1849,13 @@ export interface components {
       /** Total */
       total: number;
     };
+    /** OrderRevise */
+    OrderRevise: {
+      /** Reason */
+      reason?: string | null;
+      /** Version */
+      version: number;
+    };
     /** OrderSummary */
     OrderSummary: {
       /** Code */
@@ -1844,6 +1887,8 @@ export interface components {
       priority: string;
       /** Requested Date */
       requested_date: string | null;
+      /** Revision No */
+      revision_no: number;
       /** Status */
       status: string;
       /** Total */
@@ -2228,6 +2273,8 @@ export interface components {
        * Format: uuid
        */
       id: string;
+      /** Last Reopened In Revision */
+      last_reopened_in_revision: number | null;
       /**
        * Order Id
        * Format: uuid
@@ -2243,6 +2290,8 @@ export interface components {
       origin: string;
       /** Priority */
       priority: string;
+      /** Reopen Count */
+      reopen_count: number;
       /** Status */
       status: string;
       /** Title */
@@ -2252,6 +2301,18 @@ export interface components {
     TaskListOut: {
       /** Items */
       items: components["schemas"]["TaskSummary"][];
+    };
+    /** TaskReopen */
+    TaskReopen: {
+      /** Reason */
+      reason?: string | null;
+      /**
+       * Severity
+       * @enum {string}
+       */
+      severity: "MINOR" | "MAJOR";
+      /** Version */
+      version: number;
     };
     /** TaskSummary */
     TaskSummary: {
@@ -4118,6 +4179,55 @@ export interface operations {
       };
     };
   };
+  orders_revise: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderRevise"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   orders_submit: {
     parameters: {
       query?: never;
@@ -4457,6 +4567,56 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["TaskCancel"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | GUARD_FAILED | INVALID_TRANSITION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_tasks_reopen: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskReopen"];
       };
     };
     responses: {

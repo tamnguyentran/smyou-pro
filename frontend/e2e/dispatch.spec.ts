@@ -403,3 +403,49 @@ test("AC-DSP-107 vào menu Điều phối kỹ thuật → Lịch & tải việc
   await expect(page.getByRole("heading", { name: "Lịch & tải việc", level: 1 })).toBeVisible();
   await expect(page.getByText("Tính năng đang được phát triển.")).toBeHidden();
 });
+
+// M6-03b: "Mở lại" đầu việc (AC-DSP-125/126) + trang /dispatch/revisions (AC-DSP-130). Đơn seed
+// bởi seed_e2e.py (REOPEN_ORDERS) đã ở REVISION với 1 task DONE, một đơn/project.
+function reopenOrderCode(info: TestInfo) {
+  return info.project.name === "mobile" ? "E2E-DH-M603C" : "E2E-DH-M603D";
+}
+
+test("AC-DSP-125 AC-DSP-126 AC-DSP-130 @a11y @screenshot Mở lại đầu việc đã xong, thấy trong /dispatch/revisions", async ({
+  page,
+}, info) => {
+  const code = reopenOrderCode(info);
+  await signIn(page, TECH_LEAD, "/orders");
+  await openOrderDetail(page, code);
+
+  await page.getByRole("tab", { name: "Đầu việc" }).click();
+  const taskList = page.getByTestId("order-tasks");
+  // Khác với AC-DSP-028 (task tự tạo trong test, tiêu đề không chứa mã): task này do seed_e2e.py
+  // tạo với tiêu đề mặc định "Lắp đặt camera E2E ({code})" — chứa luôn mã đầu việc, nên cần
+  // `exact: true` để không khớp nhầm ô tiêu đề.
+  await taskList.getByText(`${code}-T1`, { exact: true }).click();
+  const editPanel = page.getByRole("dialog", { name: `Sửa đầu việc — ${code}-T1` });
+  await editPanel.getByRole("button", { name: "Mở lại" }).click();
+
+  const reopenPanel = page.getByRole("dialog", { name: `Mở lại đầu việc ${code}-T1?` });
+  await reopenPanel
+    .getByLabel("Lý do")
+    .fill("Camera lắp sai vị trí, khách phát hiện khi nghiệm thu");
+  await reopenPanel.getByLabel("Mức độ lỗi").selectOption("MAJOR");
+  await reopenPanel.getByRole("button", { name: "Xác nhận mở lại" }).click();
+
+  await expect(page.getByText(`Đã mở lại đầu việc ${code}-T1.`)).toBeVisible();
+  await expect(taskList.getByText("Chờ tiếp nhận")).toBeVisible();
+  await evidence(page, info, isMobile(info) ? "task-reopen-390.png" : "task-reopen-1440.png", {
+    checkOverflow: true,
+  });
+
+  await page.goto("./dispatch/revisions");
+  await expect(page.getByRole("heading", { name: "Đơn cần chỉnh sửa", level: 1 })).toBeVisible();
+  await expect(page.getByText(code)).toBeVisible();
+  await evidence(
+    page,
+    info,
+    isMobile(info) ? "dispatch-revisions-390.png" : "dispatch-revisions-1440.png",
+    { checkOverflow: true },
+  );
+});

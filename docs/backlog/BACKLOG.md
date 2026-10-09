@@ -17,7 +17,8 @@ Chi tiết từng item (ID, mô tả, spec, PR): `docs/backlog/BACKLOG_ARCHIVE.m
 ## M6 — Hoàn tất & Chỉnh sửa
 - [x] **M6-01 Tải ảnh phiếu xác nhận** (nén client, kiểm magic bytes, lưu an toàn, xem có kiểm quyền).
 - [x] **M6-02 Hoàn tất đơn**.
-- [ ] **M6-03 Chuyển Chỉnh sửa + task phát sinh + mở lại task + defect records**.
+- [x] **M6-03a Chuyển Chỉnh sửa + mở lại task + defect records — API**: bảng `order_revisions`/`defect_records`, cột `tasks.reopen_count`/`last_reopened_in_revision`, guard `order_in_revision`/`revision_has_work_if_revision`, `POST /orders/{id}/revise`, `POST /orders/{order_id}/tasks/{task_id}/reopen`, badge `revision_count`. Spec `M6-03a-revision-reopen-api.md`. `make verify` xanh (`reports/verification.md`).
+- [x] **M6-03b Chuyển Chỉnh sửa + mở lại task — giao diện**: nút "Chuyển Chỉnh sửa" trên trang đơn, "Mở lại" trên đầu việc, trang `/dispatch/revisions`. Spec `M6-03b-revision-reopen-ui.md`. `make verify` xanh (`reports/verification.md`).
 - [ ] **M6-04 Stateful test toàn workflow + E2E golden path** (TESTING_STRATEGY §5).
 
 ## M7 — Thông báo & Tổng quan

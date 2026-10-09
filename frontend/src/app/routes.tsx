@@ -5,6 +5,7 @@ import { ChangePasswordPage } from "../features/auth/pages/ChangePasswordPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { CustomersPage } from "../features/customers/pages/CustomersPage";
 import { DispatchQueuePage } from "../features/dispatch/pages/DispatchQueuePage";
+import { RevisionQueuePage } from "../features/dispatch/pages/RevisionQueuePage";
 import { TaskBoardPage } from "../features/dispatch/pages/TaskBoardPage";
 import { WorkloadPage } from "../features/dispatch/pages/WorkloadPage";
 import { EmployeesPage } from "../features/employees/pages/EmployeesPage";
@@ -37,6 +38,7 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/dispatch/board" is real (M4-03b), same capability (task.manage) as the menu entry.
 // "/dispatch/workload" is real (M4-04), same capability (task.manage) as the menu entry.
 // "/my-tasks" is real (M5-01) and checks assignment.respond itself, same capability as the menu entry.
+// "/dispatch/revisions" is real (M6-03b), same capability (task.manage) as the menu entry.
 const REAL_PAGES = new Set([
   "/",
   "/employees",
@@ -49,6 +51,7 @@ const REAL_PAGES = new Set([
   "/dispatch/queue",
   "/dispatch/board",
   "/dispatch/workload",
+  "/dispatch/revisions",
   "/my-tasks",
 ]);
 const menuRoutes: RouteObject[] = menuPages()
@@ -92,6 +95,7 @@ export const routes: RouteObject[] = [
       { path: "/dispatch/queue", element: <DispatchQueuePage /> },
       { path: "/dispatch/board", element: <TaskBoardPage /> },
       { path: "/dispatch/workload", element: <WorkloadPage /> },
+      { path: "/dispatch/revisions", element: <RevisionQueuePage /> },
       { path: "/my-tasks", element: <MyTasksPage /> },
       { path: "/orders", element: <OrdersListPage /> },
       // One route object (not two) for "/orders/new" and "/orders/:id": creating the first line

@@ -30,6 +30,8 @@ export const TUAN: Person = {
     "dashboard.read": all,
     "order.read": all,
     "task.manage": all,
+    "order.revise": all,
+    "task.reopen": all,
     "employee.read": all,
     "catalog.read": all,
     "profile.manage": self,
@@ -101,6 +103,7 @@ export function summary(overrides: Partial<OrderSummary> = {}): OrderSummary {
     created_by: hoaId,
     created_by_name: "Nguyễn Thị Hoa",
     created_at: "2026-10-01T03:00:00Z",
+    revision_no: 0,
     ...overrides,
   };
 }
