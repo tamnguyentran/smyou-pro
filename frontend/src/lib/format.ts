@@ -46,6 +46,22 @@ export function formatPhone(phone: string): string {
     : phone;
 }
 
+const RELATIVE_TIME = new Intl.RelativeTimeFormat("vi-VN", { numeric: "auto" });
+
+/** ISO timestamp (UTC) → "5 phút trước" / "2 giờ trước" / ... (spec M7-01b §6). Quá 7 ngày → `formatDateTime`. */
+export function formatRelativeTime(iso: string, now: Date = new Date()): string {
+  const diffSeconds = Math.round((new Date(iso).getTime() - now.getTime()) / 1000);
+  const diffMinutes = Math.round(diffSeconds / 60);
+  const diffHours = Math.round(diffMinutes / 60);
+  const diffDays = Math.round(diffHours / 24);
+
+  if (Math.abs(diffSeconds) < 60) return "Vừa xong";
+  if (Math.abs(diffMinutes) < 60) return RELATIVE_TIME.format(diffMinutes, "minute");
+  if (Math.abs(diffHours) < 24) return RELATIVE_TIME.format(diffHours, "hour");
+  if (Math.abs(diffDays) < 7) return RELATIVE_TIME.format(diffDays, "day");
+  return formatDateTime(iso);
+}
+
 /** Địa chỉ thi công → link Google Maps mở tab mới. */
 export function mapHref(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;

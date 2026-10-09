@@ -12,6 +12,7 @@ import { primaryAction, roleLabels, visibleMenu } from "../menu";
 import { BottomNav } from "./BottomNav";
 import { MeError } from "./MeError";
 import { NavMenu } from "./NavMenu";
+import { NotificationBell } from "./NotificationBell";
 import { PageTitleContext } from "./pageTitle";
 
 const DESKTOP = "(min-width: 1024px)";
@@ -211,7 +212,10 @@ export function AppShell() {
           <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
             <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-line bg-card px-8">
               <h1 className="truncate text-2xl font-bold tracking-tight text-heading">{title}</h1>
-              <PrimaryAction />
+              <div className="flex items-center gap-2">
+                <NotificationBell />
+                <PrimaryAction />
+              </div>
             </header>
             <Content>
               <Outlet />
@@ -236,7 +240,8 @@ export function AppShell() {
           >
             <MenuIcon aria-hidden="true" className="size-6" />
           </button>
-          <h1 className="truncate text-lg font-semibold text-heading">{title}</h1>
+          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-heading">{title}</h1>
+          <NotificationBell />
         </header>
         <Content className="pb-24">
           <Outlet />

@@ -5,6 +5,7 @@ import { useSession } from "../../features/auth/api";
 import { useMe } from "../../features/me/api";
 import { cn } from "../../lib/cn";
 import { MenuItemIcon, primaryAction, secondSlot, visibleMenu } from "../menu";
+import { unreadBadgeLabel } from "./NotificationBell";
 
 function Slot({ to, label, children }: { to: string; label: string; children: ReactNode }) {
   return (
@@ -29,6 +30,25 @@ function IconSlot({ to, label, icon: Icon }: { to: string; label: string; icon: 
   return (
     <Slot to={to} label={label}>
       <Icon aria-hidden="true" className="size-6" />
+    </Slot>
+  );
+}
+
+function BellSlot({ to, label, count }: { to: string; label: string; count: number | undefined }) {
+  const badge = unreadBadgeLabel(count);
+  return (
+    <Slot to={to} label={label}>
+      <span className="relative inline-flex">
+        <Bell aria-hidden="true" className="size-6" />
+        {badge ? (
+          <span
+            aria-hidden="true"
+            className="absolute -top-1 -right-1.5 min-w-4 rounded-full bg-urgent-bg px-1 text-center text-[10px] font-semibold text-urgent-fg leading-4 tabular-nums"
+          >
+            {badge}
+          </span>
+        ) : null}
+      </span>
     </Slot>
   );
 }
@@ -66,7 +86,7 @@ export function BottomNav() {
             </NavLink>
           </div>
         ) : null}
-        <IconSlot to="/thong-bao" label="Thông báo" icon={Bell} />
+        <BellSlot to="/thong-bao" label="Thông báo" count={me.data?.unread_notifications_count} />
         <IconSlot to="/ca-nhan" label="Cá nhân" icon={UserRound} />
       </div>
     </nav>

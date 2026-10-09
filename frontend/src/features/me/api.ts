@@ -13,6 +13,8 @@ export function useMe() {
     staleTime: 30_000,
     // Badges and roles change while the tab sits in the background: reload on return (spec §4).
     refetchOnWindowFocus: "always",
+    // unread_notifications_count polls every 30s (M7-01b spec §2 — no separate endpoint).
+    refetchInterval: 30_000,
     queryFn: async () => {
       const { data, error, response } = await api.GET("/api/v1/me");
       if (!data) throw toApiError(response, error);
