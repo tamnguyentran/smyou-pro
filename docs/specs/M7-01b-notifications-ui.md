@@ -1,6 +1,6 @@
 # M7-01b — Thông báo in-app (UI)
 
-- **Status:** Draft
+- **Status:** Approved
 - **Backlog:** M7-01 (phần `b` — giao diện của `M7-01a`) · **Milestone:** M7
 - **Liên quan:** `M7-01a-notifications-api.md` (API `GET /notifications`, `GET /notifications/unread-count`, `POST /notifications/{id}/read`, `POST /notifications/mark-all-read`, `MeResponse.unread_notifications_count`); `docs/design/UI_GUIDELINES.md` dòng 55 (top bar desktop: "chuông thông báo có badge"), dòng 59 (header mobile `h-14`: "hamburger, tiêu đề, chuông"), dòng 61 (bottom nav: vị trí "Thông báo" đã có icon `Bell`); `frontend/src/app/shell/AppShell.tsx` (header desktop `h-16` + header mobile `h-14`, chưa có chuông); `frontend/src/app/shell/BottomNav.tsx` (`IconSlot` "Thông báo" → `/thong-bao`, chưa có badge); `frontend/src/features/notifications/pages/NotificationsPage.tsx` (placeholder hiện tại, cần thay bằng danh sách thật); `frontend/src/app/routes.tsx` (`/thong-bao`, `/ca-nhan` — follow-up review M1-03b: bọc bằng kiểm tra capability như `EmployeesPage`); `frontend/src/features/employees/pages/EmployeesPage.tsx` dòng 63 (mẫu `if (!("x" in capabilities)) return <ForbiddenPage />`); `frontend/src/features/me/api.ts` (`useMe`, polling).
 
