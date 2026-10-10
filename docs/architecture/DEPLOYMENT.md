@@ -83,6 +83,7 @@ location /smyoutask/ {
 }
 # END: SMYou Pro
 ```
+Khối này được lưu trong repo ở `ops/nginx/smyoutask.conf` (có test tự động kiểm cú pháp `nginx -t` và khớp nội dung với đoạn trên — M9-01). **Trước khi deploy thật**, kiểm tra cổng `6890` còn trống bằng `ss -ltnp | grep 6890` (không đoán) — nếu đã bị chiếm, đổi cổng trong `.env.prod` (`WEB_PORT`) và sửa khối nginx ở trên (+ `ops/nginx/smyoutask.conf`) cho khớp.
 
 ## 6. Migration khi deploy
 Container backend chạy `alembic upgrade head` khi khởi động. Migration phải **tương thích ngược 1 phiên bản** (expand → migrate → contract) để rollback image không phá DB.
