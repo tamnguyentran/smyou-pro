@@ -27,48 +27,50 @@ export function KpiRows({ rows }: { rows: KpiRow[] }) {
 
   if (desktop) {
     return (
-      <table className="w-full overflow-hidden rounded-2xl border border-line bg-card text-left text-sm">
-        <thead className="bg-sidebar-sub text-xs font-semibold text-body uppercase">
-          <tr>
-            {[
-              "KTV",
-              "Xong",
-              "Đúng hạn",
-              ...REJECTION_REASON_ORDER.map((key) => REJECTION_REASON_LABELS[key]),
-              "Tổng từ chối",
-              "Lỗi",
-              "Giờ ước tính/thực tế",
-            ].map((heading) => (
-              <th key={heading} scope="col" className="px-4 py-3">
-                {heading}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-line">
-          {rows.map((row) => (
-            <tr key={row.employee_id} className="hover:bg-sidebar-sub">
-              <td className="px-4 py-3 font-medium text-heading">
-                <TechnicianLabel row={row} />
-              </td>
-              <td className={NUMERIC_CELL}>{row.completed_task_count}</td>
-              <td className={NUMERIC_CELL}>
-                {formatOnTime(row.on_time_count, row.completed_task_count)}
-              </td>
-              {REJECTION_REASON_ORDER.map((key) => (
-                <td key={key} className={NUMERIC_CELL}>
-                  {row.rejection_counts[key]}
-                </td>
+      <div className="overflow-x-auto rounded-2xl border border-line">
+        <table className="w-full bg-card text-left text-sm">
+          <thead className="bg-sidebar-sub text-xs font-semibold text-body uppercase">
+            <tr>
+              {[
+                "KTV",
+                "Xong",
+                "Đúng hạn",
+                ...REJECTION_REASON_ORDER.map((key) => REJECTION_REASON_LABELS[key]),
+                "Tổng từ chối",
+                "Lỗi",
+                "Giờ ước tính/thực tế",
+              ].map((heading) => (
+                <th key={heading} scope="col" className="px-4 py-3 whitespace-nowrap">
+                  {heading}
+                </th>
               ))}
-              <td className={NUMERIC_CELL}>{row.rejection_total}</td>
-              <td className={NUMERIC_CELL}>{row.defect_count}</td>
-              <td className={NUMERIC_CELL}>
-                {formatHoursPair(row.estimated_hours_total, row.actual_hours_total)}
-              </td>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {rows.map((row) => (
+              <tr key={row.employee_id} className="hover:bg-sidebar-sub">
+                <td className="px-4 py-3 font-medium text-heading">
+                  <TechnicianLabel row={row} />
+                </td>
+                <td className={NUMERIC_CELL}>{row.completed_task_count}</td>
+                <td className={NUMERIC_CELL}>
+                  {formatOnTime(row.on_time_count, row.completed_task_count)}
+                </td>
+                {REJECTION_REASON_ORDER.map((key) => (
+                  <td key={key} className={NUMERIC_CELL}>
+                    {row.rejection_counts[key]}
+                  </td>
+                ))}
+                <td className={NUMERIC_CELL}>{row.rejection_total}</td>
+                <td className={NUMERIC_CELL}>{row.defect_count}</td>
+                <td className={NUMERIC_CELL}>
+                  {formatHoursPair(row.estimated_hours_total, row.actual_hours_total)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     );
   }
 
