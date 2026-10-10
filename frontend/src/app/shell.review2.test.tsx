@@ -1,11 +1,16 @@
 import { focusManager } from "@tanstack/react-query";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
+import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, test } from "vitest";
 import { api } from "../lib/api";
 import { markSignedIn } from "../lib/sessionHint";
 import { server } from "../test/msw";
 import { renderApp } from "../test/renderApp";
+import { AppProviders } from "./providers";
+import { createQueryClient } from "./queryClient";
+import type { MenuItem } from "./menu";
+import { MenuPage } from "./shell/MenuPage";
 
 // Review M1-03a (round 2).
 const id = "7d1f0c2e-0000-4000-8000-000000000010";
@@ -76,13 +81,30 @@ describe("Review M1-03a — vòng 2", () => {
   });
 
   test("AC-SYS-043 trang đang phát triển có nút Về trang chủ (spec §6)", async () => {
+    // Mọi mục trong menu.json đã có trang thật (M8-01b lắp xong mục cuối, /reports/kpi) — dựng
+    // trực tiếp MenuPage với một MenuItem giả để kiểm cơ chế fallback chung (Q27).
     server.use(
       http.post("/api/v1/auth/refresh", () => HttpResponse.json(session)),
       http.get("/api/v1/me", () => HttpResponse.json(me)),
     );
     markSignedIn();
-    // "/reports/kpi" (M8, chưa làm) vẫn placeholder.
-    renderApp("/reports/kpi");
+    const fakeItem: MenuItem = {
+      id: "fake",
+      label: "Tính năng demo",
+      icon: "BarChart3",
+      path: "/khong-ton-tai",
+      capability: null,
+      badge: null,
+      children: [],
+    };
+    const queryClient = createQueryClient();
+    render(
+      <AppProviders queryClient={queryClient}>
+        <MemoryRouter>
+          <MenuPage item={fakeItem} capabilities={[]} />
+        </MemoryRouter>
+      </AppProviders>,
+    );
 
     expect(await screen.findByText("Tính năng đang được phát triển.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Về trang chủ" })).toHaveAttribute("href", "/");

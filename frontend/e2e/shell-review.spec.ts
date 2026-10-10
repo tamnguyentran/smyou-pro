@@ -46,9 +46,7 @@ test("AC-SYS-045 mọi nút và liên kết trong khung cao ≥ 44px (menu đón
   await page.screenshot({ path: shot(info, "shell-group-open.png"), fullPage: true });
 });
 
-test("AC-SYS-041 AC-SYS-042 AC-SYS-043 @screenshot trang 403, 404, đang phát triển", async ({
-  page,
-}, info) => {
+test("AC-SYS-041 AC-SYS-042 @screenshot trang 403, 404", async ({ page }, info) => {
   await signIn(page, TECHNICIAN, "/employees");
   await expect(page.getByText("Bạn không có quyền truy cập trang này.")).toBeVisible();
   await page.screenshot({ path: shot(info, "page-403.png"), fullPage: true });
@@ -57,15 +55,7 @@ test("AC-SYS-041 AC-SYS-042 AC-SYS-043 @screenshot trang 403, 404, đang phát t
   await expect(page.getByText("Không tìm thấy trang.")).toBeVisible();
   if (!isMobile(info)) await openMenu(page, info); // sidebar loaded, not the skeleton
   await page.screenshot({ path: shot(info, "page-404.png"), fullPage: true });
-
-  // "/my-tasks" (M5-01), "/dispatch/workload" (M4-04) and "/dispatch/revisions" (M6-03b) are all
-  // real now — "/reports/kpi" (M8, chưa làm) is the next still-unimplemented page TECH_LEAD can
-  // reach (own `kpi.read` capability).
-  await page.context().clearCookies();
-  await signIn(page, TECH_LEAD, "/reports/kpi");
-  await expect(page.getByText("Tính năng đang được phát triển.")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1, name: "Báo cáo KPI" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Về trang chủ" })).toBeVisible();
-  if (!isMobile(info)) await openMenu(page, info);
-  await page.screenshot({ path: shot(info, "page-coming-soon.png"), fullPage: true });
+  // AC-SYS-043 (trang "đang phát triển"): M8-01b lắp xong mục cuối còn placeholder
+  // (/reports/kpi), không còn trang thật nào minh hoạ được cơ chế này nữa — giờ kiểm trực
+  // tiếp `MenuPage`/`ComingSoonPage` ở src/app/shell.test.tsx và shell.review2.test.tsx.
 });
