@@ -205,6 +205,15 @@ def _defect_aggregates(
     return counts
 
 
+_CSV_FORMULA_PREFIXES = ("=", "+", "-", "@")
+
+
+def _escape_csv_formula(value: str) -> str:
+    """Neutralize Excel/Sheets formula injection (CWE-1236) by quoting cells that start
+    with `=+-@`, so opening the exported CSV never executes attacker-controlled text."""
+    return f"'{value}" if value.startswith(_CSV_FORMULA_PREFIXES) else value
+
+
 def build_csv(report: KpiReportOut) -> bytes:
     buffer = io.StringIO()
     writer = csv.writer(buffer)
@@ -212,8 +221,8 @@ def build_csv(report: KpiReportOut) -> bytes:
     for row in report.rows:
         writer.writerow(
             [
-                row.employee_code,
-                row.employee_full_name,
+                _escape_csv_formula(row.employee_code),
+                _escape_csv_formula(row.employee_full_name),
                 row.completed_task_count,
                 row.on_time_count,
                 "" if row.on_time_rate is None else row.on_time_rate,
