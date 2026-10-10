@@ -63,7 +63,12 @@ for (const role of Object.keys(ACCOUNTS) as Role[]) {
       await expect(nav).toHaveCount(0); // AC-SYS-048: hidden ≥ 1024px
       return;
     }
-    await expect(nav.getByRole("link").first()).toBeVisible();
+    // AC-SYS-098 AC-SYS-099 AC-SYS-100: BottomNav's middle slot renders only after GET /api/v1/me resolves
+    // (frontend/src/app/shell/BottomNav.tsx), so right after sign-in the bar may still be short
+    // one link. Wait for the final link count (web-first assertion, auto-retries) before taking
+    // the one-shot evaluateAll() snapshot below — a fixed waitForTimeout would hide this instead
+    // of waiting for the real condition.
+    await expect(nav.getByRole("link")).toHaveCount(SLOTS[role].length);
     // Strip aria-hidden nodes (icon + unread badge, M7-01b) before comparing labels: the real
     // e2e account may carry a genuine unread count from an earlier spec in the same run.
     const labels = await nav.getByRole("link").evaluateAll((links) =>
