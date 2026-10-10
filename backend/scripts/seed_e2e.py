@@ -1,4 +1,5 @@
-"""E2E accounts (run by `make e2e` before Playwright). Idempotent: resets passwords, lock-outs and sessions.
+"""E2E accounts (run by `make e2e` before Playwright). Idempotent: resets passwords, lock-outs and
+sessions, and purges orders created by test runs (anything whose code isn't an "E2E-" fixture).
 
 Never run against production: the passwords below are public.
 """
@@ -18,7 +19,7 @@ from app.modules.dispatch.models import Assignment, DefectRecord, Task
 from app.modules.files import service as files_service
 from app.modules.files.models import Attachment
 from app.modules.identity.models import AuthSession, Employee, EmployeeRole
-from app.modules.orders.models import Order
+from app.modules.orders.models import Order, OrderLine, OrderRevision
 
 # Tiny valid JPEG (magic bytes + EOI marker) — same idiom as test_orders_confirmation_api.py's
 # JPEG_BYTES, reused here so the seeded confirmation photo passes `files.domain.validate_image`.
@@ -124,6 +125,22 @@ def main() -> int:
     )
     now = datetime.now(UTC)
     with factory() as session, session.begin():
+        # Mỗi test tạo đơn thật qua UI (mã tự sinh "DHyymm-nnnn") và không dọn lại — DB dev dùng
+        # volume named nên tồn qua các lần `make e2e`, cộng dồn hàng trăm đơn PENDING_DISPATCH và
+        # làm đơn mới của lần chạy hiện tại rơi khỏi trang 1 (hàng đợi sort theo mã, phân trang
+        # 20/trang). Dọn sạch mọi đơn KHÔNG phải fixture (mã không bắt đầu "E2E-") trước khi seed.
+        stale_order_ids = list(session.scalars(select(Order.id).where(Order.code.not_like("E2E-%"))))
+        if stale_order_ids:
+            stale_task_ids = list(session.scalars(select(Task.id).where(Task.order_id.in_(stale_order_ids))))
+            if stale_task_ids:
+                session.execute(delete(DefectRecord).where(DefectRecord.task_id.in_(stale_task_ids)))
+                session.execute(delete(Assignment).where(Assignment.task_id.in_(stale_task_ids)))
+                session.execute(delete(Task).where(Task.id.in_(stale_task_ids)))
+            session.execute(delete(OrderRevision).where(OrderRevision.order_id.in_(stale_order_ids)))
+            session.execute(delete(OrderLine).where(OrderLine.order_id.in_(stale_order_ids)))
+            session.execute(delete(Order).where(Order.id.in_(stale_order_ids)))
+            session.flush()
+
         for email, code, name, roles, password, must_change in ACCOUNTS:
             employee = session.scalars(select(Employee).where(Employee.email == email)).one_or_none()
             if employee is None:
