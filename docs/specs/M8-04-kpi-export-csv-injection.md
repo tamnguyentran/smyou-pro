@@ -1,6 +1,6 @@
 # M8-04 — Chặn CSV formula injection trong `GET /kpi/report/export`
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M8-04 · **Milestone:** M8
 - **Liên quan:** spec/permissions.yaml#kpi.read, docs/specs/M8-01a-kpi-report-api.md, `reports/review-M8-01b.md` (phát hiện gốc, Low, security-auditor)
 
