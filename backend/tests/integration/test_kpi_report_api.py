@@ -445,8 +445,12 @@ def test_export_csv_headers_and_content(
     khoa_row = data_rows["NV014"]
     assert khoa_row[2] == "2"  # Số task xong
     assert khoa_row[3] == "1"  # Số đúng hạn
+    assert khoa_row[4] == "0.5"  # Tỷ lệ đúng hạn
     assert khoa_row[10] == "3"  # Tổng từ chối
     assert khoa_row[11] == "1"  # Số lỗi ghi nhận
+    assert khoa_row[12] == "5.00"  # Giờ ước tính
+    assert khoa_row[13] == "1.50"  # Giờ thực tế
+    assert khoa_row[14] == "1"  # Số lần thiếu khai giờ thực tế
 
 
 @pytest.mark.ac("AC-KPI-014")

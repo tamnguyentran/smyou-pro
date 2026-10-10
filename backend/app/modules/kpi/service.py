@@ -8,7 +8,7 @@ import csv
 import io
 import uuid
 from datetime import date, datetime, time, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
@@ -94,7 +94,15 @@ def get_report(
                 employee_is_active=row.is_active,
                 completed_task_count=completed_count,
                 on_time_count=on_time_count,
-                on_time_rate=round(on_time_count / completed_count, 4) if completed_count else None,
+                on_time_rate=(
+                    float(
+                        (Decimal(on_time_count) / completed_count).quantize(
+                            Decimal("0.0001"), rounding=ROUND_HALF_UP
+                        )
+                    )
+                    if completed_count
+                    else None
+                ),
                 rejection_counts=RejectionCounts(
                     **{code: reason_counts.get(code, 0) for code in _REASON_COLUMN_ORDER}
                 ),
