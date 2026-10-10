@@ -1355,6 +1355,112 @@
         "title": "ImportRowError",
         "type": "object"
       },
+      "KpiReportOut": {
+        "properties": {
+          "from": {
+            "format": "date",
+            "title": "From",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/KpiRowOut"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "to": {
+            "format": "date",
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": ["from", "to", "rows"],
+        "title": "KpiReportOut",
+        "type": "object"
+      },
+      "KpiRowOut": {
+        "properties": {
+          "actual_hours_missing_count": {
+            "title": "Actual Hours Missing Count",
+            "type": "integer"
+          },
+          "actual_hours_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Actual Hours Total",
+            "type": "string"
+          },
+          "completed_task_count": {
+            "title": "Completed Task Count",
+            "type": "integer"
+          },
+          "defect_count": {
+            "title": "Defect Count",
+            "type": "integer"
+          },
+          "employee_code": {
+            "title": "Employee Code",
+            "type": "string"
+          },
+          "employee_full_name": {
+            "title": "Employee Full Name",
+            "type": "string"
+          },
+          "employee_id": {
+            "format": "uuid",
+            "title": "Employee Id",
+            "type": "string"
+          },
+          "employee_is_active": {
+            "title": "Employee Is Active",
+            "type": "boolean"
+          },
+          "estimated_hours_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Estimated Hours Total",
+            "type": "string"
+          },
+          "on_time_count": {
+            "title": "On Time Count",
+            "type": "integer"
+          },
+          "on_time_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Time Rate"
+          },
+          "rejection_counts": {
+            "$ref": "#/components/schemas/RejectionCounts"
+          },
+          "rejection_total": {
+            "title": "Rejection Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "employee_id",
+          "employee_code",
+          "employee_full_name",
+          "employee_is_active",
+          "completed_task_count",
+          "on_time_count",
+          "on_time_rate",
+          "rejection_counts",
+          "rejection_total",
+          "defect_count",
+          "estimated_hours_total",
+          "actual_hours_total",
+          "actual_hours_missing_count"
+        ],
+        "title": "KpiRowOut",
+        "type": "object"
+      },
       "LoginRequest": {
         "properties": {
           "email": {
@@ -3330,6 +3436,33 @@
         },
         "required": ["version"],
         "title": "ProductUpdate",
+        "type": "object"
+      },
+      "RejectionCounts": {
+        "properties": {
+          "BUSY": {
+            "title": "Busy",
+            "type": "integer"
+          },
+          "DISTANCE": {
+            "title": "Distance",
+            "type": "integer"
+          },
+          "OTHER": {
+            "title": "Other",
+            "type": "integer"
+          },
+          "SICK": {
+            "title": "Sick",
+            "type": "integer"
+          },
+          "SKILL": {
+            "title": "Skill",
+            "type": "integer"
+          }
+        },
+        "required": ["BUSY", "SICK", "SKILL", "DISTANCE", "OTHER"],
+        "title": "RejectionCounts",
         "type": "object"
       },
       "RolesRequest": {
@@ -5526,6 +5659,140 @@
         },
         "summary": "Kiểm tra tình trạng dịch vụ và cơ sở dữ liệu",
         "tags": ["system"]
+      }
+    },
+    "/api/v1/kpi/report": {
+      "get": {
+        "operationId": "get_kpi_report",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "employee_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KpiReportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Báo cáo KPI thô theo KTV",
+        "tags": ["kpi"]
+      }
+    },
+    "/api/v1/kpi/report/export": {
+      "get": {
+        "operationId": "export_kpi_report",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "employee_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Xuất CSV báo cáo KPI",
+        "tags": ["kpi"]
       }
     },
     "/api/v1/me": {

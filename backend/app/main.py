@@ -27,6 +27,7 @@ from app.modules.files.router import router as files_router
 from app.modules.identity.router import me_router
 from app.modules.identity.router import router as auth_router
 from app.modules.identity.service import authenticate
+from app.modules.kpi.router import router as kpi_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.orders import service as orders_service
 from app.modules.orders.router import router as orders_router
@@ -89,6 +90,7 @@ def create_app(
     app.include_router(files_router)
     app.include_router(customers_router)
     app.include_router(dashboard_router)
+    app.include_router(kpi_router)
     app.include_router(orders_router)
     app.include_router(dispatch_router)
     app.include_router(tasks_router)

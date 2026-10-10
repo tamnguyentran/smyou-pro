@@ -365,6 +365,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/kpi/report": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Báo cáo KPI thô theo KTV */
+    get: operations["get_kpi_report"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/kpi/report/export": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Xuất CSV báo cáo KPI */
+    get: operations["export_kpi_report"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/me": {
     parameters: {
       query?: never;
@@ -1584,6 +1618,52 @@ export interface components {
       /** Message */
       message: string;
     };
+    /** KpiReportOut */
+    KpiReportOut: {
+      /**
+       * From
+       * Format: date
+       */
+      from: string;
+      /** Rows */
+      rows: components["schemas"]["KpiRowOut"][];
+      /**
+       * To
+       * Format: date
+       */
+      to: string;
+    };
+    /** KpiRowOut */
+    KpiRowOut: {
+      /** Actual Hours Missing Count */
+      actual_hours_missing_count: number;
+      /** Actual Hours Total */
+      actual_hours_total: string;
+      /** Completed Task Count */
+      completed_task_count: number;
+      /** Defect Count */
+      defect_count: number;
+      /** Employee Code */
+      employee_code: string;
+      /** Employee Full Name */
+      employee_full_name: string;
+      /**
+       * Employee Id
+       * Format: uuid
+       */
+      employee_id: string;
+      /** Employee Is Active */
+      employee_is_active: boolean;
+      /** Estimated Hours Total */
+      estimated_hours_total: string;
+      /** On Time Count */
+      on_time_count: number;
+      /** On Time Rate */
+      on_time_rate: number | null;
+      rejection_counts: components["schemas"]["RejectionCounts"];
+      /** Rejection Total */
+      rejection_total: number;
+    };
     /** LoginRequest */
     LoginRequest: {
       /** Email */
@@ -2208,6 +2288,19 @@ export interface components {
       version: number;
       /** Warranty Months */
       warranty_months?: number | null;
+    };
+    /** RejectionCounts */
+    RejectionCounts: {
+      /** Busy */
+      BUSY: number;
+      /** Distance */
+      DISTANCE: number;
+      /** Other */
+      OTHER: number;
+      /** Sick */
+      SICK: number;
+      /** Skill */
+      SKILL: number;
     };
     /** RolesRequest */
     RolesRequest: {
@@ -3562,6 +3655,72 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  get_kpi_report: {
+    parameters: {
+      query: {
+        from: string;
+        to: string;
+        employee_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["KpiReportOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  export_kpi_report: {
+    parameters: {
+      query: {
+        from: string;
+        to: string;
+        employee_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
       };
     };
   };

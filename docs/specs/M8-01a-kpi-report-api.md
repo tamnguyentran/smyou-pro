@@ -1,6 +1,6 @@
 # M8-01a — Báo cáo KPI thô theo KTV: API + xuất CSV
 
-- **Status:** Draft
+- **Status:** Done
 - **Backlog:** M8-01 (tách a/b theo mẫu M6-03) · **Milestone:** M8
 - **Liên quan:** `spec/permissions.yaml#kpi.read` (`MANAGER: all, TECH_LEAD: all, TECHNICIAN: self` — capability đã có sẵn, dùng luôn, không sửa YAML; menu `reports` → `/reports/kpi` đã gắn capability này); `docs/product/OPEN_QUESTIONS_ARCHIVE.md` Q10 (✅ "v1 chỉ thu thập sự kiện + báo cáo số liệu thô; chưa chấm điểm" — item này KHÔNG tính điểm, chỉ số liệu thô); `docs/product/DOMAIN_MODEL.md` §1 (Employee/`employee_roles`) §8 (Task — `due_at`, `estimated_hours`) §9 (Assignment — `status`, `reject_reason_code`, `accepted_at/started_at/done_at/rejected_at`, `actual_hours`) §10 (DefectRecord — `excluded_from_kpi` đã có cột, chưa có route đọc/sửa); `docs/specs/M6-03a-revision-reopen-api.md` §5 (migration tạo `defect_records`, cột `excluded_from_kpi` "chỉ tạo sẵn cho M8-01"); `docs/specs/M1-05-audit-framework.md` AC-SYS-070 (mẫu `occurred_from`/`occurred_to`, biên ngày theo giờ Việt Nam); `docs/specs/M7-02-role-dashboard.md` (mẫu `_vn_day_start_utc`, response theo vai trò); `backend/app/modules/dispatch/models.py` (`Assignment`, `DefectRecord`), `backend/app/modules/employees/models.py` (`Employee`, `employee_roles`).
 

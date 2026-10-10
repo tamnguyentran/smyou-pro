@@ -1,10 +1,15 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { delay, http, HttpResponse } from "msw";
+import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { markSignedIn } from "../lib/sessionHint";
 import { server } from "../test/msw";
 import { renderApp } from "../test/renderApp";
+import { createQueryClient } from "./queryClient";
+import { AppProviders } from "./providers";
+import { MenuPage } from "./shell/MenuPage";
+import type { MenuItem } from "./menu";
 
 type Scopes = Record<string, string[]>;
 interface Person {
@@ -357,11 +362,32 @@ describe("Khung ứng dụng — chặn trang & trạng thái", () => {
   });
 
   test("AC-SYS-043 mục menu chưa làm → trang đang phát triển", async () => {
+    // Mọi mục trong menu.json hiện đã có trang thật (M8-01b lắp xong mục cuối, /reports/kpi) —
+    // dựng trực tiếp MenuPage với một MenuItem giả để kiểm cơ chế fallback chung (Q27), không
+    // phụ thuộc còn mục nào "chưa làm" trong cấu hình thật hay không.
     signedInAs(AN);
-    renderApp("/reports/kpi");
+    const fakeItem: MenuItem = {
+      id: "fake",
+      label: "Tính năng demo",
+      icon: "BarChart3",
+      path: "/khong-ton-tai",
+      capability: null,
+      badge: null,
+      children: [],
+    };
+    const queryClient = createQueryClient();
+    render(
+      <AppProviders queryClient={queryClient}>
+        <MemoryRouter>
+          <MenuPage item={fakeItem} capabilities={[]} />
+        </MemoryRouter>
+      </AppProviders>,
+    );
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Báo cáo KPI" })).toBeVisible();
-    expect(screen.getByText("Tính năng đang được phát triển.")).toBeInTheDocument();
+    expect(await screen.findByText("Tính năng đang được phát triển.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.title).toContain("Tính năng demo");
+    });
   });
 
   test("AC-SYS-044 /me đang tải → skeleton trong menu", async () => {

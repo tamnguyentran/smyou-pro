@@ -1,6 +1,6 @@
 # M8-01b — Báo cáo KPI thô theo KTV: giao diện
 
-- **Status:** Draft
+- **Status:** Done
 - **Backlog:** M8-01 (tách a/b theo mẫu M6-03) · **Milestone:** M8
 - **Liên quan:** `M8-01a-kpi-report-api.md` (API `GET /api/v1/kpi/report`, `GET /api/v1/kpi/report/export` — dùng nguyên, không đổi); `spec/permissions.yaml` (menu `reports`, `label: Báo cáo KPI`, `icon: BarChart3`, `path: /reports/kpi`, `capability: kpi.read` — route menu đã có sẵn từ trước, item này chỉ lắp nội dung trang); `docs/design/UI_GUIDELINES.md` (danh sách = bảng ở desktop, card dọc ở mobile — không bảng ngang trên điện thoại; `max-w-7xl mx-auto p-4 lg:p-8`); `docs/specs/M7-02-role-dashboard.md` (mẫu trang theo vai trò, `StatusPage` lỗi chung, skeleton biết trước theo vai trò từ `GET /me`); `docs/specs/M4-03b-dispatch-board-ui.md` AC-DSP-085 (mẫu bộ lọc "Từ ngày"/"Đến ngày" + nút "Xoá lọc").
 
