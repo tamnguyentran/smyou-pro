@@ -1,6 +1,6 @@
 # M8-03 — Điều tra & sửa flake `bottom-nav.spec.ts` (AC-SYS-047/051)
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M8-03 · **Milestone:** M8
 - **Liên quan:** `frontend/e2e/bottom-nav.spec.ts`, spec `docs/specs/M1-03b-bottom-nav-profile.md` (AC-SYS-047/048/049/051 gốc), `reports/verification.md` (ghi nhận lúc `/ship M8-01a`)
 
