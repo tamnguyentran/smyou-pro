@@ -25,8 +25,9 @@ Chi tiết từng item (ID, mô tả, spec, PR): `docs/backlog/BACKLOG_ARCHIVE.m
 - [ ] **M6-04 Stateful test toàn workflow + E2E golden path** (TESTING_STRATEGY §5).
 
 ## M8 — KPI
-- [~] **M8-01a Báo cáo KPI thô — API**: `GET /kpi/report` theo KTV & khoảng ngày (số task xong, % đúng hạn, số lần từ chối theo lý do, số lỗi (defect) trừ `excluded_from_kpi`, giờ ước tính vs thực tế) + `GET /kpi/report/export` (CSV). (Công thức điểm: Q10.) Spec `M8-01a-kpi-report-api.md`. Q76.
+- [x] **M8-01a Báo cáo KPI thô — API**: `GET /kpi/report` theo KTV & khoảng ngày (số task xong, % đúng hạn, số lần từ chối theo lý do, số lỗi (defect) trừ `excluded_from_kpi`, giờ ước tính vs thực tế) + `GET /kpi/report/export` (CSV). (Công thức điểm: Q10.) Spec `M8-01a-kpi-report-api.md`. Q76. `make verify` xanh (`reports/verification.md`); nhân tiện sửa `backend/scripts/seed_e2e.py` không dọn đơn do test tự tạo, chặn `make e2e` (xem `reports/review-M8-01a.md`).
 - [S] **M8-01b Báo cáo KPI thô — giao diện**: trang `/reports/kpi` (bảng desktop/card mobile, bộ lọc ngày + KTV, nút xuất CSV). Spec `M8-01b-kpi-report-ui.md`.
+- [ ] **M8-02 Điều tra flake `bottom-nav.spec.ts` AC-SYS-047/051**: test fail ngẫu nhiên (đổi vai trò mỗi lần chạy — manager/tech-lead/technician/sale-technician/sale), tự pass khi retry. Phát hiện lúc `/ship M8-01a` (`reports/verification.md`), không liên quan KPI/dispatch.
 
 ## M9 — Production
 - [ ] **M9-01 Deploy lên `https://ilabsviet.com/smyoutask/`**: thêm khối nginx hệ thống (DEPLOYMENT §5.1), HTTPS dùng chứng chỉ sẵn có của host.
