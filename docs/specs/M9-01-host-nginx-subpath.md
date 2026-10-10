@@ -1,6 +1,6 @@
 # M9-01 — Khối nginx hệ thống cho subpath `/smyoutask/`
 
-- **Status:** Approved
+- **Status:** Done (AC-SYS-101..104 tự động xanh; §7 là kịch bản UAT thủ công trên server thật, chưa thực hiện ở phiên này)
 - **Backlog:** M9-01 · **Milestone:** M9
 - **Liên quan:** `docs/architecture/DEPLOYMENT.md` §5.1 (Q12, đã chốt), `M0-03` (container `web`/`backend` đã làm xong phần `BASE_PATH`/nginx trong container — không lặp lại ở đây)
 
