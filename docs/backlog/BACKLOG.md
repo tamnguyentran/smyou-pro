@@ -8,6 +8,9 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - M7 — xem `BACKLOG_ARCHIVE.md`.
 
 ## Đã xong (tự động lưu trữ)
+- M6 — xem `BACKLOG_ARCHIVE.md`.
+
+## Đã xong (tự động lưu trữ)
 - M5 — xem `BACKLOG_ARCHIVE.md`.
 
 ## Đã xong (tự động lưu trữ)
@@ -17,17 +20,10 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 M0 (nền móng) · M1 (danh tính & phân quyền) · M2 (danh mục) · M3 (khách hàng & đơn hàng) — toàn bộ `[x]`.
 Chi tiết từng item (ID, mô tả, spec, PR): `docs/backlog/BACKLOG_ARCHIVE.md`.
 
-## M6 — Hoàn tất & Chỉnh sửa
-- [x] **M6-01 Tải ảnh phiếu xác nhận** (nén client, kiểm magic bytes, lưu an toàn, xem có kiểm quyền).
-- [x] **M6-02 Hoàn tất đơn**.
-- [x] **M6-03a Chuyển Chỉnh sửa + mở lại task + defect records — API**: bảng `order_revisions`/`defect_records`, cột `tasks.reopen_count`/`last_reopened_in_revision`, guard `order_in_revision`/`revision_has_work_if_revision`, `POST /orders/{id}/revise`, `POST /orders/{order_id}/tasks/{task_id}/reopen`, badge `revision_count`. Spec `M6-03a-revision-reopen-api.md`. `make verify` xanh (`reports/verification.md`).
-- [x] **M6-03b Chuyển Chỉnh sửa + mở lại task — giao diện**: nút "Chuyển Chỉnh sửa" trên trang đơn, "Mở lại" trên đầu việc, trang `/dispatch/revisions`. Spec `M6-03b-revision-reopen-ui.md`. `make verify` xanh (`reports/verification.md`).
-- [ ] **M6-04 Stateful test toàn workflow + E2E golden path** (TESTING_STRATEGY §5).
-
 ## M8 — KPI
 - [x] **M8-01a Báo cáo KPI thô — API**: `GET /kpi/report` theo KTV & khoảng ngày (số task xong, % đúng hạn, số lần từ chối theo lý do, số lỗi (defect) trừ `excluded_from_kpi`, giờ ước tính vs thực tế) + `GET /kpi/report/export` (CSV). (Công thức điểm: Q10.) Spec `M8-01a-kpi-report-api.md`. Q76. `make verify` xanh (`reports/verification.md`); nhân tiện sửa `backend/scripts/seed_e2e.py` không dọn đơn do test tự tạo, chặn `make e2e` (xem `reports/review-M8-01a.md`).
 - [S] **M8-01b Báo cáo KPI thô — giao diện**: trang `/reports/kpi` (bảng desktop/card mobile, bộ lọc ngày + KTV, nút xuất CSV). Spec `M8-01b-kpi-report-ui.md`.
-- [ ] **M8-02 Điều tra flake `bottom-nav.spec.ts` AC-SYS-047/051**: test fail ngẫu nhiên (đổi vai trò mỗi lần chạy — manager/tech-lead/technician/sale-technician/sale), tự pass khi retry. Phát hiện lúc `/ship M8-01a` (`reports/verification.md`), không liên quan KPI/dispatch.
+- [ ] **M8-03 Điều tra flake `bottom-nav.spec.ts` AC-SYS-047/051**: test fail ngẫu nhiên (đổi vai trò mỗi lần chạy — manager/tech-lead/technician/sale-technician/sale), tự pass khi retry. Phát hiện lúc `/ship M8-01a` (`reports/verification.md`), không liên quan KPI/dispatch.
 
 ## M9 — Production
 - [ ] **M9-01 Deploy lên `https://ilabsviet.com/smyoutask/`**: thêm khối nginx hệ thống (DEPLOYMENT §5.1), HTTPS dùng chứng chỉ sẵn có của host.
