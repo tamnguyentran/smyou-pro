@@ -98,6 +98,10 @@ async function doTaskWork(page: Page, technicianEmail: string, taskCode: string)
 test("AC-SYS-096 AC-SYS-097 @screenshot golden path: tạo đơn → điều phối → từ chối/giao lại → hoàn thành → khách xác nhận → hoàn tất → Chỉnh sửa → mở lại → hoàn tất lần 2", async ({
   page,
 }, info) => {
+  // Nhiều lượt đăng nhập (băm argon2, M3-08) + nhiều bước UI/axe tuần tự trong 1 test — timeout
+  // mặc định 30s không đủ khi backend dev bị bão hoà dưới tải CI (phát hiện: 3 lần CI liên tiếp
+  // timeout ở 3 điểm khác nhau của cùng test này khi tổng số test e2e tăng lên ở M8-01a).
+  test.setTimeout(120_000);
   // --- AC-SYS-096: Hoa tạo đơn, gửi đơn -------------------------------------------------------
   await signIn(page, SALE, "/orders/new");
   await page.getByLabel("Tìm khách hàng").fill("Anh Ngọc E2E");
