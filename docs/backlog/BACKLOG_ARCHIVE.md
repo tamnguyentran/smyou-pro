@@ -65,6 +65,13 @@ Các milestone đã hoàn tất 100% (`[x]` toàn bộ), chuyển ra khỏi `BAC
 - [x] **M5-02 Tiếp nhận / Từ chối (lý do)**: `POST /api/v1/assignments/{id}/accept|reject` + nút Tiếp nhận/Từ chối trên tab Chờ nhận của `/my-tasks`. Spec `M5-02-accept-reject-assignment.md`. `make verify` xanh (`reports/verification.md`).
 - [x] **M5-03 Bắt đầu / Hoàn thành** (+ ghi chú, giờ thực tế): `POST /api/v1/assignments/{id}/start|complete` + nút Bắt đầu/Báo hoàn thành trên tab Đang làm của `/my-tasks`; task DONE cuối → đơn `AWAITING_CONFIRMATION` (`order.all_tasks_done`). Ảnh công việc dời sau `M6-01` (Q72). Spec `M5-03-start-complete-assignment.md`. `make verify` xanh (`reports/verification.md`).
 
+## M6 — Hoàn tất & Chỉnh sửa
+- [x] **M6-01 Tải ảnh phiếu xác nhận** (nén client, kiểm magic bytes, lưu an toàn, xem có kiểm quyền).
+- [x] **M6-02 Hoàn tất đơn**.
+- [x] **M6-03a Chuyển Chỉnh sửa + mở lại task + defect records — API**: bảng `order_revisions`/`defect_records`, cột `tasks.reopen_count`/`last_reopened_in_revision`, guard `order_in_revision`/`revision_has_work_if_revision`, `POST /orders/{id}/revise`, `POST /orders/{order_id}/tasks/{task_id}/reopen`, badge `revision_count`. Spec `M6-03a-revision-reopen-api.md`. `make verify` xanh (`reports/verification.md`).
+- [x] **M6-03b Chuyển Chỉnh sửa + mở lại task — giao diện**: nút "Chuyển Chỉnh sửa" trên trang đơn, "Mở lại" trên đầu việc, trang `/dispatch/revisions`. Spec `M6-03b-revision-reopen-ui.md`. `make verify` xanh (`reports/verification.md`).
+- [x] **M6-04 Stateful test toàn workflow + E2E golden path**: `tests/stateful/test_workflow_stateful.py` (Hypothesis `WorkflowMachine`, 15/16 lệnh YAML, 8 invariant), `tests/unit/test_stateful_invariant_coverage.py`, `frontend/e2e/golden-path.spec.ts` (AC-SYS-096/097, 2 project). Bằng chứng cấy lỗi `docs/evidence/M6-04-stateful-regression.md`. Spec `M6-04-stateful-golden-path.md`. `make verify` xanh (`reports/verification.md`).
+
 ## M7 — Thông báo & Tổng quan
 - [x] **M7-01 Thông báo in-app** (chuông, badge, đánh dấu đã đọc, polling 30s) — tách `a` (API: bảng `notifications`, nối 13 điểm `notify_*` — **xong**, spec `M7-01a-notifications-api.md`, `make verify` xanh) / `b` (UI: chuông/badge/trang danh sách — **xong**, spec `M7-01b-notifications-ui.md`, `make verify` xanh ngoại trừ flake có từ trước ở `dispatch.spec.ts`, xem `reports/verification.md`), theo mẫu M4-01/M6-03.
   - Follow-up (review M1-03b) đã xong trong M7-01b: route `/thong-bao` và `/ca-nhan` đã bọc capability (`notification.read`, `profile.manage`) như các trang menu.
