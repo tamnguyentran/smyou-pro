@@ -453,6 +453,28 @@ def test_export_csv_headers_and_content(
     assert khoa_row[14] == "1"  # Số lần thiếu khai giờ thực tế
 
 
+@pytest.mark.ac("AC-KPI-030")
+def test_export_csv_normal_vietnamese_names_not_escaped(
+    app: FastAPI, report_data: dict[str, uuid.UUID], people: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    res = an.get(f"/api/v1/kpi/report/export?{QS}")
+    assert res.status_code == 200, res.text
+    assert res.headers["content-type"] == "text/csv; charset=utf-8"
+    assert (
+        res.headers["content-disposition"] == 'attachment; filename="bao-cao-kpi-2026-09-01_2026-09-30.csv"'
+    )
+    text_content = res.content.decode("utf-8-sig")
+    reader = csv.reader(io.StringIO(text_content))
+    next(reader)  # header
+    data_rows = {row[0]: row for row in reader}
+    assert data_rows["NV014"][0] == "NV014"
+    assert data_rows["NV014"][1] == KHOA.full_name
+    for row in data_rows.values():
+        assert not row[0].startswith("'")
+        assert not row[1].startswith("'")
+
+
 @pytest.mark.ac("AC-KPI-014")
 def test_export_forbidden_without_capability(app: FastAPI, report_data: dict[str, uuid.UUID]) -> None:
     hoa = client_as(app, HOA)
