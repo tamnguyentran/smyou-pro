@@ -10,6 +10,7 @@ import { TaskBoardPage } from "../features/dispatch/pages/TaskBoardPage";
 import { WorkloadPage } from "../features/dispatch/pages/WorkloadPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { EmployeesPage } from "../features/employees/pages/EmployeesPage";
+import { KpiReportPage } from "../features/kpi/pages/KpiReportPage";
 import { MyTasksPage } from "../features/myTasks/pages/MyTasksPage";
 import { NotificationsPage } from "../features/notifications/pages/NotificationsPage";
 import { DraftOrderPage } from "../features/orders/pages/DraftOrderPage";
@@ -39,9 +40,11 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/dispatch/workload" is real (M4-04), same capability (task.manage) as the menu entry.
 // "/my-tasks" is real (M5-01) and checks assignment.respond itself, same capability as the menu entry.
 // "/dispatch/revisions" is real (M6-03b), same capability (task.manage) as the menu entry.
+// "/reports/kpi" is real (M8-01b) and checks kpi.read itself, same capability as the menu entry.
 const REAL_PAGES = new Set([
   "/",
   "/employees",
+  "/reports/kpi",
   "/audit",
   "/catalog/products",
   "/catalog/services",
@@ -88,6 +91,7 @@ export const routes: RouteObject[] = [
       { index: true, element: <DashboardPage /> },
       ...menuRoutes,
       { path: "/employees", element: <EmployeesPage /> },
+      { path: "/reports/kpi", element: <KpiReportPage /> },
       { path: "/audit", element: <AuditPage /> },
       { path: "/catalog/products", element: <ProductsPage /> },
       { path: "/catalog/services", element: <ServicesPage /> },
