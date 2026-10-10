@@ -1,6 +1,6 @@
 # M9-01 — Deploy lên `https://ilabsviet.com/smyoutask/` qua nginx hệ thống
 
-- **Status:** Approved
+- **Status:** Done (AC-SYS-024..026 tự động xanh; AC-SYS-027/028 chờ UAT thủ công trên server thật, xem §7)
 - **Backlog:** M9-01 · **Milestone:** M9
 - **Liên quan:** DEPLOYMENT.md §5.1 (Q12, đã chốt — xem OPEN_QUESTIONS_ARCHIVE.md), `compose.prod.yml` (`web.ports`), `backend/tests/docker/test_prod_stack.py` (AC-SYS-019..023, đã xanh từ M0-03)
 
