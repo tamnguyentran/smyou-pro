@@ -39,7 +39,7 @@ async function checkPage(page: Page, info: TestInfo, file: string) {
 test("AC-AUTH-027 @a11y @screenshot trang chủ đã đăng nhập", async ({ page }, info) => {
   await page.goto("./dang-nhap");
   await login(page, MANAGER.email, MANAGER.password);
-  await expect(page.getByText(`Xin chào, ${MANAGER.name}`)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
   await openMenuOnPhone(page);
   await expect(page.getByRole("button", { name: "Đăng xuất" })).toBeVisible();
   await checkPage(page, info, "home-signed-in.png");
@@ -59,7 +59,7 @@ test("AC-AUTH-027 @a11y @screenshot màn đổi mật khẩu lần đầu", asyn
 test("AC-AUTH-026 đăng xuất thu hồi phiên ở server", async ({ page }) => {
   await page.goto("./dang-nhap");
   await login(page, MANAGER.email, MANAGER.password);
-  await expect(page.getByText(`Xin chào, ${MANAGER.name}`)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
 
   await openMenuOnPhone(page);
   await page.getByRole("button", { name: "Đăng xuất" }).click();

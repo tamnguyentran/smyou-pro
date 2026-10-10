@@ -112,6 +112,8 @@ function signedInAs(p: Person, counters: Record<string, number> = {}) {
     http.get("/api/v1/orders", () =>
       HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
     ),
+    // "/" là trang chủ thật từ M7-02: các test menu ở đây không quan tâm nội dung dashboard.
+    http.get("/api/v1/dashboard", () => HttpResponse.json({})),
   );
   markSignedIn();
 }
@@ -314,7 +316,7 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
     signedInAs(AN);
     const router = renderApp("/");
 
-    expect(await screen.findByText("Xin chào, Nguyễn Văn An")).toBeInTheDocument();
+    await screen.findByRole("heading", { name: "Tổng quan" });
     const main = screen.getByRole("main");
     expect(within(main).queryByRole("button", { name: "Đăng xuất" })).not.toBeInTheDocument();
 
@@ -387,12 +389,16 @@ describe("Khung ứng dụng — chặn trang & trạng thái", () => {
           ? HttpResponse.json({ status: 503 }, { status: 503 })
           : HttpResponse.json(me(AN));
       }),
+      http.get("/api/v1/dashboard", () => HttpResponse.json({})),
     );
     markSignedIn();
     renderApp("/");
 
-    expect(await screen.findByText("Không tải được thông tin tài khoản.")).toBeInTheDocument();
-    await userEvent.setup().click(screen.getByRole("button", { name: "Thử lại" }));
+    // M7-02: trang "/" (DashboardPage) cũng tự gọi useMe() và hiện cùng thông báo lỗi trong
+    // main — cả 2 nút dùng chung queryKey ["me"], bấm nút nào cũng load lại như nhau.
+    const [firstRetry] = await screen.findAllByRole("button", { name: "Thử lại" });
+    expect(firstRetry).toBeInTheDocument();
+    await userEvent.setup().click(firstRetry as HTMLElement);
     const nav = await mainMenu();
     expect(await within(nav).findByRole("link", { name: "Tổng quan" })).toBeInTheDocument();
   });
@@ -441,7 +447,7 @@ describe("Khung ứng dụng — chặn trang & trạng thái", () => {
   test("AC-SYS-045 trang chủ có tiêu đề Tổng quan", async () => {
     signedInAs(AN);
     renderApp("/");
-    await screen.findByText("Xin chào, Nguyễn Văn An");
+    await screen.findByRole("heading", { name: "Tổng quan" });
     expect(document.title).toBe("Tổng quan · SMYou Pro");
   });
 });

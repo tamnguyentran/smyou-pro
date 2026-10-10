@@ -63,7 +63,7 @@ async function evidence(page: Page, info: TestInfo, file: string) {
 for (const role of Object.keys(ACCOUNTS) as Role[]) {
   test(`AC-SYS-035 AC-SYS-046 @a11y @screenshot menu của ${role}`, async ({ page }, info) => {
     await signIn(page, role);
-    await expect(page.getByText(`Xin chào, ${ACCOUNTS[role].name}`)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
     if (!isMobile(info)) {
       // desktop: the sidebar menu must be loaded (not the skeleton) before the evidence
       await expect(page.getByRole("link", { name: "Tổng quan" })).toBeVisible();
@@ -121,7 +121,7 @@ test("AC-SYS-038 AC-SYS-039 mục đang chọn, nhóm tự mở; desktop có sid
 
 test("AC-SYS-040 đăng xuất từ menu", async ({ page }, info) => {
   await signIn(page, "manager");
-  await expect(page.getByText("Xin chào, Nguyễn Văn An")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
   await expect(page.getByRole("main").getByRole("button", { name: "Đăng xuất" })).toHaveCount(0);
   await menu(page, info);
   await page.getByRole("button", { name: "Đăng xuất" }).click();

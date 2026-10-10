@@ -45,10 +45,10 @@ test("AC-AUTH-023 đăng nhập thật qua API dưới /smyoutask → về trang
   await page.goto("./dang-nhap?next=%2F");
   await login(page, MANAGER.email, MANAGER.password);
   await expect(page).toHaveURL(/\/smyoutask\/$/);
-  await expect(page.getByText(`Xin chào, ${MANAGER.name}`)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
 
   await page.reload();
-  await expect(page.getByText(`Xin chào, ${MANAGER.name}`)).toBeVisible(); // session restored via refresh cookie
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible(); // session restored via refresh cookie
 });
 
 test("AC-AUTH-024 KTV lần đầu phải đổi mật khẩu rồi mới vào được trang chủ", async ({
@@ -75,7 +75,7 @@ test("AC-AUTH-026 đăng xuất → trang đăng nhập; quay lại không mở 
 }) => {
   await page.goto("./dang-nhap");
   await login(page, MANAGER.email, MANAGER.password);
-  await expect(page.getByText(`Xin chào, ${MANAGER.name}`)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
 
   await openMenuOnPhone(page);
   await page.getByRole("button", { name: "Đăng xuất" }).click();
@@ -95,7 +95,7 @@ test("AC-AUTH-027 @a11y @screenshot đăng nhập và đổi mật khẩu: axe, 
     if (file === "change-password.png") {
       await page.goto("./dang-nhap");
       await login(page, MANAGER.email, MANAGER.password);
-      await expect(page.getByText(`Xin chào, ${MANAGER.name}`)).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
     }
     await page.goto(path);
     await page.evaluate(() => document.fonts.ready);

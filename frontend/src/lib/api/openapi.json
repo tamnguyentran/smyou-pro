@@ -819,6 +819,65 @@
         "title": "CustomerWritten",
         "type": "object"
       },
+      "DashboardOut": {
+        "properties": {
+          "dispatch_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DispatchSummaryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "order_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrderSummaryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "today_tasks": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MyAssignmentOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Today Tasks"
+          }
+        },
+        "title": "DashboardOut",
+        "type": "object"
+      },
+      "DispatchSummaryOut": {
+        "properties": {
+          "needs_assignee_count": {
+            "title": "Needs Assignee Count",
+            "type": "integer"
+          },
+          "overdue_task_count": {
+            "title": "Overdue Task Count",
+            "type": "integer"
+          },
+          "pending_dispatch_count": {
+            "title": "Pending Dispatch Count",
+            "type": "integer"
+          }
+        },
+        "required": ["pending_dispatch_count", "needs_assignee_count", "overdue_task_count"],
+        "title": "DispatchSummaryOut",
+        "type": "object"
+      },
       "EmployeeCreate": {
         "additionalProperties": false,
         "properties": {
@@ -2612,6 +2671,49 @@
         "title": "OrderRevise",
         "type": "object"
       },
+      "OrderStatusCounts": {
+        "properties": {
+          "AWAITING_CONFIRMATION": {
+            "title": "Awaiting Confirmation",
+            "type": "integer"
+          },
+          "CANCELLED": {
+            "title": "Cancelled",
+            "type": "integer"
+          },
+          "COMPLETED": {
+            "title": "Completed",
+            "type": "integer"
+          },
+          "DRAFT": {
+            "title": "Draft",
+            "type": "integer"
+          },
+          "IN_PROGRESS": {
+            "title": "In Progress",
+            "type": "integer"
+          },
+          "PENDING_DISPATCH": {
+            "title": "Pending Dispatch",
+            "type": "integer"
+          },
+          "REVISION": {
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "DRAFT",
+          "PENDING_DISPATCH",
+          "IN_PROGRESS",
+          "AWAITING_CONFIRMATION",
+          "COMPLETED",
+          "REVISION",
+          "CANCELLED"
+        ],
+        "title": "OrderStatusCounts",
+        "type": "object"
+      },
       "OrderSummary": {
         "properties": {
           "code": {
@@ -2722,6 +2824,21 @@
           "revision_no"
         ],
         "title": "OrderSummary",
+        "type": "object"
+      },
+      "OrderSummaryOut": {
+        "properties": {
+          "counts_by_status": {
+            "$ref": "#/components/schemas/OrderStatusCounts"
+          },
+          "scope": {
+            "enum": ["own", "all"],
+            "title": "Scope",
+            "type": "string"
+          }
+        },
+        "required": ["scope", "counts_by_status"],
+        "title": "OrderSummaryOut",
         "type": "object"
       },
       "OrderUpdate": {
@@ -4897,6 +5014,25 @@
         },
         "summary": "Sửa thông tin khách hàng",
         "tags": ["customers"]
+      }
+    },
+    "/api/v1/dashboard": {
+      "get": {
+        "operationId": "get_dashboard",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Tổng quan theo vai trò",
+        "tags": ["dashboard"]
       }
     },
     "/api/v1/employees": {
