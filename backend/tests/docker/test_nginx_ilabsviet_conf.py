@@ -16,7 +16,12 @@ ROOT = Path(__file__).resolve().parents[3]
 CONF = ROOT / "deploy" / "nginx" / "ilabsviet-smyoutask.conf"
 
 WRAPPER = """
+events {}
+
 http {
+    # Zone có sẵn trên nginx hệ thống thật (TicketSeq/ChatBOT); khai báo để `nginx -t` chạy độc lập.
+    limit_req_zone $binary_remote_addr zone=perip:10m rate=10r/s;
+
     %s
 
     server {

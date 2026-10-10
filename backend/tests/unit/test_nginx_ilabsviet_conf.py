@@ -42,6 +42,8 @@ def test_upstream_port_matches_compose_web_port() -> None:
     compose = yaml.safe_load((ROOT / "compose.prod.yml").read_text(encoding="utf-8"))
     web_ports = compose["services"]["web"]["ports"]
     assert web_ports == ["${WEB_BIND:-127.0.0.1}:${WEB_PORT:-6890}:80"]
-    compose_port = re.search(r"WEB_PORT:-(\d+)", web_ports[0]).group(1)
+    compose_port_match = re.search(r"WEB_PORT:-(\d+)", web_ports[0])
+    assert compose_port_match
+    compose_port = compose_port_match.group(1)
 
     assert nginx_port == compose_port

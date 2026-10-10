@@ -115,7 +115,7 @@ check: lint typecheck test contract ac migrations-check ## Full gate before comm
 
 e2e: ## Dev Docker stack health + Playwright (mobile + desktop, axe)
 	$(COMPOSE) up -d --build --wait --renew-anon-volumes
-	$(call be,uv run pytest -q -m docker tests/docker/test_dev_stack.py)
+	$(call be,uv run pytest -q -m docker tests/docker/test_dev_stack.py tests/docker/test_nginx_ilabsviet_conf.py)
 	$(if $(wildcard backend/scripts/seed_e2e.py),$(COMPOSE) exec -T backend python -m scripts.seed_e2e)
 	$(call fe,npx playwright test)
 
