@@ -63,6 +63,8 @@ export function KpiFilters({
       </div>
       <a
         href={kpiExportUrl(filters)}
+        target="_blank"
+        rel="noopener"
         className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-heading transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
       >
         <Download aria-hidden="true" className="size-4" />

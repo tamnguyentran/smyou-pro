@@ -1,6 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
-import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 // Accounts created by backend/scripts/seed_e2e.py (reset before every `make e2e`).
@@ -60,17 +59,23 @@ test("AC-KPI-022 Manager lọc theo KTV rồi xuất CSV: tải đúng tham số
   await page.getByLabel("Kỹ thuật viên").selectOption({ label: "Trần Minh Khoa (E2E08)" });
   await expect(page.getByRole("main")).toContainText("Trần Minh Khoa");
 
-  const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("link", { name: "Xuất CSV" }).click();
-  const download = await downloadPromise;
-
-  expect(download.suggestedFilename()).toMatch(/^bao-cao-kpi-.*\.csv$/);
-  const path = await download.path();
-  expect(path).not.toBeNull();
-  const content = readFileSync(path, "utf-8");
-  expect(content).toContain("Trần Minh Khoa");
-  // Vẫn ở trang báo cáo — không điều hướng rời trang vì tải file.
+  // Không dùng page.waitForEvent("download")/popup: trình duyệt xử lý file tải khác nhau
+  // (Chrome tự đóng tab tải trước khi đọc được response; WebKit trên Linux CI không hỗ trợ
+  // Download API của Playwright). Gọi lại đúng href bằng page.request (dùng chung cookie
+  // phiên đăng nhập) để kiểm nội dung/tên file — độc lập với cách trình duyệt xử lý tải.
+  const exportLink = page.getByRole("link", { name: "Xuất CSV" });
+  const href = await exportLink.getAttribute("href");
+  if (href === null) throw new Error("export link missing href");
+  await exportLink.click();
+  // target="_blank" nên bấm không điều hướng rời trang báo cáo.
   await expect(page.getByRole("heading", { level: 1, name: "Báo cáo KPI" })).toBeVisible();
+
+  const response = await page.request.get(href);
+  expect(response.headers()["content-disposition"] ?? "").toMatch(
+    /filename="?bao-cao-kpi-.*\.csv"?/,
+  );
+  const content = await response.text();
+  expect(content).toContain("Trần Minh Khoa");
 });
 
 test("AC-KPI-024 Kỹ thuật viên xuất CSV: chỉ 1 dòng của chính mình, không có ô lọc KTV", async ({
@@ -80,14 +85,17 @@ test("AC-KPI-024 Kỹ thuật viên xuất CSV: chỉ 1 dòng của chính mình
   await expect(page.getByRole("heading", { level: 1, name: "Báo cáo KPI" })).toBeVisible();
   await expect(page.getByLabel("Kỹ thuật viên")).toHaveCount(0);
 
-  const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("link", { name: "Xuất CSV" }).click();
-  const download = await downloadPromise;
+  const exportLink = page.getByRole("link", { name: "Xuất CSV" });
+  const href = await exportLink.getAttribute("href");
+  if (href === null) throw new Error("export link missing href");
+  await exportLink.click();
+  await expect(page.getByRole("heading", { level: 1, name: "Báo cáo KPI" })).toBeVisible();
 
-  expect(download.suggestedFilename()).toMatch(/^bao-cao-kpi-.*\.csv$/);
-  const path = await download.path();
-  expect(path).not.toBeNull();
-  const content = readFileSync(path, "utf-8");
+  const response = await page.request.get(href);
+  expect(response.headers()["content-disposition"] ?? "").toMatch(
+    /filename="?bao-cao-kpi-.*\.csv"?/,
+  );
+  const content = await response.text();
   const dataLines = content.split("\n").filter((line) => line.trim() !== "");
   expect(dataLines).toHaveLength(2); // header + 1 dòng (chính mình)
 });
