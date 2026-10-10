@@ -3,12 +3,11 @@
 Run by `make e2e` / `make verify` (marker `docker`), needs a Docker daemon but not the full stack.
 """
 
+import subprocess
 import tempfile
 from pathlib import Path
 
 import pytest
-
-from tests.docker.stack import run
 
 pytestmark = pytest.mark.docker
 
@@ -44,15 +43,24 @@ def test_nginx_syntax_is_valid() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         conf_path = Path(tmp) / "test.conf"
         conf_path.write_text(wrapped, encoding="utf-8")
-        output = run(
-            "docker",
-            "run",
-            "--rm",
-            "-v",
-            f"{conf_path}:/etc/nginx/nginx.conf:ro",
-            "nginx:alpine",
-            "nginx",
-            "-t",
+        result = subprocess.run(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "-v",
+                f"{conf_path}:/etc/nginx/nginx.conf:ro",
+                "nginx:alpine",
+                "nginx",
+                "-t",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,  # fixed argv list, no shell, no untrusted input
         )
+        # nginx -t writes its diagnostics to stderr, not stdout — must check both.
+        output = result.stdout + result.stderr
+        assert result.returncode == 0, output
         assert "[emerg]" not in output
         assert "[error]" not in output
