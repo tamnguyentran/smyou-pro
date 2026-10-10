@@ -46,43 +46,7 @@ Server đã có **nginx hệ thống** giữ HTTPS cho `ilabsviet.com` và proxy
 - Ứng dụng biết subpath qua `BASE_PATH=/smyoutask` (.env.prod): Vite build với `base: '/smyoutask/'`, React Router `basename`, cookie `Path=/smyoutask`, API client gọi `/smyoutask/api/v1`. Dev trên Mac: `BASE_PATH` rỗng.
 - HTTPS, chứng chỉ, rate-limit (`limit_req zone=perip`) do nginx hệ thống lo; container không cần TLS. Backend tin header `X-Forwarded-Proto` (uvicorn `--proxy-headers --forwarded-allow-ips=*` vì chỉ nhận kết nối từ container `web`) để cookie `Secure` đúng. IP khách: nginx hệ thống **ghi đè** `X-Real-IP $remote_addr`; container `web` lấy giá trị đó và **thay thế** (không nối thêm) `X-Forwarded-For` trước khi chuyển cho backend — nếu nối thêm, khách có thể tự gửi `X-Forwarded-For` để giả IP (review M0-03). Vì vậy khối nginx hệ thống bắt buộc có `proxy_set_header X-Real-IP $remote_addr;`. Và `WEB_BIND` phải giữ `127.0.0.1` (không mở 6890 ra ngoài): nếu ai gọi thẳng container, họ có thể tự đặt `X-Real-IP`/`X-Forwarded-Proto`.
 
-Thêm vào file cấu hình nginx của `ilabsviet.com` (cạnh khối TicketSeq), rồi `nginx -t && systemctl reload nginx`:
-```nginx
-# (khai báo cùng nhóm upstream ở đầu file)
-upstream smyoutask_ilabsviet {
-    server 127.0.0.1:6890;
-}
-
-# (trong server { listen 443 ssl http2; server_name ilabsviet.com; ... })
-# START: SMYou Pro — Quản lý đơn hàng & đầu việc (Docker, container web :6890)
-location = /smyoutask {
-    return 301 /smyoutask/;
-}
-location /smyoutask/ {
-    limit_req zone=perip burst=20 nodelay;
-
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header Host $host;
-
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection 'upgrade';
-    # KHÔNG có "/" cuối ở proxy_pass: giữ nguyên prefix /smyoutask/ cho container web tự định tuyến
-    proxy_pass http://smyoutask_ilabsviet;
-
-    proxy_connect_timeout 59s;
-    proxy_read_timeout 120s;
-    proxy_send_timeout 120s;
-    proxy_hide_header X-Powered-By;
-    proxy_redirect off;
-
-    client_max_body_size 12M;   # ảnh phiếu xác nhận ≤ 10MB
-}
-# END: SMYou Pro
-```
+Thêm vào file cấu hình nginx của `ilabsviet.com` (cạnh khối TicketSeq), rồi `nginx -t && systemctl reload nginx`. Nội dung khối lấy từ `deploy/nginx/ilabsviet-smyoutask.conf` (nguồn sự thật duy nhất — không chép lại ở đây; có test tự động `AC-SYS-024..026` kiểm cú pháp, directive bắt buộc, và khớp cổng với `compose.prod.yml`).
 
 ## 6. Migration khi deploy
 Container backend chạy `alembic upgrade head` khi khởi động. Migration phải **tương thích ngược 1 phiên bản** (expand → migrate → contract) để rollback image không phá DB.

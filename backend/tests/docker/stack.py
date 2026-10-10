@@ -36,6 +36,17 @@ def run(*argv: str) -> str:
     return result.stdout
 
 
+def run_allow_failure(*argv: str) -> subprocess.CompletedProcess[str]:
+    """Like `run()` but returns the full result instead of asserting success.
+
+    For callers that need to inspect stderr themselves, e.g. `nginx -t` which
+    writes its diagnostics to stderr regardless of exit status.
+    """
+    return subprocess.run(  # noqa: S603  # argv passed as caller-controlled tuple, no shell
+        argv, capture_output=True, text=True, timeout=120, check=False
+    )
+
+
 def service_status(project: str) -> dict[str, str]:
     """compose service name → `docker ps` status (e.g. "Up 5 seconds (healthy)")."""
     fmt = '{{.Label "com.docker.compose.service"}}\t{{.Status}}'
