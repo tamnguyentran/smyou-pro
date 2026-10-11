@@ -9,6 +9,10 @@ if [ $# -lt 1 ]; then
     exit 1
 fi
 TAG="$1"
+if ! [[ "$TAG" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    echo "Lỗi: TAG không hợp lệ (chỉ cho phép chữ, số, '.', '_', '-'): ${TAG}" >&2
+    exit 1
+fi
 
 BACKEND_IMAGE="smyou-backend:${TAG}"
 WEB_IMAGE="smyou-web:${TAG}"

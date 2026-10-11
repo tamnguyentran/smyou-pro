@@ -26,6 +26,7 @@ DB_TMP="${BACKUP_DIR}/.db-${TIMESTAMP}.dump.tmp"
 DB_FINAL="${BACKUP_DIR}/db-${TIMESTAMP}.dump"
 
 if docker exec "$DB_CONTAINER" pg_dump -Fc -U "$PG_USER" "$PG_DB" >"$DB_TMP"; then
+    chmod 600 "$DB_TMP"
     mv "$DB_TMP" "$DB_FINAL"
 else
     rm -f "$DB_TMP"
@@ -40,6 +41,7 @@ if [ -n "$UPLOADS_VOLUME" ]; then
         -v "${UPLOADS_VOLUME}:/data:ro" \
         -v "${BACKUP_DIR}:/backup" \
         alpine tar czf "/backup/uploads-${TIMESTAMP}.tar.gz" -C /data .
+    chmod 600 "${BACKUP_DIR}/uploads-${TIMESTAMP}.tar.gz"
 else
     echo "Cảnh báo: không tìm thấy volume uploads của project ${COMPOSE_PROJECT} — bỏ qua sao lưu file." >&2
 fi
