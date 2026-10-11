@@ -292,6 +292,46 @@ describe("AC-CAT-013 thêm sản phẩm", () => {
     expect(await screen.findByRole("dialog", { name: "Sửa sản phẩm" })).toBeInTheDocument();
   });
 
+  test("AC-CAT-071: 409 CONFLICT name hiện dưới ô Tên sản phẩm", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([])));
+    server.use(
+      http.post("/api/v1/products", () =>
+        HttpResponse.json(
+          {
+            status: 409,
+            code: "CONFLICT",
+            detail: "Tên sản phẩm đã được dùng cho sản phẩm khác đang kinh doanh.",
+            errors: [
+              {
+                field: "name",
+                code: "taken",
+                message: "Tên sản phẩm đã được dùng cho sản phẩm khác đang kinh doanh.",
+              },
+            ],
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    renderApp("/catalog/products");
+    await openMenu();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Thêm sản phẩm" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm sản phẩm" });
+    await user.type(within(dialog).getByLabelText("Mã hàng"), "LCD1138");
+    await user.type(within(dialog).getByLabelText("Tên sản phẩm"), "Màn hình Dell 22 inch");
+    await user.selectOptions(within(dialog).getByLabelText("Danh mục"), "MONITOR");
+    await user.selectOptions(within(dialog).getByLabelText("Đơn vị tính"), "CAI");
+    await user.type(within(dialog).getByLabelText("Đơn giá"), "2800000");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+    expect(
+      await within(dialog).findByText(
+        "Tên sản phẩm đã được dùng cho sản phẩm khác đang kinh doanh.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   test("422 từ server (không phải client) hiện dưới đúng ô — brand không có kiểm ở client", async () => {
     signedInAs(AN, () => HttpResponse.json(page([])));
     server.use(
