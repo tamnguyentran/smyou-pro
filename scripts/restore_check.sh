@@ -40,7 +40,7 @@ fi
 
 docker cp "$LATEST" "${CONTAINER}:/tmp/restore.dump"
 
-if docker exec "$CONTAINER" pg_restore -U postgres -d restore_check /tmp/restore.dump; then
+if docker exec "$CONTAINER" pg_restore --no-owner --no-privileges -U postgres -d restore_check /tmp/restore.dump; then
     COUNT="$(docker exec "$CONTAINER" psql -U postgres -d restore_check -tAc 'SELECT COUNT(*) FROM employees;' | tr -d ' \n\r')"
     echo "✅ khôi phục thử thành công (bảng employees: ${COUNT} dòng, từ ${LATEST})"
 else

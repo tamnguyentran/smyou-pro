@@ -48,11 +48,10 @@ def pg_credentials(container: str) -> tuple[str, str]:
 
 
 def psql(container: str, user: str, db: str, sql: str, *variables: str) -> str:
-    args = ["docker", "exec", container, "psql", "-U", user, "-d", db]
+    args = ["docker", "exec", "-i", container, "psql", "-U", user, "-d", db, "-tA"]
     for variable in variables:
         args += ["-v", variable]
-    args += ["-tAc", sql]
-    return run(*args)
+    return run(*args, stdin=sql)
 
 
 def ensure_seed_employee(container: str, user: str, db: str) -> None:
@@ -245,9 +244,10 @@ def test_restore_check_fails_and_cleans_up_on_corrupt_dump(
 
     dumps = sorted(tmp_path.glob("db-*.dump"))
     assert len(dumps) == 1, dumps
-    with dumps[0].open("r+b") as fh:
-        fh.seek(20)
-        fh.write(b"\x00\xff\x00\xff\x00\xff\x00\xff")
+    # Truncate to half: a flipped byte in the custom-format archive isn't
+    # reliably fatal to pg_restore, but a truncated archive always is.
+    original = dumps[0].read_bytes()
+    dumps[0].write_bytes(original[: len(original) // 2])
 
     result = run_script(monkeypatch, RESTORE_CHECK_SH, tmp_path)
     assert result.returncode != 0
