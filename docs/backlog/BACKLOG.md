@@ -26,4 +26,4 @@ Chi tiết từng item (ID, mô tả, spec, PR): `docs/backlog/BACKLOG_ARCHIVE.m
 ## M9 — Production
 - [x] **M9-01 Deploy lên `https://ilabsviet.com/smyoutask/`**: thêm khối nginx hệ thống (DEPLOYMENT §5.1), HTTPS dùng chứng chỉ sẵn có của host.
 - [x] **M9-02 deploy.sh, backup/restore scripts + thử khôi phục**.
-- [ ] **M9-03 Nhập dữ liệu thật, UAT toàn bộ, go-live checklist**.
+- [S] **M9-03 Nhập dữ liệu thật, UAT toàn bộ, go-live checklist**.
