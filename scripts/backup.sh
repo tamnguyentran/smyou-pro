@@ -38,6 +38,7 @@ UPLOADS_VOLUME="$(docker volume ls -q \
     --filter "label=com.docker.compose.project=${COMPOSE_PROJECT}" | grep -E 'uploads$' | head -n1 || true)"
 if [ -n "$UPLOADS_VOLUME" ]; then
     docker run --rm \
+        --user "$(id -u):$(id -g)" \
         -v "${UPLOADS_VOLUME}:/data:ro" \
         -v "${BACKUP_DIR}:/backup" \
         alpine tar czf "/backup/uploads-${TIMESTAMP}.tar.gz" -C /data .
