@@ -63,7 +63,7 @@ def test_fails_on_insecure_cookie(tmp_path: Path) -> None:
 
 @pytest.mark.ac("AC-SYS-118")
 def test_fails_on_public_web_bind(tmp_path: Path) -> None:
-    env_file = valid_env_file(tmp_path, WEB_BIND="0.0.0.0")
+    env_file = valid_env_file(tmp_path, WEB_BIND="0.0.0.0")  # noqa: S104  # asserting the script rejects this, not binding to it
     result = run_allow_failure("bash", str(GOLIVE_CHECK_SH), "--env-file", str(env_file))
     assert result.returncode != 0
     assert "WEB_BIND" in result.stderr
