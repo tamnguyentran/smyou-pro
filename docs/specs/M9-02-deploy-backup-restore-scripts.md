@@ -1,6 +1,6 @@
 # M9-02 — `deploy.sh`, backup/restore scripts + thử khôi phục
 
-- **Status:** Approved
+- **Status:** Done (AC-SYS-105..114 tự động xanh — unit + `make smoke-prod`; §7 là kịch bản UAT thủ công trên server thật, chưa thực hiện ở phiên này)
 - **Backlog:** M9-02 · **Milestone:** M9
 - **Liên quan:** `docs/architecture/DEPLOYMENT.md` §3–8 (Q12 đã chốt), `M9-01` (khối nginx hệ thống — không lặp lại ở đây)
 
