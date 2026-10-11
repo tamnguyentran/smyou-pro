@@ -149,3 +149,13 @@ smoke-prod: ## Run the built images with compose.prod.yml (test values), run pro
 		uv run pytest -q -m docker tests/docker --ignore=tests/docker/test_dev_stack.py; status=$$?; \
 		cd .. && IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) down -v; \
 		[ $$status -eq 0 ] && echo "✅ smoke ok"; exit $$status
+
+golive-check: ## Operator/CI self-check of golive_check.sh against the local smoke-prod stack (M9-03)
+	IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) up -d --wait || { IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) logs --no-color; \
+		IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) down -v; exit 1; }
+	tmp_env=$$(mktemp); \
+	sed -e 's/CHANGE-ME-long-random/a-real-long-random-secret-value/g' -e 's/CHANGE-ME/a-real-value/g' \
+		.env.prod.example > "$$tmp_env"; \
+	COMPOSE_PROJECT=smyou-smoke bash scripts/golive_check.sh --env-file "$$tmp_env"; status=$$?; \
+		rm -f "$$tmp_env"; \
+		IMAGE_TAG=$(TAG) $(COMPOSE_SMOKE) down -v; exit $$status

@@ -30,8 +30,10 @@ def fetch(url: str, headers: dict[str, str] | None = None) -> Reply:
         conn.close()
 
 
-def run(*argv: str) -> str:
-    result = subprocess.run(argv, capture_output=True, text=True, timeout=120, check=False)  # noqa: S603
+def run(*argv: str, stdin: str | None = None) -> str:
+    result = subprocess.run(  # noqa: S603  # argv passed as caller-controlled tuple, no shell
+        argv, input=stdin, capture_output=True, text=True, timeout=120, check=False
+    )
     assert result.returncode == 0, f"{' '.join(argv)} failed: {result.stderr}"
     return result.stdout
 
