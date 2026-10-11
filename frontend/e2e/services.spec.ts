@@ -70,15 +70,16 @@ test("AC-CAT-028 AC-CAT-032 @a11y @screenshot thêm dịch vụ", async ({ page 
   await expect(form).toBeVisible();
 
   const code = `QA-DV-${String(Date.now())}`;
+  const name = `Dịch vụ QA E2E ${code}`; // name is now unique while active (M10-01) — must vary per run like code
   await form.getByLabel("Mã dịch vụ").fill(code);
-  await form.getByLabel("Tên dịch vụ").fill("Dịch vụ QA E2E");
+  await form.getByLabel("Tên dịch vụ").fill(name);
   await form.getByLabel("Nhóm dịch vụ").selectOption("OTHER");
   await form.getByLabel("Đơn vị tính").selectOption("LAN");
   await form.getByLabel("Đơn giá (chưa VAT)").fill("150000");
   await evidence(page, info, "service-form.png");
 
   await form.getByRole("button", { name: "Lưu" }).click();
-  await expect(page.getByText("Đã thêm dịch vụ Dịch vụ QA E2E.")).toBeVisible();
+  await expect(page.getByText(`Đã thêm dịch vụ ${name}.`)).toBeVisible();
   // Cùng Sheet chuyển sang chế độ sửa cho dịch vụ vừa tạo (như M2-01b)
   await expect(page.getByRole("dialog", { name: "Sửa dịch vụ" })).toBeVisible();
 });
@@ -89,7 +90,7 @@ test("AC-CAT-030 ngừng kinh doanh, badge đổi ngay không cần tải lại"
   const form = page.getByRole("dialog", { name: "Thêm dịch vụ" });
   const code = `QA-DV-STOP-${String(Date.now())}`;
   await form.getByLabel("Mã dịch vụ").fill(code);
-  await form.getByLabel("Tên dịch vụ").fill("QA Ngừng kinh doanh");
+  await form.getByLabel("Tên dịch vụ").fill(`QA Ngừng kinh doanh ${code}`);
   await form.getByLabel("Nhóm dịch vụ").selectOption("OTHER");
   await form.getByLabel("Đơn vị tính").selectOption("LAN");
   await form.getByLabel("Đơn giá (chưa VAT)").fill("100000");
@@ -142,7 +143,7 @@ test("AC-CAT-032 không cuộn ngang ở 360px (danh sách, form thêm)", async 
   await expect(form).toBeVisible();
   const code = `QA360-DV-${String(Date.now())}-${info.project.name}`;
   await form.getByLabel("Mã dịch vụ").fill(code);
-  await form.getByLabel("Tên dịch vụ").fill("QA 360px");
+  await form.getByLabel("Tên dịch vụ").fill(`QA 360px ${code}`);
   await form.getByLabel("Nhóm dịch vụ").selectOption("OTHER");
   await form.getByLabel("Đơn vị tính").selectOption("LAN");
   await form.getByLabel("Đơn giá (chưa VAT)").fill("1000");

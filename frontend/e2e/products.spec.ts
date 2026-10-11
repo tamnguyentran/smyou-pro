@@ -66,15 +66,16 @@ test("AC-CAT-013 AC-CAT-018 @a11y @screenshot thêm sản phẩm", async ({ page
   await expect(form).toBeVisible();
 
   const sku = `QA${String(Date.now())}`;
+  const name = `PC SMYOU QA E2E ${sku}`; // name is now unique while active (M10-01) — must vary per run like sku
   await form.getByLabel("Mã hàng").fill(sku);
-  await form.getByLabel("Tên sản phẩm").fill("PC SMYOU QA E2E");
+  await form.getByLabel("Tên sản phẩm").fill(name);
   await form.getByLabel("Danh mục").selectOption("PC");
   await form.getByLabel("Đơn vị tính").selectOption("BO");
   await form.getByLabel("Đơn giá").fill("12500000");
   await evidence(page, info, "product-form.png");
 
   await form.getByRole("button", { name: "Lưu" }).click();
-  await expect(page.getByText("Đã thêm sản phẩm PC SMYOU QA E2E.")).toBeVisible();
+  await expect(page.getByText(`Đã thêm sản phẩm ${name}.`)).toBeVisible();
   // §8 giả định: cùng Sheet chuyển sang chế độ sửa cho sản phẩm vừa tạo
   await expect(page.getByRole("dialog", { name: "Sửa sản phẩm" })).toBeVisible();
 });
@@ -85,7 +86,7 @@ test("AC-CAT-015 ngừng kinh doanh, badge đổi ngay không cần tải lại"
   const form = page.getByRole("dialog", { name: "Thêm sản phẩm" });
   const sku = `QA-STOP-${String(Date.now())}`;
   await form.getByLabel("Mã hàng").fill(sku);
-  await form.getByLabel("Tên sản phẩm").fill("QA Ngừng kinh doanh");
+  await form.getByLabel("Tên sản phẩm").fill(`QA Ngừng kinh doanh ${sku}`);
   await form.getByLabel("Danh mục").selectOption("ACCESSORY");
   await form.getByLabel("Đơn vị tính").selectOption("CAI");
   await form.getByLabel("Đơn giá").fill("100000");
@@ -156,7 +157,7 @@ test("AC-CAT-018 không cuộn ngang ở 360px (danh sách, form thêm)", async 
   await expect(form).toBeVisible();
   const sku = `QA360-${String(Date.now())}-${info.project.name}`;
   await form.getByLabel("Mã hàng").fill(sku);
-  await form.getByLabel("Tên sản phẩm").fill("QA 360px");
+  await form.getByLabel("Tên sản phẩm").fill(`QA 360px ${sku}`);
   await form.getByLabel("Danh mục").selectOption("OTHER");
   await form.getByLabel("Đơn vị tính").selectOption("CAI");
   await form.getByLabel("Đơn giá").fill("1000");

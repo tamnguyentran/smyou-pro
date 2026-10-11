@@ -46,16 +46,17 @@ async function evidence(
 }
 
 function productsCsv(sku: string) {
+  // name must vary per run too, like sku — it's unique while active among products (M10-01)
   return [
     "sku,name,category,brand,unit,price,vat_rate,price_fixed,warranty_months,specs",
-    `${sku},PC SMYOU QA IMPORT,PC,SMYOU,BO,8500000,8,true,24,I3-12100/8GB`,
+    `${sku},PC SMYOU QA IMPORT ${sku},PC,SMYOU,BO,8500000,8,true,24,I3-12100/8GB`,
   ].join("\n");
 }
 
 function servicesCsv(code: string) {
   return [
     "code,name,category,unit,price,vat_rate,price_fixed,default_estimated_hours,description",
-    `${code},Vệ sinh QA import,MAINTENANCE,LAN,150000,8,true,1,`,
+    `${code},Vệ sinh QA import ${code},MAINTENANCE,LAN,150000,8,true,1,`,
   ].join("\n");
 }
 
@@ -87,7 +88,8 @@ test("AC-CAT-047 AC-CAT-058 @a11y @screenshot nhập sản phẩm: xem trước 
   await expect(dialog).toBeHidden();
 
   await page.getByLabel("Tìm kiếm").fill(sku);
-  await expect(page.getByText(sku)).toBeVisible();
+  // .first(): name now also contains sku (M10-01 unique-name fixture), so it matches twice on the card.
+  await expect(page.getByText(sku).first()).toBeVisible();
 });
 
 test("AC-CAT-048 @a11y @screenshot xem trước có dòng lỗi: nút Xác nhận nhập bị khoá", async ({
@@ -135,5 +137,6 @@ test("AC-CAT-056 nhập dịch vụ từ CSV", async ({ page }) => {
   await expect(page.getByText("Đã nhập 1 dịch vụ.")).toBeVisible();
 
   await page.getByLabel("Tìm kiếm").fill(code);
-  await expect(page.getByText(code)).toBeVisible();
+  // .first(): name now also contains code (M10-01 unique-name fixture), so it matches twice on the card.
+  await expect(page.getByText(code).first()).toBeVisible();
 });
