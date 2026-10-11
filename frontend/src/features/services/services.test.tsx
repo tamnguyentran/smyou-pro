@@ -270,6 +270,44 @@ describe("AC-CAT-028 thêm dịch vụ", () => {
     expect(await screen.findByRole("dialog", { name: "Sửa dịch vụ" })).toBeInTheDocument();
   });
 
+  test("AC-CAT-072: 409 CONFLICT name hiện dưới ô Tên dịch vụ", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([])));
+    server.use(
+      http.post("/api/v1/services", () =>
+        HttpResponse.json(
+          {
+            status: 409,
+            code: "CONFLICT",
+            detail: "Tên dịch vụ đã được dùng cho dịch vụ khác đang kinh doanh.",
+            errors: [
+              {
+                field: "name",
+                code: "taken",
+                message: "Tên dịch vụ đã được dùng cho dịch vụ khác đang kinh doanh.",
+              },
+            ],
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    renderApp("/catalog/services");
+    await openMenu();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Thêm dịch vụ" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm dịch vụ" });
+    await user.type(within(dialog).getByLabelText("Mã dịch vụ"), "DV-SUAPC2");
+    await user.type(within(dialog).getByLabelText("Tên dịch vụ"), "Sửa chữa PC");
+    await user.selectOptions(within(dialog).getByLabelText("Nhóm dịch vụ"), "REPAIR");
+    await user.selectOptions(within(dialog).getByLabelText("Đơn vị tính"), "LAN");
+    await user.type(within(dialog).getByLabelText("Đơn giá (chưa VAT)"), "100000");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+    expect(
+      await within(dialog).findByText("Tên dịch vụ đã được dùng cho dịch vụ khác đang kinh doanh."),
+    ).toBeInTheDocument();
+  });
+
   test("422 từ server (không phải client) hiện dưới đúng ô — mô tả không có kiểm ở client", async () => {
     signedInAs(AN, () => HttpResponse.json(page([])));
     server.use(

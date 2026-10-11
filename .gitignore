@@ -3,6 +3,7 @@
 .env.local
 .env.dev
 .env.prod
+deploy.env
 **/secrets/
 
 # python

@@ -10,6 +10,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Numeric,
     SmallInteger,
     String,
@@ -64,6 +65,12 @@ class Product(Base):
         CheckConstraint(_in("unit", UNITS), name="unit"),
         CheckConstraint("price >= 0", name="price_non_negative"),
         CheckConstraint("vat_rate >= 0 AND vat_rate <= 100", name="vat_rate_range"),
+        Index(
+            "uq_products_name_active",
+            text("lower(btrim(name))"),
+            unique=True,
+            postgresql_where=text("is_active"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
@@ -98,6 +105,12 @@ class Service(Base):
         CheckConstraint(
             "default_estimated_hours IS NULL OR default_estimated_hours >= 0",
             name="default_estimated_hours_non_negative",
+        ),
+        Index(
+            "uq_services_name_active",
+            text("lower(btrim(name))"),
+            unique=True,
+            postgresql_where=text("is_active"),
         ),
     )
 

@@ -5345,7 +5345,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION */
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code/name) | INVALID_TRANSITION */
       409: {
         headers: {
           [name: string]: unknown;
@@ -5394,7 +5394,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION */
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code/name) | INVALID_TRANSITION */
       409: {
         headers: {
           [name: string]: unknown;
@@ -5443,7 +5443,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION */
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code/name) | INVALID_TRANSITION */
       409: {
         headers: {
           [name: string]: unknown;
@@ -5720,7 +5720,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION */
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code/name) | INVALID_TRANSITION */
       409: {
         headers: {
           [name: string]: unknown;
@@ -5769,7 +5769,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION */
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code/name) | INVALID_TRANSITION */
       409: {
         headers: {
           [name: string]: unknown;
@@ -5818,7 +5818,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION */
+      /** @description problem+json — STALE_VERSION | CONFLICT (sku/code/name) | INVALID_TRANSITION */
       409: {
         headers: {
           [name: string]: unknown;
