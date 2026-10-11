@@ -21,6 +21,15 @@ def test_deploy_without_tag_fails_fast() -> None:
     assert "docker save" not in result.stdout
 
 
+@pytest.mark.parametrize("tag", ["x$(touch /tmp/pwned)", "a;rm -rf /", "../etc", "a b"])
+def test_deploy_rejects_shell_metacharacters_in_tag(tag: str) -> None:
+    result = run_allow_failure("bash", str(DEPLOY_SH), tag)
+    assert result.returncode != 0
+    assert "TAG không hợp lệ" in result.stderr
+    assert "ssh" not in result.stdout
+    assert "docker save" not in result.stdout
+
+
 @pytest.mark.ac("AC-SYS-107")
 def test_deploy_dumps_before_load_and_never_builds() -> None:
     text = DEPLOY_SH.read_text(encoding="utf-8")
