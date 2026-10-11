@@ -1,6 +1,6 @@
 # M10-01 — Tên sản phẩm/dịch vụ không trùng
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M10-01 · **Milestone:** M10
 - **Liên quan:** `spec/permissions.yaml#catalog.manage` (MANAGER all); DOMAIN_MODEL §2 (Product), §3 (Service); `docs/specs/M2-01a-products-api.md` (mẫu kiểm trùng `sku` → 409 `CONFLICT`, `backend/app/modules/catalog/service.py` `SKU_TAKEN`/`CODE_TAKEN`); `M2-02-services.md` (mẫu kiểm trùng `code`); `docs/product/OPEN_QUESTIONS.md` Q80 (phạm vi so khớp đã chốt giả định).
 

@@ -36,6 +36,10 @@ def upgrade() -> None:
     # go-live (M9) nên dữ liệu thật có thể đã có tên trùng — kiểm trước, không tự đổi tên ai.
     _check_no_duplicate_active_names("products", "sản phẩm")
     _check_no_duplicate_active_names("services", "dịch vụ")
+    # Not CONCURRENTLY: Alembic runs this inside a transaction, which
+    # CREATE INDEX CONCURRENTLY cannot join. products/services are small
+    # catalog tables, so the brief write lock is acceptable; revisit if
+    # either table grows large enough for the lock to matter.
     op.create_index(
         "uq_products_name_active",
         "products",
