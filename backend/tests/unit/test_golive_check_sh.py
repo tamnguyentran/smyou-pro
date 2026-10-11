@@ -51,6 +51,7 @@ def test_fails_on_change_me_before_db_check(tmp_path: Path) -> None:
     result = run_allow_failure("bash", str(GOLIVE_CHECK_SH), "--env-file", str(env_file))
     assert result.returncode != 0
     assert "JWT_SECRET" in result.stderr
+    assert "CSDL" not in result.stderr  # no docker exec reached: no DB-container error text
 
 
 @pytest.mark.ac("AC-SYS-118")
