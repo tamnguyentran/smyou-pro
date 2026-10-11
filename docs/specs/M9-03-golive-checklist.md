@@ -1,6 +1,6 @@
 # M9-03 — Kiểm tra an toàn trước go-live + checklist nhập dữ liệu thật/UAT
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M9-03 · **Milestone:** M9
 - **Liên quan:** `docs/architecture/DEPLOYMENT.md` §7–9 (M9-01, M9-02 — không lặp lại), `backend/app/cli.py` (`create-manager`, đã có sẵn từ trước — M9-03 không làm lại), `backend/scripts/seed_e2e.py` (quy ước mã `E2E` cho dữ liệu test)
 
