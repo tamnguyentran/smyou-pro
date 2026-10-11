@@ -34,6 +34,8 @@ logger = logging.getLogger(__name__)
 
 SKU_TAKEN = "Mã hàng đã được dùng cho sản phẩm khác."
 CODE_TAKEN = "Mã dịch vụ đã được dùng cho dịch vụ khác."
+NAME_TAKEN_PRODUCT = "Tên sản phẩm đã được dùng cho sản phẩm khác đang kinh doanh."
+NAME_TAKEN_SERVICE = "Tên dịch vụ đã được dùng cho dịch vụ khác đang kinh doanh."
 # catalog.read / catalog.manage are `all` for every role holding them today; see employees/service.py
 # for why this stays an explicit (empty) map rather than an implicit "no rule = no restriction".
 RULES: ScopeRules = {}
@@ -68,6 +70,10 @@ def _sku_taken() -> AppError:
     )
 
 
+def _name_taken(message: str) -> AppError:
+    return AppError(409, "CONFLICT", message, errors=[{"field": "name", "code": "taken", "message": message}])
+
+
 def _flush(session: Session) -> None:
     try:
         session.flush()
@@ -75,6 +81,8 @@ def _flush(session: Session) -> None:
         constraint = getattr(getattr(exc.orig, "diag", None), "constraint_name", None)
         if constraint == "uq_products_sku":
             raise _sku_taken() from exc
+        if constraint == "uq_products_name_active":
+            raise _name_taken(NAME_TAKEN_PRODUCT) from exc
         raise
 
 
@@ -220,7 +228,7 @@ def activate(
         raise AppError(409, "INVALID_TRANSITION", "Sản phẩm đang hoạt động.")
     product.is_active = True
     product.version += 1
-    session.flush()
+    _flush(session)
     _log("activate", product, actor)
     audit.record(
         session,
@@ -312,6 +320,8 @@ def _flush_service(session: Session) -> None:
         constraint = getattr(getattr(exc.orig, "diag", None), "constraint_name", None)
         if constraint == "uq_services_code":
             raise _code_taken() from exc
+        if constraint == "uq_services_name_active":
+            raise _name_taken(NAME_TAKEN_SERVICE) from exc
         raise
 
 
@@ -451,7 +461,7 @@ def activate_service(
         raise AppError(409, "INVALID_TRANSITION", "Dịch vụ đang hoạt động.")
     service.is_active = True
     service.version += 1
-    session.flush()
+    _flush_service(session)
     _log_service("activate", service, actor)
     audit.record(
         session,
