@@ -7897,7 +7897,7 @@
             "description": "problem+json — NOT_FOUND"
           },
           "409": {
-            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION"
+            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code/name) | INVALID_TRANSITION"
           },
           "422": {
             "content": {
@@ -7954,7 +7954,7 @@
             "description": "problem+json — NOT_FOUND"
           },
           "409": {
-            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION"
+            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code/name) | INVALID_TRANSITION"
           },
           "422": {
             "content": {
@@ -8011,7 +8011,7 @@
             "description": "problem+json — NOT_FOUND"
           },
           "409": {
-            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION"
+            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code/name) | INVALID_TRANSITION"
           },
           "422": {
             "content": {
@@ -8401,7 +8401,7 @@
             "description": "problem+json — NOT_FOUND"
           },
           "409": {
-            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION"
+            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code/name) | INVALID_TRANSITION"
           },
           "422": {
             "content": {
@@ -8458,7 +8458,7 @@
             "description": "problem+json — NOT_FOUND"
           },
           "409": {
-            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION"
+            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code/name) | INVALID_TRANSITION"
           },
           "422": {
             "content": {
@@ -8515,7 +8515,7 @@
             "description": "problem+json — NOT_FOUND"
           },
           "409": {
-            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code) | INVALID_TRANSITION"
+            "description": "problem+json — STALE_VERSION | CONFLICT (sku/code/name) | INVALID_TRANSITION"
           },
           "422": {
             "content": {
