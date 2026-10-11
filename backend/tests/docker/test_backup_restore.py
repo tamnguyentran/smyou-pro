@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.docker.stack import run, service_status
+from tests.docker.stack import run, run_allow_failure, service_status
 
 pytestmark = pytest.mark.docker
 
@@ -47,8 +47,12 @@ def pg_credentials(container: str) -> tuple[str, str]:
     return user, db
 
 
-def psql(container: str, user: str, db: str, sql: str) -> str:
-    return run("docker", "exec", container, "psql", "-U", user, "-d", db, "-tAc", sql)
+def psql(container: str, user: str, db: str, sql: str, *variables: str) -> str:
+    args = ["docker", "exec", container, "psql", "-U", user, "-d", db]
+    for variable in variables:
+        args += ["-v", variable]
+    args += ["-tAc", sql]
+    return run(*args)
 
 
 def ensure_seed_employee(container: str, user: str, db: str) -> None:
@@ -57,8 +61,9 @@ def ensure_seed_employee(container: str, user: str, db: str) -> None:
         user,
         db,
         "INSERT INTO employees (code, full_name, email, department, password_hash) "
-        f"VALUES ('M902TST','Backup Test','{SEED_EMAIL}','MANAGEMENT','x') "
+        "VALUES ('M902TST','Backup Test',:'email','MANAGEMENT','x') "
         "ON CONFLICT (email) DO NOTHING;",
+        f"email={SEED_EMAIL}",
     )
 
 
@@ -120,18 +125,11 @@ def wait_db_healthy(timeout: float = 60.0) -> None:
 
 
 def run_script(
-    script: Path, backup_dir: Path, extra_env: dict[str, str] | None = None
+    monkeypatch: pytest.MonkeyPatch, script: Path, backup_dir: Path
 ) -> subprocess.CompletedProcess[str]:
-    env = os.environ | {"BACKUP_DIR": str(backup_dir), "COMPOSE_PROJECT": PROJECT}
-    env.update(extra_env or {})
-    return subprocess.run(
-        ["bash", str(script)],
-        capture_output=True,
-        text=True,
-        timeout=120,
-        check=False,
-        env=env,
-    )
+    monkeypatch.setenv("BACKUP_DIR", str(backup_dir))
+    monkeypatch.setenv("COMPOSE_PROJECT", PROJECT)
+    return run_allow_failure("bash", str(script))
 
 
 @pytest.fixture
@@ -145,32 +143,26 @@ def seeded_employee() -> tuple[str, str, str]:
 
 @pytest.mark.ac("AC-SYS-108")
 def test_backup_creates_valid_db_and_uploads_archives(
-    seeded_employee: tuple[str, str, str], tmp_path: Path
+    seeded_employee: tuple[str, str, str], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     marker = "ac-sys-108-marker.txt"
     write_marker_file_to_uploads(marker)
 
-    result = run_script(BACKUP_SH, tmp_path)
+    result = run_script(monkeypatch, BACKUP_SH, tmp_path)
     assert result.returncode == 0, result.stderr
 
     dumps = sorted(tmp_path.glob("db-*.dump"))
     assert len(dumps) == 1, dumps
-    listing = subprocess.run(
-        [
-            "docker",
-            "run",
-            "--rm",
-            "-v",
-            f"{dumps[0]}:/dump.dump:ro",
-            "postgres:17",
-            "pg_restore",
-            "--list",
-            "/dump.dump",
-        ],
-        capture_output=True,
-        text=True,
-        timeout=30,
-        check=False,
+    listing = run_allow_failure(
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        f"{dumps[0]}:/dump.dump:ro",
+        "postgres:17",
+        "pg_restore",
+        "--list",
+        "/dump.dump",
     )
     assert listing.returncode == 0, listing.stderr
 
@@ -182,13 +174,15 @@ def test_backup_creates_valid_db_and_uploads_archives(
 
 
 @pytest.mark.ac("AC-SYS-109")
-def test_backup_keeps_14_newest_per_type(seeded_employee: tuple[str, str, str], tmp_path: Path) -> None:
+def test_backup_keeps_14_newest_per_type(
+    seeded_employee: tuple[str, str, str], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     old_db_names = [f"db-20260101T{i:02d}0000Z.dump" for i in range(14)]
     old_upload_names = [f"uploads-20260101T{i:02d}0000Z.tar.gz" for i in range(14)]
     for name in old_db_names + old_upload_names:
         (tmp_path / name).write_bytes(b"fake")
 
-    result = run_script(BACKUP_SH, tmp_path)
+    result = run_script(monkeypatch, BACKUP_SH, tmp_path)
     assert result.returncode == 0, result.stderr
 
     remaining_dumps = sorted(p.name for p in tmp_path.glob("db-*.dump"))
@@ -202,12 +196,12 @@ def test_backup_keeps_14_newest_per_type(seeded_employee: tuple[str, str, str], 
 
 
 @pytest.mark.ac("AC-SYS-110")
-def test_backup_fails_cleanly_when_db_down(tmp_path: Path) -> None:
+def test_backup_fails_cleanly_when_db_down(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     container = db_container()
     assert container, f"no running db container for project {PROJECT}"
     run("docker", "stop", container)
     try:
-        result = run_script(BACKUP_SH, tmp_path)
+        result = run_script(monkeypatch, BACKUP_SH, tmp_path)
         assert result.returncode != 0
         assert result.stderr.strip()
         assert list(tmp_path.glob("db-*.dump")) == []
@@ -219,15 +213,15 @@ def test_backup_fails_cleanly_when_db_down(tmp_path: Path) -> None:
 
 @pytest.mark.ac("AC-SYS-111")
 def test_restore_check_succeeds_and_row_count_matches(
-    seeded_employee: tuple[str, str, str], tmp_path: Path
+    seeded_employee: tuple[str, str, str], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     container, user, db = seeded_employee
     expected_count = count_employees(container, user, db)
 
-    backup_result = run_script(BACKUP_SH, tmp_path)
+    backup_result = run_script(monkeypatch, BACKUP_SH, tmp_path)
     assert backup_result.returncode == 0, backup_result.stderr
 
-    result = run_script(RESTORE_CHECK_SH, tmp_path)
+    result = run_script(monkeypatch, RESTORE_CHECK_SH, tmp_path)
     assert result.returncode == 0, result.stderr
     assert "khôi phục thử thành công" in result.stdout
     assert str(expected_count) in result.stdout
@@ -235,8 +229,8 @@ def test_restore_check_succeeds_and_row_count_matches(
 
 
 @pytest.mark.ac("AC-SYS-112")
-def test_restore_check_fails_when_no_backup(tmp_path: Path) -> None:
-    result = run_script(RESTORE_CHECK_SH, tmp_path)
+def test_restore_check_fails_when_no_backup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    result = run_script(monkeypatch, RESTORE_CHECK_SH, tmp_path)
     assert result.returncode != 0
     assert "Không tìm thấy bản sao lưu" in result.stderr
     assert restore_check_containers() == []
@@ -244,9 +238,9 @@ def test_restore_check_fails_when_no_backup(tmp_path: Path) -> None:
 
 @pytest.mark.ac("AC-SYS-113")
 def test_restore_check_fails_and_cleans_up_on_corrupt_dump(
-    seeded_employee: tuple[str, str, str], tmp_path: Path
+    seeded_employee: tuple[str, str, str], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    backup_result = run_script(BACKUP_SH, tmp_path)
+    backup_result = run_script(monkeypatch, BACKUP_SH, tmp_path)
     assert backup_result.returncode == 0, backup_result.stderr
 
     dumps = sorted(tmp_path.glob("db-*.dump"))
@@ -255,7 +249,7 @@ def test_restore_check_fails_and_cleans_up_on_corrupt_dump(
         fh.seek(20)
         fh.write(b"\x00\xff\x00\xff\x00\xff\x00\xff")
 
-    result = run_script(RESTORE_CHECK_SH, tmp_path)
+    result = run_script(monkeypatch, RESTORE_CHECK_SH, tmp_path)
     assert result.returncode != 0
     assert result.stderr.strip()
     assert restore_check_containers() == []

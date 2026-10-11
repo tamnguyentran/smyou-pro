@@ -1,9 +1,10 @@
 """Static/behavioral checks of scripts/deploy.sh, backup.sh, restore_check.sh (M9-02)."""
 
-import subprocess
 from pathlib import Path
 
 import pytest
+
+from tests.docker.stack import run_allow_failure
 
 ROOT = Path(__file__).resolve().parents[3]
 DEPLOY_SH = ROOT / "scripts" / "deploy.sh"
@@ -13,13 +14,7 @@ RESTORE_CHECK_SH = ROOT / "scripts" / "restore_check.sh"
 
 @pytest.mark.ac("AC-SYS-105")
 def test_deploy_without_tag_fails_fast() -> None:
-    result = subprocess.run(
-        ["bash", str(DEPLOY_SH)],
-        capture_output=True,
-        text=True,
-        timeout=10,
-        check=False,
-    )
+    result = run_allow_failure("bash", str(DEPLOY_SH))
     assert result.returncode != 0
     assert "Thiếu TAG" in result.stderr
     assert "ssh" not in result.stdout
@@ -46,24 +41,11 @@ def test_deploy_dumps_before_load_and_never_builds() -> None:
 def test_scripts_are_valid_bash_and_executable(script: Path) -> None:
     assert script.is_file(), f"{script} is missing"
 
-    syntax = subprocess.run(
-        ["bash", "-n", str(script)],
-        capture_output=True,
-        text=True,
-        timeout=10,
-        check=False,
-    )
+    syntax = run_allow_failure("bash", "-n", str(script))
     assert syntax.returncode == 0, syntax.stderr
 
     rel = script.relative_to(ROOT)
-    tracked = subprocess.run(
-        ["git", "ls-files", "-s", "--", str(rel)],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
-        timeout=10,
-        check=False,
-    )
+    tracked = run_allow_failure("git", "-C", str(ROOT), "ls-files", "-s", "--", str(rel))
     assert tracked.stdout, f"{rel} is not tracked by git yet"
     mode = tracked.stdout.split()[0]
     assert mode == "100755", f"{rel} git mode is {mode}, expected 100755 (executable)"
