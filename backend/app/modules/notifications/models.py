@@ -13,6 +13,21 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.db import Base
 
 
+class PushSubscription(Base):
+    """1 trình duyệt/thiết bị đã đăng ký nhận Web Push (M10-05). `endpoint` là duy nhất trên toàn
+    hệ thống (do trình duyệt cấp, không theo employee) — đăng ký lại cùng endpoint thì cập nhật
+    khoá, không tạo dòng mới (xem `subscribe_push`)."""
+
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
+    employee_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("employees.id", ondelete="CASCADE"), index=True)
+    endpoint: Mapped[str] = mapped_column(Text, unique=True)
+    p256dh: Mapped[str] = mapped_column(Text)
+    auth: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class Notification(Base):
     __tablename__ = "notifications"
 

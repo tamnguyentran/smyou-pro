@@ -29,6 +29,9 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smyou}:${POSTGRES_PASSWORD:-change-me-dev}@db:5432/${POSTGRES_DB:-smyou}
       JWT_SECRET: ${JWT_SECRET:-change-me-dev-only}
       UPLOAD_DIR: /data/uploads
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@smyou.vn}
     volumes:
       - ./backend:/app
       - ./spec:/spec:ro       # Settings.spec_dir resolves to /spec inside the container

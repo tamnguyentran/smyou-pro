@@ -15,6 +15,7 @@ dependencies = [
   "pwdlib[argon2]>=0.2",
   "python-multipart>=0.0.9",  # FastAPI UploadFile / multipart form parsing (M2-01a image upload)
   "pyjwt>=2.9",
+  "pywebpush>=2.5.0",
 ]
 
 [dependency-groups]
@@ -49,6 +50,8 @@ known-third-party = ["alembic"]  # the local alembic/ migrations folder is not a
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]
+# One-off CLI tool: its entire job is printing values to copy into .env (M10-05).
+"scripts/generate_vapid_keys.py" = ["T201"]
 
 # ---------------- mypy ----------------
 [tool.mypy]
@@ -62,6 +65,11 @@ packages = ["app"]
 init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
+
+# pywebpush/py_vapid ship no type stubs/py.typed marker (M10-05).
+[[tool.mypy.overrides]]
+module = ["pywebpush", "py_vapid", "py_vapid.*"]
+ignore_missing_imports = true
 
 # ---------------- pytest ----------------
 [tool.pytest.ini_options]

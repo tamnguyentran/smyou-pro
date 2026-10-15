@@ -831,10 +831,40 @@
               }
             ]
           },
+          "my_task_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MyTaskSummaryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "order_summary": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/OrderSummaryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "staff_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StaffSummaryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "task_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskSummaryOut"
               },
               {
                 "type": "null"
@@ -1172,6 +1202,10 @@
             "title": "Full Name",
             "type": "string"
           },
+          "in_progress_count": {
+            "title": "In Progress Count",
+            "type": "integer"
+          },
           "nearest_due_at": {
             "anyOf": [
               {
@@ -1198,6 +1232,7 @@
           "employee_id",
           "full_name",
           "open_task_count",
+          "in_progress_count",
           "total_estimated_hours",
           "nearest_due_at"
         ],
@@ -1576,9 +1611,27 @@
           "unread_notifications_count": {
             "title": "Unread Notifications Count",
             "type": "integer"
+          },
+          "vapid_public_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vapid Public Key"
           }
         },
-        "required": ["employee", "roles", "capabilities", "counters", "unread_notifications_count"],
+        "required": [
+          "employee",
+          "roles",
+          "capabilities",
+          "counters",
+          "unread_notifications_count",
+          "vapid_public_key"
+        ],
         "title": "MeResponse",
         "type": "object"
       },
@@ -1735,6 +1788,25 @@
         },
         "required": ["items"],
         "title": "MyAssignmentsOut",
+        "type": "object"
+      },
+      "MyTaskSummaryOut": {
+        "properties": {
+          "active_count": {
+            "title": "Active Count",
+            "type": "integer"
+          },
+          "done_today_count": {
+            "title": "Done Today Count",
+            "type": "integer"
+          },
+          "pending_count": {
+            "title": "Pending Count",
+            "type": "integer"
+          }
+        },
+        "required": ["pending_count", "active_count", "done_today_count"],
+        "title": "MyTaskSummaryOut",
         "type": "object"
       },
       "NotificationOut": {
@@ -3438,6 +3510,47 @@
         "title": "ProductUpdate",
         "type": "object"
       },
+      "PushSubscriptionIn": {
+        "description": "Shape of `PushSubscription.toJSON()` from the browser's Push API (M10-05).",
+        "properties": {
+          "endpoint": {
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "keys": {
+            "$ref": "#/components/schemas/PushSubscriptionKeys"
+          }
+        },
+        "required": ["endpoint", "keys"],
+        "title": "PushSubscriptionIn",
+        "type": "object"
+      },
+      "PushSubscriptionKeys": {
+        "properties": {
+          "auth": {
+            "title": "Auth",
+            "type": "string"
+          },
+          "p256dh": {
+            "title": "P256Dh",
+            "type": "string"
+          }
+        },
+        "required": ["p256dh", "auth"],
+        "title": "PushSubscriptionKeys",
+        "type": "object"
+      },
+      "PushUnsubscribeIn": {
+        "properties": {
+          "endpoint": {
+            "title": "Endpoint",
+            "type": "string"
+          }
+        },
+        "required": ["endpoint"],
+        "title": "PushUnsubscribeIn",
+        "type": "object"
+      },
       "RejectionCounts": {
         "properties": {
           "BUSY": {
@@ -3772,6 +3885,39 @@
         },
         "required": ["version"],
         "title": "ServiceUpdate",
+        "type": "object"
+      },
+      "StaffStatusCounts": {
+        "properties": {
+          "IDLE": {
+            "title": "Idle",
+            "type": "integer"
+          },
+          "IN_PROGRESS": {
+            "title": "In Progress",
+            "type": "integer"
+          },
+          "NOT_STARTED": {
+            "title": "Not Started",
+            "type": "integer"
+          }
+        },
+        "required": ["IN_PROGRESS", "NOT_STARTED", "IDLE"],
+        "title": "StaffStatusCounts",
+        "type": "object"
+      },
+      "StaffSummaryOut": {
+        "properties": {
+          "active_technician_count": {
+            "title": "Active Technician Count",
+            "type": "integer"
+          },
+          "counts_by_status": {
+            "$ref": "#/components/schemas/StaffStatusCounts"
+          }
+        },
+        "required": ["active_technician_count", "counts_by_status"],
+        "title": "StaffSummaryOut",
         "type": "object"
       },
       "TaskAddAssignee": {
@@ -4195,6 +4341,44 @@
         "title": "TaskReopen",
         "type": "object"
       },
+      "TaskStatusCounts": {
+        "properties": {
+          "ACCEPTED": {
+            "title": "Accepted",
+            "type": "integer"
+          },
+          "CANCELLED": {
+            "title": "Cancelled",
+            "type": "integer"
+          },
+          "DONE": {
+            "title": "Done",
+            "type": "integer"
+          },
+          "IN_PROGRESS": {
+            "title": "In Progress",
+            "type": "integer"
+          },
+          "NEEDS_ASSIGNEE": {
+            "title": "Needs Assignee",
+            "type": "integer"
+          },
+          "PENDING_ACCEPTANCE": {
+            "title": "Pending Acceptance",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "NEEDS_ASSIGNEE",
+          "PENDING_ACCEPTANCE",
+          "ACCEPTED",
+          "IN_PROGRESS",
+          "DONE",
+          "CANCELLED"
+        ],
+        "title": "TaskStatusCounts",
+        "type": "object"
+      },
       "TaskSummary": {
         "properties": {
           "assignees": {
@@ -4263,6 +4447,16 @@
         },
         "required": ["employee_id", "full_name"],
         "title": "TaskSummaryAssigneeOut",
+        "type": "object"
+      },
+      "TaskSummaryOut": {
+        "properties": {
+          "counts_by_status": {
+            "$ref": "#/components/schemas/TaskStatusCounts"
+          }
+        },
+        "required": ["counts_by_status"],
+        "title": "TaskSummaryOut",
         "type": "object"
       },
       "TaskUpdate": {
@@ -5890,6 +6084,70 @@
           }
         },
         "summary": "Đánh dấu tất cả thông báo của người gọi đã đọc",
+        "tags": ["notifications"]
+      }
+    },
+    "/api/v1/notifications/push-subscriptions": {
+      "post": {
+        "operationId": "notifications_push_subscribe",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushSubscriptionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Đăng ký nhận Web Push trên thiết bị/trình duyệt hiện tại",
+        "tags": ["notifications"]
+      }
+    },
+    "/api/v1/notifications/push-subscriptions/unsubscribe": {
+      "post": {
+        "operationId": "notifications_push_unsubscribe",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushUnsubscribeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Bỏ đăng ký Web Push trên thiết bị/trình duyệt hiện tại",
         "tags": ["notifications"]
       }
     },

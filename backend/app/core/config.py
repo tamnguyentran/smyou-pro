@@ -36,6 +36,13 @@ class Settings(BaseSettings):
     upload_dir: Path = Path("/data/uploads")
     upload_max_mb: int = 10
 
+    # Web Push (M10-05) — both unset by default: push is disabled, in-app + WS still work.
+    # Generate with `backend/scripts/generate_vapid_keys.py`. Public key isn't secret (returned by
+    # GET /me); private key must never leave the server.
+    vapid_public_key: str | None = None
+    vapid_private_key: str | None = None
+    vapid_subject: str = "mailto:admin@smyou.vn"
+
     @field_validator("base_path")
     @classmethod
     def _normalise_base_path(cls, value: str) -> str:
@@ -50,4 +57,10 @@ class Settings(BaseSettings):
             raise ValueError(
                 f"JWT_SECRET must be at least {MIN_PRODUCTION_SECRET_LENGTH} characters in production"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _vapid_both_or_neither(self) -> "Settings":
+        if bool(self.vapid_public_key) != bool(self.vapid_private_key):
+            raise ValueError("VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be set together")
         return self

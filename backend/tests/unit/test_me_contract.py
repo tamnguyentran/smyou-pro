@@ -70,4 +70,5 @@ def test_openapi_describes_me(make_app: Callable[..., FastAPI]) -> None:
         "capabilities",
         "counters",
         "unread_notifications_count",
+        "vapid_public_key",
     }
