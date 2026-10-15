@@ -2,6 +2,7 @@ import {
   BadgeCheck,
   CalendarClock,
   CheckCircle2,
+  Eye,
   MapPin,
   Phone,
   PlayCircle,
@@ -9,6 +10,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
 import { formatDateTime, formatPhone, mapHref } from "../../../lib/format";
@@ -109,6 +111,22 @@ function ResponseActions({
   );
 }
 
+/** Nút "Chi tiết" dẫn tới trang đơn hàng, giống hành vi khi bấm 1 dòng thông báo. */
+function DetailButton({ item }: { item: MyAssignment }) {
+  const navigate = useNavigate();
+  return (
+    <Button
+      variant="secondary"
+      icon={<Eye aria-hidden="true" className="size-4" />}
+      onClick={() => {
+        void navigate(`/orders/${item.order_id}`);
+      }}
+    >
+      Chi tiết
+    </Button>
+  );
+}
+
 function StatusLabel({ status }: { status: string }) {
   const entry = WORK_STATUS_LABELS[status];
   if (!entry) return null;
@@ -191,6 +209,7 @@ export function MyAssignmentList({
               "Giờ ước tính",
               ...(showWorkActions ? ["Trạng thái"] : []),
               ...(showActions || showWorkActions ? ["Thao tác"] : []),
+              "",
             ].map((heading) => (
               <th key={heading} scope="col" className="px-4 py-3">
                 {heading}
@@ -235,6 +254,9 @@ export function MyAssignmentList({
                   />
                 </td>
               ) : null}
+              <td className="px-4 py-3">
+                <DetailButton item={item} />
+              </td>
             </tr>
           ))}
         </tbody>
@@ -276,6 +298,7 @@ export function MyAssignmentList({
               onComplete={onComplete}
             />
           ) : null}
+          <DetailButton item={item} />
         </li>
       ))}
     </ul>

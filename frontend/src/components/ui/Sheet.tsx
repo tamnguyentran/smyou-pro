@@ -104,10 +104,7 @@ export function Sheet({
         </div>
         <div
           data-testid="sheet-body"
-          className={cn(
-            "min-h-0 flex-1 overflow-y-auto px-4 lg:px-6",
-            footer ? undefined : "pb-4 lg:pb-6",
-          )}
+          className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 lg:px-6 lg:pb-6"
         >
           {children}
         </div>
