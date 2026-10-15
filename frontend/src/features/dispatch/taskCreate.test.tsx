@@ -166,18 +166,13 @@ function stubQueue({
   server.use(
     http.get("/api/v1/me", () => {
       calls.me += 1;
-      return HttpResponse.json(
-        meBody(tuanId, TUAN, { pending_dispatch_count: calls.posts.length > 0 ? 3 : 4 }),
-      );
+      // Q81 (2026-10-15): tạo đầu việc không còn làm đơn rời PENDING_DISPATCH — badge/hàng đợi
+      // giữ nguyên số liệu kể cả sau khi đã tạo task (chỉ đổi khi ai đó bấm "Bắt đầu").
+      return HttpResponse.json(meBody(tuanId, TUAN, { pending_dispatch_count: 4 }));
     }),
     http.get("/api/v1/orders", () => {
       calls.orders += 1;
-      return HttpResponse.json({
-        items: calls.posts.length > 0 ? [] : [DON_I],
-        total: calls.posts.length > 0 ? 0 : 1,
-        limit: 20,
-        offset: 0,
-      });
+      return HttpResponse.json({ items: [DON_I], total: 1, limit: 20, offset: 0 });
     }),
     http.get("/api/v1/orders/:id", () => HttpResponse.json(order)),
     http.get("/api/v1/employees", ({ request }) => {
@@ -375,7 +370,9 @@ describe("Panel tạo đầu việc", () => {
       expect(calls.orders).toBeGreaterThan(ordersBefore);
       expect(calls.me).toBeGreaterThan(meBefore);
     });
-    expect(await screen.findByText("Không có đơn nào chờ điều phối.")).toBeInTheDocument();
+    // Q81 (2026-10-15): đơn vẫn PENDING_DISPATCH sau khi tạo task (chưa ai "Bắt đầu") — vẫn còn
+    // trong hàng đợi, badge không đổi.
+    expect(await screen.findByRole("button", { name: DON_I.code })).toBeInTheDocument();
   });
 
   test("AC-DSP-023 ô trống/sai → lỗi dưới từng ô, không gọi POST", async () => {

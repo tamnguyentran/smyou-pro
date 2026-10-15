@@ -12,9 +12,9 @@ sequenceDiagram
   actor C as Khách hàng
   S->>S: Tạo đơn (DRAFT), thêm dòng hàng/dịch vụ
   S->>L: Gửi đơn (submit → PENDING_DISPATCH)
-  L->>T: Tạo task, giao 1..n người (đơn → IN_PROGRESS)
+  L->>T: Tạo task, giao 1..n người (đơn vẫn Chờ điều phối)
   T-->>L: Từ chối + lý do (→ task cần giao lại)
-  T->>T: Tiếp nhận → Bắt đầu → Hoàn thành
+  T->>T: Tiếp nhận → Bắt đầu (đơn → IN_PROGRESS, lần bắt đầu đầu tiên) → Hoàn thành
   Note over L: Khi mọi task DONE → đơn AWAITING_CONFIRMATION
   T->>C: Xin chữ ký phiếu xác nhận
   T->>T: Chụp & tải ảnh phiếu, bấm Hoàn tất đơn (COMPLETED) — hoặc QLKT làm (Q04)
@@ -30,7 +30,7 @@ stateDiagram-v2
   [*] --> DRAFT
   DRAFT --> PENDING_DISPATCH: submit
   PENDING_DISPATCH --> DRAFT: recall (chưa có task)
-  PENDING_DISPATCH --> IN_PROGRESS: [system] task đầu tiên được tạo
+  PENDING_DISPATCH --> IN_PROGRESS: [system] phân công đầu tiên của đơn được Bắt đầu (Q81)
   IN_PROGRESS --> AWAITING_CONFIRMATION: [system] mọi task DONE
   AWAITING_CONFIRMATION --> COMPLETED: complete (có ảnh phiếu + tên người ký)
   AWAITING_CONFIRMATION --> REVISION: request_revision
@@ -44,7 +44,8 @@ stateDiagram-v2
 ```
 
 Điểm cần lưu ý:
-- **Chuyển "system"** không có API riêng; được kích hoạt bên trong cùng transaction của lệnh gây ra nó (tạo task, hoàn thành assignment, huỷ task…). Hàm `reevaluate_order(order)` là nơi duy nhất quyết định các chuyển này.
+- **Chuyển "system"** không có API riêng; được kích hoạt bên trong cùng transaction của lệnh gây ra nó (tạo task, hoàn thành assignment, huỷ task…). Hàm `reevaluate_order(order)` là nơi duy nhất quyết định các chuyển này — **trừ `start_dispatch`**, hiệu ứng `fire_order_start_dispatch_if_first_start` riêng, gắn trong lệnh `assignment.start` (không qua `reevaluate_order`).
+- **Đơn hàng IN_PROGRESS ≠ Task/Assignment IN_PROGRESS** (dễ nhầm, 3 chữ "Đang thực hiện" ở 3 tầng khác nhau): đơn chỉ chuyển IN_PROGRESS khi có **ít nhất 1 phân công** của đơn đó thật sự Bắt đầu (`assignment.start`) — chỉ giao task/giao người thôi (task vẫn "Chờ tiếp nhận") KHÔNG làm đơn đổi trạng thái (Q81, chốt 2026-10-15; trước đó đơn đổi ngay lúc tạo task đầu tiên — đã đổi lại theo yêu cầu chủ dự án).
 - Khi vào REVISION mà Quản lý kỹ thuật chưa thêm/mở lại task nào, đơn **không** tự nhảy về AWAITING_CONFIRMATION (guard `revision_has_work_if_revision`).
 - Ảnh phiếu xác nhận gắn với `revision_no`; sau mỗi lần chỉnh sửa phải có ảnh xác nhận mới.
 

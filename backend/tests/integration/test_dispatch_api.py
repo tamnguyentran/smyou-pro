@@ -105,9 +105,12 @@ def people(db: Connection) -> dict[str, uuid.UUID]:
 
 
 @pytest.mark.ac("AC-DSP-001")
-def test_create_first_task_starts_dispatch(
+def test_create_first_task_keeps_order_pending_dispatch(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
+    """Q81 (2026-10-15): tạo đầu việc + giao người KHÔNG còn làm đơn chuyển IN_PROGRESS — chỉ khi
+    có người thật sự bấm "Bắt đầu" (xem test_start_first_assignment_starts_dispatch ở
+    test_assignment_response_api.py)."""
     order_id = insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code="DH2610-0001")
     tuan = client_as(app, TUAN)
 
@@ -131,7 +134,7 @@ def test_create_first_task_starts_dispatch(
     assert len(body["assignees"]) == 2
     assert all(a["status"] == "PENDING" for a in body["assignees"])
     assert {a["employee_id"] for a in body["assignees"]} == {str(people["NV014"]), str(people["NV015"])}
-    assert body["order_status"] == "IN_PROGRESS"
+    assert body["order_status"] == "PENDING_DISPATCH"
     assert body["order_version"] == 2
 
     task_events = audit_rows(db, uuid.UUID(body["id"]))
@@ -143,19 +146,12 @@ def test_create_first_task_starts_dispatch(
     )
     assert task_events[0].actor_id == people["NV010"]
 
-    order_events = audit_rows(db, order_id)
-    assert len(order_events) == 1
-    assert (
-        order_events[0].entity_type,
-        order_events[0].action,
-        order_events[0].from_status,
-        order_events[0].to_status,
-        order_events[0].actor_id,
-    ) == ("ORDER", "start_dispatch", "PENDING_DISPATCH", "IN_PROGRESS", None)
+    # No ORDER-level audit event — the order hasn't transitioned at all yet.
+    assert audit_rows(db, order_id) == []
 
 
 @pytest.mark.ac("AC-DSP-002")
-def test_create_second_task_does_not_refire_start_dispatch(
+def test_create_second_task_also_keeps_order_pending_dispatch(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
     order_id = insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code="DH2610-0002")
@@ -178,10 +174,10 @@ def test_create_second_task_does_not_refire_start_dispatch(
     assert res.status_code == 200, res.text
     body = res.json()
     assert body["code"] == "DH2610-0002-T2"
-    assert body["order_status"] == "IN_PROGRESS"
+    assert body["order_status"] == "PENDING_DISPATCH"
     assert body["order_version"] == 3
 
-    assert len(audit_rows(db, order_id)) == 1  # only the start_dispatch fired by the first task
+    assert audit_rows(db, order_id) == []
 
 
 @pytest.mark.ac("AC-DSP-003")
@@ -460,19 +456,22 @@ def test_recall_and_cancel_unblocked_when_no_tasks(
 
 
 @pytest.mark.ac("AC-ORD-116")
-def test_recall_and_cancel_invalid_transition_after_first_task(
+def test_recall_and_cancel_guard_failed_after_first_task(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
+    """Q81 (2026-10-15): đơn vẫn `PENDING_DISPATCH` sau khi tạo task đầu tiên (chưa IN_PROGRESS),
+    nên `recall`/`cancel` giờ bị chặn bởi guard `order_has_no_tasks` (409 GUARD_FAILED) — không
+    còn là 409 INVALID_TRANSITION (trước đây chặn vì order rời khỏi PENDING_DISPATCH)."""
     order_id = insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code="DH2610-116")
     tuan = client_as(app, TUAN)
     created = tuan.post(f"/api/v1/orders/{order_id}/tasks", json=_valid_body(people)).json()
-    assert created["order_status"] == "IN_PROGRESS"
+    assert created["order_status"] == "PENDING_DISPATCH"
 
     hoa = client_as(app, HOA)
     problem(
         hoa.post(f"/api/v1/orders/{order_id}/recall", json={"version": created["order_version"]}),
         409,
-        "INVALID_TRANSITION",
+        "GUARD_FAILED",
     )
     problem(
         hoa.post(
@@ -480,7 +479,7 @@ def test_recall_and_cancel_invalid_transition_after_first_task(
             json={"version": created["order_version"], "reason": "Khách đổi ý"},
         ),
         409,
-        "INVALID_TRANSITION",
+        "GUARD_FAILED",
     )
 
 
@@ -755,7 +754,7 @@ def test_remove_last_active_assignee_sets_needs_assignee(
     assert body["status"] == "NEEDS_ASSIGNEE"
 
     order_res = tuan.get(f"/api/v1/orders/{order_id}")
-    assert order_res.json()["status"] == "IN_PROGRESS"
+    assert order_res.json()["status"] == "PENDING_DISPATCH"  # Q81: no one ever started the task
 
 
 @pytest.mark.ac("AC-DSP-047")
@@ -805,7 +804,7 @@ def test_cancel_task(app: FastAPI, db: Connection, people: dict[str, uuid.UUID])
     assert body["order_version"] == created["order_version"] + 1
 
     order_res = tuan.get(f"/api/v1/orders/{order_id}")
-    assert order_res.json()["status"] == "IN_PROGRESS"
+    assert order_res.json()["status"] == "PENDING_DISPATCH"  # Q81: no one ever started the task
 
     rows = (
         db.execute(text("SELECT status, removed_at FROM assignments WHERE task_id = :id"), {"id": task_id})

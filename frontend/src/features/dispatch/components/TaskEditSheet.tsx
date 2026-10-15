@@ -151,6 +151,7 @@ export function TaskEditSheet({
         },
       });
       toast("Đã lưu thay đổi đầu việc.");
+      onClose();
     } catch (error) {
       if (error instanceof ApiError && error.problem.code === "STALE_VERSION") {
         setShowReload(true);

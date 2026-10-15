@@ -29,7 +29,7 @@ Không dùng mã màu hex rời rạc trong component (`bg-[#0F2F2E]` ❌ → `b
 |---|---|---|
 | `todo` | `#F1F5F9` / `#475569` / `#CBD5E1` | Nháp, Chờ tiếp nhận, Đã huỷ, Đã gỡ |
 | `in_progress` | `#EFF6FF` / `#1D4ED8` / `#BFDBFE` | Đang thực hiện |
-| `review` | `#FFFBEB` / `#B45309` / `#FDE68A` | Chờ điều phối, Đã tiếp nhận, Chờ khách xác nhận |
+| `review` | `#FFFBEB` / `#B45309` / `#FDE68A` | Chờ điều phối, Đã tiếp nhận, Hoàn thành, chờ KH xác nhận |
 | `completed` | `#ECFDF5` / `#047857` / `#A7F3D0` | Hoàn thành, Hoàn tất |
 | `urgent` | `#FEF2F2` / `#B91C1C` / `#FECACA` | Chỉnh sửa, Cần giao lại, Từ chối, Quá hạn, ưu tiên Khẩn |
 

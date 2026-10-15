@@ -5,7 +5,7 @@
 - **Liên quan:** spec/state_machines.yaml#order (guard `confirmation_attachment_in_current_revision` dùng ở `complete`, M6-02 sau sẽ gọi); `spec/permissions.yaml` (`order.upload_confirmation`: TECH_LEAD all / TECHNICIAN assigned; `order.read` cho xem lại); DOMAIN_MODEL §11 (Attachment); WORKFLOWS §1–2; UI_GUIDELINES dòng 71, 76, 84, 98; M2-01a (bảng `attachments`, `files/domain.py` validate_image, `store_image` — nền đã có, dùng chung `kind=PRODUCT_IMAGE`); Q72 (đã chốt: M6-01 xây pipeline chung, M5-03/TASK_PHOTO tái dùng sau)
 
 ## 1. Mục tiêu
-Là Kỹ thuật viên được giao hoặc Quản lý kỹ thuật, tôi chụp/chọn ảnh phiếu xác nhận đã có chữ ký khách và tải lên đơn đang "Chờ khách xác nhận", để sau đó bấm "Hoàn tất đơn" (M6-02) có đủ bằng chứng.
+Là Kỹ thuật viên được giao hoặc Quản lý kỹ thuật, tôi chụp/chọn ảnh phiếu xác nhận đã có chữ ký khách và tải lên đơn đang "Hoàn thành, chờ KH xác nhận", để sau đó bấm "Hoàn tất đơn" (M6-02) có đủ bằng chứng.
 
 ## 2. Phạm vi
 - **Trong phạm vi:**
@@ -63,7 +63,7 @@ Scope của `GET /api/v1/attachments/{id}` theo bản ghi, không theo route tĩ
 - Toast: "Đã tải ảnh phiếu xác nhận." Lỗi: theo `detail` của problem+json, hoặc câu tiếng Việt phía client (AC-CMP-014).
 
 ## 7. Kịch bản UAT thủ công
-1. Đăng nhập Khoa (KTV), mở "Việc của tôi", hoàn thành task cuối của một đơn → đơn chuyển "Chờ khách xác nhận".
+1. Đăng nhập Khoa (KTV), mở "Việc của tôi", hoàn thành task cuối của một đơn → đơn chuyển "Hoàn thành, chờ KH xác nhận".
 2. Mở `/orders/{id}`, tab "Tệp đính kèm" → thấy control tải ảnh → chọn 1 ảnh chụp từ camera → thấy xem trước, tiến trình, rồi ảnh xuất hiện trong lưới.
 3. Đăng nhập Hoa (Sale) hoặc An (Manager), mở cùng đơn, tab "Tệp đính kèm" → thấy ảnh Khoa vừa tải nhưng không có control tải lên.
 

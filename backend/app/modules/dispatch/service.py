@@ -264,21 +264,11 @@ def create_task(
     assignees = _load_assignees(session, task.id, task.cycle)
 
     # effects order (spec/state_machines.yaml#task.commands[create]): create_pending_assignments
-    # (above), fire_order_start_dispatch_if_first_task (below, incl. its own `audit`), notify_assignees
-    # (below), then this task's own `audit` last.
+    # (above), notify_assignees (below), then this task's own `audit` last. The order does NOT
+    # flip to IN_PROGRESS here (Q81, changed 2026-10-15) — only when the first assignment of the
+    # order actually starts (`assignments.service.start_assignment`'s
+    # `fire_order_start_dispatch_if_first_start`).
     notifications.notify_task_assigned(session, task, order, body.assignee_ids)
-    if existing_task_count == 0 and order.status == "PENDING_DISPATCH":
-        order.status = "IN_PROGRESS"
-        audit.record(
-            session,
-            actor_id=None,
-            entity_type="ORDER",
-            entity_id=order.id,
-            action="start_dispatch",
-            from_status="PENDING_DISPATCH",
-            to_status="IN_PROGRESS",
-            request_id=request_id,
-        )
 
     order.version += 1  # Order is the aggregate root (Q62) — bumped once per command.
     session.flush()
@@ -604,7 +594,12 @@ def list_order_tasks(session: Session, actor: Actor, order_id: uuid.UUID) -> Tas
         rows = session.execute(
             select(Assignment.task_id, Employee.id, Employee.full_name)
             .join(Employee, Employee.id == Assignment.employee_id)
-            .where(Assignment.task_id.in_(task_ids))
+            .join(Task, Task.id == Assignment.task_id)
+            .where(
+                Assignment.task_id.in_(task_ids),
+                Assignment.cycle == Task.cycle,
+                Assignment.status.notin_(_INACTIVE_ASSIGNMENT_STATUSES),
+            )
             .order_by(Assignment.created_at.asc())
         ).all()
         for task_id, employee_id, full_name in rows:
@@ -724,6 +719,10 @@ def list_workload(session: Session, actor: Actor) -> EmployeeWorkloadOut:
     task's `derived_status` — one person can be DONE on a task while another is still
     IN_PROGRESS on it.
 
+    `in_progress_count` (AC-DSP-108): subset of `open_task_count` whose assignment is
+    `IN_PROGRESS` — the frontend groups the workload list on it ("Đang làm" vs "Chưa thực
+    hiện" vs "Chưa có đầu việc", M4-04b).
+
     Scope (Q70): `task.read`'s `assigned` scope has no natural meaning for "which employees
     appear in this aggregate," so a TECHNICIAN gets exactly their own row, nothing else.
     """
@@ -738,6 +737,7 @@ def list_workload(session: Session, actor: Actor) -> EmployeeWorkloadOut:
 
     employee_ids = [employee_id for employee_id, _ in employees]
     aggregates: dict[uuid.UUID, tuple[int, Decimal, datetime]] = {}
+    in_progress_counts: dict[uuid.UUID, int] = {}
     if employee_ids:
         agg_rows = session.execute(
             select(
@@ -755,11 +755,23 @@ def list_workload(session: Session, actor: Actor) -> EmployeeWorkloadOut:
         ).all()
         aggregates = {employee_id: (count, hours, due) for employee_id, count, hours, due in agg_rows}
 
+        in_progress_rows = session.execute(
+            select(Assignment.employee_id, func.count(Assignment.id))
+            .where(
+                Assignment.employee_id.in_(employee_ids),
+                Assignment.status == "IN_PROGRESS",
+            )
+            .group_by(Assignment.employee_id)
+        ).all()
+        for employee_id, count in in_progress_rows:
+            in_progress_counts[employee_id] = count
+
     items = [
         EmployeeWorkloadItem(
             employee_id=employee_id,
             full_name=full_name,
             open_task_count=aggregates.get(employee_id, (0, Decimal(0), None))[0],
+            in_progress_count=in_progress_counts.get(employee_id, 0),
             total_estimated_hours=aggregates.get(employee_id, (0, Decimal(0), None))[1],
             nearest_due_at=aggregates.get(employee_id, (0, Decimal(0), None))[2],
         )

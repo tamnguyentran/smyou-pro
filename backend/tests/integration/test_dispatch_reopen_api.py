@@ -366,7 +366,7 @@ def test_all_tasks_done_after_reopen_in_revision(
         .all()
     )
     system_event = [e for e in events if e["action"] == "all_tasks_done"][-1]
-    assert system_event["actor_id"] is None
+    assert system_event["actor_id"] == people["NV014"]
 
 
 @pytest.mark.ac("AC-DSP-119")

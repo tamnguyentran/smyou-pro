@@ -44,11 +44,13 @@ Là Quản lý kỹ thuật, tôi muốn xem tổng số đầu việc đang m�
 | AC-DSP-105 | Không có kỹ thuật viên nào đang hoạt động (`{items: []}`) | Mở trang | `EmptyState`: icon + câu hướng dẫn tiếng Việt, không có bảng/thẻ rỗng | component |
 | AC-DSP-106 | Như fixture trên | @screenshot, @a11y ở 390px và 1440px | Không cuộn ngang ở 360px; 0 vi phạm axe mức serious/critical | e2e |
 | AC-DSP-107 | Tuấn đăng nhập | Vào menu "Điều phối kỹ thuật" → "Lịch & tải việc" | Điều hướng tới trang thật ở trên (**không** còn là trang giữ chỗ "đang phát triển") | e2e |
+| AC-DSP-108 | Như fixture trên (M4-04b: thêm `in_progress_count`) | Tuấn `GET /api/v1/tasks/workload` | Mỗi item có thêm `in_progress_count` = số phân công **đang mở** (`_OPEN_ASSIGNMENT_STATUSES`) của người đó đang ở `IN_PROGRESS`: Khoa `0` (PENDING+ACCEPTED), Minh `2` (IN_PROGRESS trên T2+T3), Dũng `0` | integration |
+| AC-DSP-109 | Như fixture trên (Tuấn đăng nhập) | Mở `/dispatch/workload` | Danh sách chia 3 nhóm theo thứ tự "Đang làm" (`in_progress_count>0`, nền `in_progress` xanh nhạt) → "Chưa thực hiện" (`open_task_count>0` và `in_progress_count=0`, nền `review` vàng nhạt) → "Chưa có đầu việc" (`open_task_count=0`, nền `urgent` hồng nhạt); mỗi nhóm có tiêu đề kèm số lượng; Minh ở nhóm "Đang làm", Khoa ở "Chưa thực hiện", Dũng ở "Chưa có đầu việc" | component |
 
 ## 4. API
 | Method | Path | Capability | Request | Response | Lỗi |
 |---|---|---|---|---|---|
-| GET | /api/v1/tasks/workload | task.read | (không có query param) | `{items}` (item = `EmployeeWorkload`: `employee_id, full_name, open_task_count, total_estimated_hours, nearest_due_at`) | 403 |
+| GET | /api/v1/tasks/workload | task.read | (không có query param) | `{items}` (item = `EmployeeWorkload`: `employee_id, full_name, open_task_count, in_progress_count, total_estimated_hours, nearest_due_at`) | 403 |
 
 ## 5. Dữ liệu / Migration
 Không có. Chỉ 1 route đọc mới, tổng hợp từ `employees`/`tasks`/`assignments` đã có.
@@ -59,6 +61,11 @@ Không có. Chỉ 1 route đọc mới, tổng hợp từ `employees`/`tasks`/`a
 - **Mobile (<768px):** thẻ xếp dọc, cùng 4 trường, nhãn rõ ràng (giống mẫu thẻ `DispatchQueuePage`).
 - Tải: Skeleton đúng khung bảng/thẻ. Lỗi: thông báo + nút "Thử lại" (gọi lại query). Rỗng: `EmptyState` icon `UserCog`-nhóm hoặc tương tự + "Chưa có kỹ thuật viên nào đang hoạt động."
 - Icon: menu đã định nghĩa `CalendarRange` (không đổi); cột "Hạn gần nhất" dùng icon `CalendarClock`, "Tổng giờ ước tính" dùng icon `Timer` (đúng bộ icon UI_GUIDELINES §7).
+- **M4-04b — nhóm theo trạng thái (AC-DSP-108/109):** danh sách (cả bảng desktop và thẻ mobile) chia thành 3 nhóm liên tiếp, mỗi nhóm có tiêu đề "{nhãn} ({số lượng})" tô màu nền theo đúng tone Badge đã có ở `docs/design/UI_GUIDELINES.md` §2 (không tạo token màu mới), mẫu header màu theo `TaskBoardColumn.tsx`:
+  - "Đang làm" (`in_progress_count>0`) — tone `in_progress` (xanh nhạt).
+  - "Chưa thực hiện" (`open_task_count>0` và `in_progress_count=0`) — tone `review` (vàng nhạt).
+  - "Chưa có đầu việc" (`open_task_count=0`) — tone `urgent` (hồng nhạt).
+  - Trong mỗi nhóm vẫn giữ thứ tự tăng dần theo tổng giờ ước tính (không sắp lại); nhóm rỗng thì ẩn cả tiêu đề.
 
 ## 7. Kịch bản UAT thủ công (cho chủ dự án, ≤ 5 bước)
 1. Đăng nhập Tuấn (QLKT) → menu "Điều phối kỹ thuật" → "Lịch & tải việc".

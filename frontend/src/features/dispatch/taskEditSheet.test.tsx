@@ -316,7 +316,7 @@ describe("TaskEditSheet — sửa/thêm/gỡ người/huỷ đầu việc", () =
     await screen.findByRole("dialog", { name: `Sửa đầu việc — ${taskCode}` });
   });
 
-  test("AC-DSP-059 sửa title, Lưu → PATCH đúng version, toast, sheet không đóng, danh sách cập nhật", async () => {
+  test("AC-DSP-059 sửa title, Lưu → PATCH đúng version, toast, sheet tự đóng, danh sách cập nhật", async () => {
     const calls = stubEdit({ tasksAfter: [summary({ title: "Lắp đặt 5 camera tầng 1" })] });
     const user = await openEditSheet();
     const dialog = screen.getByRole("dialog", { name: `Sửa đầu việc — ${taskCode}` });
@@ -336,7 +336,9 @@ describe("TaskEditSheet — sửa/thêm/gỡ người/huỷ đầu việc", () =
       priority: "HIGH",
     });
     expect(await screen.findByText("Đã lưu thay đổi đầu việc.")).toBeInTheDocument();
-    expect(screen.getByRole("dialog", { name: `Sửa đầu việc — ${taskCode}` })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("dialog", { name: `Sửa đầu việc — ${taskCode}` }),
+    ).not.toBeInTheDocument();
     expect(await screen.findByText("Lắp đặt 5 camera tầng 1")).toBeInTheDocument();
   });
 

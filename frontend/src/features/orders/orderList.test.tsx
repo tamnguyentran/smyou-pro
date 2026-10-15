@@ -286,7 +286,7 @@ describe("AC-ORD-110 AC-ORD-111 AC-ORD-112 chip lọc trạng thái", () => {
       "Nháp",
       "Chờ điều phối",
       "Đang thực hiện",
-      "Chờ khách xác nhận",
+      "Hoàn thành, chờ KH xác nhận",
       "Hoàn tất",
       "Chỉnh sửa",
       "Đã huỷ",
