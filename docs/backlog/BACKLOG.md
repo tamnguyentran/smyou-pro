@@ -26,7 +26,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [x] **M10-01 Tên sản phẩm/dịch vụ không trùng** — thêm ràng buộc unique theo tên (CAT); spec: `docs/specs/M10-01-catalog-name-unique.md`.
 - [ ] **M10-02 Disable nút Lưu nháp/Gửi đơn khi thiếu thông tin bắt buộc** — đơn mới phải có khách hàng + ≥1 dòng hàng mới cho lưu/gửi (ORD); đổi AC-ORD-024 của `M3-02b` (hiện ghi nút luôn hiện).
 - [ ] **M10-03 Thẻ thống kê Tổng quan bấm vào để lọc danh sách** — drill-down từ `order_summary`/`dispatch_summary` sang `/orders` hoặc `/dispatch/queue` đã lọc sẵn (DASH); phần "Ngoài phạm vi" đã ghi ở `M7-02`.
-- [ ] **M10-04 Số liệu nhân sự (bận/rảnh) trên Tổng quan cho Điều phối kỹ thuật/Quản lý** — đếm KTV có/không có đầu việc đang mở (DASH); mở rộng `dispatch_summary`.
+- [x] **M10-04 Số liệu nhân sự (bận/rảnh) trên Tổng quan cho Điều phối kỹ thuật/Quản lý** — đếm KTV có/không có đầu việc đang mở (DASH); làm dưới dạng `staff_summary` mới (3 nhóm, cùng màu với "Lịch & tải việc") + `task_summary`/`my_task_summary` đi kèm; spec: `docs/specs/M7-02-role-dashboard.md` (M7-02c/M7-02d).
 - [x] **M10-05 Web Push cho thông báo (khi đã đóng tab/app)** — Service Worker + VAPID key + bảng `push_subscriptions` mới (NTF); tách riêng khỏi `M7-03` theo quyết định của chủ dự án (làm WebSocket trước); spec: `docs/specs/M10-05-web-push-notifications.md`.
 - [x] **M7-03 Thông báo realtime qua WebSocket** — thay polling 30s bằng đẩy tức thời khi tab đang mở (vẫn giữ polling làm lưới an toàn); Web Push (khi đã đóng tab) tách làm backlog riêng, chưa có ID; spec: `docs/specs/M7-03-notifications-realtime-ws.md`.
 

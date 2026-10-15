@@ -88,7 +88,7 @@ describe("Tổng quan", () => {
       ["Nháp", "2"],
       ["Chờ điều phối", "3"],
       ["Đang thực hiện", "1"],
-      ["Chờ khách xác nhận", "0"],
+      ["Hoàn thành, chờ KH xác nhận", "0"],
       ["Hoàn tất", "0"],
       ["Chỉnh sửa", "0"],
       ["Đã huỷ", "0"],
@@ -160,6 +160,23 @@ describe("Tổng quan", () => {
     expect(within(overdueCard).getByText(/2020|\//).className).toContain("text-urgent-fg");
   });
 
+  test("AC-DASH-021 (M7-02d) Đức (TECHNICIAN) thấy khối 'Đầu việc của tôi' đúng 3 số", async () => {
+    signedInAs(ducId, DUC);
+    mockDashboard({
+      my_task_summary: { pending_count: 2, active_count: 3, done_today_count: 1 },
+      today_tasks: [],
+    });
+    renderApp("/");
+
+    expect(await screen.findByText("Đầu việc của tôi")).toBeInTheDocument();
+    const pendingTile = (await screen.findByText("Chờ nhận")).closest("div") as HTMLElement;
+    expect(within(pendingTile).getByText("2")).toBeInTheDocument();
+    const activeTile = screen.getByText("Đang làm").closest("div") as HTMLElement;
+    expect(within(activeTile).getByText("3")).toBeInTheDocument();
+    const doneTile = screen.getByText("Đã xong hôm nay").closest("div") as HTMLElement;
+    expect(within(doneTile).getByText("1")).toBeInTheDocument();
+  });
+
   test("AC-DASH-014 An (MANAGER): thấy cả khối đơn + khối điều phối, có tiêu đề phụ rõ ràng", async () => {
     signedInAs("an-id", AN);
     mockDashboard({
@@ -185,6 +202,59 @@ describe("Tổng quan", () => {
 
     expect(await screen.findByText("Đơn theo trạng thái")).toBeInTheDocument();
     expect(screen.getByText("Điều phối")).toBeInTheDocument();
+  });
+
+  test("AC-DASH-016 Tuấn (TECH_LEAD) thấy 6 thẻ đầu việc theo trạng thái, 'Cần giao lại' tông urgent khi > 0", async () => {
+    signedInAs("tuan-id", TUAN);
+    mockDashboard({
+      task_summary: {
+        counts_by_status: {
+          NEEDS_ASSIGNEE: 2,
+          PENDING_ACCEPTANCE: 1,
+          ACCEPTED: 3,
+          IN_PROGRESS: 4,
+          DONE: 5,
+          CANCELLED: 0,
+        },
+      },
+    });
+    renderApp("/");
+
+    expect(await screen.findByText("Đầu việc theo trạng thái")).toBeInTheDocument();
+    const needsAssigneeTile = (await screen.findByText("2")).closest("div") as HTMLElement;
+    expect(needsAssigneeTile.className).toContain("urgent");
+    for (const [label, value] of [
+      ["Chờ tiếp nhận", "1"],
+      ["Đã tiếp nhận", "3"],
+      ["Đang thực hiện", "4"],
+      ["Hoàn thành", "5"],
+      ["Đã huỷ", "0"],
+    ] as const) {
+      const tile = (await screen.findByText(label)).closest("div") as HTMLElement;
+      expect(within(tile).getByText(value)).toBeInTheDocument();
+    }
+  });
+
+  test("AC-DASH-017 Tuấn (TECH_LEAD) thấy khối nhân sự 3 nhóm, đúng số và tông màu", async () => {
+    signedInAs("tuan-id", TUAN);
+    mockDashboard({
+      staff_summary: {
+        active_technician_count: 5,
+        counts_by_status: { IN_PROGRESS: 2, NOT_STARTED: 1, IDLE: 2 },
+      },
+    });
+    renderApp("/");
+
+    expect(await screen.findByText("Nhân sự kỹ thuật (5 đang hoạt động)")).toBeInTheDocument();
+    const inProgressTile = (await screen.findByText("Đang làm")).closest("div") as HTMLElement;
+    expect(within(inProgressTile).getByText("2")).toBeInTheDocument();
+    expect(inProgressTile.className).toContain("in_progress");
+    const notStartedTile = screen.getByText("Chưa thực hiện").closest("div") as HTMLElement;
+    expect(within(notStartedTile).getByText("1")).toBeInTheDocument();
+    expect(notStartedTile.className).toContain("review");
+    const idleTile = screen.getByText("Chưa có đầu việc").closest("div") as HTMLElement;
+    expect(within(idleTile).getByText("2")).toBeInTheDocument();
+    expect(idleTile.className).toContain("urgent");
   });
 
   test("AC-DASH-015 lỗi tải API: trạng thái lỗi chung + nút Tải lại hoạt động", async () => {

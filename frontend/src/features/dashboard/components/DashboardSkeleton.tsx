@@ -17,6 +17,9 @@ export function DashboardSkeleton({ roles }: { roles: string[] }) {
     <div role="group" aria-busy="true" aria-label="Đang tải tổng quan" className="space-y-6">
       {hasOrder ? <Tiles count={7} /> : null}
       {hasDispatch ? <Tiles count={3} /> : null}
+      {hasDispatch ? <Tiles count={6} /> : null}
+      {hasDispatch ? <Tiles count={3} /> : null}
+      {hasToday ? <Tiles count={3} /> : null}
       {hasToday ? (
         <div className="space-y-3">
           {Array.from({ length: 2 }, (_, i) => (

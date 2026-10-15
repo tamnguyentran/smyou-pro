@@ -7,12 +7,29 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi import FastAPI
-from sqlalchemy import Connection
+from sqlalchemy import Connection, text
 
 from app.core.authz import declared_routes
-from tests.integration.conftest import AN, Person, seed
-from tests.integration.test_dispatch_api import DUC, HOA, TUAN, client_as, insert_order, problem
+from tests.integration.conftest import AN, KHOA, Person, seed
+from tests.integration.test_dispatch_api import DUC, HOA, MINH, TUAN, client_as, insert_order, problem
 from tests.integration.test_dispatch_board_api import insert_assignment, insert_task
+
+
+def insert_done_assignment(
+    db: Connection, task_id: uuid.UUID, employee_id: uuid.UUID, *, done_at: datetime
+) -> uuid.UUID:
+    """`insert_assignment` (DONE) không set `done_at` — cần biến thể riêng cho AC-DASH-020
+    (lọc "Đã xong hôm nay" theo `done_at`)."""
+    assignment_id = uuid.uuid4()
+    db.execute(
+        text(
+            "INSERT INTO assignments (id, task_id, employee_id, cycle, status, assigned_by, done_at)"
+            " VALUES (:id, :task_id, :employee_id, 1, 'DONE', :employee_id, :done_at)"
+        ),
+        {"id": assignment_id, "task_id": task_id, "employee_id": employee_id, "done_at": done_at},
+    )
+    return assignment_id
+
 
 VIETNAM = ZoneInfo("Asia/Ho_Chi_Minh")
 # Khớp FakeClock mặc định (conftest.py): 2026-09-26T02:00:00Z = 2026-09-26 09:00 giờ VN.
@@ -24,7 +41,7 @@ LAN = Person("lan2.do@smyou.vn", "Lan2@SmYou26", ("SALE", "TECH_LEAD"), "NV020",
 
 @pytest.fixture
 def people(db: Connection) -> dict[str, uuid.UUID]:
-    return {p.code: seed(db, p) for p in (AN, HOA, TUAN, DUC, LAN)}
+    return {p.code: seed(db, p) for p in (AN, HOA, TUAN, DUC, MINH, KHOA, LAN)}
 
 
 def body(res: Any) -> dict[str, Any]:
@@ -304,6 +321,160 @@ def test_requires_authentication(app: FastAPI) -> None:
 
     client = TestClient(app, raise_server_exceptions=False)
     problem(client.get("/api/v1/dashboard"), 401, "UNAUTHENTICATED")
+
+
+@pytest.mark.ac("AC-DASH-018")
+def test_task_summary_counts_by_status(db: Connection, app: FastAPI, people: dict[str, uuid.UUID]) -> None:
+    order = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code="DH2609-S01")
+    for i in range(2):
+        insert_task(
+            db,
+            order,
+            code=f"DH2609-S01-T{i + 1}",
+            title="Cần giao lại",
+            status="NEEDS_ASSIGNEE",
+            priority="NORMAL",
+            due_at=TOMORROW_VN,
+            created_by=people["NV010"],
+        )
+    t3 = insert_task(
+        db,
+        order,
+        code="DH2609-S01-T3",
+        title="Đang thực hiện",
+        status="IN_PROGRESS",
+        priority="NORMAL",
+        due_at=TOMORROW_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, t3, people["NV017"], "IN_PROGRESS")
+    t4 = insert_task(
+        db,
+        order,
+        code="DH2609-S01-T4",
+        title="Đã xong",
+        status="DONE",
+        priority="NORMAL",
+        due_at=YESTERDAY_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, t4, people["NV017"], "DONE")
+
+    tuan = client_as(app, TUAN)
+    data = body(tuan.get("/api/v1/dashboard"))
+    assert data["task_summary"]["counts_by_status"] == {
+        "NEEDS_ASSIGNEE": 2,
+        "PENDING_ACCEPTANCE": 0,
+        "ACCEPTED": 0,
+        "IN_PROGRESS": 1,
+        "DONE": 1,
+        "CANCELLED": 0,
+    }
+
+
+@pytest.mark.ac("AC-DASH-019")
+def test_staff_summary_groups_active_technicians(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    order = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code="DH2609-S02")
+    # DUC (NV017): đang làm.
+    t1 = insert_task(
+        db,
+        order,
+        code="DH2609-S02-T1",
+        title="t1",
+        status="IN_PROGRESS",
+        priority="NORMAL",
+        due_at=TOMORROW_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, t1, people["NV017"], "IN_PROGRESS")
+    # Minh (NV015): đã tiếp nhận, chưa bắt đầu.
+    t2 = insert_task(
+        db,
+        order,
+        code="DH2609-S02-T2",
+        title="t2",
+        status="ACCEPTED",
+        priority="NORMAL",
+        due_at=TOMORROW_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, t2, people["NV015"], "ACCEPTED")
+    # Khoa (NV014): chưa có phân công nào.
+
+    tuan = client_as(app, TUAN)
+    data = body(tuan.get("/api/v1/dashboard"))
+    assert data["staff_summary"] == {
+        "active_technician_count": 3,
+        "counts_by_status": {"IN_PROGRESS": 1, "NOT_STARTED": 1, "IDLE": 1},
+    }
+
+
+@pytest.mark.ac("AC-DASH-020")
+def test_my_task_summary_groups_own_assignments(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    order = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code="DH2609-S03")
+    t1 = insert_task(
+        db,
+        order,
+        code="DH2609-S03-T1",
+        title="Chờ nhận",
+        status="PENDING_ACCEPTANCE",
+        priority="NORMAL",
+        due_at=TOMORROW_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, t1, people["NV017"], "PENDING")
+    t2 = insert_task(
+        db,
+        order,
+        code="DH2609-S03-T2",
+        title="Đã tiếp nhận",
+        status="ACCEPTED",
+        priority="NORMAL",
+        due_at=TOMORROW_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, t2, people["NV017"], "ACCEPTED")
+    t3 = insert_task(
+        db,
+        order,
+        code="DH2609-S03-T3",
+        title="Đang thực hiện",
+        status="IN_PROGRESS",
+        priority="NORMAL",
+        due_at=TOMORROW_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, t3, people["NV017"], "IN_PROGRESS")
+    t4 = insert_task(
+        db,
+        order,
+        code="DH2609-S03-T4",
+        title="Xong hôm nay",
+        status="DONE",
+        priority="NORMAL",
+        due_at=YESTERDAY_VN,
+        created_by=people["NV010"],
+    )
+    insert_done_assignment(db, t4, people["NV017"], done_at=datetime(2026, 9, 26, 0, 0, tzinfo=VIETNAM))
+    t5 = insert_task(
+        db,
+        order,
+        code="DH2609-S03-T5",
+        title="Xong hôm qua",
+        status="DONE",
+        priority="NORMAL",
+        due_at=YESTERDAY_VN,
+        created_by=people["NV010"],
+    )
+    insert_done_assignment(db, t5, people["NV017"], done_at=YESTERDAY_VN)
+
+    duc = client_as(app, DUC)
+    data = body(duc.get("/api/v1/dashboard"))
+    assert data["my_task_summary"] == {"pending_count": 1, "active_count": 2, "done_today_count": 1}
 
 
 def test_dashboard_route_declares_capability(app: FastAPI) -> None:

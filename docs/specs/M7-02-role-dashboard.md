@@ -12,6 +12,9 @@ Là Sale/Quản lý kỹ thuật (QLKT)/Kỹ thuật viên (KTV)/Quản lý (Man
   - 1 API mới `GET /api/v1/dashboard` (capability `dashboard.read`, dùng đúng scope đã khai trong `permissions.yaml`), trả **nhiều phần** (section) tuỳ theo (các) vai trò thật của người gọi — một nhân viên có nhiều vai trò thấy nhiều phần cùng lúc:
     - `order_summary` — hiện nếu có vai trò SALE hoặc MANAGER. Đếm đơn theo trạng thái (7 trạng thái). SALE: chỉ đơn do mình tạo (`own`). MANAGER: toàn công ty (`all`).
     - `dispatch_summary` — hiện nếu có vai trò TECH_LEAD hoặc MANAGER (luôn toàn công ty, không có khái niệm "của tôi"): `pending_dispatch_count` (đơn `PENDING_DISPATCH`), `needs_assignee_count` (đầu việc `NEEDS_ASSIGNEE`), `overdue_task_count` (đầu việc đang mở — không `DONE`/`CANCELLED` — có `due_at` ở quá khứ).
+    - `task_summary` (M7-02c) — hiện cùng điều kiện `dispatch_summary` (TECH_LEAD/MANAGER, toàn công ty): `counts_by_status` đếm đầu việc theo đủ 6 trạng thái suy ra (`spec/state_machines.yaml#task.states`, cột `tasks.status` đã lưu sẵn) — bức tranh đầy đủ hơn 3 số hẹp của `dispatch_summary` (có thể trùng số với `needs_assignee_count`, lặp lại có chủ đích, giống cách `order_summary`/`dispatch_summary` đã lặp `PENDING_DISPATCH`).
+    - `staff_summary` (M7-02c) — hiện cùng điều kiện `dispatch_summary`: `active_technician_count` + đếm KTV đang hoạt động theo 3 nhóm tải việc — **đúng cách nhóm đã dùng ở "Lịch & tải việc"** (`docs/specs/M4-04-dispatch-workload.md` AC-DSP-108/109): "Đang làm" (có phân công `IN_PROGRESS`), "Chưa thực hiện" (có đầu việc đang mở nhưng chưa ai `IN_PROGRESS`), "Chưa có đầu việc" (không có đầu việc đang mở).
+    - `my_task_summary` (M7-02d) — hiện nếu có vai trò TECHNICIAN: `pending_count`/`active_count` (phân công đang mở của chính người gọi, theo đúng 2 nhóm "Chờ nhận" (`PENDING`) / "Đang làm" (`ACCEPTED`+`IN_PROGRESS`) đã dùng ở "Việc của tôi" `MyTasksPage`) + `done_today_count` (phân công `DONE` của người gọi với `done_at` rơi vào hôm nay, giờ Việt Nam — không đếm toàn bộ lịch sử, số liệu lịch sử đầy đủ thuộc trang KPI).
     - `today_tasks` — hiện nếu có vai trò TECHNICIAN: danh sách phân công đang mở (không `REJECTED`/`REMOVED`/`DONE`) của chính người gọi, hạn hoàn thành (`due_at`) rơi vào **hôm nay hoặc đã quá hạn** (giờ Việt Nam), sắp theo `due_at` tăng dần.
   - Trang `/` (route đã có, capability `dashboard.read` đã gắn sẵn) thay `HomePage` giữ chỗ bằng nội dung thật: thẻ số liệu (mobile: xếp dọc; desktop: lưới) theo đúng (các) phần trả về.
   - Thẻ không bấm được (không điều hướng sang trang lọc) — xem "Ngoài phạm vi".
@@ -40,6 +43,12 @@ Là Sale/Quản lý kỹ thuật (QLKT)/Kỹ thuật viên (KTV)/Quản lý (Man
 | AC-DASH-013 | Đức (TECHNICIAN) mở trang "Tổng quan"; `today_tasks` có 2 phần tử, 1 quá hạn | render | Mỗi phần tử hiện như thẻ task (mã, tiêu đề, khách + địa chỉ, SĐT, hạn chót); hạn chót của phần tử quá hạn hiện màu đỏ (cùng quy tắc `text-urgent` như `M5-01`) | component |
 | AC-DASH-014 | An (MANAGER) mở trang "Tổng quan" | render | Thấy cả khối "Đơn theo trạng thái" (7 thẻ, toàn công ty) và khối "Điều phối" (3 thẻ) trên cùng trang, có tiêu đề phụ phân nhóm rõ ràng | component |
 | AC-DASH-015 | Bất kỳ vai trò, API trả lỗi mạng/5xx | render | Trang hiện trạng thái lỗi chung (component `StatusPage`/lỗi đã dùng ở các trang khác), có nút "Tải lại" | component |
+| AC-DASH-018 (M7-02c) | Toàn công ty có đầu việc ở đủ 6 trạng thái (vài task mỗi loại) | Tuấn (TECH_LEAD) `GET /api/v1/dashboard` | `task_summary.counts_by_status` đúng 6 khoá, đếm đúng theo `tasks.status` | integration |
+| AC-DASH-019 (M7-02c) | 3 KTV đang hoạt động: 1 có phân công `IN_PROGRESS`, 1 có phân công mở nhưng chưa `IN_PROGRESS`, 1 chưa có phân công nào | Tuấn (TECH_LEAD) `GET /api/v1/dashboard` | `staff_summary = {active_technician_count: 3, counts_by_status: {IN_PROGRESS: 1, NOT_STARTED: 1, IDLE: 1}}` — cùng tiêu chí `useActiveTechnicians`/`list_workload` | integration |
+| AC-DASH-016 (M7-02c) | Tuấn (TECH_LEAD) mở trang "Tổng quan" trên desktop | render | Thêm khối "Đầu việc theo trạng thái" (6 thẻ, nhãn theo `TASK_STATUS_LABEL`) — thẻ "Cần giao lại" tông `urgent` khi > 0 | component |
+| AC-DASH-017 (M7-02c) | Tuấn (TECH_LEAD) mở trang "Tổng quan" | render | Thêm khối "Nhân sự kỹ thuật ({n} đang hoạt động)" với 3 thẻ "Đang làm"/"Chưa thực hiện"/"Chưa có đầu việc", tông màu đúng theo `in_progress`/`review`/`urgent` — nhất quán với "Lịch & tải việc" | component |
+| AC-DASH-020 (M7-02d) | Đức (TECHNICIAN) có: 1 phân công `PENDING`, 1 `ACCEPTED`, 1 `IN_PROGRESS`, 1 `DONE` với `done_at` hôm nay, 1 `DONE` với `done_at` hôm qua | Đức `GET /api/v1/dashboard` | `my_task_summary = {pending_count: 1, active_count: 2, done_today_count: 1}` (chỉ tính `DONE` hôm nay, không tính cái hôm qua) | integration |
+| AC-DASH-021 (M7-02d) | Đức (TECHNICIAN) mở trang "Tổng quan" | render | Thêm khối "Đầu việc của tôi" với 3 thẻ "Chờ nhận"/"Đang làm"/"Đã xong hôm nay", đứng trước khối `today_tasks` | component |
 
 ## 4. API
 
@@ -61,6 +70,19 @@ Là Sale/Quản lý kỹ thuật (QLKT)/Kỹ thuật viên (KTV)/Quản lý (Man
     "pending_dispatch_count": 0,
     "needs_assignee_count": 0,
     "overdue_task_count": 0
+  },
+  "task_summary": {                   // null nếu không có vai trò TECH_LEAD/MANAGER (M7-02c)
+    "counts_by_status": {             // đủ 6 khoá, giá trị 0 nếu không có đầu việc
+      "NEEDS_ASSIGNEE": 0, "PENDING_ACCEPTANCE": 0, "ACCEPTED": 0,
+      "IN_PROGRESS": 0, "DONE": 0, "CANCELLED": 0
+    }
+  },
+  "staff_summary": {                  // null nếu không có vai trò TECH_LEAD/MANAGER (M7-02c)
+    "active_technician_count": 0,
+    "counts_by_status": { "IN_PROGRESS": 0, "NOT_STARTED": 0, "IDLE": 0 }
+  },
+  "my_task_summary": {                 // null nếu không có vai trò TECHNICIAN (M7-02d)
+    "pending_count": 0, "active_count": 0, "done_today_count": 0
   },
   "today_tasks": [ /* MyAssignmentOut[] — null nếu không có vai trò TECHNICIAN; [] nếu có vai trò nhưng rỗng */ ]
 }
