@@ -40,6 +40,22 @@ server {
         proxy_read_timeout 120s;
     }
 
+    # M7-03: realtime notifications — longer-prefix match wins over the plain /api/ block above
+    # regardless of file order (nginx picks the longest matching location), so this needs no
+    # reordering. Needs the Upgrade/Connection headers (missing on the block above on purpose —
+    # it only proxies plain HTTP) and a long read timeout since the connection is held open.
+    location __BASE_PATH__/api/v1/notifications/ws {
+        proxy_pass http://backend:8000/api/v1/notifications/ws;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $client_ip;
+        proxy_set_header X-Forwarded-For $client_ip;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_read_timeout 1h;
+    }
+
     location __BASE_PATH__/assets/ {
         add_header Cache-Control "public, max-age=31536000, immutable" always;
         add_header X-Content-Type-Options nosniff always;

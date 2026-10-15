@@ -17,7 +17,7 @@ Là người dùng bất kỳ (Sale/QLKT/KTV/Manager), tôi thấy chuông thôn
   - Trạng thái rỗng, loading, lỗi (dùng `EmptyState`/pattern đã có).
 - Ngoài phạm vi (không làm ở item này):
   - Dropdown/popover xem nhanh ở header (bấm chuông luôn điều hướng sang `/thong-bao`, không có panel nổi) — đơn giản hoá, UI_GUIDELINES không mô tả chi tiết panel.
-  - Thông báo real-time (WebSocket/SSE) — chỉ polling 30s theo yêu cầu backlog.
+  - ~~Thông báo real-time (WebSocket/SSE) — chỉ polling 30s theo yêu cầu backlog.~~ Đã làm ở `M7-03-notifications-realtime-ws.md` (polling 30s vẫn giữ làm lưới an toàn, không bỏ).
   - Lazy-load / infinite scroll — dùng phân trang nút "Xem thêm" giống các danh sách khác trong app nếu có mẫu, hoặc `Pagination` component đã có (theo mẫu `EmployeesPage`).
 
 ## 3. Acceptance Criteria

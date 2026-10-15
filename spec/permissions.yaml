@@ -66,6 +66,14 @@ public_routes:
 dynamic_routes:
   - GET /api/v1/attachments/{attachment_id}
 
+# WebSocket routes (M7-03): `require()` only works as a FastAPI dependency on APIRoute, so a
+# WebSocketRoute can't declare a capability the same way. Each path here must instead check the
+# listed capability manually inside the handler (cookie auth + effective_scopes) — enforced by a
+# dedicated integration test per route, not by the generic RBAC matrix.
+websocket_routes:
+  - path: /api/v1/notifications/ws
+    capability: notification.read
+
 # Navigation (2 levels). Frontend renders from GET /api/v1/me (roles + capabilities) + this structure,
 # copied into frontend/src/app/menu.ts; a test asserts the two stay identical.
 menu:

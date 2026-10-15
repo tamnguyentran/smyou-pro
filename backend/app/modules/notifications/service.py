@@ -11,13 +11,14 @@ from collections.abc import Iterable
 from datetime import datetime
 from typing import Any, cast
 
-from sqlalchemy import CursorResult, func, select, update
+from sqlalchemy import CursorResult, delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.core.authz import Actor, ScopeRules, apply_scope, get_in_scope_or_404
 from app.modules.dispatch.models import Task
 from app.modules.identity.models import Employee, EmployeeRole
-from app.modules.notifications.models import Notification
+from app.modules.notifications import realtime
+from app.modules.notifications.models import Notification, PushSubscription
 from app.modules.notifications.schemas import NotificationOut, NotificationPage
 from app.modules.orders.models import Order
 
@@ -34,16 +35,17 @@ def _create(
     entity_type: str,
     entity_id: uuid.UUID,
 ) -> None:
-    session.add(
-        Notification(
-            recipient_id=recipient_id,
-            type=type,
-            title=title,
-            body=body,
-            entity_type=entity_type,
-            entity_id=entity_id,
-        )
+    notification = Notification(
+        recipient_id=recipient_id,
+        type=type,
+        title=title,
+        body=body,
+        entity_type=entity_type,
+        entity_id=entity_id,
     )
+    session.add(notification)
+    # Broadcast over WebSocket (M7-03) only if/when this transaction actually commits.
+    realtime.queue_for_broadcast(session, notification)
 
 
 def _notify_many(
@@ -288,3 +290,27 @@ def mark_all_read(session: Session, actor: Actor, *, now: datetime) -> int:
         .values(read_at=now)
     )
     return cast(CursorResult[Any], result).rowcount or 0
+
+
+# ---------------- Web Push subscriptions (M10-05) ----------------
+
+
+def subscribe_push(session: Session, actor: Actor, *, endpoint: str, p256dh: str, auth: str) -> None:
+    """`endpoint` is unique per browser subscription, not per employee — re-subscribing the same
+    endpoint (same browser, possibly a different logged-in employee on a shared machine) updates
+    the row in place rather than erroring or creating a duplicate."""
+    existing = session.scalar(select(PushSubscription).where(PushSubscription.endpoint == endpoint))
+    if existing is None:
+        session.add(PushSubscription(employee_id=actor.id, endpoint=endpoint, p256dh=p256dh, auth=auth))
+        return
+    existing.employee_id = actor.id
+    existing.p256dh = p256dh
+    existing.auth = auth
+
+
+def unsubscribe_push(session: Session, actor: Actor, *, endpoint: str) -> None:
+    session.execute(
+        delete(PushSubscription).where(
+            PushSubscription.endpoint == endpoint, PushSubscription.employee_id == actor.id
+        )
+    )
