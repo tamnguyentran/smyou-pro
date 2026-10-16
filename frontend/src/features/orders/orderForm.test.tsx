@@ -309,17 +309,25 @@ describe("AC-ORD-158..166 disable Lưu nháp/Gửi đơn khi thiếu thông tin"
       http.get("/api/v1/customers", () =>
         HttpResponse.json({ items: [customer()], total: 1, limit: 20, offset: 0 }),
       ),
-      http.post("/api/v1/orders", () => HttpResponse.json(order({ lines: [] }), { status: 201 })),
+      http.post("/api/v1/orders", () =>
+        HttpResponse.json(order({ customer_id: customerId, lines: [] }), { status: 201 }),
+      ),
       http.get("/api/v1/products", () =>
         HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 }),
       ),
       http.post("/api/v1/orders/:id/lines", () =>
-        HttpResponse.json(order({ lines: [orderLine()] }), { status: 201 }),
+        HttpResponse.json(order({ customer_id: customerId, lines: [orderLine()] }), {
+          status: 201,
+        }),
       ),
-      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ lines: [orderLine()] }))),
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ customer_id: customerId, lines: [orderLine()] })),
+      ),
       http.patch("/api/v1/orders/:id", async ({ request }) => {
         const body = (await request.json()) as { version: number };
-        return HttpResponse.json(order({ lines: [orderLine()], version: body.version + 1 }));
+        return HttpResponse.json(
+          order({ customer_id: customerId, lines: [orderLine()], version: body.version + 1 }),
+        );
       }),
     );
     renderApp("/orders/new");
@@ -345,16 +353,22 @@ describe("AC-ORD-158..166 disable Lưu nháp/Gửi đơn khi thiếu thông tin"
       http.get("/api/v1/customers", () =>
         HttpResponse.json({ items: [customer()], total: 1, limit: 20, offset: 0 }),
       ),
-      http.post("/api/v1/orders", () => HttpResponse.json(order({ lines: [] }), { status: 201 })),
+      http.post("/api/v1/orders", () =>
+        HttpResponse.json(order({ customer_id: customerId, lines: [] }), { status: 201 }),
+      ),
       http.get("/api/v1/products", () =>
         HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 }),
       ),
       http.post("/api/v1/orders/:id/lines", () =>
-        HttpResponse.json(order({ lines: [orderLine()] }), { status: 201 }),
+        HttpResponse.json(order({ customer_id: customerId, lines: [orderLine()] }), {
+          status: 201,
+        }),
       ),
-      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ lines: [orderLine()] }))),
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ customer_id: customerId, lines: [orderLine()] })),
+      ),
       http.post("/api/v1/orders/:id/lines/:lineId/remove", () =>
-        HttpResponse.json(order({ lines: [] })),
+        HttpResponse.json(order({ customer_id: customerId, lines: [] })),
       ),
     );
     renderApp("/orders/new");
@@ -499,23 +513,32 @@ describe("AC-ORD-034 lưu nháp", () => {
       ),
       http.post("/api/v1/orders", () => {
         posts += 1;
-        return HttpResponse.json(order({ lines: [] }), { status: 201 });
+        return HttpResponse.json(order({ customer_id: customerId, lines: [] }), { status: 201 });
       }),
       http.get("/api/v1/products", () =>
         HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 }),
       ),
       http.post("/api/v1/orders/:id/lines", () =>
-        HttpResponse.json(order({ lines: [orderLine()] }), { status: 201 }),
+        HttpResponse.json(order({ customer_id: customerId, lines: [orderLine()] }), {
+          status: 201,
+        }),
       ),
       // react-query's background refetch for the id we just navigated to (same order route, no
       // remount); it agrees with the POST/PATCH responses below, like a real server would. A late
       // refetch carrying an older snapshot is M3-07's case (AC-ORD-119) and is ignored there.
-      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ lines: [orderLine()] }))),
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ customer_id: customerId, lines: [orderLine()] })),
+      ),
       http.patch("/api/v1/orders/:id", async ({ request }) => {
         patches += 1;
         const body = (await request.json()) as { service_address?: string; version: number };
         return HttpResponse.json(
-          order({ lines: [orderLine()], service_address: body.service_address, version: 2 }),
+          order({
+            customer_id: customerId,
+            lines: [orderLine()],
+            service_address: body.service_address,
+            version: 2,
+          }),
         );
       }),
     );

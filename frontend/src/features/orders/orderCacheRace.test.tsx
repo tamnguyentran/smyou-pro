@@ -202,13 +202,29 @@ function startRace(snapshot: Order) {
   const gate = createGate();
   const state = { getDone: false, patchedVersions: [] as number[], serverVersion: 1 };
   server.use(
-    http.post("/api/v1/orders", () => HttpResponse.json(order({ version: 1 }), { status: 201 })),
+    // M10-02: dù chỉ request chưa có dòng hàng, response vẫn phải phản ánh đúng khách lẻ client đã
+    // chọn (`selectWalkInCustomer`) — như backend thật sẽ làm — để `reset(mapOrderToFormValues(...))`
+    // khi `id` vừa xuất hiện không xoá mất lựa chọn khách của form.
+    http.post("/api/v1/orders", () =>
+      HttpResponse.json(
+        order({ version: 1, customer_name: "Khách lẻ E2E", customer_phone: "0909999999" }),
+        { status: 201 },
+      ),
+    ),
     http.get("/api/v1/products", () =>
       HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 }),
     ),
     http.post("/api/v1/orders/:id/lines", () => {
       state.serverVersion = 2;
-      return HttpResponse.json(order({ version: 2, lines: [dellLine()] }), { status: 201 });
+      return HttpResponse.json(
+        order({
+          version: 2,
+          customer_name: "Khách lẻ E2E",
+          customer_phone: "0909999999",
+          lines: [dellLine()],
+        }),
+        { status: 201 },
+      );
     }),
     http.get("/api/v1/orders/:id", async () => {
       await gate.passed;
@@ -268,6 +284,7 @@ describe("AC-ORD-119/120 phản hồi GET cũ không ghi đè bản chụp mới
       expect(state.getDone).toBe(true);
     });
 
+    expect(screen.getByRole("button", { name: "Lưu nháp" })).not.toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Lưu nháp" }));
 
     expect(await screen.findByText("Đã lưu nháp DH2610-0042.")).toBeInTheDocument();

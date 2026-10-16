@@ -146,6 +146,25 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
       defaultValues: BLANK_VALUES,
     });
   const priority = useWatch({ control, name: "priority" });
+  const [customerMode, customerId, customerName, customerPhone] = useWatch({
+    control,
+    name: ["customerMode", "customer_id", "customer_name", "customer_phone"],
+  });
+  // AC-ORD-158..165: tính hoàn toàn từ state form hiện có, không gọi thêm API (spec M10-02 §6).
+  const hasCustomer =
+    customerMode === "search"
+      ? Boolean(customerId)
+      : (customerName ?? "").trim() !== "" && (customerPhone ?? "").trim() !== "";
+  const hasLine = (order?.lines.length ?? 0) >= 1;
+  const canSave = hasCustomer && hasLine;
+  const missingInfoHint =
+    !hasCustomer && !hasLine
+      ? "Cần chọn khách hàng và thêm ít nhất 1 dòng hàng để lưu đơn."
+      : !hasCustomer
+        ? "Cần chọn khách hàng."
+        : !hasLine
+          ? "Cần thêm ít nhất 1 dòng hàng."
+          : null;
 
   const loadedOrderId = order?.id;
   useEffect(() => {
@@ -432,37 +451,46 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
           // bottom-16, not bottom-0: BottomNav is `fixed bottom-0` too, so bottom-0 here would stack
           // this bar directly on top of it, hiding the nav for the entire scroll range. `pb-24` on
           // the page's Content already reserves this space (UI_GUIDELINES §4) for exactly this.
-          className="sticky bottom-16 z-10 flex flex-wrap gap-3 bg-page py-3 lg:static lg:col-span-2 lg:row-start-3 lg:bottom-auto lg:bg-transparent lg:py-0"
+          // flex-col: AC-ORD-166 cần helper text nằm trong chính khối sticky này (không phải phía
+          // dưới DOM của nó) để không bị đẩy ra ngoài vùng nhìn thấy trên mobile.
+          className="sticky bottom-16 z-10 flex flex-col gap-2 bg-page py-3 lg:static lg:col-span-2 lg:row-start-3 lg:bottom-auto lg:bg-transparent lg:py-0"
         >
-          <Button
-            type="submit"
-            form="draft-order-form"
-            loading={createOrder.isPending || updateOrder.isPending}
-          >
-            Lưu nháp
-          </Button>
-          {order?.allowed_commands.includes("submit") ? (
+          {missingInfoHint ? <p className="text-xs text-muted">{missingInfoHint}</p> : null}
+          <div className="flex flex-wrap gap-3">
             <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setSubmitOpen(true);
-              }}
+              type="submit"
+              form="draft-order-form"
+              loading={createOrder.isPending || updateOrder.isPending}
+              disabled={!canSave}
+              aria-disabled={!canSave}
             >
-              Gửi đơn
+              Lưu nháp
             </Button>
-          ) : null}
-          {order?.allowed_commands.includes("cancel") ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setCancelOpen(true);
-              }}
-            >
-              Huỷ đơn
-            </Button>
-          ) : null}
+            {order?.allowed_commands.includes("submit") ? (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!canSave}
+                aria-disabled={!canSave}
+                onClick={() => {
+                  setSubmitOpen(true);
+                }}
+              >
+                Gửi đơn
+              </Button>
+            ) : null}
+            {order?.allowed_commands.includes("cancel") ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setCancelOpen(true);
+                }}
+              >
+                Huỷ đơn
+              </Button>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
