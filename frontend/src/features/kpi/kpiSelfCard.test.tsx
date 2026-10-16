@@ -19,9 +19,23 @@ const row: KpiRow = {
   actual_hours_missing_count: 0,
 };
 
-test("AC-UI-005 KpiSelfCard: card ngoài và tile số liệu đều nổi bằng shadow, không viền", () => {
+test("AC-UI-005 KpiSelfCard: card ngoài và tile số liệu đều nổi bằng shadow, không viền (đã có dữ liệu)", () => {
   const { container } = render(<KpiSelfCard row={row} />);
   const root = container.firstElementChild as HTMLElement;
+  expect(root.className).toContain("shadow-card");
+  expect(root.className).toContain("p-5");
+  expect(root.className).not.toMatch(/\bborder\b/);
+
+  const tile = root.querySelector("div.grid > div") as HTMLElement;
+  expect(tile.className).toContain("shadow-card");
+  expect(tile.className).not.toMatch(/\bborder\b/);
+});
+
+test("AC-UI-005 KpiSelfCard: card ngoài và tile số liệu đều nổi bằng shadow, không viền (chưa có dữ liệu, hiện —)", () => {
+  const emptyRow: KpiRow = { ...row, completed_task_count: 0, on_time_count: 0, on_time_rate: 0 };
+  const { container } = render(<KpiSelfCard row={emptyRow} />);
+  const root = container.firstElementChild as HTMLElement;
+  expect(root.textContent).toContain("—");
   expect(root.className).toContain("shadow-card");
   expect(root.className).toContain("p-5");
   expect(root.className).not.toMatch(/\bborder\b/);
