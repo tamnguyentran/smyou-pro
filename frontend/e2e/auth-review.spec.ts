@@ -45,7 +45,7 @@ test("AC-AUTH-027 @a11y @screenshot trang chủ đã đăng nhập", async ({ pa
   await checkPage(page, info, "home-signed-in.png");
 });
 
-test("AC-AUTH-027 @a11y @screenshot màn đổi mật khẩu lần đầu", async ({ page }, info) => {
+test("AC-AUTH-027 AC-UI-041 @a11y @screenshot màn đổi mật khẩu lần đầu", async ({ page }, info) => {
   const account = firstLogin(info);
   await page.goto("./dang-nhap");
   await login(page, account.email, account.password);

@@ -85,7 +85,7 @@ test("AC-AUTH-026 đăng xuất → trang đăng nhập; quay lại không mở 
   await expect(page.getByText(MANAGER.name)).toHaveCount(0);
 });
 
-test("AC-AUTH-027 @a11y @screenshot đăng nhập và đổi mật khẩu: axe, 360px, ảnh chụp", async ({
+test("AC-AUTH-027 AC-UI-041 @a11y @screenshot đăng nhập và đổi mật khẩu: axe, 360px, ảnh chụp", async ({
   page,
 }, info) => {
   for (const [path, file] of [

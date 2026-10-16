@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -147,5 +147,60 @@ describe("Trang /ca-nhan", () => {
     await screen.findByRole("button", { name: "Nhận thông báo trên thiết bị này" });
     expect(unsubscribeBody).toEqual({ endpoint: "https://push.example/khoa2" });
     expect(unsubscribeSpy).toHaveBeenCalledWith(subscription);
+  });
+});
+
+describe("AC-UI-039 AC-UI-040 khung thẻ hồ sơ cá nhân bỏ viền", () => {
+  test("có dữ liệu /me: section bỏ viền, giữ shadow-card; link Đổi mật khẩu vẫn giữ viền; Đăng xuất hoạt động", async () => {
+    signedInWithProfile();
+    renderApp("/ca-nhan");
+
+    await screen.findByText("Trần Minh Khoa");
+    const section = screen.getByRole("main").querySelector("section") as HTMLElement;
+    expect(section.className).toContain("shadow-card");
+    expect(section.className).not.toMatch(/\bborder\b/);
+    const changePasswordLink = within(section).getByRole("link", { name: /Đổi mật khẩu/ });
+    expect(changePasswordLink.className).toContain("border-line");
+    expect(within(section).getByRole("button", { name: "Đăng xuất" })).toBeInTheDocument();
+  });
+
+  test("đang tải /me: khung section vẫn đúng style, nội dung skeleton không đổi", async () => {
+    server.use(
+      http.post("/api/v1/auth/refresh", () =>
+        HttpResponse.json({
+          employee: { id, code: "NV014", full_name: "Trần Minh Khoa", roles: ["TECHNICIAN"] },
+          must_change_password: false,
+        }),
+      ),
+      http.get("/api/v1/me", () => new Promise(() => {})),
+    );
+    markSignedIn();
+    renderApp("/ca-nhan");
+
+    await screen.findByRole("heading", { level: 1, name: "Cá nhân" });
+    const section = screen.getByRole("main").querySelector("section") as HTMLElement;
+    expect(section.className).toContain("shadow-card");
+    expect(section.className).not.toMatch(/\bborder\b/);
+    expect(section.querySelector('[aria-busy="true"]')).toBeInTheDocument();
+  });
+
+  test("lỗi /me: khung section vẫn đúng style, hiện MeError với nút Thử lại", async () => {
+    server.use(
+      http.post("/api/v1/auth/refresh", () =>
+        HttpResponse.json({
+          employee: { id, code: "NV014", full_name: "Trần Minh Khoa", roles: ["TECHNICIAN"] },
+          must_change_password: false,
+        }),
+      ),
+      http.get("/api/v1/me", () => HttpResponse.json({ status: 503 }, { status: 503 })),
+    );
+    markSignedIn();
+    renderApp("/ca-nhan");
+
+    await screen.findByText("Không tải được thông tin tài khoản.");
+    const section = screen.getByRole("main").querySelector("section") as HTMLElement;
+    expect(section.className).toContain("shadow-card");
+    expect(section.className).not.toMatch(/\bborder\b/);
+    expect(within(section).getByRole("button", { name: "Thử lại" })).toBeInTheDocument();
   });
 });

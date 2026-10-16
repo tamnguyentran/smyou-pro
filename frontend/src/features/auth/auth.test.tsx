@@ -255,3 +255,67 @@ describe("Phiên đăng nhập", () => {
     expect(within(document.body).queryByText(/Nguyễn Văn An/)).not.toBeInTheDocument();
   });
 });
+
+describe("AC-UI-037 khung thẻ đăng nhập bỏ viền", () => {
+  test("section gốc có shadow-card, p-7, không còn border; ô nhập vẫn giữ viền; đăng nhập vẫn hoạt động", async () => {
+    mockDashboardApis();
+    server.use(
+      http.post("/api/v1/auth/login", () =>
+        HttpResponse.json({ employee: AN, must_change_password: false }),
+      ),
+    );
+    renderApp("/dang-nhap");
+
+    await screen.findByLabelText("Email");
+    const section = screen.getByRole("main").querySelector("section") as HTMLElement;
+    expect(section.className).toContain("shadow-card");
+    expect(section.className).toContain("p-7");
+    expect(section.className).not.toMatch(/\bborder\b/);
+    expect(screen.getByLabelText("Email").className).toContain("border-line");
+    expect(screen.getByLabelText("Mật khẩu").className).toContain("border-line");
+
+    const user = await fillLogin("an.nguyen@smyou.vn", "SmYou@2026");
+    await user.click(screen.getByRole("button", { name: "Đăng nhập" }));
+    expect(await screen.findByRole("heading", { name: "Tổng quan" })).toBeInTheDocument();
+  });
+});
+
+describe("AC-UI-038 khung thẻ đổi mật khẩu bỏ viền", () => {
+  test("forced=true: section bỏ viền, giữ viền 3 ô mật khẩu, nút Đăng xuất hiện", async () => {
+    server.use(
+      http.post("/api/v1/auth/refresh", () =>
+        HttpResponse.json({ employee: AN, must_change_password: true }),
+      ),
+    );
+    markSignedIn();
+    renderApp("/doi-mat-khau");
+
+    await screen.findByLabelText("Mật khẩu hiện tại");
+    const section = screen.getByRole("main").querySelector("section") as HTMLElement;
+    expect(section.className).toContain("shadow-card");
+    expect(section.className).toContain("p-7");
+    expect(section.className).not.toMatch(/\bborder\b/);
+    expect(screen.getByLabelText("Mật khẩu hiện tại").className).toContain("border-line");
+    expect(screen.getByLabelText("Mật khẩu mới").className).toContain("border-line");
+    expect(screen.getByLabelText("Nhập lại mật khẩu mới").className).toContain("border-line");
+    expect(screen.getByRole("button", { name: "Đăng xuất" })).toBeInTheDocument();
+  });
+
+  test("forced=false: section bỏ viền, nút Huỷ hiện thay cho Đăng xuất", async () => {
+    server.use(
+      http.post("/api/v1/auth/refresh", () =>
+        HttpResponse.json({ employee: AN, must_change_password: false }),
+      ),
+    );
+    markSignedIn();
+    renderApp("/doi-mat-khau");
+
+    await screen.findByLabelText("Mật khẩu hiện tại");
+    const section = screen.getByRole("main").querySelector("section") as HTMLElement;
+    expect(section.className).toContain("shadow-card");
+    expect(section.className).toContain("p-7");
+    expect(section.className).not.toMatch(/\bborder\b/);
+    expect(screen.getByRole("button", { name: "Huỷ" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Đăng xuất" })).not.toBeInTheDocument();
+  });
+});

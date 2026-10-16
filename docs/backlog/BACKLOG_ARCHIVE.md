@@ -87,3 +87,10 @@ Các milestone đã hoàn tất 100% (`[x]` toàn bộ), chuyển ra khỏi `BAC
 - [x] **M9-01 Deploy lên `https://ilabsviet.com/smyoutask/`**: thêm khối nginx hệ thống (DEPLOYMENT §5.1), HTTPS dùng chứng chỉ sẵn có của host.
 - [x] **M9-02 deploy.sh, backup/restore scripts + thử khôi phục**.
 - [x] **M9-03 Nhập dữ liệu thật, UAT toàn bộ, go-live checklist**.
+
+## M11 — Làm mới giao diện (UI refresh, theo yêu cầu chủ dự án 2026-10-15)
+- [x] **M11-01 Làm mới style thẻ (card): bỏ viền, dùng bóng mờ, thoáng hơn** — áp mẫu trên 4 component (StatTile, TodayTaskCard, TaskBoardCard, KpiSelfCard) để chủ dự án duyệt hướng trước khi lan ra toàn app (UI); spec: `docs/specs/M11-01-ui-card-style-refresh.md`.
+- [x] **M11-02a Lan style thẻ mới ra 5 trang danh sách (Đơn hàng, Khách hàng, Nhân viên, Sản phẩm, Dịch vụ)** — chỉ thẻ mobile, giữ nguyên bảng desktop; spec: `docs/specs/M11-02a-ui-card-style-list-pages.md`.
+- [x] **M11-02b Lan style thẻ ra màn hình chi tiết đơn hàng** (các tab trong `OrderDetailTabs`) — spec: `docs/specs/M11-02b-ui-card-style-order-detail.md`.
+- [x] **M11-02c Lan style thẻ ra Điều phối, Việc của tôi, KPI, Nhật ký** (`DispatchQueueList`, `WorkloadList`, `MyAssignmentList`, `KpiRows`, `AuditEventList`) — spec: `docs/specs/M11-02c-ui-card-style-dispatch-kpi-audit.md`.
+- [x] **M11-02d Soát 3 trang form đơn lẻ** (Đăng nhập, Đổi mật khẩu, Hồ sơ cá nhân) — spec: `docs/specs/M11-02d-ui-card-style-standalone-forms.md`.
