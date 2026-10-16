@@ -124,7 +124,7 @@ export function ConfirmationAttachmentsTab({ order }: { order: Order }) {
         <div
           role="group"
           aria-busy="true"
-          aria-label="Đang tải ảnh phiếu xác nhận"
+          aria-label="Đang tải danh sách ảnh phiếu xác nhận"
           className="h-32 animate-pulse rounded-2xl bg-sidebar-sub"
         />
       ) : attachments.isError ? (
