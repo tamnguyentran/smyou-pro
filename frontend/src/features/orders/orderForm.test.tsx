@@ -444,6 +444,107 @@ describe("AC-ORD-158..166 disable Lưu nháp/Gửi đơn khi thiếu thông tin"
   });
 });
 
+describe("AC-ORD-167..169 điều kiện enable Huỷ đơn (amendment)", () => {
+  test("AC-ORD-167 thêm dòng tạo nháp ngầm nhưng chưa Lưu nháp → Huỷ đơn disabled", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.post("/api/v1/orders", () =>
+        HttpResponse.json(order({ lines: [], allowed_commands: ["cancel"] }), { status: 201 }),
+      ),
+      http.get("/api/v1/products", () =>
+        HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 }),
+      ),
+      http.post("/api/v1/orders/:id/lines", () =>
+        HttpResponse.json(order({ lines: [orderLine()], allowed_commands: ["cancel"] }), {
+          status: 201,
+        }),
+      ),
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ lines: [orderLine()], allowed_commands: ["cancel"] })),
+      ),
+    );
+    renderApp("/orders/new");
+    await openForm();
+    const user = userEvent.setup();
+
+    await addDellLine(user);
+
+    const cancelBtn = screen.getByRole("button", { name: "Huỷ đơn" });
+    expect(cancelBtn).toBeDisabled();
+    expect(cancelBtn).toHaveAttribute("aria-disabled", "true");
+
+    await user.click(cancelBtn);
+    expect(screen.queryByRole("dialog", { name: /Huỷ đơn/ })).not.toBeInTheDocument();
+  });
+
+  test("AC-ORD-168 sau khi Lưu nháp thành công → Huỷ đơn enabled ngay trên UI", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/customers", () =>
+        HttpResponse.json({ items: [customer()], total: 1, limit: 20, offset: 0 }),
+      ),
+      http.post("/api/v1/orders", () =>
+        HttpResponse.json(
+          order({ customer_id: customerId, lines: [], allowed_commands: ["cancel"] }),
+          { status: 201 },
+        ),
+      ),
+      http.get("/api/v1/products", () =>
+        HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 }),
+      ),
+      http.post("/api/v1/orders/:id/lines", () =>
+        HttpResponse.json(
+          order({ customer_id: customerId, lines: [orderLine()], allowed_commands: ["cancel"] }),
+          { status: 201 },
+        ),
+      ),
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(
+          order({ customer_id: customerId, lines: [orderLine()], allowed_commands: ["cancel"] }),
+        ),
+      ),
+      http.patch("/api/v1/orders/:id", async ({ request }) => {
+        const body = (await request.json()) as { version: number };
+        return HttpResponse.json(
+          order({
+            customer_id: customerId,
+            lines: [orderLine()],
+            allowed_commands: ["cancel"],
+            version: body.version + 1,
+          }),
+        );
+      }),
+    );
+    renderApp("/orders/new");
+    await openForm();
+    const user = userEvent.setup();
+
+    await pickExistingCustomer(user);
+    await addDellLine(user);
+
+    const cancelBtn = screen.getByRole("button", { name: "Huỷ đơn" });
+    expect(cancelBtn).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Lưu nháp" }));
+    expect(await screen.findByText("Đã lưu nháp DH2609-0001.")).toBeInTheDocument();
+
+    expect(screen.getByRole("button", { name: "Huỷ đơn" })).not.toBeDisabled();
+  });
+
+  test("AC-ORD-169 mở lại đơn nháp đã lưu từ trước → Huỷ đơn enabled ngay, không cần Lưu nháp lại", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ allowed_commands: ["submit", "cancel"] })),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+
+    expect(screen.getByRole("button", { name: "Huỷ đơn" })).not.toBeDisabled();
+  });
+});
+
 describe("AC-ORD-025 tìm khách hoặc Khách lẻ", () => {
   test("tìm theo tên sau 300ms, chọn khách hiện SĐT/địa chỉ tham khảo", async () => {
     signedInAs(hoaId, HOA);
