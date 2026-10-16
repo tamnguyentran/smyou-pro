@@ -154,6 +154,37 @@ describe("Báo cáo KPI", () => {
     expect(within(list).getByText(/Phạm Thị Lan/)).toBeInTheDocument();
   });
 
+  test("AC-UI-032 desktop: thẻ KPI bỏ viền, p-5, shadow-card; số liệu đúng vị trí", async () => {
+    signedInAs(anId, AN);
+    mockReport([KHOA]);
+    renderApp("/reports/kpi");
+
+    const list = await screen.findByRole("list", { name: "Báo cáo KPI theo kỹ thuật viên" });
+    const card = within(list)
+      .getByText(/Trần Văn Khoa/)
+      .closest("li") as HTMLElement;
+    expect(card.className).toContain("shadow-card");
+    expect(card.className).toContain("p-5");
+    expect(card.className).not.toMatch(/\bborder\b/);
+    expect(within(card).getByText("Xong")).toBeInTheDocument();
+  });
+
+  test("AC-UI-032 mobile: thẻ KPI bỏ viền, p-5, shadow-card; số liệu đúng vị trí", async () => {
+    mobile();
+    signedInAs(anId, AN);
+    mockReport([KHOA]);
+    renderApp("/reports/kpi");
+
+    const list = await screen.findByRole("list", { name: "Báo cáo KPI theo kỹ thuật viên" });
+    const card = within(list)
+      .getByText(/Trần Văn Khoa/)
+      .closest("li") as HTMLElement;
+    expect(card.className).toContain("shadow-card");
+    expect(card.className).toContain("p-5");
+    expect(card.className).not.toMatch(/\bborder\b/);
+    expect(within(card).getByText("Xong")).toBeInTheDocument();
+  });
+
   test('AC-KPI-019 completed_task_count=0 → "Đúng hạn" hiện "—"', async () => {
     signedInAs(anId, AN);
     mockReport([MINH]);

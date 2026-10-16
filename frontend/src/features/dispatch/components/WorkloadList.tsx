@@ -125,7 +125,7 @@ export function WorkloadList({ items }: { items: EmployeeWorkload[] }) {
           />
           <ul className="space-y-3">
             {group.items.map((item) => (
-              <li key={item.employee_id} className="rounded-2xl border border-line p-4 shadow-card">
+              <li key={item.employee_id} className="rounded-2xl p-5 shadow-card">
                 <p className="font-semibold text-heading">{item.full_name}</p>
                 <p className="mt-1 text-sm text-body">
                   <span className="text-muted">Số đầu việc đang mở:</span>{" "}

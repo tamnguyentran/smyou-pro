@@ -269,7 +269,7 @@ export function MyAssignmentList({
       {items.map((item) => (
         <li
           key={item.assignment_id}
-          className="flex flex-col gap-2 rounded-2xl border border-line bg-card p-4 shadow-card"
+          className="flex flex-col gap-2 rounded-2xl bg-card p-5 shadow-card"
         >
           <div className="flex items-center justify-between gap-2">
             <p className="font-semibold text-heading">{item.task_code}</p>

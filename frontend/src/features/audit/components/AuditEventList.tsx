@@ -114,7 +114,7 @@ export function AuditEventList({ items, names }: { items: AuditEventOut[]; names
   return (
     <ul aria-label="Nhật ký hệ thống" className="space-y-3">
       {items.map((event) => (
-        <li key={event.id} className="rounded-2xl border border-line bg-card p-4 shadow-card">
+        <li key={event.id} className="rounded-2xl bg-card p-5 shadow-card">
           <div className="flex items-center justify-between gap-2">
             <Badge tone="neutral">{actionLabel(event.action)}</Badge>
             <span className="text-xs font-medium text-muted">
