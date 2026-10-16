@@ -52,7 +52,7 @@ export function ProfilePage() {
   }
   // Sign-out does not depend on /me, so it stays available when /me cannot be loaded.
   return (
-    <section className="space-y-4 rounded-2xl border border-line bg-card p-6 shadow-card md:max-w-md">
+    <section className="space-y-4 rounded-2xl bg-card p-7 shadow-card md:max-w-md">
       {details}
       <Link
         to="/doi-mat-khau"

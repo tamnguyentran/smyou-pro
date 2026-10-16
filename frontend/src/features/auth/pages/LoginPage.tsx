@@ -25,7 +25,7 @@ export function LoginPage() {
 
   return (
     <main className="flex min-h-dvh items-center justify-center p-4">
-      <section className="w-full rounded-2xl border border-line bg-card p-6 shadow-card md:max-w-md md:p-8">
+      <section className="w-full rounded-2xl bg-card p-7 shadow-card md:max-w-md md:p-8">
         <BrandHeader />
         <h2 className="mt-6 text-lg font-semibold text-heading lg:text-xl">Đăng nhập</h2>
         <form noValidate onSubmit={(e) => void onSubmit(e)} className="mt-4 space-y-4">

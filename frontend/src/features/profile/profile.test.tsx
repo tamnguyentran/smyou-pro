@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -159,9 +159,9 @@ describe("AC-UI-039 AC-UI-040 khung thẻ hồ sơ cá nhân bỏ viền", () =>
     const section = screen.getByRole("main").querySelector("section") as HTMLElement;
     expect(section.className).toContain("shadow-card");
     expect(section.className).not.toMatch(/\bborder\b/);
-    const changePasswordLink = screen.getByRole("link", { name: /Đổi mật khẩu/ });
+    const changePasswordLink = within(section).getByRole("link", { name: /Đổi mật khẩu/ });
     expect(changePasswordLink.className).toContain("border-line");
-    expect(screen.getByRole("button", { name: "Đăng xuất" })).toBeInTheDocument();
+    expect(within(section).getByRole("button", { name: "Đăng xuất" })).toBeInTheDocument();
   });
 
   test("đang tải /me: khung section vẫn đúng style, nội dung skeleton không đổi", async () => {
@@ -201,6 +201,6 @@ describe("AC-UI-039 AC-UI-040 khung thẻ hồ sơ cá nhân bỏ viền", () =>
     const section = screen.getByRole("main").querySelector("section") as HTMLElement;
     expect(section.className).toContain("shadow-card");
     expect(section.className).not.toMatch(/\bborder\b/);
-    expect(screen.getByRole("button", { name: "Thử lại" })).toBeInTheDocument();
+    expect(within(section).getByRole("button", { name: "Thử lại" })).toBeInTheDocument();
   });
 });
