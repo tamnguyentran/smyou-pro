@@ -23,7 +23,7 @@ function AttachmentCard({ attachment }: { attachment: ConfirmationAttachment }) 
       href={attachmentUrl(attachment.id)}
       target="_blank"
       rel="noreferrer"
-      className="block space-y-1 rounded-2xl border border-line bg-card p-2 shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+      className="block space-y-1 rounded-2xl bg-card p-2 shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
     >
       <img
         src={attachmentUrl(attachment.id)}

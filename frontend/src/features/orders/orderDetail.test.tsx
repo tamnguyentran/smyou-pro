@@ -1155,8 +1155,8 @@ describe("AC-UI-016 AC-UI-017 header chi tiết đơn bỏ viền", () => {
     expect(screen.getByRole("button", { name: "Thu hồi" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Huỷ đơn" })).toBeInTheDocument();
 
-    const infoTab = screen.getByRole("tab", { name: "Thông tin" });
-    expect(infoTab.className).toContain("border-line");
+    const linesTab = screen.getByRole("tab", { name: "Dòng hàng" });
+    expect(linesTab.className).toContain("border-line");
   });
 });
 
@@ -1177,7 +1177,7 @@ describe("AC-UI-018 khung thông tin đơn bỏ viền", () => {
     expect(dl.className).toContain("shadow-card");
     expect(dl.className).toContain("p-5");
     expect(dl.className).not.toMatch(/\bborder\b/);
-    expect(screen.getByText("Cty Sáng Tạo Mới")).toBeInTheDocument();
+    expect(within(dl).getByText("Cty Sáng Tạo Mới")).toBeInTheDocument();
   });
 });
 

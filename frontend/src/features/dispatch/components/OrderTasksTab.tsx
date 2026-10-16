@@ -110,7 +110,7 @@ function TaskList({
             onClick={() => {
               onSelect(task.id);
             }}
-            className="w-full space-y-1 rounded-2xl border border-line bg-card p-4 text-left shadow-card transition duration-200 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+            className="w-full space-y-1 rounded-2xl bg-card p-5 text-left shadow-card transition duration-200 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           >
             <div className="flex items-center justify-between gap-2">
               <span className="font-semibold text-heading">{task.code}</span>

@@ -74,7 +74,7 @@ export function OrderHistoryTab({ orderId }: { orderId: string }) {
   return (
     <ul aria-label="Lịch sử đơn" className="space-y-3">
       {history.data.items.map((event) => (
-        <li key={event.id} className="rounded-2xl border border-line bg-card p-4 shadow-card">
+        <li key={event.id} className="rounded-2xl bg-card p-5 shadow-card">
           <div className="flex items-center justify-between gap-2">
             <Badge tone="neutral">{COMMAND_LABELS[event.action] ?? event.action}</Badge>
             <span className="text-xs font-medium text-muted">
