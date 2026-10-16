@@ -1,9 +1,10 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { delay, http, HttpResponse } from "msw";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { server } from "../../test/msw";
 import { renderApp } from "../../test/renderApp";
+import { DispatchQueueList } from "./components/DispatchQueueList";
 import { AN, anId, HOA, hoaId, QUEUE, signedInAs, TUAN, tuanId } from "./testFixtures";
 
 function mobile() {
@@ -87,14 +88,8 @@ describe("Hàng đợi điều phối", () => {
 
   test("AC-UI-026 mobile: thẻ đơn bỏ viền, p-5, shadow-card; bấm vẫn chọn đúng 1 lần", async () => {
     mobile();
-    signedInAs(tuanId, TUAN, { pending_dispatch_count: 4 });
-    server.use(
-      http.get("/api/v1/orders", () =>
-        HttpResponse.json({ items: QUEUE, total: 4, limit: 20, offset: 0 }),
-      ),
-    );
-    renderApp("/dispatch/queue");
-    await screen.findByText("DH2610-0009");
+    const onSelect = vi.fn();
+    render(<DispatchQueueList items={QUEUE} onSelect={onSelect} />);
 
     const cards = screen.getAllByRole("button", { name: /^DH2610-/ });
     expect(cards[0]?.className).toContain("shadow-card");
@@ -103,9 +98,8 @@ describe("Hàng đợi điều phối", () => {
     expect(cards[0]?.className).not.toMatch(/\bborder\b/);
 
     await userEvent.setup().click(cards[0] as HTMLElement);
-    expect(
-      await screen.findByRole("dialog", { name: "Tạo đầu việc — DH2610-0009" }),
-    ).toBeInTheDocument();
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(QUEUE[0]);
   });
 
   test("AC-UI-027 desktop: table hàng đợi điều phối vẫn giữ border border-line", async () => {

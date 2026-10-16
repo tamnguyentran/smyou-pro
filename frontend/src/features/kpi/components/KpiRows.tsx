@@ -26,7 +26,7 @@ function StatBig({ label, value }: { label: string; value: string }) {
 function KpiCard({ row }: { row: KpiRow }) {
   const percent = onTimePercent(row.on_time_count, row.completed_task_count);
   return (
-    <li className="space-y-3 rounded-2xl border border-line bg-card p-4 shadow-card">
+    <li className="space-y-3 rounded-2xl bg-card p-5 shadow-card">
       <p className="font-semibold text-heading">
         <TechnicianLabel row={row} />
       </p>
