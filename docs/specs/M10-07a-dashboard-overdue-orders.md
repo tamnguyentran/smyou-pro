@@ -10,8 +10,8 @@ Là Sale, tôi muốn trang "Tổng quan" thêm thống kê "đơn quá hạn ch
 ## 2. Phạm vi
 - `order_summary` (đã có, SALE scope `own` / MANAGER scope `all`) thêm 1 trường mới `overdue_count`: đếm đơn **chưa hoàn tất** (status ∉ {COMPLETED, CANCELLED}) và có **ít nhất 1 đầu việc đang mở** (status ∉ {DONE, CANCELLED}, tái dùng `_OPEN_TASK_STATUSES_EXCLUDE`) với `due_at` đã qua — cùng khái niệm "quá hạn" đã dùng ở `dispatch_summary.overdue_task_count`, chỉ khác là đếm theo **đơn** (distinct order) thay vì theo **đầu việc**.
 - `GET /api/v1/orders` thêm query param tuỳ chọn `overdue: bool = false` (độc lập với `status`, kết hợp được với `mine`/`q`): lọc đúng điều kiện trên.
-- `OrdersListPage`: thêm 1 chip "Quá hạn" vào cuối `ChipGroup` "Trạng thái" hiện có (cùng hàng với 7 trạng thái + "Tất cả") — chọn "Quá hạn" đặt `overdue=true` và bỏ chọn `status`; chọn 1 trạng thái thật hoặc "Tất cả" sẽ bỏ `overdue`. Đọc thêm `overdue` từ URL lúc mount (giống `status`/`mine`, M10-03).
-- `StatTile` mới "Quá hạn" trong `OrderSummarySection`, tông `urgent`, nối vào sau 7 thẻ trạng thái; `to` = `/orders?overdue=true${scope === "own" ? "&mine=1" : ""}`.
+- `OrdersListPage`: thêm 1 chip "Quá hạn" vào cuối `ChipGroup` "Trạng thái" hiện có (cùng hàng với 7 trạng thái + "Tất cả") — chọn "Quá hạn" đặt bộ lọc `overdue=true` (gửi lên API) và bỏ chọn `status`; chọn 1 trạng thái thật hoặc "Tất cả" sẽ bỏ `overdue`. Đọc `overdue` từ URL lúc mount qua quy ước `overdue=1` (giống `mine=1`, M10-03), không phải `overdue=true`.
+- `StatTile` mới "Quá hạn" trong `OrderSummarySection`, tông `urgent`, nối vào sau 7 thẻ trạng thái; `to` = `/orders?overdue=1${scope === "own" ? "&mine=1" : ""}` (URL điều hướng nội bộ dùng `overdue=1`, khác với query param `overdue=true` gửi lên API — xem §4).
 - Ngoài phạm vi (không làm ở item này): các lát cắt M10-07b (Quản lý/Điều phối)/M10-07c (Kỹ thuật viên) — spec riêng.
 
 ## 3. Acceptance Criteria
@@ -21,7 +21,7 @@ Là Sale, tôi muốn trang "Tổng quan" thêm thống kê "đơn quá hạn ch
 | AC-DASH-032 | Hoa (SALE); đơn A: `IN_PROGRESS`, có task quá hạn (`due_at` hôm qua, status `ACCEPTED`); đơn B: `IN_PROGRESS`, có task **không** quá hạn; đơn C: `COMPLETED`, có task quá hạn (đã hoàn tất, không tính); đơn D: `IN_PROGRESS`, task quá hạn nhưng task đã `DONE` (không tính) | Hoa `GET /api/v1/dashboard` | `order_summary.overdue_count == 1` (chỉ đơn A) | integration |
 | AC-DASH-033 | Hoa (SALE) có 2 đơn quá hạn của mình; công ty có thêm 3 đơn quá hạn của An (SALE khác) | Hoa `GET /api/v1/orders?overdue=true&mine=true` | 200; chỉ trả 2 đơn của Hoa | integration |
 | AC-DASH-034 | Như AC-DASH-033, không truyền `mine` | Hoa `GET /api/v1/orders?overdue=true` | 200; trả cả đơn của Hoa lẫn của An (scope `order.read` của SALE là `all`, không đổi) | integration |
-| AC-DASH-035 | Hoa (SALE) ở Tổng quan, `order_summary.scope="own"`, `overdue_count=2` | Hoa bấm thẻ "Quá hạn" | Điều hướng `/orders?overdue=true&mine=1`; trang tải với chip "Quá hạn" đang chọn (không chip trạng thái nào khác), checkbox "Chỉ đơn của tôi" đã tick | component + e2e |
+| AC-DASH-035 | Hoa (SALE) ở Tổng quan, `order_summary.scope="own"`, `overdue_count=2` | Hoa bấm thẻ "Quá hạn" | Điều hướng `/orders?overdue=1&mine=1`; trang tải với chip "Quá hạn" đang chọn (không chip trạng thái nào khác), checkbox "Chỉ đơn của tôi" đã tick | component + e2e |
 | AC-DASH-036 | Người dùng ở `/orders`, chip "Quá hạn" đang chọn | Bấm chip "Chờ điều phối" | Bỏ chọn "Quá hạn" (bật `status=PENDING_DISPATCH`, `overdue` tắt) — 2 chip loại trừ lẫn nhau | component |
 | AC-DASH-050 | Bất kỳ vai trò thấy `order_summary`, `overdue_count = 0` | render thẻ "Quá hạn" | Thẻ số 0 vẫn hiện, vẫn bấm được (không vô hiệu hoá) — nhất quán `AC-DASH-026` | component |
 
@@ -39,7 +39,7 @@ Không có bảng/cột mới. Tính trực tiếp từ `orders.status`, `tasks.
 
 ## 6. UI
 - `OrderSummarySection`: thêm `StatTile` "Quá hạn" (tông `urgent`) sau 7 thẻ trạng thái.
-- `OrdersListPage`: thêm chip "Quá hạn" vào cuối danh sách chip trạng thái hiện có; chọn chip này ẩn/bỏ `status`, đặt `overdue=true`; chọn chip khác tắt `overdue`.
+- `OrdersListPage`: thêm chip "Quá hạn" vào cuối danh sách chip trạng thái hiện có; chọn chip này ẩn/bỏ `status`, đặt bộ lọc `overdue`; chọn chip khác tắt `overdue`.
 
 ## 7. Kịch bản UAT thủ công
 1. Đăng nhập Hoa (SALE), có đơn quá hạn → mở "Tổng quan" → thấy thẻ "Quá hạn" → bấm vào → đúng danh sách đơn quá hạn của Hoa.

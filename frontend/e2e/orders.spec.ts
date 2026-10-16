@@ -307,9 +307,9 @@ test("AC-ORD-069 AC-ORD-110 AC-ORD-113 AC-ORD-114 AC-UI-014 @a11y @screenshot da
   await page.goto("./orders");
   await expect(page.getByRole("heading", { level: 1, name: "Danh sách đơn" })).toBeVisible();
 
-  // AC-ORD-110/AC-ORD-113: nhóm chip trạng thái, đủ 8 chip đúng thứ tự, "Tất cả" đang chọn, vùng chạm ≥44px.
+  // AC-ORD-110/AC-ORD-113: nhóm chip trạng thái, đủ 9 chip đúng thứ tự, "Tất cả" đang chọn, vùng chạm ≥44px.
   const statusGroup = page.getByRole("radiogroup", { name: "Trạng thái" });
-  await expect(statusGroup.getByRole("radio")).toHaveCount(8);
+  await expect(statusGroup.getByRole("radio")).toHaveCount(9);
   const chipLabels = await statusGroup.getByRole("radio").allTextContents();
   expect(chipLabels).toEqual([
     "Tất cả",
@@ -320,6 +320,7 @@ test("AC-ORD-069 AC-ORD-110 AC-ORD-113 AC-ORD-114 AC-UI-014 @a11y @screenshot da
     "Hoàn tất",
     "Chỉnh sửa",
     "Đã huỷ",
+    "Quá hạn",
   ]);
   await expect(statusGroup.getByRole("radio", { name: "Tất cả" })).toHaveAttribute(
     "aria-checked",

@@ -24,7 +24,7 @@ export function OrderSummarySection({ summary }: { summary: OrderSummary }) {
           label="Quá hạn"
           value={summary.overdue_count}
           tone="urgent"
-          to={`/orders?overdue=true${summary.scope === "own" ? "&mine=1" : ""}`}
+          to={`/orders?overdue=1${summary.scope === "own" ? "&mine=1" : ""}`}
         />
       </div>
     </section>

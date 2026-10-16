@@ -500,7 +500,7 @@ describe("Tổng quan", () => {
     expect(grid.className).toContain("grid-cols-2");
   });
 
-  test("AC-DASH-035 (M10-07a) Hoa bấm thẻ 'Quá hạn' → /orders?overdue=true&mine=1", async () => {
+  test("AC-DASH-035 (M10-07a) Hoa bấm thẻ 'Quá hạn' → /orders?overdue=1&mine=1", async () => {
     signedInAs("hoa-id", HOA);
     mockDashboard({
       order_summary: {
@@ -529,7 +529,7 @@ describe("Tổng quan", () => {
 
     await waitFor(() => {
       expect(router.state.location.pathname + router.state.location.search).toBe(
-        "/orders?overdue=true&mine=1",
+        "/orders?overdue=1&mine=1",
       );
     });
   });
@@ -554,7 +554,7 @@ describe("Tổng quan", () => {
     renderApp("/");
 
     const link = (await screen.findByText("Quá hạn")).closest("a") as HTMLElement;
-    expect(link.getAttribute("href")).toBe("/orders?overdue=true");
+    expect(link.getAttribute("href")).toBe("/orders?overdue=1");
     expect(within(link).getByText("0")).toBeInTheDocument();
   });
 });
