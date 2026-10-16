@@ -9,7 +9,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - [x] **M11-02a Lan style thẻ mới ra 5 trang danh sách (Đơn hàng, Khách hàng, Nhân viên, Sản phẩm, Dịch vụ)** — chỉ thẻ mobile, giữ nguyên bảng desktop; spec: `docs/specs/M11-02a-ui-card-style-list-pages.md`.
 - [x] **M11-02b Lan style thẻ ra màn hình chi tiết đơn hàng** (các tab trong `OrderDetailTabs`) — spec: `docs/specs/M11-02b-ui-card-style-order-detail.md`.
 - [ ] **M11-02c Lan style thẻ ra Điều phối, Việc của tôi, KPI, Nhật ký** (`DispatchQueueList`, `WorkloadList`, `MyAssignmentList`, `KpiRows`, `AuditEventList`) — PR #104 chờ merge; spec: `docs/specs/M11-02c-ui-card-style-dispatch-kpi-audit.md`.
-- [~] **M11-02d Soát 3 trang form đơn lẻ** (Đăng nhập, Đổi mật khẩu, Hồ sơ cá nhân) — spec đã duyệt, đang implement; spec: `docs/specs/M11-02d-ui-card-style-standalone-forms.md`.
+- [x] **M11-02d Soát 3 trang form đơn lẻ** (Đăng nhập, Đổi mật khẩu, Hồ sơ cá nhân) — spec: `docs/specs/M11-02d-ui-card-style-standalone-forms.md`.
 
 ## Đã xong (tự động lưu trữ)
 - M9 — xem `BACKLOG_ARCHIVE.md`.

@@ -1,6 +1,6 @@
 # M11-02d — Lan style thẻ (bỏ viền trang trí, giữ viền input) ra 3 trang form đơn lẻ
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M11-02d · **Milestone:** M11
 - **Liên quan:** `docs/design/UI_GUIDELINES.md` §1.1 (nguyên tắc card không viền, trừ bảng/input/thẻ tô màu trạng thái — đã chốt ở M11-01), `docs/specs/M11-02a-ui-card-style-list-pages.md` + `docs/specs/M11-02b-ui-card-style-order-detail.md` + `docs/specs/M11-02c-ui-card-style-dispatch-kpi-audit.md` (mẫu đã duyệt, cùng khuôn mẫu). Không đụng `spec/*.yaml`, không đổi API/DB/phân quyền.
 
