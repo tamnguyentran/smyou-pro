@@ -54,11 +54,18 @@ async function evidence(
   if (size) await page.setViewportSize(size);
 }
 
-test("AC-ORD-024 AC-ORD-025 AC-ORD-026 AC-ORD-030 AC-ORD-032 AC-ORD-034 AC-ORD-039 @a11y @screenshot tạo đơn nháp đầy đủ, lưu, mở lại", async ({
+test("AC-ORD-024 AC-ORD-025 AC-ORD-026 AC-ORD-030 AC-ORD-032 AC-ORD-034 AC-ORD-039 AC-ORD-166 @a11y @screenshot tạo đơn nháp đầy đủ, lưu, mở lại", async ({
   page,
 }, info) => {
   await signIn(page, SALE);
   await expect(page.getByRole("heading", { level: 1, name: "Tạo đơn mới" })).toBeVisible();
+
+  // AC-ORD-166: nút "Lưu nháp" disabled (thiếu khách + dòng hàng) nhưng vẫn giữ vùng chạm ≥44px.
+  const saveBtn = page.getByRole("button", { name: "Lưu nháp" });
+  await expect(saveBtn).toHaveAttribute("aria-disabled", "true");
+  const saveBox = await saveBtn.boundingBox();
+  expect(saveBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+
   // Overflow check right away, before any typing: evidence()'s checkOverflow resizes across the
   // 1024px breakpoint, which remounts AppShell's outlet (same caveat as customers.spec.ts /
   // services.spec.ts) — safe only here, before there is any unsaved input for it to wipe.
@@ -119,6 +126,12 @@ test("AC-ORD-037 Hà (SALE khác) chỉ xem đơn của Hoa; An (MANAGER) sửa 
   await signIn(page, SALE);
   await page.getByLabel("Tìm khách hàng").fill("Sáng Tạo Mới");
   await page.getByRole("option", { name: /Cty Sáng Tạo Mới E2E/ }).click();
+  // M10-02: "Lưu nháp" chỉ enable khi có khách hàng + ≥1 dòng hàng.
+  await page.getByRole("button", { name: "Thêm dòng hàng" }).click();
+  const lineSheet = page.getByRole("dialog", { name: "Thêm dòng hàng" });
+  await lineSheet.getByLabel("Tìm sản phẩm").fill("dell");
+  await lineSheet.getByRole("button", { name: /Màn hình Dell 22 inch E2E/ }).click();
+  await expect(page.getByText("Màn hình Dell 22 inch E2E")).toBeVisible();
   await page.getByRole("button", { name: "Lưu nháp" }).click();
   await expect(page.getByText(/^Đã lưu nháp DH\d{4}-\d{4}\.$/)).toBeVisible();
   // baseURL already carries the app's own base path (playwright.config.ts) — page.url()'s pathname
@@ -250,6 +263,14 @@ test("AC-ORD-063 huỷ đơn nháp", async ({ page }) => {
   await signIn(page, SALE);
   await page.getByLabel("Địa chỉ thi công").fill("34 Nguyễn Huệ, Q1, TP.HCM");
   await page.getByLabel("Mô tả công việc").fill("Lắp camera văn phòng");
+  // M10-02: "Lưu nháp" chỉ enable khi có khách hàng + ≥1 dòng hàng.
+  await page.getByLabel("Tìm khách hàng").fill("Sáng Tạo Mới");
+  await page.getByRole("option", { name: /Cty Sáng Tạo Mới E2E/ }).click();
+  await page.getByRole("button", { name: "Thêm dòng hàng" }).click();
+  const lineSheet = page.getByRole("dialog", { name: "Thêm dòng hàng" });
+  await lineSheet.getByLabel("Tìm sản phẩm").fill("dell");
+  await lineSheet.getByRole("button", { name: /Màn hình Dell 22 inch E2E/ }).click();
+  await expect(page.getByText("Màn hình Dell 22 inch E2E")).toBeVisible();
   await page.getByRole("button", { name: "Lưu nháp" }).click();
   await expect(page.getByText(/^Đã lưu nháp DH\d{4}-\d{4}\.$/)).toBeVisible();
   const code = (await page.getByRole("heading", { level: 1 }).textContent()) ?? "";
@@ -271,6 +292,14 @@ test("AC-ORD-069 AC-ORD-110 AC-ORD-113 AC-ORD-114 AC-UI-014 @a11y @screenshot da
 }, info) => {
   await signIn(page, SALE);
   await page.getByLabel("Địa chỉ thi công").fill("56 Lý Tự Trọng, Q1, TP.HCM");
+  // M10-02: "Lưu nháp" chỉ enable khi có khách hàng + ≥1 dòng hàng.
+  await page.getByLabel("Tìm khách hàng").fill("Sáng Tạo Mới");
+  await page.getByRole("option", { name: /Cty Sáng Tạo Mới E2E/ }).click();
+  await page.getByRole("button", { name: "Thêm dòng hàng" }).click();
+  const lineSheet = page.getByRole("dialog", { name: "Thêm dòng hàng" });
+  await lineSheet.getByLabel("Tìm sản phẩm").fill("dell");
+  await lineSheet.getByRole("button", { name: /Màn hình Dell 22 inch E2E/ }).click();
+  await expect(page.getByText("Màn hình Dell 22 inch E2E")).toBeVisible();
   await page.getByRole("button", { name: "Lưu nháp" }).click();
   await expect(page.getByText(/^Đã lưu nháp DH\d{4}-\d{4}\.$/)).toBeVisible();
   const code = (await page.getByRole("heading", { level: 1 }).textContent()) ?? "";
