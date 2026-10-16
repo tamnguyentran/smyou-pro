@@ -6,7 +6,10 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 
 ## M11 — Làm mới giao diện (UI refresh, theo yêu cầu chủ dự án 2026-10-15)
 - [x] **M11-01 Làm mới style thẻ (card): bỏ viền, dùng bóng mờ, thoáng hơn** — áp mẫu trên 4 component (StatTile, TodayTaskCard, TaskBoardCard, KpiSelfCard) để chủ dự án duyệt hướng trước khi lan ra toàn app (UI); spec: `docs/specs/M11-01-ui-card-style-refresh.md`.
-- [ ] **M11-02 Lan style thẻ mới ra các trang còn lại** — chưa viết spec, chờ duyệt M11-01 trước.
+- [~] **M11-02a Lan style thẻ mới ra 5 trang danh sách (Đơn hàng, Khách hàng, Nhân viên, Sản phẩm, Dịch vụ)** — chỉ thẻ mobile, giữ nguyên bảng desktop; spec: `docs/specs/M11-02a-ui-card-style-list-pages.md`.
+- [ ] **M11-02b Lan style thẻ ra màn hình chi tiết đơn hàng** (các tab trong `OrderDetailTabs`) — chưa viết spec, làm sau khi M11-02a duyệt/ship.
+- [ ] **M11-02c Lan style thẻ ra Điều phối, Việc của tôi, KPI, Nhật ký** (`DispatchQueueList`, `WorkloadList`, `MyAssignmentList`, `KpiRows`, `AuditEventList`) — chưa viết spec.
+- [ ] **M11-02d Soát 3 trang form đơn lẻ** (Đăng nhập, Đổi mật khẩu, Hồ sơ cá nhân) — chưa viết spec, cần phân biệt viền trang trí vs viền input.
 
 ## Đã xong (tự động lưu trữ)
 - M9 — xem `BACKLOG_ARCHIVE.md`.
