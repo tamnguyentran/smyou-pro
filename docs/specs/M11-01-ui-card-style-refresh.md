@@ -1,6 +1,6 @@
 # M11-01 — Làm mới style thẻ (card) theo hướng thoáng, ít viền
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M11-01 · **Milestone:** M11
 - **Liên quan:** `docs/design/UI_GUIDELINES.md` §1 (Nguyên tắc), §2 (Design tokens), `frontend/src/styles/index.css`. Không đụng `spec/*.yaml`, không đổi API/DB/phân quyền (chỉ frontend + docs, ước lượng ~40–60 dòng non-test).
 
