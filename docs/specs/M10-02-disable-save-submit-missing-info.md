@@ -1,6 +1,6 @@
 # M10-02 — Vô hiệu hoá nút Lưu nháp/Gửi đơn khi thiếu thông tin bắt buộc
 
-- **Status:** Approved (amendment 2026-10-16: thêm điều kiện enable cho "Huỷ đơn")
+- **Status:** Done
 - **Backlog:** M10-02 · **Milestone:** M10
 - **Liên quan:** `docs/specs/M3-02b-draft-orders-ui.md` (nút "Lưu nháp", AC-ORD-024 — item này sửa lại hành vi "nút luôn hiện" thành có điều kiện enable); `docs/specs/M3-03b-order-list-detail-ui.md` (nút "Gửi đơn", AC-ORD-061/062 — giữ nguyên xử lý lỗi `GUARD_FAILED` phía server làm lớp bảo vệ thứ hai); `spec/state_machines.yaml#order.transitions[submit].guards` (`customer_present`, `has_lines_or_description`, `service_address_present` — nguồn sự thật cho guard server, không đổi ở item này)
 
