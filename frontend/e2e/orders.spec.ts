@@ -145,7 +145,7 @@ test("AC-ORD-037 Hà (SALE khác) chỉ xem đơn của Hoa; An (MANAGER) sửa 
   await expect(page.getByRole("button", { name: "Lưu nháp" })).toBeVisible();
 });
 
-test("AC-ORD-061 AC-ORD-064 AC-ORD-065 AC-ORD-067 AC-ORD-071 AC-ORD-093 AC-ORD-098 AC-ORD-100 AC-ORD-105 @a11y @screenshot gửi đơn, xem chi tiết, thu hồi, gửi lại, lịch sử, bố cục", async ({
+test("AC-ORD-061 AC-ORD-064 AC-ORD-065 AC-ORD-067 AC-ORD-071 AC-ORD-093 AC-ORD-098 AC-ORD-100 AC-ORD-105 AC-UI-024 @a11y @screenshot gửi đơn, xem chi tiết, thu hồi, gửi lại, lịch sử, bố cục", async ({
   page,
 }, info) => {
   await signIn(page, SALE);
