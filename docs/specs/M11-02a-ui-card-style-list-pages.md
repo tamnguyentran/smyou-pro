@@ -1,6 +1,6 @@
 # M11-02a — Lan style thẻ (bỏ viền, p-5) ra thẻ mobile của 5 trang danh sách
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M11-02a · **Milestone:** M11
 - **Liên quan:** `docs/design/UI_GUIDELINES.md` §1.1 (nguyên tắc card không viền, trừ bảng/input/thẻ tô màu trạng thái — đã chốt ở M11-01), `docs/specs/M11-01-ui-card-style-refresh.md` (mẫu đã duyệt). Không đụng `spec/*.yaml`, không đổi API/DB/phân quyền.
 
