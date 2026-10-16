@@ -15,30 +15,27 @@ function groupKeyOf(item: EmployeeWorkload): WorkloadGroupKey {
 
 /** Dùng lại đúng tone Badge đã có (UI_GUIDELINES §2) — không tạo màu mới: `in_progress` (xanh
  * nhạt) = đang làm, `review` (vàng nhạt) = đã giao nhưng chưa bắt đầu, `urgent` (hồng nhạt) =
- * chưa có đầu việc, mẫu header màu theo `TaskBoardColumn.tsx`. */
+ * chưa có đầu việc, mẫu header màu theo `TaskBoardColumn.tsx`. Chỉ tô màu header, không tô hàng/thẻ
+ * (nền pha loãng + `text-muted` từng rớt dưới 4.5:1 ở axe — nhóm đã đủ rõ nhờ tiêu đề). */
 const GROUPS: {
   key: WorkloadGroupKey;
   label: string;
   headerClass: string;
-  rowClass: string;
 }[] = [
   {
     key: "IN_PROGRESS",
     label: "Đang làm",
     headerClass: "border-in_progress-border bg-in_progress-bg text-in_progress-fg",
-    rowClass: "bg-in_progress-bg/40",
   },
   {
     key: "NOT_STARTED",
     label: "Chưa thực hiện",
     headerClass: "border-review-border bg-review-bg text-review-fg",
-    rowClass: "bg-review-bg/40",
   },
   {
     key: "IDLE",
     label: "Chưa có đầu việc",
     headerClass: "border-urgent-border bg-urgent-bg text-urgent-fg",
-    rowClass: "bg-urgent-bg/40",
   },
 ];
 
@@ -92,7 +89,7 @@ export function WorkloadList({ items }: { items: EmployeeWorkload[] }) {
               </thead>
               <tbody className="divide-y divide-line">
                 {group.items.map((item) => (
-                  <tr key={item.employee_id} className={group.rowClass}>
+                  <tr key={item.employee_id}>
                     <td className="px-4 py-3 font-medium text-heading">{item.full_name}</td>
                     <td className="px-4 py-3 text-body">{item.open_task_count}</td>
                     <td className="px-4 py-3 text-body">
@@ -128,10 +125,7 @@ export function WorkloadList({ items }: { items: EmployeeWorkload[] }) {
           />
           <ul className="space-y-3">
             {group.items.map((item) => (
-              <li
-                key={item.employee_id}
-                className={`rounded-2xl border border-line p-4 shadow-card ${group.rowClass}`}
-              >
+              <li key={item.employee_id} className="rounded-2xl border border-line p-4 shadow-card">
                 <p className="font-semibold text-heading">{item.full_name}</p>
                 <p className="mt-1 text-sm text-body">
                   <span className="text-muted">Số đầu việc đang mở:</span>{" "}
