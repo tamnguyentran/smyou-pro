@@ -9,6 +9,8 @@ import type { components } from "../../lib/api/schema";
 
 type Order = components["schemas"]["OrderDetail"];
 type Customer = components["schemas"]["CustomerOut"];
+type OrderLine = components["schemas"]["OrderLineOut"];
+type Product = components["schemas"]["ProductOut"];
 
 const meId = "9d1f0c2e-0000-4000-8000-000000000003";
 const hoaId = "a0000000-0000-4000-8000-000000000010";
@@ -125,6 +127,53 @@ function order(overrides: Partial<Order> = {}): Order {
   };
 }
 
+function dellProduct(overrides: Partial<Product> = {}): Product {
+  return {
+    id: "f0000000-0000-4000-8000-000000000040",
+    sku: "LCD-DELL22",
+    name: "Màn hình Dell 22 inch",
+    category: "MONITOR",
+    brand: "Dell",
+    price: 2_500_000,
+    price_fixed: true,
+    unit: "CAI",
+    vat_rate: "8",
+    specs: null,
+    warranty_months: 24,
+    image_attachment_id: null,
+    is_active: true,
+    version: 1,
+    ...overrides,
+  };
+}
+
+function orderLine(overrides: Partial<OrderLine> = {}): OrderLine {
+  return {
+    id: "c0000000-0000-4000-8000-000000000030",
+    position: 1,
+    item_type: "PRODUCT",
+    product_id: dellProduct().id,
+    service_id: null,
+    sku_snapshot: "LCD-DELL22",
+    name_snapshot: "Màn hình Dell 22 inch",
+    unit_snapshot: "CAI",
+    specs_snapshot: null,
+    warranty_months_snapshot: 24,
+    catalog_price_snapshot: 2_500_000,
+    price_fixed: true,
+    vat_rate: "8",
+    quantity: "1",
+    unit_price: 2_500_000,
+    is_gift: false,
+    line_discount: 0,
+    line_gross: 2_500_000,
+    line_vat: 200_000,
+    line_total: 2_700_000,
+    note: null,
+    ...overrides,
+  };
+}
+
 function signedInAs(id: string, person: Person) {
   server.use(
     http.post("/api/v1/auth/refresh", () =>
@@ -181,6 +230,203 @@ describe("AC-ORD-024 mở trang tạo đơn", () => {
     expect(screen.getByText("Chưa có dòng hàng nào.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Thêm dòng hàng" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Lưu nháp" })).toBeInTheDocument();
+  });
+});
+
+const HELPER_BOTH = "Cần chọn khách hàng và thêm ít nhất 1 dòng hàng để lưu đơn.";
+const HELPER_CUSTOMER = "Cần chọn khách hàng.";
+const HELPER_LINE = "Cần thêm ít nhất 1 dòng hàng.";
+
+async function addDellLine(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "Thêm dòng hàng" }));
+  const sheet = await screen.findByRole("dialog", { name: "Thêm dòng hàng" });
+  await user.type(within(sheet).getByLabelText("Tìm sản phẩm"), "dell");
+  await user.click(await within(sheet).findByRole("button", { name: /Màn hình Dell 22 inch/ }));
+  expect(await screen.findByText("Màn hình Dell 22 inch")).toBeInTheDocument();
+}
+
+async function pickExistingCustomer(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText("Tìm khách hàng"), "sáng tạo");
+  await user.click(await screen.findByRole("option", { name: /Cty Sáng Tạo Mới/ }));
+}
+
+describe("AC-ORD-158..166 disable Lưu nháp/Gửi đơn khi thiếu thông tin", () => {
+  test("AC-ORD-158 chưa chọn khách, chưa có dòng hàng → Lưu nháp disabled, helper đủ 2 phần", async () => {
+    signedInAs(hoaId, HOA);
+    renderApp("/orders/new");
+    await openForm();
+
+    const saveBtn = screen.getByRole("button", { name: "Lưu nháp" });
+    expect(saveBtn).toBeDisabled();
+    expect(saveBtn).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByText(HELPER_BOTH)).toBeInTheDocument();
+  });
+
+  test("AC-ORD-159 đã chọn khách, chưa có dòng → disabled, helper chỉ thiếu dòng hàng", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/customers", () =>
+        HttpResponse.json({ items: [customer()], total: 1, limit: 20, offset: 0 }),
+      ),
+    );
+    renderApp("/orders/new");
+    await openForm();
+    const user = userEvent.setup();
+
+    await pickExistingCustomer(user);
+
+    const saveBtn = screen.getByRole("button", { name: "Lưu nháp" });
+    expect(saveBtn).toBeDisabled();
+    expect(screen.getByText(HELPER_LINE)).toBeInTheDocument();
+  });
+
+  test("AC-ORD-160 có 1 dòng hàng, chưa chọn khách → disabled, helper chỉ thiếu khách hàng", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.post("/api/v1/orders", () => HttpResponse.json(order({ lines: [] }), { status: 201 })),
+      http.get("/api/v1/products", () =>
+        HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 }),
+      ),
+      http.post("/api/v1/orders/:id/lines", () =>
+        HttpResponse.json(order({ lines: [orderLine()] }), { status: 201 }),
+      ),
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ lines: [orderLine()] }))),
+    );
+    renderApp("/orders/new");
+    await openForm();
+    const user = userEvent.setup();
+
+    await addDellLine(user);
+
+    const saveBtn = screen.getByRole("button", { name: "Lưu nháp" });
+    expect(saveBtn).toBeDisabled();
+    expect(screen.getByText(HELPER_CUSTOMER)).toBeInTheDocument();
+  });
+
+  test("AC-ORD-161 đủ khách + dòng hàng → enabled, hết helper, bấm lưu được", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/customers", () =>
+        HttpResponse.json({ items: [customer()], total: 1, limit: 20, offset: 0 }),
+      ),
+      http.post("/api/v1/orders", () => HttpResponse.json(order({ lines: [] }), { status: 201 })),
+      http.get("/api/v1/products", () =>
+        HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 }),
+      ),
+      http.post("/api/v1/orders/:id/lines", () =>
+        HttpResponse.json(order({ lines: [orderLine()] }), { status: 201 }),
+      ),
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ lines: [orderLine()] }))),
+      http.patch("/api/v1/orders/:id", async ({ request }) => {
+        const body = (await request.json()) as { version: number };
+        return HttpResponse.json(order({ lines: [orderLine()], version: body.version + 1 }));
+      }),
+    );
+    renderApp("/orders/new");
+    await openForm();
+    const user = userEvent.setup();
+
+    await pickExistingCustomer(user);
+    await addDellLine(user);
+
+    const saveBtn = screen.getByRole("button", { name: "Lưu nháp" });
+    expect(saveBtn).not.toBeDisabled();
+    expect(screen.queryByText(HELPER_BOTH)).not.toBeInTheDocument();
+    expect(screen.queryByText(HELPER_CUSTOMER)).not.toBeInTheDocument();
+    expect(screen.queryByText(HELPER_LINE)).not.toBeInTheDocument();
+
+    await user.click(saveBtn);
+    expect(await screen.findByText("Đã lưu nháp DH2609-0001.")).toBeInTheDocument();
+  });
+
+  test("AC-ORD-162 xoá dòng duy nhất → Lưu nháp quay lại disabled ngay trên UI", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/customers", () =>
+        HttpResponse.json({ items: [customer()], total: 1, limit: 20, offset: 0 }),
+      ),
+      http.post("/api/v1/orders", () => HttpResponse.json(order({ lines: [] }), { status: 201 })),
+      http.get("/api/v1/products", () =>
+        HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 }),
+      ),
+      http.post("/api/v1/orders/:id/lines", () =>
+        HttpResponse.json(order({ lines: [orderLine()] }), { status: 201 }),
+      ),
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ lines: [orderLine()] }))),
+      http.post("/api/v1/orders/:id/lines/:lineId/remove", () =>
+        HttpResponse.json(order({ lines: [] })),
+      ),
+    );
+    renderApp("/orders/new");
+    await openForm();
+    const user = userEvent.setup();
+
+    await pickExistingCustomer(user);
+    await addDellLine(user);
+    const row = screen.getByTestId(`order-line-${orderLine().id}`);
+    expect(screen.getByRole("button", { name: "Lưu nháp" })).not.toBeDisabled();
+
+    await user.click(within(row).getByRole("button", { name: /Xoá dòng/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Xoá dòng hàng" });
+    await user.click(within(dialog).getByRole("button", { name: "Xoá" }));
+
+    expect(await screen.findByText("Đã xoá dòng hàng.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Lưu nháp" })).toBeDisabled();
+    expect(screen.getByText(HELPER_LINE)).toBeInTheDocument();
+  });
+
+  test("AC-ORD-163 đơn DRAFT thiếu khách/dòng → nút Gửi đơn cũng disabled cùng điều kiện", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ allowed_commands: ["submit", "cancel"] })),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+
+    const submitBtn = screen.getByRole("button", { name: "Gửi đơn" });
+    expect(submitBtn).toBeDisabled();
+    expect(submitBtn).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByText(HELPER_BOTH)).toBeInTheDocument();
+  });
+
+  test("AC-ORD-164 đủ điều kiện nhưng allowed_commands không có submit → không hiện nút Gửi đơn", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(
+          order({
+            customer_id: customerId,
+            customer_name: "Cty Sáng Tạo Mới",
+            customer_phone: "0909123456",
+            lines: [orderLine()],
+            allowed_commands: ["cancel"],
+          }),
+        ),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+
+    expect(screen.queryByRole("button", { name: "Gửi đơn" })).not.toBeInTheDocument();
+  });
+
+  test("AC-ORD-165 Khách lẻ chỉ điền tên, thiếu SĐT → vẫn disabled, helper thiếu khách hàng", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ lines: [orderLine()] }))),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "+ Khách lẻ" }));
+    await user.type(screen.getByLabelText("Tên khách hàng"), "Khách lẻ ABC");
+
+    const saveBtn = screen.getByRole("button", { name: "Lưu nháp" });
+    expect(saveBtn).toBeDisabled();
+    expect(screen.getByText(HELPER_CUSTOMER)).toBeInTheDocument();
   });
 });
 
@@ -243,40 +489,56 @@ describe("AC-ORD-025 tìm khách hoặc Khách lẻ", () => {
 });
 
 describe("AC-ORD-034 lưu nháp", () => {
-  test("lần đầu POST /orders, đổi URL, toast; lần sau PATCH không tạo trùng", async () => {
+  test("dòng đầu tiên tạo nháp ngầm (POST /orders, đổi URL); Lưu nháp sau đó PATCH, không tạo trùng", async () => {
     signedInAs(hoaId, HOA);
     let posts = 0;
     let patches = 0;
     server.use(
+      http.get("/api/v1/customers", () =>
+        HttpResponse.json({ items: [customer()], total: 1, limit: 20, offset: 0 }),
+      ),
       http.post("/api/v1/orders", () => {
         posts += 1;
-        return HttpResponse.json(order(), { status: 201 });
+        return HttpResponse.json(order({ lines: [] }), { status: 201 });
       }),
+      http.get("/api/v1/products", () =>
+        HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 }),
+      ),
+      http.post("/api/v1/orders/:id/lines", () =>
+        HttpResponse.json(order({ lines: [orderLine()] }), { status: 201 }),
+      ),
       // react-query's background refetch for the id we just navigated to (same order route, no
       // remount); it agrees with the POST/PATCH responses below, like a real server would. A late
       // refetch carrying an older snapshot is M3-07's case (AC-ORD-119) and is ignored there.
-      http.get("/api/v1/orders/:id", () => HttpResponse.json(order())),
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ lines: [orderLine()] }))),
       http.patch("/api/v1/orders/:id", async ({ request }) => {
         patches += 1;
         const body = (await request.json()) as { service_address?: string; version: number };
-        return HttpResponse.json(order({ service_address: body.service_address, version: 2 }));
+        return HttpResponse.json(
+          order({ lines: [orderLine()], service_address: body.service_address, version: 2 }),
+        );
       }),
     );
     const router = renderApp("/orders/new");
     await openForm();
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "Lưu nháp" }));
-    expect(await screen.findByText("Đã lưu nháp DH2609-0001.")).toBeInTheDocument();
+    await pickExistingCustomer(user);
+    await addDellLine(user);
+    expect(posts).toBe(1);
     await waitFor(() => {
       expect(router.state.location.pathname).toBe(`/orders/${orderId}`);
     });
+
+    await user.click(screen.getByRole("button", { name: "Lưu nháp" }));
+    expect(await screen.findByText("Đã lưu nháp DH2609-0001.")).toBeInTheDocument();
+    expect(patches).toBe(1);
     expect(posts).toBe(1);
 
     await user.type(screen.getByLabelText("Địa chỉ thi công"), "12 Lê Lợi");
     await user.click(screen.getByRole("button", { name: "Lưu nháp" }));
     await waitFor(() => {
-      expect(patches).toBe(1);
+      expect(patches).toBe(2);
     });
     expect(posts).toBe(1);
   });
@@ -286,7 +548,9 @@ describe("AC-ORD-035 409 STALE_VERSION", () => {
   test("hiện banner đỏ + nút Tải lại, cảnh báo trước khi mất thay đổi chưa lưu", async () => {
     signedInAs(hoaId, HOA);
     server.use(
-      http.get("/api/v1/orders/:id", () => HttpResponse.json(order())),
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ customer_id: customerId, lines: [orderLine()] })),
+      ),
       http.patch("/api/v1/orders/:id", () =>
         HttpResponse.json(
           {
@@ -432,7 +696,13 @@ describe("AC-ORD-061 gửi đơn", () => {
     let submitted = false;
     server.use(
       http.get("/api/v1/orders/:id", () =>
-        HttpResponse.json(order({ allowed_commands: ["submit", "cancel"] })),
+        HttpResponse.json(
+          order({
+            customer_id: customerId,
+            lines: [orderLine()],
+            allowed_commands: ["submit", "cancel"],
+          }),
+        ),
       ),
       http.post("/api/v1/orders/:id/submit", () => {
         submitted = true;
@@ -472,7 +742,13 @@ describe("AC-ORD-062 guard gửi đơn", () => {
     signedInAs(hoaId, HOA);
     server.use(
       http.get("/api/v1/orders/:id", () =>
-        HttpResponse.json(order({ allowed_commands: ["submit", "cancel"] })),
+        HttpResponse.json(
+          order({
+            customer_id: customerId,
+            lines: [orderLine()],
+            allowed_commands: ["submit", "cancel"],
+          }),
+        ),
       ),
       http.post("/api/v1/orders/:id/submit", () =>
         HttpResponse.json(

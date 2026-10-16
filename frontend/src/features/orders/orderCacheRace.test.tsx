@@ -17,6 +17,7 @@ type Product = components["schemas"]["ProductOut"];
 
 const hoaId = "a0000000-0000-4000-8000-000000000010";
 const orderId = "b0000000-0000-4000-8000-000000000042";
+const customerId = "e0000000-0000-4000-8000-000000000007";
 const dellLineId = "c0000000-0000-4000-8000-000000000030";
 const inkLineId = "c0000000-0000-4000-8000-000000000031";
 
@@ -229,6 +230,14 @@ function startRace(snapshot: Order) {
   return { gate, state };
 }
 
+/** M10-02: cả "Lưu nháp" đều cần có khách hàng trước khi enable — dùng Khách lẻ, không cần mock
+ * `GET /customers`. */
+async function selectWalkInCustomer(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "+ Khách lẻ" }));
+  await user.type(screen.getByLabelText("Tên khách hàng"), "Khách lẻ E2E");
+  await user.type(screen.getByLabelText("Số điện thoại"), "0909999999");
+}
+
 /** Thêm dòng `LCD-DELL22` từ sheet — bước này tạo nháp ngầm rồi mới `POST .../lines` (AC-ORD-026). */
 async function addDellLine(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Thêm dòng hàng" }));
@@ -252,6 +261,7 @@ describe("AC-ORD-119/120 phản hồi GET cũ không ghi đè bản chụp mới
     await screen.findByRole("heading", { level: 1, name: "Tạo đơn mới" });
     const user = userEvent.setup();
 
+    await selectWalkInCustomer(user);
     await addDellLine(user);
     gate.release();
     await waitFor(() => {
@@ -307,6 +317,7 @@ describe("AC-ORD-121 bản chụp mới hơn vẫn được nhận", () => {
     await screen.findByRole("heading", { level: 1, name: "Tạo đơn mới" });
     const user = userEvent.setup();
 
+    await selectWalkInCustomer(user);
     await addDellLine(user);
     gate.release();
 
@@ -332,15 +343,17 @@ describe("AC-ORD-122 409 STALE_VERSION thật vẫn báo và Tải lại đượ
         // Lần đầu: bản đang mở (version 3). Sau khi bấm "Tải lại": bản thật ở server (version 7).
         return HttpResponse.json(
           gets === 1
-            ? order({ version: 3, lines: [dellLine()] })
-            : order({ version: 7, lines: [dellLine()] }),
+            ? order({ version: 3, customer_id: customerId, lines: [dellLine()] })
+            : order({ version: 7, customer_id: customerId, lines: [dellLine()] }),
         );
       }),
       http.patch("/api/v1/orders/:id", async ({ request }) => {
         const body = (await request.json()) as { version: number };
         patchedVersions.push(body.version);
         if (body.version !== 7) return staleVersionProblem();
-        return HttpResponse.json(order({ version: 8, lines: [dellLine()] }));
+        return HttpResponse.json(
+          order({ version: 8, customer_id: customerId, lines: [dellLine()] }),
+        );
       }),
     );
     renderApp(`/orders/${orderId}`);
