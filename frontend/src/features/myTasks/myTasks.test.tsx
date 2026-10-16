@@ -127,6 +127,31 @@ describe("Việc của tôi", () => {
     expect(screen.getByRole("link", { name: /0932 06 8787/ })).toBeInTheDocument();
   });
 
+  test("AC-UI-030 mobile: thẻ đầu việc bỏ viền, p-5, shadow-card; nút Tiếp nhận/Từ chối vẫn bấm được", async () => {
+    mobile();
+    signedInAs(khoaId, KHOA);
+    mockAssignments([assignment({ assignment_status: "PENDING" })]);
+    renderApp("/my-tasks");
+
+    const card = (await screen.findByText("DH2610-0012-T1")).closest("li") as HTMLElement;
+    expect(card.className).toContain("shadow-card");
+    expect(card.className).toContain("p-5");
+    expect(card.className).not.toMatch(/\bborder\b/);
+
+    expect(within(card).getByRole("button", { name: "Tiếp nhận" })).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Từ chối" })).toBeInTheDocument();
+  });
+
+  test("AC-UI-031 desktop: table việc của tôi vẫn giữ border border-line", async () => {
+    signedInAs(khoaId, KHOA);
+    mockAssignments([assignment()]);
+    renderApp("/my-tasks");
+
+    const table = await screen.findByRole("table");
+    expect(table.className).toContain("border");
+    expect(table.className).toContain("border-line");
+  });
+
   test("AC-ASG-010 bấm địa chỉ/SĐT mở maps/tel đúng href", async () => {
     signedInAs(khoaId, KHOA);
     mockAssignments([assignment()]);

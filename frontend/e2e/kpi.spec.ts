@@ -18,7 +18,7 @@ function shot(info: TestInfo, file: string) {
   return resolve(import.meta.dirname, "../../reports/screenshots", info.project.name, file);
 }
 
-test("AC-KPI-017 AC-KPI-018 @a11y @screenshot Manager xem báo cáo KPI: bảng (desktop) / card (mobile)", async ({
+test("AC-KPI-017 AC-KPI-018 AC-UI-035 @a11y @screenshot Manager xem báo cáo KPI: bảng (desktop) / card (mobile)", async ({
   page,
 }, info) => {
   await signIn(page, MANAGER);
