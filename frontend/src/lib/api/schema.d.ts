@@ -2191,6 +2191,8 @@ export interface components {
     /** OrderSummaryOut */
     OrderSummaryOut: {
       counts_by_status: components["schemas"]["OrderStatusCounts"];
+      /** Overdue Count */
+      overdue_count: number;
       /**
        * Scope
        * @enum {string}
@@ -4052,6 +4054,7 @@ export interface operations {
           | null;
         sort?: "created_at_desc" | "dispatch";
         mine?: boolean;
+        overdue?: boolean;
         limit?: number;
         offset?: number;
       };

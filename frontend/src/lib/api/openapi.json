@@ -3009,13 +3009,17 @@
           "counts_by_status": {
             "$ref": "#/components/schemas/OrderStatusCounts"
           },
+          "overdue_count": {
+            "title": "Overdue Count",
+            "type": "integer"
+          },
           "scope": {
             "enum": ["own", "all"],
             "title": "Scope",
             "type": "string"
           }
         },
-        "required": ["scope", "counts_by_status"],
+        "required": ["scope", "counts_by_status", "overdue_count"],
         "title": "OrderSummaryOut",
         "type": "object"
       },
@@ -6278,6 +6282,16 @@
             "schema": {
               "default": false,
               "title": "Mine",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "overdue",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Overdue",
               "type": "boolean"
             }
           },
