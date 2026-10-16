@@ -2,10 +2,13 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { delay, http, HttpResponse } from "msw";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import type { components } from "../../lib/api/schema";
 import { server } from "../../test/msw";
 import { renderApp } from "../../test/renderApp";
 import { DispatchQueueList } from "./components/DispatchQueueList";
-import { AN, anId, HOA, hoaId, QUEUE, signedInAs, TUAN, tuanId } from "./testFixtures";
+import { AN, anId, DON_I, HOA, hoaId, QUEUE, signedInAs, TUAN, tuanId } from "./testFixtures";
+
+type OrderDetail = components["schemas"]["OrderDetail"];
 
 function mobile() {
   vi.stubGlobal(
@@ -100,6 +103,60 @@ describe("Hàng đợi điều phối", () => {
     await userEvent.setup().click(cards[0] as HTMLElement);
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenCalledWith(QUEUE[0]);
+  });
+
+  test("AC-UI-026 mobile: bấm thẻ không hồi quy luồng mở panel tạo task", async () => {
+    mobile();
+    signedInAs(tuanId, TUAN, { pending_dispatch_count: 4 });
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: QUEUE, total: 4, limit: 20, offset: 0 }),
+      ),
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json({
+          id: DON_I.id,
+          code: DON_I.code,
+          status: "PENDING_DISPATCH",
+          division: null,
+          customer_id: null,
+          customer_name: DON_I.customer_name,
+          customer_phone: DON_I.customer_phone,
+          customer_email: null,
+          customer_tax_code: null,
+          service_address: "12 Lê Lợi, Q1, TP.HCM",
+          work_description: "Lắp 4 camera tầng 1",
+          priority: DON_I.priority,
+          requested_date: DON_I.requested_date,
+          payment_method: null,
+          payment_status: "UNPAID",
+          subtotal: DON_I.total,
+          discount_amount: 0,
+          vat_amount: 0,
+          total: DON_I.total,
+          revision_no: 0,
+          version: 1,
+          created_by: DON_I.created_by,
+          allowed_commands: [],
+          can_edit_contact: true,
+          can_edit_lines_after_submit: true,
+          can_upload_confirmation: false,
+          can_complete: false,
+          can_revise: false,
+          lines: [],
+        } satisfies OrderDetail),
+      ),
+      http.get("/api/v1/employees", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 100, offset: 0 }),
+      ),
+    );
+    renderApp("/dispatch/queue");
+    await screen.findByText("DH2610-0009");
+
+    const cards = screen.getAllByRole("button", { name: /^DH2610-/ });
+    await userEvent.setup().click(cards[0] as HTMLElement);
+    expect(
+      await screen.findByRole("dialog", { name: "Tạo đầu việc — DH2610-0009" }),
+    ).toBeInTheDocument();
   });
 
   test("AC-UI-027 desktop: table hàng đợi điều phối vẫn giữ border border-line", async () => {
