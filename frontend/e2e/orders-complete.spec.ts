@@ -59,7 +59,7 @@ async function signInAndOpenOrder(page: Page, info: TestInfo): Promise<string> {
   return code;
 }
 
-test("AC-ORD-142 AC-ORD-143 @a11y @screenshot Hoàn tất đơn: ảnh xác nhận sẵn có, nhập tên người ký, xác nhận", async ({
+test("AC-ORD-142 AC-ORD-143 AC-UI-024 @a11y @screenshot Hoàn tất đơn: ảnh xác nhận sẵn có, nhập tên người ký, xác nhận", async ({
   page,
 }, info) => {
   const code = await signInAndOpenOrder(page, info);

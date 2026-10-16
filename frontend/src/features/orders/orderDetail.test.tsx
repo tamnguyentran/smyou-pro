@@ -1134,6 +1134,81 @@ describe("AC-ORD-103 stale version khi sửa dòng sau khi gửi", () => {
   });
 });
 
+describe("AC-UI-016 AC-UI-017 header chi tiết đơn bỏ viền", () => {
+  test("header gốc có shadow-card, p-5, không có border; pill tab vẫn giữ border-line", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ allowed_commands: ["recall", "cancel"] })),
+      ),
+      http.get("/api/v1/orders/:id/history", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 50, offset: 0 }),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+
+    const header = screen.getByRole("main").querySelector("header") as HTMLElement;
+    expect(header.className).toContain("shadow-card");
+    expect(header.className).toContain("p-5");
+    expect(header.className).not.toMatch(/\bborder\b/);
+    expect(screen.getByRole("button", { name: "Thu hồi" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Huỷ đơn" })).toBeInTheDocument();
+
+    const infoTab = screen.getByRole("tab", { name: "Thông tin" });
+    expect(infoTab.className).toContain("border-line");
+  });
+});
+
+describe("AC-UI-018 khung thông tin đơn bỏ viền", () => {
+  test("khung dl gốc có shadow-card, p-5, không còn border; nội dung không đổi", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ allowed_commands: [] }))),
+      http.get("/api/v1/orders/:id/history", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 50, offset: 0 }),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+
+    const dl = screen.getByText("Khách hàng").closest("div")?.parentElement
+      ?.parentElement as HTMLElement;
+    expect(dl.className).toContain("shadow-card");
+    expect(dl.className).toContain("p-5");
+    expect(dl.className).not.toMatch(/\bborder\b/);
+    expect(screen.getByText("Cty Sáng Tạo Mới")).toBeInTheDocument();
+  });
+});
+
+describe("AC-UI-019 timeline lịch sử bỏ viền", () => {
+  test("mỗi li gốc có shadow-card, p-5, không còn border; thứ tự/nội dung không đổi", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ allowed_commands: [] }))),
+      http.get("/api/v1/orders/:id/history", () =>
+        HttpResponse.json({
+          items: [historyEvent()],
+          total: 1,
+          limit: 50,
+          offset: 0,
+        }),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Lịch sử" }));
+
+    const history = await screen.findByLabelText("Lịch sử đơn");
+    const item = within(history).getAllByRole("listitem")[0] as HTMLElement;
+    expect(item.className).toContain("shadow-card");
+    expect(item.className).toContain("p-5");
+    expect(item.className).not.toMatch(/\bborder\b/);
+    expect(within(item).getByText("Gửi đơn")).toBeInTheDocument();
+  });
+});
+
 describe("AC-ORD-104 nhãn lịch sử mới", () => {
   test("edit_contact/add_line_after_submit/update_line_after_submit/remove_line_after_submit → nhãn tiếng Việt", async () => {
     signedInAs(hoaId, HOA);

@@ -220,6 +220,21 @@ describe("Tab Tệp đính kèm trên trang chi tiết đơn", () => {
     expect(await screen.findByText("Lần chỉnh sửa #0")).toBeInTheDocument();
   });
 
+  test("AC-UI-022 AC-UI-023 AttachmentCard bỏ viền (giữ p-2); label tải ảnh vẫn giữ border", async () => {
+    signedInAs(hoaId, HOA);
+    stub({ order: detail({ can_upload_confirmation: true }), items: [attachment()] });
+    await openAttachmentsTab();
+
+    const link = (await screen.findByText("Lần chỉnh sửa #0")).closest("a") as HTMLElement;
+    expect(link.className).toContain("shadow-card");
+    expect(link.className).toContain("p-2");
+    expect(link.className).not.toMatch(/\bborder\b/);
+
+    const label = screen.getByText("Tải ảnh phiếu xác nhận").closest("label") as HTMLElement;
+    expect(label.className).toContain("border");
+    expect(label.className).toContain("border-line");
+  });
+
   test("ảnh bấm vào mở file gốc qua /attachments/{id}", async () => {
     signedInAs(hoaId, HOA);
     stub({ items: [attachment()] });
