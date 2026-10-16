@@ -20,6 +20,7 @@ class OrderStatusCounts(BaseModel):
 class OrderSummaryOut(BaseModel):
     scope: Literal["own", "all"]
     counts_by_status: OrderStatusCounts
+    overdue_count: int
 
 
 class DispatchSummaryOut(BaseModel):

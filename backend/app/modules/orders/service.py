@@ -549,6 +549,8 @@ def list_orders(
     status: str | None,
     sort: str = "created_at_desc",
     mine: bool = False,
+    overdue: bool = False,
+    now: datetime,
     limit: int,
     offset: int,
 ) -> OrderPage:
@@ -568,6 +570,13 @@ def list_orders(
         query = query.where(Order.status == status)
     if mine:
         query = query.where(Order.created_by == actor.id)
+    if overdue:
+        query = query.where(
+            Order.status.notin_(("COMPLETED", "CANCELLED")),
+            Order.id.in_(
+                select(Task.order_id).where(Task.status.notin_(("DONE", "CANCELLED")), Task.due_at < now)
+            ),
+        )
     total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
     if sort == "dispatch":
         # M4-01a dispatch queue (spec §4): priority desc, then requested_date asc (null last).
