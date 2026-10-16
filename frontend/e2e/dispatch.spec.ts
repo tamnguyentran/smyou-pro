@@ -317,7 +317,7 @@ test("AC-DSP-028 AC-DSP-032 AC-DSP-033 AC-DSP-035 AC-DSP-036 AC-DSP-037 @a11y @s
   await expect(page.getByRole("button", { name: "Tạo đầu việc" })).toHaveCount(0);
 });
 
-test("AC-DSP-092 @a11y @screenshot bảng đầu việc: vùng chạm ≥44px (gồm thẻ), không cuộn ngang, axe sạch", async ({
+test("AC-DSP-092 AC-UI-006 @a11y @screenshot bảng đầu việc: vùng chạm ≥44px (gồm thẻ), không cuộn ngang, axe sạch", async ({
   page,
 }, info) => {
   // Có 1 đầu việc thật trên bảng (mẫu AC-DSP-015) để kiểm vùng chạm của thẻ, không chỉ bộ lọc.

@@ -61,7 +61,9 @@ async function evidence(page: Page, info: TestInfo, file: string) {
 }
 
 for (const role of Object.keys(ACCOUNTS) as Role[]) {
-  test(`AC-SYS-035 AC-SYS-046 @a11y @screenshot menu của ${role}`, async ({ page }, info) => {
+  test(`AC-SYS-035 AC-SYS-046 AC-UI-006 @a11y @screenshot menu của ${role}`, async ({
+    page,
+  }, info) => {
     await signIn(page, role);
     await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
     if (!isMobile(info)) {

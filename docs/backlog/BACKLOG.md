@@ -2,7 +2,11 @@
 
 Trạng thái: `[ ]` chưa làm · `[S]` spec đang viết · `[A]` spec Approved · `[~]` đang code · `[R]` PR chờ merge · `[x]` xong.
 Mỗi item là **lát cắt dọc** (DB → API → UI → test) giao được trong 1 phiên. Làm theo thứ tự; item sau phụ thuộc item trước.
-Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatch), `ASG`, `CMP` (completion/revision), `NTF`, `DASH` (dashboard), `KPI`.
+Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatch), `ASG`, `CMP` (completion/revision), `NTF`, `DASH` (dashboard), `KPI`, `UI` (style thuần, xuyên module, không đổi API/quyền).
+
+## M11 — Làm mới giao diện (UI refresh, theo yêu cầu chủ dự án 2026-10-15)
+- [~] **M11-01 Làm mới style thẻ (card): bỏ viền, dùng bóng mờ, thoáng hơn** — áp mẫu trên 4 component (StatTile, TodayTaskCard, TaskBoardCard, KpiSelfCard) để chủ dự án duyệt hướng trước khi lan ra toàn app (UI); spec: `docs/specs/M11-01-ui-card-style-refresh.md`.
+- [ ] **M11-02 Lan style thẻ mới ra các trang còn lại** — chưa viết spec, chờ duyệt M11-01 trước.
 
 ## Đã xong (tự động lưu trữ)
 - M9 — xem `BACKLOG_ARCHIVE.md`.
