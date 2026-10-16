@@ -1,4 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { markSignedIn } from "../../lib/sessionHint";
@@ -117,5 +118,44 @@ describe("/orders đọc status/mine từ URL lúc tải", () => {
         name: "Nháp",
       }),
     ).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("AC-DASH-036 (M10-07a) chip 'Quá hạn' và chip trạng thái loại trừ lẫn nhau", async () => {
+    signedInAs(hoaId, HOA);
+    let lastQuery = "";
+    server.use(
+      http.get("/api/v1/orders", ({ request }) => {
+        lastQuery = new URL(request.url).search;
+        return HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 });
+      }),
+    );
+    renderApp("/orders?overdue=1");
+
+    await waitFor(() => {
+      expect(lastQuery).toContain("overdue=true");
+    });
+    expect(lastQuery).not.toContain("status=");
+    expect(
+      within(screen.getByRole("radiogroup", { name: "Trạng thái" })).getByRole("radio", {
+        name: "Quá hạn",
+      }),
+    ).toHaveAttribute("aria-checked", "true");
+
+    const user = userEvent.setup();
+    await user.click(
+      within(screen.getByRole("radiogroup", { name: "Trạng thái" })).getByRole("radio", {
+        name: "Chờ điều phối",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(lastQuery).toContain("status=PENDING_DISPATCH");
+    });
+    expect(lastQuery).not.toContain("overdue");
+    expect(
+      within(screen.getByRole("radiogroup", { name: "Trạng thái" })).getByRole("radio", {
+        name: "Quá hạn",
+      }),
+    ).toHaveAttribute("aria-checked", "false");
   });
 });

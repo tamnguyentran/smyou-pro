@@ -16,6 +16,7 @@ from sqlalchemy.engine import Row
 
 from app.core.authz import declared_routes, undeclared_routes
 from tests.integration.conftest import AN, KHOA, Person, login, seed
+from tests.integration.test_dispatch_board_api import insert_task
 
 HOA = Person("hoa.le@smyou.vn", "Hoa@SmYou26", ("SALE",), "NV005", "Lê Thị Hoa", "SALES")
 HA = Person("ha.pham@smyou.vn", "Ha@SmYou26", ("SALE", "TECHNICIAN"), "NV007", "Phạm Thu Hà", "SALES")
@@ -1395,6 +1396,87 @@ def test_list_orders_mine_filter(
 
     body_other_status = hoa.get("/api/v1/orders?status=CANCELLED&mine=true").json()
     assert body_other_status == {"items": [], "total": 0, "limit": 20, "offset": 0}
+
+
+def _insert_overdue_order(db: Connection, *, created_by: uuid.UUID, created_at: datetime) -> uuid.UUID:
+    order_id = insert_order(db, created_by=created_by, status="IN_PROGRESS", created_at=created_at)
+    insert_task(
+        db,
+        order_id,
+        code=f"T-{uuid.uuid4().hex[:8]}",
+        title="Quá hạn",
+        status="ACCEPTED",
+        priority="NORMAL",
+        due_at=datetime(2020, 1, 1, tzinfo=UTC),
+        created_by=created_by,
+    )
+    return order_id
+
+
+@pytest.mark.ac("AC-DASH-033")
+def test_list_orders_overdue_filter_mine(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    hoa_overdue_1 = _insert_overdue_order(
+        db, created_by=people["NV005"], created_at=datetime(2026, 9, 1, tzinfo=UTC)
+    )
+    hoa_overdue_2 = _insert_overdue_order(
+        db, created_by=people["NV005"], created_at=datetime(2026, 9, 2, tzinfo=UTC)
+    )
+    for i in range(3):
+        _insert_overdue_order(db, created_by=people["NV001"], created_at=datetime(2026, 9, 3 + i, tzinfo=UTC))
+    # Hoa also has a non-overdue order — without real `overdue` filtering, `mine=true` alone
+    # would wrongly include it too (false pass if `overdue` were a no-op).
+    not_overdue = insert_order(
+        db, created_by=people["NV005"], status="IN_PROGRESS", created_at=datetime(2026, 9, 6, tzinfo=UTC)
+    )
+    insert_task(
+        db,
+        not_overdue,
+        code=f"T-{uuid.uuid4().hex[:8]}",
+        title="Chưa quá hạn",
+        status="ACCEPTED",
+        priority="NORMAL",
+        due_at=datetime(2030, 1, 1, tzinfo=UTC),
+        created_by=people["NV005"],
+    )
+
+    hoa = client_as(app, HOA)
+    body = hoa.get("/api/v1/orders?overdue=true&mine=true").json()
+    assert {item["id"] for item in body["items"]} == {str(hoa_overdue_1), str(hoa_overdue_2)}
+
+
+@pytest.mark.ac("AC-DASH-034")
+def test_list_orders_overdue_filter_without_mine(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa_overdue = _insert_overdue_order(
+        db, created_by=people["NV005"], created_at=datetime(2026, 9, 1, tzinfo=UTC)
+    )
+    an_overdue = _insert_overdue_order(
+        db, created_by=people["NV001"], created_at=datetime(2026, 9, 2, tzinfo=UTC)
+    )
+    # Not overdue: task due in the future.
+    not_overdue = insert_order(
+        db, created_by=people["NV005"], status="IN_PROGRESS", created_at=datetime(2026, 9, 3, tzinfo=UTC)
+    )
+    insert_task(
+        db,
+        not_overdue,
+        code=f"T-{uuid.uuid4().hex[:8]}",
+        title="Chưa quá hạn",
+        status="ACCEPTED",
+        priority="NORMAL",
+        due_at=datetime(2030, 1, 1, tzinfo=UTC),
+        created_by=people["NV005"],
+    )
+    # Completed order with an overdue task: must not count as overdue.
+    completed_overdue = _insert_overdue_order(
+        db, created_by=people["NV005"], created_at=datetime(2026, 9, 4, tzinfo=UTC)
+    )
+    db.execute(text("UPDATE orders SET status = 'COMPLETED' WHERE id = :id"), {"id": completed_overdue})
+
+    hoa = client_as(app, HOA)
+    body = hoa.get("/api/v1/orders?overdue=true").json()
+    assert {item["id"] for item in body["items"]} == {str(hoa_overdue), str(an_overdue)}
 
 
 @pytest.mark.ac("AC-DASH-025")

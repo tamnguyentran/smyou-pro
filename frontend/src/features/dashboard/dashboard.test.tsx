@@ -79,6 +79,7 @@ describe("Tổng quan", () => {
           REVISION: 0,
           CANCELLED: 0,
         },
+        overdue_count: 0,
       },
     });
     renderApp("/");
@@ -191,6 +192,7 @@ describe("Tổng quan", () => {
           REVISION: 1,
           CANCELLED: 1,
         },
+        overdue_count: 0,
       },
       dispatch_summary: {
         pending_dispatch_count: 1,
@@ -291,6 +293,7 @@ describe("Tổng quan", () => {
           REVISION: 0,
           CANCELLED: 0,
         },
+        overdue_count: 0,
       },
     });
     server.use(
@@ -324,6 +327,7 @@ describe("Tổng quan", () => {
           REVISION: 0,
           CANCELLED: 0,
         },
+        overdue_count: 0,
       },
     });
     server.use(
@@ -357,6 +361,7 @@ describe("Tổng quan", () => {
           REVISION: 0,
           CANCELLED: 0,
         },
+        overdue_count: 0,
       },
     });
     renderApp("/");
@@ -447,6 +452,7 @@ describe("Tổng quan", () => {
           REVISION: 0,
           CANCELLED: 0,
         },
+        overdue_count: 0,
       },
     });
     server.use(
@@ -483,6 +489,7 @@ describe("Tổng quan", () => {
           REVISION: 0,
           CANCELLED: 0,
         },
+        overdue_count: 0,
       },
     });
     renderApp("/");
@@ -491,5 +498,63 @@ describe("Tổng quan", () => {
     expect(link.className).toContain("min-h-11");
     const grid = link.closest(".grid") as HTMLElement;
     expect(grid.className).toContain("grid-cols-2");
+  });
+
+  test("AC-DASH-035 (M10-07a) Hoa bấm thẻ 'Quá hạn' → /orders?overdue=true&mine=1", async () => {
+    signedInAs("hoa-id", HOA);
+    mockDashboard({
+      order_summary: {
+        scope: "own",
+        counts_by_status: {
+          DRAFT: 0,
+          PENDING_DISPATCH: 0,
+          IN_PROGRESS: 0,
+          AWAITING_CONFIRMATION: 0,
+          COMPLETED: 0,
+          REVISION: 0,
+          CANCELLED: 0,
+        },
+        overdue_count: 2,
+      },
+    });
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+      ),
+    );
+    const router = renderApp("/");
+
+    const link = (await screen.findByText("Quá hạn")).closest("a") as HTMLElement;
+    await userEvent.setup().click(link);
+
+    await waitFor(() => {
+      expect(router.state.location.pathname + router.state.location.search).toBe(
+        "/orders?overdue=true&mine=1",
+      );
+    });
+  });
+
+  test("AC-DASH-050 (M10-07a) thẻ 'Quá hạn' = 0 vẫn hiện và bấm được", async () => {
+    signedInAs("an-id", AN);
+    mockDashboard({
+      order_summary: {
+        scope: "all",
+        counts_by_status: {
+          DRAFT: 0,
+          PENDING_DISPATCH: 0,
+          IN_PROGRESS: 0,
+          AWAITING_CONFIRMATION: 0,
+          COMPLETED: 0,
+          REVISION: 0,
+          CANCELLED: 0,
+        },
+        overdue_count: 0,
+      },
+    });
+    renderApp("/");
+
+    const link = (await screen.findByText("Quá hạn")).closest("a") as HTMLElement;
+    expect(link.getAttribute("href")).toBe("/orders?overdue=true");
+    expect(within(link).getByText("0")).toBeInTheDocument();
   });
 });
