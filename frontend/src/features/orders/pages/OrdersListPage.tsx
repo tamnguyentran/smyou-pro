@@ -99,7 +99,7 @@ export function OrdersListPage() {
               setMine(event.target.checked);
               setOffset(0);
             }}
-            className="size-5 shrink-0 rounded border-line text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+            className="size-5 shrink-0 rounded border-line accent-[color:var(--color-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           />
           Chỉ đơn của tôi
         </label>
