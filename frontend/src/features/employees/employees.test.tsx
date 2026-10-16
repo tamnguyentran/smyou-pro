@@ -152,6 +152,30 @@ describe("AC-EMP-013 danh sách nhân viên", () => {
     expect(screen.getByText("NV005")).toBeInTheDocument();
   });
 
+  test("AC-UI-011 mobile: thẻ nhân viên bỏ viền, p-5, shadow-card", async () => {
+    mockViewport(false);
+    signedInAs(AN, () => HttpResponse.json(page([employee()])));
+    renderApp("/employees");
+    await openMenu();
+
+    const card = (await screen.findByText("Lê Thị Hoa")).closest("button") as HTMLElement;
+    expect(card.className).toContain("shadow-card");
+    expect(card.className).toContain("hover:shadow-card-hover");
+    expect(card.className).toContain("p-5");
+    expect(card.className).not.toMatch(/\bborder\b/);
+  });
+
+  test("AC-UI-011 desktop: table nhân viên vẫn giữ border border-line", async () => {
+    mockViewport(true);
+    signedInAs(AN, () => HttpResponse.json(page([employee()])));
+    renderApp("/employees");
+    await openMenu();
+
+    const table = await screen.findByRole("table");
+    expect(table.className).toContain("border");
+    expect(table.className).toContain("border-line");
+  });
+
   test("tìm kiếm gọi API sau 300ms; lọc vai trò và trạng thái", async () => {
     let lastQuery = "";
     signedInAs(AN, ({ request }) => {

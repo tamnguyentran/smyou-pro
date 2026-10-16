@@ -266,7 +266,7 @@ test("AC-ORD-063 huỷ đơn nháp", async ({ page }) => {
   await expect(page).toHaveURL(/\/orders$/);
 });
 
-test("AC-ORD-069 AC-ORD-110 AC-ORD-113 AC-ORD-114 @a11y @screenshot danh sách đơn, lọc trạng thái bằng chip", async ({
+test("AC-ORD-069 AC-ORD-110 AC-ORD-113 AC-ORD-114 AC-UI-014 @a11y @screenshot danh sách đơn, lọc trạng thái bằng chip", async ({
   page,
 }, info) => {
   await signIn(page, SALE);

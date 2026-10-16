@@ -161,6 +161,36 @@ describe("AC-CAT-012 danh sách sản phẩm", () => {
     expect(screen.getByText("LCD1137")).toBeInTheDocument();
   });
 
+  test("AC-UI-012 mobile: thẻ sản phẩm bỏ viền, p-5, shadow-card; khung ảnh placeholder vẫn giữ viền", async () => {
+    mockViewport(false);
+    signedInAs(AN, () => HttpResponse.json(page([LCD])));
+    renderApp("/catalog/products");
+    await openMenu();
+
+    const card = (await screen.findByText("Màn hình Dell 22 inch")).closest(
+      "button",
+    ) as HTMLElement;
+    expect(card.className).toContain("shadow-card");
+    expect(card.className).toContain("hover:shadow-card-hover");
+    expect(card.className).toContain("p-5");
+    expect(card.className).not.toMatch(/\bborder\b/);
+
+    const placeholder = card.querySelector(".rounded-xl") as HTMLElement;
+    expect(placeholder.className).toContain("border");
+    expect(placeholder.className).toContain("border-line");
+  });
+
+  test("AC-UI-012 desktop: table sản phẩm vẫn giữ border border-line", async () => {
+    mockViewport(true);
+    signedInAs(AN, () => HttpResponse.json(page([LCD])));
+    renderApp("/catalog/products");
+    await openMenu();
+
+    const table = await screen.findByRole("table");
+    expect(table.className).toContain("border");
+    expect(table.className).toContain("border-line");
+  });
+
   test("tìm kiếm gọi API sau 300ms; lọc danh mục và trạng thái", async () => {
     let lastQuery = "";
     signedInAs(AN, ({ request }) => {

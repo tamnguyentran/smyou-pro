@@ -144,6 +144,30 @@ describe("AC-CUS-009 danh sách khách hàng", () => {
     expect(screen.getByText("KH00003")).toBeInTheDocument();
   });
 
+  test("AC-UI-010 mobile: thẻ khách hàng bỏ viền, p-5, shadow-card", async () => {
+    mockViewport(false);
+    signedInAs(AN, () => HttpResponse.json(page([KIM_LONG])));
+    renderApp("/customers");
+    await openMenu();
+
+    const card = (await screen.findByText("Cty Kim Long")).closest("button") as HTMLElement;
+    expect(card.className).toContain("shadow-card");
+    expect(card.className).toContain("hover:shadow-card-hover");
+    expect(card.className).toContain("p-5");
+    expect(card.className).not.toMatch(/\bborder\b/);
+  });
+
+  test("AC-UI-010 desktop: table khách hàng vẫn giữ border border-line", async () => {
+    mockViewport(true);
+    signedInAs(AN, () => HttpResponse.json(page([KIM_LONG])));
+    renderApp("/customers");
+    await openMenu();
+
+    const table = await screen.findByRole("table");
+    expect(table.className).toContain("border");
+    expect(table.className).toContain("border-line");
+  });
+
   test("tìm kiếm gọi API sau 300ms (tên/SĐT/MST); lọc loại khách hàng", async () => {
     let lastQuery = "";
     signedInAs(AN, ({ request }) => {

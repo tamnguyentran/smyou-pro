@@ -245,6 +245,56 @@ describe("AC-ORD-069 danh sách đơn", () => {
       expect(router.state.location.pathname).toBe("/orders/b0000000-0000-4000-8000-000000000020");
     });
   });
+
+  test("AC-UI-008 mobile: thẻ đơn bỏ viền, p-5, shadow-card; bấm vẫn điều hướng đúng 1 lần", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [summary()], total: 1, limit: 20, offset: 0 }),
+      ),
+    );
+    const router = renderApp("/orders");
+    await screen.findByText("DH2609-0001");
+
+    const card = screen.getByText("DH2609-0001").closest("button") as HTMLElement;
+    expect(card.className).toContain("shadow-card");
+    expect(card.className).toContain("hover:shadow-card-hover");
+    expect(card.className).toContain("p-5");
+    expect(card.className).not.toMatch(/\bborder\b/);
+
+    let navigations = 0;
+    const unsubscribe = router.subscribe(() => {
+      navigations += 1;
+    });
+    await userEvent.setup().click(card);
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/orders/b0000000-0000-4000-8000-000000000020");
+    });
+    unsubscribe();
+    expect(navigations).toBe(1);
+  });
+
+  test("AC-UI-009 desktop: table đơn hàng vẫn giữ border border-line", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [summary()], total: 1, limit: 20, offset: 0 }),
+      ),
+    );
+    renderApp("/orders");
+    const table = await screen.findByRole("table");
+    expect(table.className).toContain("border");
+    expect(table.className).toContain("border-line");
+  });
 });
 
 describe("AC-ORD-110 AC-ORD-111 AC-ORD-112 chip lọc trạng thái", () => {

@@ -49,7 +49,7 @@ async function evidence(
   if (size) await page.setViewportSize(size);
 }
 
-test("AC-CUS-009 AC-CUS-013 @a11y @screenshot danh sách Khách hàng (Manager)", async ({
+test("AC-CUS-009 AC-CUS-013 AC-UI-014 @a11y @screenshot danh sách Khách hàng (Manager)", async ({
   page,
 }, info) => {
   await signIn(page, MANAGER);
