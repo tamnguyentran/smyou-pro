@@ -9,7 +9,7 @@ type TodayTask = NonNullable<Dashboard["today_tasks"]>[number];
 export function TodayTaskCard({ item, now }: { item: TodayTask; now: number }) {
   const overdue = new Date(item.due_at).getTime() < now;
   return (
-    <li className="flex flex-col gap-2 rounded-2xl border border-line bg-card p-4 shadow-card">
+    <li className="flex flex-col gap-2 rounded-2xl bg-card p-5 shadow-card">
       <div className="flex items-center justify-between gap-2">
         <p className="font-semibold text-heading">{item.task_code}</p>
         <span className="text-xs text-muted">{item.estimated_hours} giờ</span>

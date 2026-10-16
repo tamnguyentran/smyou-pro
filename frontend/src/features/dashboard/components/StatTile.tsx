@@ -20,7 +20,9 @@ export function StatTile({
 }) {
   const active = tone !== undefined && value > 0 ? TONE_CLASS[tone] : undefined;
   return (
-    <div className={cn("rounded-2xl border p-4", active ? active.tile : "border-line bg-card")}>
+    <div
+      className={cn("rounded-2xl p-5", active ? cn("border", active.tile) : "bg-card shadow-card")}
+    >
       <p className={cn("text-sm font-medium", active ? active.text : "text-muted")}>{label}</p>
       <p className={cn("text-2xl font-bold", active ? active.text : "text-heading")}>{value}</p>
     </div>

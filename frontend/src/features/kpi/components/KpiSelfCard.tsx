@@ -4,7 +4,7 @@ import { OnTimeBar, RejectionDisclosure } from "./KpiStatBlocks";
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-line bg-card p-4 text-center">
+    <div className="rounded-2xl bg-card p-5 text-center shadow-card">
       <p className="text-xs font-medium text-muted">{label}</p>
       <p className="mt-1 text-xl font-semibold text-heading">{value}</p>
     </div>
@@ -16,7 +16,7 @@ function Tile({ label, value }: { label: string; value: string }) {
 export function KpiSelfCard({ row }: { row: KpiRow }) {
   const percent = onTimePercent(row.on_time_count, row.completed_task_count);
   return (
-    <div className="max-w-md space-y-3 rounded-2xl border border-line bg-card p-4 shadow-card">
+    <div className="max-w-md space-y-3 rounded-2xl bg-card p-5 shadow-card">
       <div className="grid grid-cols-3 gap-3">
         <Tile label="Xong" value={String(row.completed_task_count)} />
         <Tile label="Đúng hạn" value={percent === null ? "—" : `${String(percent)}%`} />
