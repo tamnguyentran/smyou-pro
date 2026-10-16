@@ -23,6 +23,10 @@ async function evidence(page: Page, info: TestInfo, file: string) {
   await page.evaluate(() =>
     Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))),
   );
+  // Sidebar nav "active" background still has a CSS transition `document.getAnimations()`
+  // doesn't always report finished for right after a client-side navigation; without this,
+  // axe occasionally samples the sidebar mid-transition (flaky color-contrast on the old item).
+  await page.waitForTimeout(300);
   const results = await new AxeBuilder({ page }).analyze();
   expect(
     results.violations
