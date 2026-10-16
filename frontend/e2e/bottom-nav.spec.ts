@@ -115,7 +115,7 @@ test("AC-SYS-048 ô đang chọn và nội dung không bị che", async ({ page 
   }
 });
 
-test("AC-SYS-049 AC-SYS-051 @a11y @screenshot trang Cá nhân", async ({ page }, info) => {
+test("AC-SYS-049 AC-SYS-051 AC-UI-041 @a11y @screenshot trang Cá nhân", async ({ page }, info) => {
   await signIn(page, "sale-technician", "/ca-nhan");
   const main = page.getByRole("main");
   await expect(page.getByRole("heading", { level: 1, name: "Cá nhân" })).toBeVisible();
