@@ -132,6 +132,13 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [cancelStale, setCancelStale] = useState(false);
+  // AC-ORD-167..169: "Huỷ đơn" chỉ enable khi đơn đã *thật sự* được lưu — nháp tạo ngầm qua "Thêm
+  // dòng hàng" (createDraft) không tính. "/orders/new" và "/orders/:id" dùng chung 1 route/1 instance
+  // (routes.tsx) — `orderId` prop đổi giá trị ngay trong đời sống component khi createDraft() điều
+  // hướng, nên phải chụp giá trị ban đầu (mount-time) để biết đơn có *sẵn từ trước* hay không, không
+  // dùng trực tiếp `orderId` (nó sẽ lên "true" ngay sau khi tạo nháp ngầm, dù chưa ai bấm Lưu nháp).
+  const [openedExistingOrder] = useState(() => Boolean(orderId));
+  const [savedOnce, setSavedOnce] = useState(false);
   // AC-ORD-038: on mobile, Section 1 collapses into an accordion (never "Dòng hàng"). Open by
   // default when starting a brand-new order (there's nothing to collapse yet); collapsed by default
   // when reopening an already-saved one, since the focus there is usually "Dòng hàng". Keyed off the
@@ -146,6 +153,26 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
       defaultValues: BLANK_VALUES,
     });
   const priority = useWatch({ control, name: "priority" });
+  const [customerMode, customerId, customerName, customerPhone] = useWatch({
+    control,
+    name: ["customerMode", "customer_id", "customer_name", "customer_phone"],
+  });
+  // AC-ORD-158..165: tính hoàn toàn từ state form hiện có, không gọi thêm API (spec M10-02 §6).
+  const hasCustomer =
+    customerMode === "search"
+      ? Boolean(customerId)
+      : (customerName ?? "").trim() !== "" && (customerPhone ?? "").trim() !== "";
+  const hasLine = (order?.lines.length ?? 0) >= 1;
+  const canSave = hasCustomer && hasLine;
+  const missingInfoHint =
+    !hasCustomer && !hasLine
+      ? "Cần chọn khách hàng và thêm ít nhất 1 dòng hàng để lưu đơn."
+      : !hasCustomer
+        ? "Cần chọn khách hàng."
+        : !hasLine
+          ? "Cần thêm ít nhất 1 dòng hàng."
+          : null;
+  const canCancel = openedExistingOrder || savedOnce;
 
   const loadedOrderId = order?.id;
   useEffect(() => {
@@ -190,6 +217,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
               body: { version: current.version, ...buildOrderFields(values) },
             })
           : await createDraft();
+        setSavedOnce(true);
         toast(`Đã lưu nháp ${saved.code}.`);
       } catch (err) {
         if (err instanceof ApiError && err.problem.code === "STALE_VERSION") {
@@ -432,37 +460,48 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
           // bottom-16, not bottom-0: BottomNav is `fixed bottom-0` too, so bottom-0 here would stack
           // this bar directly on top of it, hiding the nav for the entire scroll range. `pb-24` on
           // the page's Content already reserves this space (UI_GUIDELINES §4) for exactly this.
-          className="sticky bottom-16 z-10 flex flex-wrap gap-3 bg-page py-3 lg:static lg:col-span-2 lg:row-start-3 lg:bottom-auto lg:bg-transparent lg:py-0"
+          // flex-col: AC-ORD-166 cần helper text nằm trong chính khối sticky này (không phải phía
+          // dưới DOM của nó) để không bị đẩy ra ngoài vùng nhìn thấy trên mobile.
+          className="sticky bottom-16 z-10 flex flex-col gap-2 bg-page py-3 lg:static lg:col-span-2 lg:row-start-3 lg:bottom-auto lg:bg-transparent lg:py-0"
         >
-          <Button
-            type="submit"
-            form="draft-order-form"
-            loading={createOrder.isPending || updateOrder.isPending}
-          >
-            Lưu nháp
-          </Button>
-          {order?.allowed_commands.includes("submit") ? (
+          {missingInfoHint ? <p className="text-xs text-muted">{missingInfoHint}</p> : null}
+          <div className="flex flex-wrap gap-3">
             <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setSubmitOpen(true);
-              }}
+              type="submit"
+              form="draft-order-form"
+              loading={createOrder.isPending || updateOrder.isPending}
+              disabled={!canSave}
+              aria-disabled={!canSave}
             >
-              Gửi đơn
+              Lưu nháp
             </Button>
-          ) : null}
-          {order?.allowed_commands.includes("cancel") ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setCancelOpen(true);
-              }}
-            >
-              Huỷ đơn
-            </Button>
-          ) : null}
+            {order?.allowed_commands.includes("submit") ? (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!canSave}
+                aria-disabled={!canSave}
+                onClick={() => {
+                  setSubmitOpen(true);
+                }}
+              >
+                Gửi đơn
+              </Button>
+            ) : null}
+            {order?.allowed_commands.includes("cancel") ? (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!canCancel}
+                aria-disabled={!canCancel}
+                onClick={() => {
+                  setCancelOpen(true);
+                }}
+              >
+                Huỷ đơn
+              </Button>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
