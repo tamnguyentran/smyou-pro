@@ -450,7 +450,7 @@ def test_start_first_assignment_starts_dispatch(
         order_events[0].from_status,
         order_events[0].to_status,
         order_events[0].actor_id,
-    ) == ("ORDER", "start_dispatch", "PENDING_DISPATCH", "IN_PROGRESS", None)
+    ) == ("ORDER", "start_dispatch", "PENDING_DISPATCH", "IN_PROGRESS", people["NV014"])
 
 
 @pytest.mark.ac("AC-ASG-070")
@@ -603,7 +603,7 @@ def test_complete_last_task_moves_order_to_awaiting_confirmation(
     )
     order_events = audit_rows(db, order_id)
     assert len(order_events) == 1
-    assert order_events[0].actor_id is None
+    assert order_events[0].actor_id == people["NV014"]
     assert (
         order_events[0].entity_type,
         order_events[0].action,
