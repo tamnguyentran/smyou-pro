@@ -132,6 +132,13 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [cancelStale, setCancelStale] = useState(false);
+  // AC-ORD-167..169: "Huỷ đơn" chỉ enable khi đơn đã *thật sự* được lưu — nháp tạo ngầm qua "Thêm
+  // dòng hàng" (createDraft) không tính. "/orders/new" và "/orders/:id" dùng chung 1 route/1 instance
+  // (routes.tsx) — `orderId` prop đổi giá trị ngay trong đời sống component khi createDraft() điều
+  // hướng, nên phải chụp giá trị ban đầu (mount-time) để biết đơn có *sẵn từ trước* hay không, không
+  // dùng trực tiếp `orderId` (nó sẽ lên "true" ngay sau khi tạo nháp ngầm, dù chưa ai bấm Lưu nháp).
+  const [openedExistingOrder] = useState(() => Boolean(orderId));
+  const [savedOnce, setSavedOnce] = useState(false);
   // AC-ORD-038: on mobile, Section 1 collapses into an accordion (never "Dòng hàng"). Open by
   // default when starting a brand-new order (there's nothing to collapse yet); collapsed by default
   // when reopening an already-saved one, since the focus there is usually "Dòng hàng". Keyed off the
@@ -165,6 +172,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
         : !hasLine
           ? "Cần thêm ít nhất 1 dòng hàng."
           : null;
+  const canCancel = openedExistingOrder || savedOnce;
 
   const loadedOrderId = order?.id;
   useEffect(() => {
@@ -209,6 +217,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
               body: { version: current.version, ...buildOrderFields(values) },
             })
           : await createDraft();
+        setSavedOnce(true);
         toast(`Đã lưu nháp ${saved.code}.`);
       } catch (err) {
         if (err instanceof ApiError && err.problem.code === "STALE_VERSION") {
@@ -483,6 +492,8 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
               <Button
                 type="button"
                 variant="secondary"
+                disabled={!canCancel}
+                aria-disabled={!canCancel}
                 onClick={() => {
                   setCancelOpen(true);
                 }}
