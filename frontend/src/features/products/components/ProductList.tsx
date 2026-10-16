@@ -118,7 +118,7 @@ export function ProductList({
             onClick={() => {
               onSelect(product);
             }}
-            className="flex w-full items-center gap-3 rounded-2xl border border-line bg-card p-4 text-left shadow-card transition duration-200 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+            className="flex w-full items-center gap-3 rounded-2xl bg-card p-5 text-left shadow-card transition duration-200 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           >
             <Thumbnail product={product} />
             <div className="min-w-0 flex-1">
