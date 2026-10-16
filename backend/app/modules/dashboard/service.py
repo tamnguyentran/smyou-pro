@@ -27,7 +27,7 @@ from app.modules.dashboard.schemas import (
     TaskStatusCounts,
     TaskSummaryOut,
 )
-from app.modules.dispatch.models import TASK_STATUSES, Assignment, Task
+from app.modules.dispatch.models import OPEN_TASK_STATUSES_EXCLUDE, TASK_STATUSES, Assignment, Task
 from app.modules.identity.models import Employee, EmployeeRole
 from app.modules.orders.models import STATUSES as ORDER_STATUSES
 from app.modules.orders.models import Order
@@ -37,8 +37,6 @@ VIETNAM = ZoneInfo("Asia/Ho_Chi_Minh")
 # "Đang mở" cho today_tasks: không DONE (khác list_my_assignments của M5-01, vốn gồm DONE) —
 # spec §2 today_tasks: "đang mở (không REJECTED/REMOVED/DONE)".
 _OPEN_ASSIGNMENT_STATUSES = ("PENDING", "ACCEPTED", "IN_PROGRESS")
-# "Đang mở" cho overdue_task_count: task chưa xong/huỷ.
-_OPEN_TASK_STATUSES_EXCLUDE = ("DONE", "CANCELLED")
 
 
 def _task_summary(session: Session) -> TaskSummaryOut:
@@ -116,9 +114,7 @@ def _order_summary(
         .where(
             Order.status.notin_(("COMPLETED", "CANCELLED")),
             Order.id.in_(
-                select(Task.order_id).where(
-                    Task.status.notin_(_OPEN_TASK_STATUSES_EXCLUDE), Task.due_at < now
-                )
+                select(Task.order_id).where(Task.status.notin_(OPEN_TASK_STATUSES_EXCLUDE), Task.due_at < now)
             ),
         )
     )
@@ -142,7 +138,7 @@ def _dispatch_summary(session: Session, *, now: datetime) -> DispatchSummaryOut:
         session.scalar(
             select(func.count())
             .select_from(Task)
-            .where(Task.status.notin_(_OPEN_TASK_STATUSES_EXCLUDE), Task.due_at < now)
+            .where(Task.status.notin_(OPEN_TASK_STATUSES_EXCLUDE), Task.due_at < now)
         )
         or 0
     )
