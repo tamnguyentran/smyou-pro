@@ -48,7 +48,7 @@ async function evidence(
   if (size) await page.setViewportSize(size);
 }
 
-test("AC-CAT-012 AC-CAT-018 @a11y @screenshot danh sách Sản phẩm (Manager)", async ({
+test("AC-CAT-012 AC-CAT-018 AC-UI-014 @a11y @screenshot danh sách Sản phẩm (Manager)", async ({
   page,
 }, info) => {
   await signIn(page, MANAGER);

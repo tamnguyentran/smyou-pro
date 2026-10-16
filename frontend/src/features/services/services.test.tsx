@@ -152,6 +152,32 @@ describe("AC-CAT-027 danh sách dịch vụ", () => {
     expect(screen.getByText("DV-LAPCAM")).toBeInTheDocument();
   });
 
+  test("AC-UI-013 mobile: thẻ dịch vụ bỏ viền, p-5, shadow-card", async () => {
+    mockViewport(false);
+    signedInAs(AN, () => HttpResponse.json(page([LAPCAM])));
+    renderApp("/catalog/services");
+    await openMenu();
+
+    const card = (await screen.findByText("Công đi dây + lắp đặt hệ thống camera")).closest(
+      "button",
+    ) as HTMLElement;
+    expect(card.className).toContain("shadow-card");
+    expect(card.className).toContain("hover:shadow-card-hover");
+    expect(card.className).toContain("p-5");
+    expect(card.className).not.toMatch(/\bborder\b/);
+  });
+
+  test("AC-UI-013 desktop: table dịch vụ vẫn giữ border border-line", async () => {
+    mockViewport(true);
+    signedInAs(AN, () => HttpResponse.json(page([LAPCAM])));
+    renderApp("/catalog/services");
+    await openMenu();
+
+    const table = await screen.findByRole("table");
+    expect(table.className).toContain("border");
+    expect(table.className).toContain("border-line");
+  });
+
   test("tìm kiếm gọi API sau 300ms; lọc danh mục và trạng thái", async () => {
     let lastQuery = "";
     signedInAs(AN, ({ request }) => {
