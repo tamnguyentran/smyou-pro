@@ -9,10 +9,16 @@ export const REJECTION_REASON_LABELS: Record<(typeof REJECTION_REASON_ORDER)[num
   OTHER: "Khác",
 };
 
-/** AC-KPI-019: `on_time_rate=null` (không có task xong) → "—", không hiện "0/0 · 0%" gây hiểu lầm. */
+/** `null` khi `completedCount=0` (không có task xong) — không chia 0, không suy ra tỷ lệ giả. */
+export function onTimePercent(onTimeCount: number, completedCount: number): number | null {
+  if (completedCount === 0) return null;
+  return Math.round((onTimeCount / completedCount) * 100);
+}
+
+/** AC-KPI-019: `on_time_rate=null` → "—", không hiện "0/0 · 0%" gây hiểu lầm. */
 export function formatOnTime(onTimeCount: number, completedCount: number): string {
-  if (completedCount === 0) return "—";
-  const percent = Math.round((onTimeCount / completedCount) * 100);
+  const percent = onTimePercent(onTimeCount, completedCount);
+  if (percent === null) return "—";
   return `${String(onTimeCount)}/${String(completedCount)} · ${String(percent)}%`;
 }
 

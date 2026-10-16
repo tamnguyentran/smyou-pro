@@ -531,5 +531,6 @@ def test_me_includes_unread_notifications_count(
 @pytest.mark.ac("AC-NTF-020")
 def test_routes_declare_notification_read_capability(app: FastAPI) -> None:
     routes = {r for r in declared_routes(app) if r[1].startswith("/api/v1/notifications")}
-    assert len(routes) == 4
+    # 4 from M7-01a + 2 push-subscription routes from M10-05 (test_notifications_push_api.py).
+    assert len(routes) == 6
     assert all(capability == "notification.read" for _method, _path, capability in routes)

@@ -30,3 +30,19 @@ class UnreadCount(BaseModel):
 
 class MarkAllReadResult(BaseModel):
     count: int
+
+
+class PushSubscriptionKeys(BaseModel):
+    p256dh: str
+    auth: str
+
+
+class PushSubscriptionIn(BaseModel):
+    """Shape of `PushSubscription.toJSON()` from the browser's Push API (M10-05)."""
+
+    endpoint: str
+    keys: PushSubscriptionKeys
+
+
+class PushUnsubscribeIn(BaseModel):
+    endpoint: str

@@ -9,6 +9,7 @@ import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { useSignOut } from "../../auth/useSignOut";
 import { useMe } from "../../me/api";
+import { PushSubscriptionToggle } from "../../notifications/components/PushSubscriptionToggle";
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -60,6 +61,9 @@ export function ProfilePage() {
         <KeyRound aria-hidden="true" className="size-4" />
         Đổi mật khẩu
       </Link>
+      {me.data?.vapid_public_key ? (
+        <PushSubscriptionToggle vapidPublicKey={me.data.vapid_public_key} />
+      ) : null}
       {failed ? <Alert>Không đăng xuất được. Vui lòng thử lại.</Alert> : null}
       <Button
         variant="secondary"

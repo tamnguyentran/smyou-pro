@@ -533,6 +533,7 @@ class WorkflowMachine(RuleBasedStateMachine):
                 return
             task_row = session.get(Task, assignment.task_id)
             order = session.get(Order, task_row.order_id)
+            before_status = order.status
             actor = _make_actor(assignment.employee_id, "TECHNICIAN", "assignment.respond")
             try:
                 assignments_service.start_assignment(
@@ -544,6 +545,8 @@ class WorkflowMachine(RuleBasedStateMachine):
                     specs=SPECS,
                 )
                 self._transition_audit_count += 1
+                if order.status != before_status:
+                    self._transition_audit_count += 1  # system-triggered start_dispatch side effect (Q81)
             except AppError as err:
                 self._expect_rejected(err)
 

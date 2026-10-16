@@ -10,8 +10,8 @@ export function DispatchSummarySection({ summary }: { summary: DispatchSummary }
       <h2 className="text-sm font-semibold text-muted">Điều phối</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <StatTile label="Chờ điều phối" value={summary.pending_dispatch_count} />
-        <StatTile label="Cần giao lại" value={summary.needs_assignee_count} urgent />
-        <StatTile label="Quá hạn" value={summary.overdue_task_count} urgent />
+        <StatTile label="Cần giao lại" value={summary.needs_assignee_count} tone="urgent" />
+        <StatTile label="Quá hạn" value={summary.overdue_task_count} tone="urgent" />
       </div>
     </section>
   );

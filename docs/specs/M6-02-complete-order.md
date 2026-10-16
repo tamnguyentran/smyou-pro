@@ -65,10 +65,10 @@ Không có bảng/cột mới — `confirmation_signer_name`, `completed_at` đ�
 - Mobile/desktop: không khác biệt bố cục ngoài vị trí nút theo khu vực thao tác đã có của trang chi tiết đơn.
 
 ## 7. Kịch bản UAT thủ công
-1. Đăng nhập Khoa (KTV), mở đơn đang "Chờ khách xác nhận" đã có ảnh phiếu ở tab "Tệp đính kèm" (từ M6-01).
+1. Đăng nhập Khoa (KTV), mở đơn đang "Hoàn thành, chờ KH xác nhận" đã có ảnh phiếu ở tab "Tệp đính kèm" (từ M6-01).
 2. Bấm "Hoàn tất đơn" → nhập tên người ký → "Xác nhận hoàn tất" → đơn chuyển "Hoàn tất", toast hiện.
 3. Mở lại đơn đó bằng An (Manager) hoặc Hoa (Sale) → xác nhận huy hiệu trạng thái "Hoàn tất", tab "Lịch sử" có dòng `complete`.
-4. Mở 1 đơn khác đang "Chờ khách xác nhận" nhưng **chưa** có ảnh phiếu → xác nhận nút "Hoàn tất đơn" không hiện.
+4. Mở 1 đơn khác đang "Hoàn thành, chờ KH xác nhận" nhưng **chưa** có ảnh phiếu → xác nhận nút "Hoàn tất đơn" không hiện.
 
 ## 8. Giả định & câu hỏi
 - Giả định: `notify_order_owner` (effect của `complete`) bỏ qua ở item này, chỉ ghi `audit_events` — giống cách M5-02/M5-03 đã xử lý các effect thông báo khác (Q60), vì module Thông báo chưa xây (`M7-01`).

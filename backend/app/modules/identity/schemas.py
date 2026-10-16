@@ -53,3 +53,6 @@ class MeResponse(BaseModel):
     # "Thông báo" isn't a menu item (like "Cá nhân"), so it bypasses the counters/menu[].badge
     # mechanism above and is computed directly (M7-01a).
     unread_notifications_count: int
+    # null khi server chưa cấu hình VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY — ẩn hẳn UI đăng ký nhận
+    # Web Push ở frontend (M10-05). Không phải bí mật — khoá riêng tư không bao giờ rời server.
+    vapid_public_key: str | None

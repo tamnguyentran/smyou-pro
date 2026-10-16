@@ -1,9 +1,11 @@
-import { UserCog } from "lucide-react";
+import { Search, UserCog } from "lucide-react";
+import { useState } from "react";
 import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
 import { ForbiddenPage } from "../../../app/shell/StatusPage";
 import { Button } from "../../../components/ui/Button";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { TextField } from "../../../components/ui/TextField";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
 import { useMe } from "../../me/api";
 import { useWorkload } from "../api";
@@ -32,6 +34,7 @@ export function WorkloadPage() {
   const desktop = useMediaQuery("(min-width: 1024px)", true);
   const allowed = me.data !== undefined && "task.manage" in me.data.capabilities;
   const workload = useWorkload(allowed);
+  const [q, setQ] = useState("");
 
   if (!me.data && me.isError) {
     return (
@@ -45,8 +48,30 @@ export function WorkloadPage() {
   if (!me.data) return <Waiting desktop={desktop} />;
   if (!allowed) return <ForbiddenPage />;
 
+  const filteredItems = workload.data?.items.filter((item) =>
+    item.full_name.toLowerCase().includes(q.trim().toLowerCase()),
+  );
+
   return (
     <div className="space-y-4">
+      {!workload.isPending && !workload.isError && workload.data.items.length > 0 ? (
+        <TextField
+          label="Tìm kiếm"
+          placeholder="Tên nhân viên…"
+          value={q}
+          onChange={(event) => {
+            setQ(event.target.value);
+          }}
+          trailing={
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted"
+            >
+              <Search className="size-4" />
+            </span>
+          }
+        />
+      ) : null}
       {workload.isPending ? (
         <Waiting desktop={desktop} />
       ) : workload.isError ? (
@@ -66,8 +91,10 @@ export function WorkloadPage() {
         />
       ) : workload.data.items.length === 0 ? (
         <EmptyState icon={UserCog} message="Chưa có kỹ thuật viên nào đang hoạt động." />
+      ) : filteredItems !== undefined && filteredItems.length === 0 ? (
+        <EmptyState icon={UserCog} message="Không tìm thấy nhân viên phù hợp." />
       ) : (
-        <WorkloadList items={workload.data.items} />
+        <WorkloadList items={filteredItems ?? workload.data.items} />
       )}
     </div>
   );

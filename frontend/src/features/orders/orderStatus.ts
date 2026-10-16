@@ -6,7 +6,7 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   DRAFT: "Nháp",
   PENDING_DISPATCH: "Chờ điều phối",
   IN_PROGRESS: "Đang thực hiện",
-  AWAITING_CONFIRMATION: "Chờ khách xác nhận",
+  AWAITING_CONFIRMATION: "Hoàn thành, chờ KH xác nhận",
   COMPLETED: "Hoàn tất",
   REVISION: "Chỉnh sửa",
   CANCELLED: "Đã huỷ",
@@ -51,4 +51,7 @@ export const COMMAND_LABELS: Record<string, string> = {
   add_line_after_submit: "Thêm dòng hàng",
   update_line_after_submit: "Sửa dòng hàng",
   remove_line_after_submit: "Xoá dòng hàng",
+  start_dispatch: "Bắt đầu điều phối",
+  all_tasks_done: "Hoàn tất toàn bộ đầu việc",
+  confirmation_upload: "Hình KH ký xác nhận",
 };

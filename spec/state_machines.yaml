@@ -13,7 +13,7 @@ order:
     DRAFT:                 { label: Nháp,               color: todo }
     PENDING_DISPATCH:      { label: Chờ điều phối,       color: review }
     IN_PROGRESS:           { label: Đang thực hiện,      color: in_progress }
-    AWAITING_CONFIRMATION: { label: Chờ khách xác nhận,  color: review }
+    AWAITING_CONFIRMATION: { label: "Hoàn thành, chờ KH xác nhận", color: review }
     COMPLETED:             { label: Hoàn tất,            color: completed, terminal: false }  # can go to REVISION
     REVISION:              { label: Chỉnh sửa,           color: urgent }
     CANCELLED:             { label: Đã huỷ,              color: todo, terminal: true }
@@ -30,12 +30,20 @@ order:
       capability: order.submit
       guards: [order_has_no_tasks]
       effects: [audit]
-    - command: start_dispatch          # system: fired when the first task of the order is created
+    # system: fired when the first assignment of the order starts (assignment.transitions[start]),
+    # NOT when a task/assignee is merely created — Q81 (2026-10-15): the order must stay "Chờ điều
+    # phối" until a technician actually begins work, not just because one was assigned a task.
+    # `actor: system` means no capability-checked endpoint invokes this directly — it is still
+    # audited with the triggering technician's actor_id, never NULL (every transition has a real
+    # person behind it; "Hệ thống" must never appear in order history, 2026-10-15).
+    - command: start_dispatch
       from: [PENDING_DISPATCH]
       to: IN_PROGRESS
       actor: system
       effects: [audit]
-    - command: all_tasks_done          # system: re-evaluated after every task/assignment change
+    # system: re-evaluated after every task/assignment change. Audited with the technician's
+    # actor_id from the `complete` that finished the last active task — see start_dispatch above.
+    - command: all_tasks_done
       from: [IN_PROGRESS, REVISION]
       to: AWAITING_CONFIRMATION
       actor: system
@@ -89,7 +97,7 @@ task:
       capability: task.manage
       guards: [order_in_dispatchable_state, at_least_one_assignee, assignees_are_active_technicians,
                estimated_hours_positive, due_at_not_in_past]
-      effects: [create_pending_assignments, fire_order_start_dispatch_if_first_task, notify_assignees, audit]
+      effects: [create_pending_assignments, notify_assignees, audit]
       origin: "INITIAL if order not in REVISION, else ADDITIONAL"
     - command: update                  # title, description, estimated_hours, due_at, priority
       capability: task.manage
@@ -141,7 +149,7 @@ assignment:
       to: IN_PROGRESS
       actor: assignee
       guards: [order_in_dispatchable_state, task_not_cancelled]
-      effects: [audit]
+      effects: [fire_order_start_dispatch_if_first_start, audit]
     - command: complete
       from: [IN_PROGRESS]
       to: DONE

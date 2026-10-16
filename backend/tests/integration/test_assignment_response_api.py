@@ -412,6 +412,77 @@ def test_start_one_of_two_moves_task_to_in_progress(
     assert task_row(db, task_id).status == "IN_PROGRESS"
 
 
+@pytest.mark.ac("AC-ASG-069")
+def test_start_first_assignment_starts_dispatch(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    """Q81 (2026-10-15): đơn vẫn `PENDING_DISPATCH` dù đã có task+người được giao — chỉ khi người
+    đó bấm "Bắt đầu" thì đơn mới chuyển `IN_PROGRESS` (thay vì lúc tạo task như trước)."""
+    order_id = insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code="DH2610-0069")
+    task_id = insert_task(
+        db,
+        order_id,
+        code="DH2610-0069-T1",
+        title="Lắp 4 camera ngoài trời",
+        status="ACCEPTED",
+        priority="NORMAL",
+        due_at=datetime(2026, 10, 9, 9, 0, tzinfo=VIETNAM),
+        created_by=people["NV010"],
+        estimated_hours="3.5",
+    )
+    assignment_id = insert_assignment(db, task_id, people["NV014"], "ACCEPTED")
+    khoa = client_as(app, KHOA)
+
+    res = khoa.post(f"/api/v1/assignments/{assignment_id}/start", json={"version": 1})
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["assignment_status"] == "IN_PROGRESS"
+
+    order_row = db.execute(text("SELECT status FROM orders WHERE id = :id"), {"id": order_id}).one()
+    assert order_row.status == "IN_PROGRESS"
+
+    order_events = audit_rows(db, order_id)
+    assert len(order_events) == 1
+    assert (
+        order_events[0].entity_type,
+        order_events[0].action,
+        order_events[0].from_status,
+        order_events[0].to_status,
+        order_events[0].actor_id,
+    ) == ("ORDER", "start_dispatch", "PENDING_DISPATCH", "IN_PROGRESS", people["NV014"])
+
+
+@pytest.mark.ac("AC-ASG-070")
+def test_start_second_assignment_does_not_refire_start_dispatch(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    order_id = insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code="DH2610-0070")
+    task_id = insert_task(
+        db,
+        order_id,
+        code="DH2610-0070-T1",
+        title="Lắp 4 camera ngoài trời",
+        status="ACCEPTED",
+        priority="NORMAL",
+        due_at=datetime(2026, 10, 9, 9, 0, tzinfo=VIETNAM),
+        created_by=people["NV010"],
+        estimated_hours="3.5",
+    )
+    khoa_assignment = insert_assignment(db, task_id, people["NV014"], "ACCEPTED")
+    minh_assignment = insert_assignment(db, task_id, people["NV015"], "ACCEPTED")
+    khoa = client_as(app, KHOA)
+    minh = client_as(app, MINH)
+
+    first = khoa.post(f"/api/v1/assignments/{khoa_assignment}/start", json={"version": 1})
+    assert first.status_code == 200, first.text
+    second = minh.post(f"/api/v1/assignments/{minh_assignment}/start", json={"version": 2})
+    assert second.status_code == 200, second.text
+
+    order_events = audit_rows(db, order_id)
+    assert len(order_events) == 1  # only the first start fired start_dispatch
+
+
 @pytest.mark.ac("AC-ASG-044")
 def test_start_pending_assignment_is_invalid_transition(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
@@ -532,7 +603,7 @@ def test_complete_last_task_moves_order_to_awaiting_confirmation(
     )
     order_events = audit_rows(db, order_id)
     assert len(order_events) == 1
-    assert order_events[0].actor_id is None
+    assert order_events[0].actor_id == people["NV014"]
     assert (
         order_events[0].entity_type,
         order_events[0].action,

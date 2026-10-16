@@ -287,7 +287,7 @@ test("AC-ORD-069 AC-ORD-110 AC-ORD-113 AC-ORD-114 @a11y @screenshot danh sách �
     "Nháp",
     "Chờ điều phối",
     "Đang thực hiện",
-    "Chờ khách xác nhận",
+    "Hoàn thành, chờ KH xác nhận",
     "Hoàn tất",
     "Chỉnh sửa",
     "Đã huỷ",

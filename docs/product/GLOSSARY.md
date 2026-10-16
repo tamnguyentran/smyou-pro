@@ -34,7 +34,7 @@ Dùng đúng tên cột phải trong code, API, DB. Không tự đặt từ đ�
 | Tình trạng thanh toán | `payment_status` | TTTM/CK → PAID, TT sau → PAY_LATER |
 | Gửi đơn | `submit` | |
 | Chờ điều phối | `PENDING_DISPATCH` | |
-| Chờ khách xác nhận | `AWAITING_CONFIRMATION` | |
+| Hoàn thành, chờ KH xác nhận | `AWAITING_CONFIRMATION` | |
 | Phiếu xác nhận có chữ ký | attachment `CUSTOMER_CONFIRMATION` | |
 | Người ký xác nhận | `confirmation_signer_name` | |
 | Hoàn tất đơn | `complete` (order) | |

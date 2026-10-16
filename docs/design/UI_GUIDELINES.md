@@ -3,7 +3,8 @@
 Chuyển thể từ `Tài liệu tham khảo/UI.md` (bản gốc giữ nguyên để tham khảo code mẫu). Phần gốc về "Workspace / Dự án" **không áp dụng**; menu cấp 2 ở đây là menu theo vai trò (`spec/permissions.yaml`).
 
 ## 1. Nguyên tắc
-1. **Sang trọng, tiết chế:** nền Deep Slate Teal `#0F2F2E` cho điểm nhấn chính, vàng hổ phách `#D97706` cho CTA/biểu tượng nổi bật; viền 1px `#E2E8F0`; bóng mờ nhẹ.
+1. **Sang trọng, tiết chế:** nền Deep Slate Teal `#0F2F2E` cho điểm nhấn chính, vàng hổ phách `#D97706` cho CTA/biểu tượng nổi bật; bóng mờ nhẹ.
+   - **Card nổi bằng `shadow-card`, bỏ viền (`border-line`)** trừ khi cần phân tách mạnh (bảng, input) hoặc thẻ đang tô màu theo trạng thái (ví dụ `StatTile` có `tone`) — viền màu ở nhóm này là tín hiệu quét nhanh (§1.3), không phải viền trang trí (M11-01).
 2. **Thân thiện:** bo `rounded-xl`/`rounded-2xl`, khoảng trắng thoáng, chuyển động `duration-200 ease-in-out`, mỗi mục menu/trạng thái/nút chính có icon lucide.
 3. **Quét nhanh:** trạng thái luôn là badge màu + chữ (không chỉ màu); con số quan trọng (hạn chót, số giờ, tổng tiền) in đậm.
 4. **Mobile-first:** viết class cho 390px trước, mở rộng bằng `md:` (≥768) và `lg:` (≥1024). KTV dùng 1 tay ngoài hiện trường.
@@ -29,7 +30,7 @@ Không dùng mã màu hex rời rạc trong component (`bg-[#0F2F2E]` ❌ → `b
 |---|---|---|
 | `todo` | `#F1F5F9` / `#475569` / `#CBD5E1` | Nháp, Chờ tiếp nhận, Đã huỷ, Đã gỡ |
 | `in_progress` | `#EFF6FF` / `#1D4ED8` / `#BFDBFE` | Đang thực hiện |
-| `review` | `#FFFBEB` / `#B45309` / `#FDE68A` | Chờ điều phối, Đã tiếp nhận, Chờ khách xác nhận |
+| `review` | `#FFFBEB` / `#B45309` / `#FDE68A` | Chờ điều phối, Đã tiếp nhận, Hoàn thành, chờ KH xác nhận |
 | `completed` | `#ECFDF5` / `#047857` / `#A7F3D0` | Hoàn thành, Hoàn tất |
 | `urgent` | `#FEF2F2` / `#B91C1C` / `#FECACA` | Chỉnh sửa, Cần giao lại, Từ chối, Quá hạn, ưu tiên Khẩn |
 

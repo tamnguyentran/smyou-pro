@@ -214,4 +214,11 @@ def change_password(
 def me(
     request: Request, session: DbSession, actor: Annotated[Actor, Depends(require("profile.manage"))]
 ) -> MeResponse:
-    return service.me(session, actor, request.app.state.specs.permissions, request.app.state.counters)
+    settings: Settings = request.app.state.settings
+    return service.me(
+        session,
+        actor,
+        request.app.state.specs.permissions,
+        request.app.state.counters,
+        vapid_public_key=settings.vapid_public_key,
+    )

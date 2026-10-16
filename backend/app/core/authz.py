@@ -17,7 +17,8 @@ from fastapi.dependencies.models import Dependant
 from fastapi.routing import APIRoute, iter_route_contexts
 from sqlalchemy import ColumnElement, Select, false, or_
 from sqlalchemy.orm import Session
-from starlette.routing import Route
+from starlette.requests import HTTPConnection
+from starlette.routing import Route, WebSocketRoute
 
 from app.core.db import DbSession
 from app.core.errors import AppError
@@ -39,7 +40,7 @@ class Actor:
     scopes: tuple[str, ...] = ()
 
 
-Authenticator = Callable[[Request, Session], Actor | None]
+Authenticator = Callable[[HTTPConnection, Session], Actor | None]
 ScopeRules = Mapping[str, Callable[[Actor], ColumnElement[bool]]]
 
 
@@ -130,8 +131,18 @@ def undeclared_routes(app: FastAPI, permissions: PermissionsSpec) -> list[str]:
     framework = {app.openapi_url, app.docs_url, app.redoc_url} - {None}
     if app.docs_url and app.swagger_ui_oauth2_redirect_url:
         framework.add(app.swagger_ui_oauth2_redirect_url)
+    # WebSocketRoute can't use require() (that's an APIRoute-only dependency) — it must instead be
+    # listed in spec/permissions.yaml#websocket_routes and check its capability manually (M7-03).
+    websocket_paths = {ws.path for ws in permissions.websocket_routes}
     # Walk effective routes: included routers are flattened with their prefix and router-level dependencies.
     for route in iter_route_contexts(app.routes):
+        if isinstance(route.original_route, WebSocketRoute):
+            # RouteContext.path comes back "" for WebSocketRoute (fastapi's prefix-merging
+            # context helper only fills it in for APIRoute) — use the route object directly.
+            ws_path = route.original_route.path
+            if ws_path not in websocket_paths:
+                problems.append(f"{ws_path}: WebSocketRoute not listed in websocket_routes")
+            continue
         if not isinstance(route.original_route, APIRoute):
             path = route.path or repr(route.original_route)
             original = route.original_route

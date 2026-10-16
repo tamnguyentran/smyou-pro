@@ -124,25 +124,30 @@ describe("Báo cáo KPI", () => {
     vi.useRealTimers();
   });
 
-  test("AC-KPI-017 desktop: bảng 3 dòng, cột đúng, Lan (đã nghỉ) có badge", async () => {
+  test("AC-KPI-017 desktop: lưới 3 card, mỗi card đủ số liệu chính, Lan (đã nghỉ) có badge", async () => {
     signedInAs(anId, AN);
     mockReport([KHOA, MINH, LAN]);
     renderApp("/reports/kpi");
 
-    const table = await screen.findByRole("table");
-    expect(table).toBeInTheDocument();
-    expect(screen.getAllByRole("row")).toHaveLength(4); // header + 3
-    expect(within(table).getByText("Đã nghỉ")).toBeInTheDocument();
-    expect(within(table).getByText(/Trần Văn Khoa/)).toBeInTheDocument();
+    const list = await screen.findByRole("list", { name: "Báo cáo KPI theo kỹ thuật viên" });
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(within(list).getAllByRole("listitem")).toHaveLength(3);
+    expect(within(list).getByText("Đã nghỉ")).toBeInTheDocument();
+    const khoaCard = within(list)
+      .getByText(/Trần Văn Khoa/)
+      .closest("li") as HTMLElement;
+    expect(within(khoaCard).getByText("Xong")).toBeInTheDocument();
+    expect(within(khoaCard).getByText("50%")).toBeInTheDocument(); // on_time_rate=0.5
+    expect(within(khoaCard).getByText(/Tổng từ chối: 3/)).toBeInTheDocument();
   });
 
-  test("AC-KPI-018 mobile 390px: danh sách 3 card dọc, không có bảng", async () => {
+  test("AC-KPI-018 mobile 390px: vẫn danh sách card dọc (1 cột), không có bảng", async () => {
     mobile();
     signedInAs(anId, AN);
     mockReport([KHOA, MINH, LAN]);
     renderApp("/reports/kpi");
 
-    const list = await screen.findByRole("list");
+    const list = await screen.findByRole("list", { name: "Báo cáo KPI theo kỹ thuật viên" });
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(within(list).getByText(/Trần Văn Khoa/)).toBeInTheDocument();
     expect(within(list).getByText(/Lê Văn Minh/)).toBeInTheDocument();
@@ -154,9 +159,9 @@ describe("Báo cáo KPI", () => {
     mockReport([MINH]);
     renderApp("/reports/kpi");
 
-    const table = await screen.findByRole("table");
-    expect(within(table).getByText(/Lê Văn Minh/)).toBeInTheDocument();
-    expect(within(table).getByText("—")).toBeInTheDocument();
+    const list = await screen.findByRole("list", { name: "Báo cáo KPI theo kỹ thuật viên" });
+    expect(within(list).getByText(/Lê Văn Minh/)).toBeInTheDocument();
+    expect(within(list).getByText("—")).toBeInTheDocument();
   });
 
   test("AC-KPI-020 đổi ngày → gọi lại API với tham số mới", async () => {
@@ -166,8 +171,8 @@ describe("Báo cáo KPI", () => {
       requests.push(search);
     });
     renderApp("/reports/kpi");
-    const table = await screen.findByRole("table");
-    expect(within(table).getByText(/Trần Văn Khoa/)).toBeInTheDocument();
+    const list = await screen.findByRole("list", { name: "Báo cáo KPI theo kỹ thuật viên" });
+    expect(within(list).getByText(/Trần Văn Khoa/)).toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.clear(screen.getByLabelText("Từ ngày"));
@@ -190,8 +195,8 @@ describe("Báo cáo KPI", () => {
       }),
     );
     renderApp("/reports/kpi");
-    const table = await screen.findByRole("table");
-    expect(within(table).getByText(/Lê Văn Minh/)).toBeInTheDocument();
+    const list = await screen.findByRole("list", { name: "Báo cáo KPI theo kỹ thuật viên" });
+    expect(within(list).getByText(/Lê Văn Minh/)).toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.selectOptions(screen.getByLabelText("Kỹ thuật viên"), khoaId);
@@ -200,9 +205,33 @@ describe("Báo cáo KPI", () => {
       expect(requests.some((s) => s.includes(`employee_id=${khoaId}`))).toBe(true);
     });
     await waitFor(() => {
-      expect(within(screen.getByRole("table")).queryByText(/Lê Văn Minh/)).not.toBeInTheDocument();
+      expect(
+        within(screen.getByRole("list", { name: "Báo cáo KPI theo kỹ thuật viên" })).queryByText(
+          /Lê Văn Minh/,
+        ),
+      ).not.toBeInTheDocument();
     });
-    expect(within(screen.getByRole("table")).getByText(/Trần Văn Khoa/)).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("list", { name: "Báo cáo KPI theo kỹ thuật viên" })).getByText(
+        /Trần Văn Khoa/,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("AC-KPI-027/028 (M8-01c) chi tiết 5 lý do từ chối ẩn mặc định, bấm 'Tổng từ chối' mới hiện", async () => {
+    signedInAs(anId, AN);
+    mockReport([KHOA]);
+    renderApp("/reports/kpi");
+
+    const list = await screen.findByRole("list", { name: "Báo cáo KPI theo kỹ thuật viên" });
+    expect(within(list).getByText(/Trần Văn Khoa/)).toBeInTheDocument();
+    const details = screen.getByText(/Tổng từ chối: 3/).closest("details") as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+
+    await userEvent.setup().click(screen.getByText(/Tổng từ chối: 3/));
+    expect(details.open).toBe(true);
+    expect(screen.getByText("Ốm")).toBeInTheDocument();
+    expect(screen.getByText("Xa")).toBeInTheDocument();
   });
 
   test("AC-KPI-023 Đức (TECHNICIAN): không có ô chọn KTV, 1 thẻ số liệu, vẫn có nút Xuất CSV", async () => {

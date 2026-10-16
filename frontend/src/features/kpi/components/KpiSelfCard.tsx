@@ -1,43 +1,33 @@
 import type { KpiRow } from "../api";
-import {
-  formatHoursPair,
-  formatOnTime,
-  REJECTION_REASON_LABELS,
-  REJECTION_REASON_ORDER,
-} from "../labels";
+import { formatHoursPair, onTimePercent } from "../labels";
+import { OnTimeBar, RejectionDisclosure } from "./KpiStatBlocks";
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-line bg-card p-4 text-center">
+    <div className="rounded-2xl bg-card p-5 text-center shadow-card">
       <p className="text-xs font-medium text-muted">{label}</p>
       <p className="mt-1 text-xl font-semibold text-heading">{value}</p>
     </div>
   );
 }
 
-/** AC-KPI-023: TECHNICIAN chỉ thấy 1 khối thẻ số liệu của chính mình, không bảng/danh sách. */
+/** AC-KPI-023 (M8-01c): TECHNICIAN chỉ thấy 1 card số liệu của chính mình — 3 số chính + thanh
+ * đúng hạn + "Tổng từ chối" gộp (chi tiết 5 lý do chỉ hiện khi bấm mở), cùng mẫu `KpiRows`. */
 export function KpiSelfCard({ row }: { row: KpiRow }) {
+  const percent = onTimePercent(row.on_time_count, row.completed_task_count);
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <div className="max-w-md space-y-3 rounded-2xl bg-card p-5 shadow-card">
+      <div className="grid grid-cols-3 gap-3">
         <Tile label="Xong" value={String(row.completed_task_count)} />
-        <Tile label="Đúng hạn" value={formatOnTime(row.on_time_count, row.completed_task_count)} />
+        <Tile label="Đúng hạn" value={percent === null ? "—" : `${String(percent)}%`} />
         <Tile label="Lỗi" value={String(row.defect_count)} />
-        <Tile
-          label="Giờ ước tính/thực tế"
-          value={formatHoursPair(row.estimated_hours_total, row.actual_hours_total)}
-        />
       </div>
-      <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
-        {REJECTION_REASON_ORDER.map((key) => (
-          <Tile
-            key={key}
-            label={REJECTION_REASON_LABELS[key]}
-            value={String(row.rejection_counts[key])}
-          />
-        ))}
-        <Tile label="Tổng từ chối" value={String(row.rejection_total)} />
-      </div>
+      <OnTimeBar row={row} />
+      <p className="text-sm text-body">
+        <span className="text-muted">Giờ ước tính/thực tế:</span>{" "}
+        {formatHoursPair(row.estimated_hours_total, row.actual_hours_total)}
+      </p>
+      <RejectionDisclosure row={row} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 """FastAPI application factory."""
 
+import asyncio
 from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -28,6 +29,7 @@ from app.modules.identity.router import me_router
 from app.modules.identity.router import router as auth_router
 from app.modules.identity.service import authenticate
 from app.modules.kpi.router import router as kpi_router
+from app.modules.notifications import realtime as notifications_realtime
 from app.modules.notifications.router import router as notifications_router
 from app.modules.orders import service as orders_service
 from app.modules.orders.router import router as orders_router
@@ -56,7 +58,11 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        # M7-03: the loop running WebSocket connections, so `after_commit` (fired on the sync
+        # threadpool thread) can hop back to it to broadcast new notifications.
+        notifications_realtime.set_event_loop(asyncio.get_running_loop())
         yield
+        notifications_realtime.set_event_loop(None)
         engine.dispose()
 
     app = FastAPI(

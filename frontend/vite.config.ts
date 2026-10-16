@@ -22,6 +22,9 @@ export default defineConfig({
     proxy: {
       [`${apiPrefix}/api`]: {
         target: backendUrl,
+        // M7-03: without this, the dev server never upgrades /api/v1/notifications/ws — it just
+        // proxies it as a dead-end plain HTTP request and the socket never opens.
+        ws: true,
         rewrite: (path) => path.slice(apiPrefix.length),
         ...(apiPrefix
           ? {

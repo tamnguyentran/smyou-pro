@@ -44,7 +44,7 @@ async function evidence(page: Page, info: TestInfo, file: string) {
   if (size) await page.setViewportSize(size);
 }
 
-test("AC-ASG-015 AC-ASG-016 @a11y @screenshot Việc của tôi: 3 tab, gọi/bản đồ, không cuộn ngang, axe sạch", async ({
+test("AC-ASG-015 AC-ASG-016 AC-UI-006 @a11y @screenshot Việc của tôi: 3 tab, gọi/bản đồ, không cuộn ngang, axe sạch", async ({
   page,
 }, info) => {
   await signIn(page, "/my-tasks");

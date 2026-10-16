@@ -450,6 +450,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/notifications/push-subscriptions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Đăng ký nhận Web Push trên thiết bị/trình duyệt hiện tại */
+    post: operations["notifications_push_subscribe"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/notifications/push-subscriptions/unsubscribe": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Bỏ đăng ký Web Push trên thiết bị/trình duyệt hiện tại */
+    post: operations["notifications_push_unsubscribe"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/notifications/unread-count": {
     parameters: {
       query?: never;
@@ -1421,7 +1455,10 @@ export interface components {
     /** DashboardOut */
     DashboardOut: {
       dispatch_summary?: components["schemas"]["DispatchSummaryOut"] | null;
+      my_task_summary?: components["schemas"]["MyTaskSummaryOut"] | null;
       order_summary?: components["schemas"]["OrderSummaryOut"] | null;
+      staff_summary?: components["schemas"]["StaffSummaryOut"] | null;
+      task_summary?: components["schemas"]["TaskSummaryOut"] | null;
       /** Today Tasks */
       today_tasks?: components["schemas"]["MyAssignmentOut"][] | null;
     };
@@ -1537,6 +1574,8 @@ export interface components {
       employee_id: string;
       /** Full Name */
       full_name: string;
+      /** In Progress Count */
+      in_progress_count: number;
       /** Nearest Due At */
       nearest_due_at: string | null;
       /** Open Task Count */
@@ -1715,6 +1754,8 @@ export interface components {
       roles: string[];
       /** Unread Notifications Count */
       unread_notifications_count: number;
+      /** Vapid Public Key */
+      vapid_public_key: string | null;
     };
     /** MyAssignmentOut */
     MyAssignmentOut: {
@@ -1769,6 +1810,15 @@ export interface components {
     MyAssignmentsOut: {
       /** Items */
       items: components["schemas"]["MyAssignmentOut"][];
+    };
+    /** MyTaskSummaryOut */
+    MyTaskSummaryOut: {
+      /** Active Count */
+      active_count: number;
+      /** Done Today Count */
+      done_today_count: number;
+      /** Pending Count */
+      pending_count: number;
     };
     /** NotificationOut */
     NotificationOut: {
@@ -2289,6 +2339,27 @@ export interface components {
       /** Warranty Months */
       warranty_months?: number | null;
     };
+    /**
+     * PushSubscriptionIn
+     * @description Shape of `PushSubscription.toJSON()` from the browser's Push API (M10-05).
+     */
+    PushSubscriptionIn: {
+      /** Endpoint */
+      endpoint: string;
+      keys: components["schemas"]["PushSubscriptionKeys"];
+    };
+    /** PushSubscriptionKeys */
+    PushSubscriptionKeys: {
+      /** Auth */
+      auth: string;
+      /** P256Dh */
+      p256dh: string;
+    };
+    /** PushUnsubscribeIn */
+    PushUnsubscribeIn: {
+      /** Endpoint */
+      endpoint: string;
+    };
     /** RejectionCounts */
     RejectionCounts: {
       /** Busy */
@@ -2406,6 +2477,21 @@ export interface components {
       vat_rate?: number | string | null;
       /** Version */
       version: number;
+    };
+    /** StaffStatusCounts */
+    StaffStatusCounts: {
+      /** Idle */
+      IDLE: number;
+      /** In Progress */
+      IN_PROGRESS: number;
+      /** Not Started */
+      NOT_STARTED: number;
+    };
+    /** StaffSummaryOut */
+    StaffSummaryOut: {
+      /** Active Technician Count */
+      active_technician_count: number;
+      counts_by_status: components["schemas"]["StaffStatusCounts"];
     };
     /** TaskAddAssignee */
     TaskAddAssignee: {
@@ -2580,6 +2666,21 @@ export interface components {
       /** Version */
       version: number;
     };
+    /** TaskStatusCounts */
+    TaskStatusCounts: {
+      /** Accepted */
+      ACCEPTED: number;
+      /** Cancelled */
+      CANCELLED: number;
+      /** Done */
+      DONE: number;
+      /** In Progress */
+      IN_PROGRESS: number;
+      /** Needs Assignee */
+      NEEDS_ASSIGNEE: number;
+      /** Pending Acceptance */
+      PENDING_ACCEPTANCE: number;
+    };
     /** TaskSummary */
     TaskSummary: {
       /** Assignees */
@@ -2614,6 +2715,10 @@ export interface components {
       employee_id: string;
       /** Full Name */
       full_name: string;
+    };
+    /** TaskSummaryOut */
+    TaskSummaryOut: {
+      counts_by_status: components["schemas"]["TaskStatusCounts"];
     };
     /** TaskUpdate */
     TaskUpdate: {
@@ -3806,6 +3911,68 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["MarkAllReadResult"];
+        };
+      };
+    };
+  };
+  notifications_push_subscribe: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PushSubscriptionIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  notifications_push_unsubscribe: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PushUnsubscribeIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

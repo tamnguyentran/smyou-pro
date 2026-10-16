@@ -117,6 +117,11 @@ class BottomNav(_Strict):
     primary_action: dict[str, PrimaryAction | None]
 
 
+class WebsocketRoute(_Strict):
+    path: str
+    capability: str
+
+
 class PermissionsSpec(_Strict):
     version: int
     roles: dict[str, Role]
@@ -124,6 +129,7 @@ class PermissionsSpec(_Strict):
     capabilities: dict[str, dict[str, str]]
     public_routes: list[str]
     dynamic_routes: list[str] = []
+    websocket_routes: list[WebsocketRoute] = []
     menu: list[MenuItem]
     mobile_bottom_nav: BottomNav
 
@@ -247,6 +253,11 @@ def _check_permissions(perm: PermissionsSpec) -> list[str]:
     for route in perm.dynamic_routes:
         if not PUBLIC_ROUTE.match(route):
             problems.append(f"{f}: dynamic_routes: {route!r} must look like 'GET /api/v1/...'")
+    for ws in perm.websocket_routes:
+        if not ws.path.startswith("/"):
+            problems.append(f"{f}: websocket_routes: {ws.path!r} must start with '/'")
+        if ws.capability not in perm.capabilities:
+            problems.append(f"{f}: websocket_routes: unknown capability {ws.capability!r}")
 
     seen_ids: set[str] = set()
 

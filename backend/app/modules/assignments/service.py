@@ -322,6 +322,25 @@ def start_assignment(
     task.status = domain.derive_task_status(
         _active_assignment_statuses(session, task.id, task.cycle), cancelled=task.cancelled_at is not None
     )
+    # spec/state_machines.yaml#assignment.transitions[start].effects: fire_order_start_dispatch_if_first_start
+    # (Q81, 2026-10-15) — the order only becomes "Đang thực hiện" once someone actually starts
+    # work, not merely when a task/assignee is created (that used to flip it, changed per Q81).
+    if order.status == "PENDING_DISPATCH":
+        order_from_status = order.status
+        order.status = "IN_PROGRESS"
+        # actor_id = the technician whose `start` triggered this order-level transition — spec's
+        # `actor: system` only means the command isn't invoked through its own capability-checked
+        # endpoint, not that no human caused it (every transition has a real person behind it).
+        audit.record(
+            session,
+            actor_id=actor.id,
+            entity_type="ORDER",
+            entity_id=order.id,
+            action="start_dispatch",
+            from_status=order_from_status,
+            to_status="IN_PROGRESS",
+            request_id=request_id,
+        )
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
 
@@ -394,9 +413,11 @@ def complete_assignment(
             from_status = order.status
             order.status = "AWAITING_CONFIRMATION"
             session.flush()
+            # actor_id = the technician whose `complete` finished the last active task — see the
+            # same note on the start_dispatch event above.
             audit.record(
                 session,
-                actor_id=None,
+                actor_id=actor.id,
                 entity_type="ORDER",
                 entity_id=order.id,
                 action="all_tasks_done",

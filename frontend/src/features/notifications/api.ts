@@ -64,3 +64,33 @@ export function useMarkAllRead() {
     onSuccess: invalidate,
   });
 }
+
+export interface PushSubscriptionBody {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
+/** M10-05: 204 No Content on success — `data` is `undefined` either way, so check `error`
+ * (set only on non-2xx), not `!data` like the other mutations above. */
+export function usePushSubscribe() {
+  return useMutation({
+    mutationFn: async (body: PushSubscriptionBody) => {
+      const { error, response } = await api.POST("/api/v1/notifications/push-subscriptions", {
+        body,
+      });
+      if (error) throw toApiError(response, error);
+    },
+  });
+}
+
+export function usePushUnsubscribe() {
+  return useMutation({
+    mutationFn: async (endpoint: string) => {
+      const { error, response } = await api.POST(
+        "/api/v1/notifications/push-subscriptions/unsubscribe",
+        { body: { endpoint } },
+      );
+      if (error) throw toApiError(response, error);
+    },
+  });
+}

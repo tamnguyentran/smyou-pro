@@ -7,7 +7,10 @@ import { useMe } from "../../me/api";
 import { useDashboard } from "../api";
 import { DashboardSkeleton } from "../components/DashboardSkeleton";
 import { DispatchSummarySection } from "../components/DispatchSummarySection";
+import { MyTaskSummarySection } from "../components/MyTaskSummarySection";
 import { OrderSummarySection } from "../components/OrderSummarySection";
+import { StaffSummarySection } from "../components/StaffSummarySection";
+import { TaskSummarySection } from "../components/TaskSummarySection";
 import { TodayTasksSection } from "../components/TodayTasksSection";
 
 /** AC-DASH-001…015 (M7-02): trang "/" — dashboard thật theo (các) vai trò, thay `HomePage` cũ. */
@@ -53,6 +56,9 @@ export function DashboardPage() {
     <div className="space-y-6">
       {data.order_summary ? <OrderSummarySection summary={data.order_summary} /> : null}
       {data.dispatch_summary ? <DispatchSummarySection summary={data.dispatch_summary} /> : null}
+      {data.task_summary ? <TaskSummarySection summary={data.task_summary} /> : null}
+      {data.staff_summary ? <StaffSummarySection summary={data.staff_summary} /> : null}
+      {data.my_task_summary ? <MyTaskSummarySection summary={data.my_task_summary} /> : null}
       {data.today_tasks ? <TodayTasksSection items={data.today_tasks} /> : null}
     </div>
   );

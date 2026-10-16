@@ -138,6 +138,7 @@ def test_workload_khoa_row_excludes_cancelled_counts_open_only(
     khoa = rows[str(people["NV014"])]
 
     assert khoa["open_task_count"] == 2
+    assert khoa["in_progress_count"] == 0  # PENDING (t1) + ACCEPTED (t2), none IN_PROGRESS
     assert float(khoa["total_estimated_hours"]) == 8.0
     assert datetime.fromisoformat(khoa["nearest_due_at"]) == datetime(2026, 10, 5, 9, 0, tzinfo=VIETNAM)
 
@@ -151,6 +152,7 @@ def test_workload_minh_row_counts_by_own_assignment_not_task_status(
     minh = rows[str(people["NV015"])]
 
     assert minh["open_task_count"] == 2
+    assert minh["in_progress_count"] == 2  # IN_PROGRESS on both t2 and t3
     assert float(minh["total_estimated_hours"]) == 9.0
     assert datetime.fromisoformat(minh["nearest_due_at"]) == datetime(2026, 10, 6, 9, 0, tzinfo=VIETNAM)
 
@@ -164,6 +166,7 @@ def test_workload_employee_with_no_assignments_shows_zeroes(
     dung = rows[str(people["NV018"])]
 
     assert dung["open_task_count"] == 0
+    assert dung["in_progress_count"] == 0
     assert float(dung["total_estimated_hours"]) == 0
     assert dung["nearest_due_at"] is None
 

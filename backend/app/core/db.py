@@ -47,6 +47,11 @@ def get_session(request: Request) -> Iterator[Session]:
     """
     factory: sessionmaker[Session] = request.app.state.session_factory
     with factory() as session, session.begin():
+        # M10-05: lets a generic `after_commit` listener (notifications/realtime.py) read the
+        # *current* app.state back out of the session alone — it only gets the `Session`, and
+        # caching `session_factory`/`settings` at app-creation time would go stale the moment a
+        # test overrides them on `app.state` afterwards (see tests/integration/conftest.py `auth_app`).
+        session.info["app_state"] = request.app.state
         yield session
 
 

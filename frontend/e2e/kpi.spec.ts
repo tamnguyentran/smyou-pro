@@ -56,7 +56,9 @@ test("AC-KPI-022 Manager lọc theo KTV rồi xuất CSV: tải đúng tham số
   await signIn(page, MANAGER);
   await expect(page.getByRole("heading", { level: 1, name: "Báo cáo KPI" })).toBeVisible();
 
-  await page.getByLabel("Kỹ thuật viên").selectOption({ label: "Trần Minh Khoa (E2E08)" });
+  await page
+    .getByLabel("Kỹ thuật viên", { exact: true })
+    .selectOption({ label: "Trần Minh Khoa (E2E08)" });
   await expect(page.getByRole("main")).toContainText("Trần Minh Khoa");
 
   // Không dùng page.waitForEvent("download")/popup: trình duyệt xử lý file tải khác nhau

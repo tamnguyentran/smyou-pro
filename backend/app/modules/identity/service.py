@@ -10,9 +10,9 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 
-from fastapi import Request
 from sqlalchemy import ColumnElement, exists, select, update
 from sqlalchemy.orm import Session
+from starlette.requests import HTTPConnection
 
 from app.core.authz import Actor, effective_scopes
 from app.core.config import Settings
@@ -323,8 +323,10 @@ def create_manager(
     return employee
 
 
-def authenticate(request: Request, session: Session) -> Actor | None:
-    """app.state.authenticator: access cookie → Actor, or None when anything is off."""
+def authenticate(request: HTTPConnection, session: Session) -> Actor | None:
+    """app.state.authenticator: access cookie → Actor, or None when anything is off. Takes
+    `HTTPConnection` (not `Request`) — the common Starlette base of `Request`/`WebSocket`, so the
+    notifications realtime channel (M7-03) can reuse this unchanged for its handshake auth."""
     token = request.cookies.get(ACCESS_COOKIE)
     if not token:
         return None
@@ -351,7 +353,12 @@ def authenticate(request: Request, session: Session) -> Actor | None:
 
 
 def me(
-    session: Session, actor: Actor, permissions: PermissionsSpec, counters: Mapping[str, CounterProvider]
+    session: Session,
+    actor: Actor,
+    permissions: PermissionsSpec,
+    counters: Mapping[str, CounterProvider],
+    *,
+    vapid_public_key: str | None,
 ) -> MeResponse:
     employee = session.get_one(Employee, actor.id)
     capabilities = {
@@ -372,4 +379,5 @@ def me(
         capabilities=capabilities,
         counters=compute_counters(session, actor, permissions, counters),
         unread_notifications_count=notifications.count_unread(session, actor.id),
+        vapid_public_key=vapid_public_key,
     )

@@ -35,18 +35,21 @@ function workloadItem(overrides: Partial<EmployeeWorkloadItem> = {}): EmployeeWo
     employee_id: dungId,
     full_name: "Hồ Văn Dũng",
     open_task_count: 0,
+    in_progress_count: 0,
     total_estimated_hours: "0",
     nearest_due_at: null,
     ...overrides,
   };
 }
 
-// Fixture spec §3: thứ tự Dũng (0 giờ), Khoa (8 giờ), Minh (9 giờ) — khớp backend thật.
+// Fixture spec §3: Dũng "Chưa có đầu việc" (0 giờ), Khoa "Chưa thực hiện" (PENDING+ACCEPTED,
+// 8 giờ), Minh "Đang làm" (có IN_PROGRESS, 9 giờ) — khớp backend thật + nhóm AC-DSP-108/109.
 const DUNG = workloadItem();
 const KHOA = workloadItem({
   employee_id: khoaId,
   full_name: "Trần Minh Khoa",
   open_task_count: 2,
+  in_progress_count: 0,
   total_estimated_hours: "8.00",
   nearest_due_at: "2026-10-05T02:00:00Z",
 });
@@ -54,6 +57,7 @@ const MINH = workloadItem({
   employee_id: minhId,
   full_name: "Võ Thành Minh",
   open_task_count: 2,
+  in_progress_count: 2,
   total_estimated_hours: "9.00",
   nearest_due_at: "2026-10-06T02:00:00Z",
 });
@@ -64,26 +68,19 @@ function mockWorkload(items: EmployeeWorkloadItem[] = ALL_ROWS) {
 }
 
 describe("Lịch & tải việc", () => {
-  test("AC-DSP-101 desktop 1440px: bảng 4 cột đúng thứ tự/số liệu, hạn trống hiện —", async () => {
+  test("AC-DSP-101 desktop 1440px: bảng 4 cột đúng số liệu mỗi dòng, hạn trống hiện —", async () => {
     signedInAs(tuanId, TUAN);
     mockWorkload();
     renderApp("/dispatch/workload");
 
     await screen.findByText("Trần Minh Khoa");
-    const rows = screen.getAllByRole("row").slice(1); // bỏ header
-    expect(rows.map((r) => within(r).getAllByRole("cell").at(0)?.textContent)).toEqual([
-      "Hồ Văn Dũng",
-      "Trần Minh Khoa",
-      "Võ Thành Minh",
-    ]);
-
     const dungRow = screen.getByText("Hồ Văn Dũng").closest("tr") as HTMLElement;
     const cells = within(dungRow).getAllByRole("cell");
     expect(cells.at(1)).toHaveTextContent("0");
     expect(cells.at(3)).toHaveTextContent("—");
   });
 
-  test("AC-DSP-102 mobile 390px: thẻ xếp dọc, đúng thứ tự/số liệu, không phải bảng ngang", async () => {
+  test("AC-DSP-102 mobile 390px: thẻ xếp dọc theo nhóm, đúng số liệu, không phải bảng ngang", async () => {
     mobile();
     signedInAs(tuanId, TUAN);
     mockWorkload();
@@ -91,11 +88,32 @@ describe("Lịch & tải việc", () => {
 
     await screen.findByText("Trần Minh Khoa");
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByText("Hồ Văn Dũng")).toBeInTheDocument();
+    expect(screen.getByText("Võ Thành Minh")).toBeInTheDocument();
+  });
+
+  test("AC-DSP-108/109: chia 3 nhóm theo thứ tự Đang làm → Chưa thực hiện → Chưa có đầu việc, nền tone tương ứng", async () => {
+    signedInAs(tuanId, TUAN);
+    mockWorkload();
+    renderApp("/dispatch/workload");
+
+    await screen.findByText("Trần Minh Khoa");
+    const headings = screen.getAllByRole("heading", { level: 2 });
+    expect(headings.map((h) => h.textContent)).toEqual([
+      "Đang làm (1)",
+      "Chưa thực hiện (1)",
+      "Chưa có đầu việc (1)",
+    ]);
+    expect(headings[0]).toHaveClass("bg-in_progress-bg");
+    expect(headings[1]).toHaveClass("bg-review-bg");
+    expect(headings[2]).toHaveClass("bg-urgent-bg");
+
+    // Minh ("Đang làm") đứng trước Khoa ("Chưa thực hiện") đứng trước Dũng ("Chưa có đầu việc").
     const names = screen.getAllByText(/Hồ Văn Dũng|Trần Minh Khoa|Võ Thành Minh/);
     expect(names.map((n) => n.textContent)).toEqual([
-      "Hồ Văn Dũng",
-      "Trần Minh Khoa",
       "Võ Thành Minh",
+      "Trần Minh Khoa",
+      "Hồ Văn Dũng",
     ]);
   });
 

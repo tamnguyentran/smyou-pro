@@ -41,6 +41,8 @@ Là kỹ thuật viên, tôi muốn **bắt đầu làm** một đầu việc đ
 | AC-ASG-047 | Task T1 `cancelled_at` đã set nhưng seed trực tiếp 1 phân công `ACCEPTED` còn sót (kịch bản phòng thủ) | Khoa start | 409 `GUARD_FAILED` guard=`task_not_cancelled` | integration |
 | AC-ASG-048 | Đơn seed trực tiếp `COMPLETED`/`CANCELLED` nhưng còn 1 phân công `ACCEPTED` (kịch bản phòng thủ) | Khoa start | 409 `GUARD_FAILED` guard=`order_in_dispatchable_state` | integration |
 | AC-ASG-049 | — | Hoa (SALE) / An (MANAGER) / Tuấn-TECH_LEAD gọi start bất kỳ | cả 3: 403 `FORBIDDEN` | integration |
+| AC-ASG-069 | (Q81, 2026-10-15) Đơn `PENDING_DISPATCH` đã có task+phân công `ACCEPTED`, chưa ai bắt đầu | Khoa `POST /assignments/{id}/start` | 200; đơn → `IN_PROGRESS` (effect `fire_order_start_dispatch_if_first_start`); 1 `audit_events` (`entity_type=ORDER, action=start_dispatch, from=PENDING_DISPATCH, to=IN_PROGRESS, actor_id=null`) | integration |
+| AC-ASG-070 | Như trên, đơn đã `IN_PROGRESS` sau khi Khoa start | Minh (phân công khác của cùng đơn) `POST /assignments/{id}/start` | 200; **không** phát sinh thêm `audit_events` nào ở tầng ORDER (chỉ 1 `start_dispatch` duy nhất, từ lần đầu) | integration |
 | AC-ASG-050 | — | route `POST /assignments/{id}/start` | khai đúng 1 capability `assignment.respond`; nằm trong ma trận RBAC route thật | generated |
 
 ### `POST /api/v1/assignments/{id}/complete`
@@ -93,7 +95,7 @@ Không có — dùng lại cột đã có của bảng `assignments` (`started_a
 1. Đăng nhập bằng kỹ thuật viên có 1 đầu việc đã tiếp nhận (tab "Đang làm").
 2. Bấm "Bắt đầu" → nhãn trạng thái đổi "Đang thực hiện", nút đổi thành "Báo hoàn thành".
 3. Bấm "Báo hoàn thành" → nhập ghi chú + giờ thực tế (tuỳ chọn) → xác nhận → thẻ biến mất khỏi "Đang làm", xuất hiện ở "Đã xong".
-4. Nếu đó là đầu việc cuối cùng của đơn → mở trang chi tiết đơn (nếu có quyền) kiểm tra đơn đã chuyển "Chờ khách xác nhận".
+4. Nếu đó là đầu việc cuối cùng của đơn → mở trang chi tiết đơn (nếu có quyền) kiểm tra đơn đã chuyển "Hoàn thành, chờ KH xác nhận".
 
 ## 8. Giả định & câu hỏi
 - Giả định: `version` trong body vẫn là **version của đơn hàng** (Order = aggregate root, Q62), giống M5-02.

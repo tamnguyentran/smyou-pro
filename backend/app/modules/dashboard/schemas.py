@@ -28,9 +28,42 @@ class DispatchSummaryOut(BaseModel):
     overdue_task_count: int
 
 
+class TaskStatusCounts(BaseModel):
+    NEEDS_ASSIGNEE: int
+    PENDING_ACCEPTANCE: int
+    ACCEPTED: int
+    IN_PROGRESS: int
+    DONE: int
+    CANCELLED: int
+
+
+class TaskSummaryOut(BaseModel):
+    counts_by_status: TaskStatusCounts
+
+
+class StaffStatusCounts(BaseModel):
+    IN_PROGRESS: int
+    NOT_STARTED: int
+    IDLE: int
+
+
+class StaffSummaryOut(BaseModel):
+    active_technician_count: int
+    counts_by_status: StaffStatusCounts
+
+
+class MyTaskSummaryOut(BaseModel):
+    pending_count: int
+    active_count: int
+    done_today_count: int
+
+
 class DashboardOut(BaseModel):
     # Mọi khoá tuỳ chọn: `None` khi vai trò không phù hợp (router trả về với
     # response_model_exclude_none=True nên khoá vắng mặt hẳn trong JSON, không phải null).
     order_summary: OrderSummaryOut | None = None
     dispatch_summary: DispatchSummaryOut | None = None
+    task_summary: TaskSummaryOut | None = None
+    staff_summary: StaffSummaryOut | None = None
+    my_task_summary: MyTaskSummaryOut | None = None
     today_tasks: list[MyAssignmentOut] | None = None

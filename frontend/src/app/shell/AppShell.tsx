@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/Button";
 import { useSession } from "../../features/auth/api";
 import { useSignOut } from "../../features/auth/useSignOut";
 import { useMe } from "../../features/me/api";
+import { useNotificationsRealtime } from "../../features/notifications/useNotificationsRealtime";
 import { cn } from "../../lib/cn";
 import { useMediaQuery } from "../../lib/useMediaQuery";
 import { primaryAction, roleLabels, visibleMenu } from "../menu";
@@ -188,6 +189,7 @@ function Content({ children, className }: { children: ReactNode; className?: str
 
 /** Role-based app shell (UI_GUIDELINES §3–§4): sidebar ≥ 1024px, header + drawer below. */
 export function AppShell() {
+  useNotificationsRealtime();
   const desktop = useMediaQuery(DESKTOP, true);
   const [title, setTitle] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
