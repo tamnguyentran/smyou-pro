@@ -1,6 +1,6 @@
 # M11-02b — Lan style thẻ (bỏ viền, p-5) ra màn hình chi tiết đơn hàng
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M11-02b · **Milestone:** M11
 - **Liên quan:** `docs/design/UI_GUIDELINES.md` §1.1 (nguyên tắc card không viền, trừ bảng/input/thẻ tô màu trạng thái — đã chốt ở M11-01), `docs/specs/M11-02a-ui-card-style-list-pages.md` (mẫu đã duyệt, cùng khuôn mẫu). Không đụng `spec/*.yaml`, không đổi API/DB/phân quyền.
 
