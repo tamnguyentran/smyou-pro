@@ -31,6 +31,7 @@ export interface OrderFilters {
   q: string;
   status: string;
   mine: boolean;
+  overdue: boolean;
   limit: number;
   offset: number;
 }
@@ -48,6 +49,7 @@ export function useOrders(filters: OrderFilters, { enabled = true }: { enabled?:
             q: filters.q || undefined,
             status: (filters.status || undefined) as OrderStatus | undefined,
             mine: filters.mine || undefined,
+            overdue: filters.overdue || undefined,
             limit: filters.limit,
             offset: filters.offset,
           },

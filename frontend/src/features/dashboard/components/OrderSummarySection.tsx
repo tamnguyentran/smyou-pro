@@ -20,6 +20,12 @@ export function OrderSummarySection({ summary }: { summary: OrderSummary }) {
             to={`/orders?status=${status}${summary.scope === "own" ? "&mine=1" : ""}`}
           />
         ))}
+        <StatTile
+          label="Quá hạn"
+          value={summary.overdue_count}
+          tone="urgent"
+          to={`/orders?overdue=true${summary.scope === "own" ? "&mine=1" : ""}`}
+        />
       </div>
     </section>
   );

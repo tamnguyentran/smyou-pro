@@ -323,7 +323,7 @@ describe("AC-ORD-110 AC-ORD-111 AC-ORD-112 chip lọc trạng thái", () => {
     );
   }
 
-  test("AC-ORD-110 mở trang: nhóm chip đúng 8 lựa chọn, đúng thứ tự, 'Tất cả' đang chọn, không còn dropdown", async () => {
+  test("AC-ORD-110 mở trang: nhóm chip đúng 9 lựa chọn, đúng thứ tự, 'Tất cả' đang chọn, không còn dropdown", async () => {
     signedInAs(hoaId, HOA);
     mockFilteredOrders();
     renderApp("/orders");
@@ -340,6 +340,7 @@ describe("AC-ORD-110 AC-ORD-111 AC-ORD-112 chip lọc trạng thái", () => {
       "Hoàn tất",
       "Chỉnh sửa",
       "Đã huỷ",
+      "Quá hạn",
     ]);
     expect(within(group).getByRole("radio", { name: "Tất cả" })).toHaveAttribute(
       "aria-checked",
