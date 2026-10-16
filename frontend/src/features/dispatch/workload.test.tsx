@@ -117,6 +117,35 @@ describe("Lịch & tải việc", () => {
     ]);
   });
 
+  test("AC-UI-028 mobile: thẻ KTV bỏ viền, p-5, shadow-card; GroupHeader giữ nguyên tô màu", async () => {
+    mobile();
+    signedInAs(tuanId, TUAN);
+    mockWorkload();
+    renderApp("/dispatch/workload");
+
+    const card = (await screen.findByText("Trần Minh Khoa")).closest("li") as HTMLElement;
+    expect(card.className).toContain("shadow-card");
+    expect(card.className).toContain("p-5");
+    expect(card.className).not.toMatch(/\bborder\b/);
+
+    const headings = screen.getAllByRole("heading", { level: 2 });
+    expect(headings[0]).toHaveClass("bg-in_progress-bg");
+  });
+
+  test("AC-UI-029 desktop: mỗi table nhóm tải việc vẫn giữ border border-line", async () => {
+    signedInAs(tuanId, TUAN);
+    mockWorkload();
+    renderApp("/dispatch/workload");
+
+    await screen.findByText("Trần Minh Khoa");
+    const tables = screen.getAllByRole("table");
+    expect(tables).toHaveLength(3);
+    for (const table of tables) {
+      expect(table.className).toContain("border");
+      expect(table.className).toContain("border-line");
+    }
+  });
+
   test("AC-DSP-103 đang tải: Skeleton đúng khung, aria-busy, không spinner toàn trang", async () => {
     signedInAs(tuanId, TUAN);
     server.use(

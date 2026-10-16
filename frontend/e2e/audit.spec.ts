@@ -34,7 +34,7 @@ async function evidence(page: Page, info: TestInfo, file: string) {
   ).toBe(true);
 }
 
-test("AC-SYS-072 AC-SYS-073 @a11y @screenshot Nhật ký hệ thống: bảng (máy tính) hoặc thẻ (điện thoại)", async ({
+test("AC-SYS-072 AC-SYS-073 AC-UI-035 @a11y @screenshot Nhật ký hệ thống: bảng (máy tính) hoặc thẻ (điện thoại)", async ({
   page,
 }, info) => {
   await signIn(page, MANAGER);

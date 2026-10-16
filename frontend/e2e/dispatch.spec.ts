@@ -104,7 +104,7 @@ async function submitUrgentOrder(page: Page): Promise<string> {
   return code;
 }
 
-test("AC-DSP-015 AC-DSP-016 AC-DSP-019 AC-DSP-022 AC-DSP-026 AC-DSP-027 @a11y @screenshot hàng đợi điều phối, tạo đầu việc giao KTV", async ({
+test("AC-DSP-015 AC-DSP-016 AC-DSP-019 AC-DSP-022 AC-DSP-026 AC-DSP-027 AC-UI-035 @a11y @screenshot hàng đợi điều phối, tạo đầu việc giao KTV", async ({
   page,
 }, info) => {
   const code = await submitUrgentOrder(page);
@@ -379,7 +379,7 @@ test("AC-DSP-092 AC-UI-006 @a11y @screenshot bảng đầu việc: vùng chạm 
   );
 });
 
-test("AC-DSP-106 @a11y @screenshot lịch & tải việc: không cuộn ngang, axe sạch", async ({
+test("AC-DSP-106 AC-UI-035 @a11y @screenshot lịch & tải việc: không cuộn ngang, axe sạch", async ({
   page,
 }, info) => {
   await signIn(page, TECH_LEAD, "/dispatch/workload");

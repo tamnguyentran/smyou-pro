@@ -171,6 +171,17 @@ describe("AC-SYS-072 danh sách nhật ký (máy tính)", () => {
     expect(within(table).getByText("Hệ thống")).toBeInTheDocument();
     expect(within(table).getByText("Đăng nhập sai")).toBeInTheDocument();
   });
+
+  test("AC-UI-034 desktop: table nhật ký vẫn giữ border border-line", async () => {
+    mockViewport(true);
+    signedInAs(AN, () => HttpResponse.json(page([auditEvent()])));
+    renderApp("/audit");
+    await openAudit();
+
+    const table = await screen.findByRole("table");
+    expect(table.className).toContain("border");
+    expect(table.className).toContain("border-line");
+  });
 });
 
 describe("AC-SYS-073 danh sách nhật ký (điện thoại)", () => {
@@ -182,6 +193,18 @@ describe("AC-SYS-073 danh sách nhật ký (điện thoại)", () => {
 
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(await screen.findByText("Khoá")).toBeInTheDocument();
+  });
+
+  test("AC-UI-033 thẻ nhật ký bỏ viền, p-5, shadow-card", async () => {
+    mockViewport(false);
+    signedInAs(AN, () => HttpResponse.json(page([auditEvent()])));
+    renderApp("/audit");
+    await openAudit();
+
+    const card = (await screen.findByText("Khoá")).closest("li") as HTMLElement;
+    expect(card.className).toContain("shadow-card");
+    expect(card.className).toContain("p-5");
+    expect(card.className).not.toMatch(/\bborder\b/);
   });
 });
 
