@@ -38,7 +38,7 @@ export function OrderInfoTab({
           </Button>
         </div>
       ) : null}
-      <div className="rounded-2xl border border-line bg-card p-4 shadow-card lg:p-6">
+      <div className="rounded-2xl bg-card p-5 shadow-card lg:p-6">
         <dl className="divide-y divide-line">
           <InfoRow label="Khách hàng" value={order.customer_name ?? "Khách lẻ"} />
           <InfoRow label="Số điện thoại" value={order.customer_phone ?? ""} />

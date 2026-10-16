@@ -239,7 +239,7 @@ async function openOrderDetail(page: Page, code: string) {
   await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
 }
 
-test("AC-DSP-028 AC-DSP-032 AC-DSP-033 AC-DSP-035 AC-DSP-036 AC-DSP-037 @a11y @screenshot tab Đầu việc trên chi tiết đơn", async ({
+test("AC-DSP-028 AC-DSP-032 AC-DSP-033 AC-DSP-035 AC-DSP-036 AC-DSP-037 AC-UI-024 @a11y @screenshot tab Đầu việc trên chi tiết đơn", async ({
   page,
 }, info) => {
   const code = await submitUrgentOrder(page);

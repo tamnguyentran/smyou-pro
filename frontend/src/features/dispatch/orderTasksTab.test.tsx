@@ -521,6 +521,31 @@ describe("Tab Đầu việc trên trang chi tiết đơn", () => {
     expect(calls.tasks).toBe(0);
   });
 
+  test("AC-UI-020 AC-UI-021 mobile: thẻ đầu việc bỏ viền, p-5, shadow-card; bấm vẫn mở sheet; desktop: table vẫn giữ border", async () => {
+    mobile();
+    stubDetail();
+    const user = await openTasksTab();
+    await screen.findByText(T1.code);
+
+    const card = screen.getByText(T1.code).closest("button") as HTMLElement;
+    expect(card.className).toContain("shadow-card");
+    expect(card.className).toContain("p-5");
+    expect(card.className).not.toMatch(/\bborder\b/);
+
+    await user.click(card);
+    expect(await screen.findByRole("dialog", { name: /Sửa đầu việc/ })).toBeInTheDocument();
+
+    cleanup();
+    vi.unstubAllGlobals();
+    server.resetHandlers();
+    stubDetail();
+    await openTasksTab();
+    const table = await screen.findByTestId("order-tasks");
+    expect(table.tagName).toBe("TABLE");
+    expect(table.className).toContain("border");
+    expect(table.className).toContain("border-line");
+  });
+
   test("AC-DSP-036 mobile thẻ dọc + nút w-full; desktop bảng 6 cột", async () => {
     mobile();
     stubDetail();

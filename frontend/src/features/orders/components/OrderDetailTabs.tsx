@@ -216,7 +216,7 @@ export function OrderDetailTabs({
           </Button>
         </div>
       ) : null}
-      <header className="sticky top-0 z-10 space-y-3 rounded-2xl border border-line bg-card p-4 shadow-card lg:flex lg:items-center lg:justify-between lg:gap-4 lg:space-y-0">
+      <header className="sticky top-0 z-10 space-y-3 rounded-2xl bg-card p-5 shadow-card lg:flex lg:items-center lg:justify-between lg:gap-4 lg:space-y-0">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-lg font-semibold text-heading">{order.code}</p>
