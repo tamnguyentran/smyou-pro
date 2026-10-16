@@ -1372,6 +1372,44 @@ def test_list_orders_scope(app: FastAPI, db: Connection, three_orders: dict[str,
     assert body == {"items": [], "total": 0, "limit": 20, "offset": 0}
 
 
+@pytest.mark.ac("AC-DASH-024")
+def test_list_orders_mine_filter(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], three_orders: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+
+    an_order_id = insert_order(
+        db,
+        created_by=people["NV001"],
+        status="PENDING_DISPATCH",
+        customer_name="Anh Khải",
+        customer_phone="0911222333",
+        created_at=datetime(2026, 9, 29, 12, tzinfo=UTC),
+    )
+
+    body_without_mine = hoa.get("/api/v1/orders?status=PENDING_DISPATCH").json()
+    assert {item["id"] for item in body_without_mine["items"]} == {str(three_orders["B"]), str(an_order_id)}
+
+    body = hoa.get("/api/v1/orders?status=PENDING_DISPATCH&mine=true").json()
+    assert [item["id"] for item in body["items"]] == [str(three_orders["B"])]
+
+    body_other_status = hoa.get("/api/v1/orders?status=CANCELLED&mine=true").json()
+    assert body_other_status == {"items": [], "total": 0, "limit": 20, "offset": 0}
+
+
+@pytest.mark.ac("AC-DASH-025")
+def test_list_orders_without_mine_unchanged(
+    app: FastAPI, db: Connection, three_orders: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+
+    by_status = hoa.get("/api/v1/orders?status=PENDING_DISPATCH").json()
+    assert [item["id"] for item in by_status["items"]] == [str(three_orders["B"])]
+
+    all_orders = hoa.get("/api/v1/orders").json()
+    assert all_orders["total"] == 3
+
+
 @pytest.mark.ac("AC-ORD-057")
 def test_allowed_commands_draft(
     app: FastAPI,

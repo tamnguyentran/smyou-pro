@@ -276,4 +276,220 @@ describe("Tổng quan", () => {
       expect(calls).toBe(2);
     });
   });
+
+  test("AC-DASH-022 Hoa (SALE, scope own) bấm thẻ 'Chờ điều phối' → /orders?status=PENDING_DISPATCH&mine=1", async () => {
+    signedInAs("hoa-id", HOA);
+    mockDashboard({
+      order_summary: {
+        scope: "own",
+        counts_by_status: {
+          DRAFT: 0,
+          PENDING_DISPATCH: 3,
+          IN_PROGRESS: 0,
+          AWAITING_CONFIRMATION: 0,
+          COMPLETED: 0,
+          REVISION: 0,
+          CANCELLED: 0,
+        },
+      },
+    });
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+      ),
+    );
+    const router = renderApp("/");
+
+    const link = (await screen.findByText("Chờ điều phối")).closest("a") as HTMLElement;
+    await userEvent.setup().click(link);
+
+    await waitFor(() => {
+      expect(router.state.location.pathname + router.state.location.search).toBe(
+        "/orders?status=PENDING_DISPATCH&mine=1",
+      );
+    });
+  });
+
+  test("AC-DASH-023 An (MANAGER, scope all) bấm thẻ 'Hoàn tất' → /orders?status=COMPLETED (không mine)", async () => {
+    signedInAs("an-id", AN);
+    mockDashboard({
+      order_summary: {
+        scope: "all",
+        counts_by_status: {
+          DRAFT: 0,
+          PENDING_DISPATCH: 0,
+          IN_PROGRESS: 0,
+          AWAITING_CONFIRMATION: 0,
+          COMPLETED: 4,
+          REVISION: 0,
+          CANCELLED: 0,
+        },
+      },
+    });
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+      ),
+    );
+    const router = renderApp("/");
+
+    const link = (await screen.findByText("Hoàn tất")).closest("a") as HTMLElement;
+    await userEvent.setup().click(link);
+
+    await waitFor(() => {
+      expect(router.state.location.pathname + router.state.location.search).toBe(
+        "/orders?status=COMPLETED",
+      );
+    });
+  });
+
+  test("AC-DASH-026 Hoa, thẻ 'Nháp' = 0 vẫn bấm được → /orders?status=DRAFT&mine=1", async () => {
+    signedInAs("hoa-id", HOA);
+    mockDashboard({
+      order_summary: {
+        scope: "own",
+        counts_by_status: {
+          DRAFT: 0,
+          PENDING_DISPATCH: 0,
+          IN_PROGRESS: 0,
+          AWAITING_CONFIRMATION: 0,
+          COMPLETED: 0,
+          REVISION: 0,
+          CANCELLED: 0,
+        },
+      },
+    });
+    renderApp("/");
+
+    const link = (await screen.findByText("Nháp")).closest("a") as HTMLElement;
+    expect(link.getAttribute("href")).toBe("/orders?status=DRAFT&mine=1");
+  });
+
+  test("AC-DASH-027 Tuấn bấm thẻ 'Chờ điều phối' (khối Điều phối) → /dispatch/queue (không query)", async () => {
+    signedInAs("tuan-id", TUAN);
+    mockDashboard({
+      dispatch_summary: {
+        pending_dispatch_count: 4,
+        needs_assignee_count: 0,
+        overdue_task_count: 0,
+      },
+    });
+    server.use(
+      http.get("/api/v1/dispatch/queue", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+      ),
+    );
+    const router = renderApp("/");
+
+    const link = (await screen.findByText("Chờ điều phối")).closest("a") as HTMLElement;
+    await userEvent.setup().click(link);
+
+    await waitFor(() => {
+      expect(router.state.location.pathname + router.state.location.search).toBe("/dispatch/queue");
+    });
+  });
+
+  test("AC-DASH-028 Tuấn: 'Cần giao lại'/'Quá hạn' không phải link, bấm không điều hướng", async () => {
+    signedInAs("tuan-id", TUAN);
+    mockDashboard({
+      dispatch_summary: {
+        pending_dispatch_count: 0,
+        needs_assignee_count: 3,
+        overdue_task_count: 1,
+      },
+    });
+    const router = renderApp("/");
+
+    const needsAssignee = await screen.findByText("Cần giao lại");
+    const overdue = await screen.findByText("Quá hạn");
+    expect(needsAssignee.closest("a")).toBeNull();
+    expect(overdue.closest("a")).toBeNull();
+    expect(router.state.location.pathname).toBe("/");
+  });
+
+  test("AC-DASH-029 Tuấn: thẻ task_summary/staff_summary không có affordance bấm được", async () => {
+    signedInAs("tuan-id", TUAN);
+    mockDashboard({
+      task_summary: {
+        counts_by_status: {
+          NEEDS_ASSIGNEE: 1,
+          PENDING_ACCEPTANCE: 1,
+          ACCEPTED: 1,
+          IN_PROGRESS: 1,
+          DONE: 1,
+          CANCELLED: 1,
+        },
+      },
+      staff_summary: {
+        active_technician_count: 1,
+        counts_by_status: { IN_PROGRESS: 1, NOT_STARTED: 0, IDLE: 0 },
+      },
+    });
+    renderApp("/");
+
+    const needsAssigneeTile = await screen.findByText("Chờ tiếp nhận");
+    expect(needsAssigneeTile.closest("a")).toBeNull();
+    const activeStaffTile = await screen.findByText("Đang làm");
+    expect(activeStaffTile.closest("a")).toBeNull();
+  });
+
+  test("AC-DASH-030 Hoa dùng bàn phím: Enter trên thẻ 'Chờ điều phối' điều hướng giống bấm chuột", async () => {
+    signedInAs("hoa-id", HOA);
+    mockDashboard({
+      order_summary: {
+        scope: "own",
+        counts_by_status: {
+          DRAFT: 0,
+          PENDING_DISPATCH: 3,
+          IN_PROGRESS: 0,
+          AWAITING_CONFIRMATION: 0,
+          COMPLETED: 0,
+          REVISION: 0,
+          CANCELLED: 0,
+        },
+      },
+    });
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+      ),
+    );
+    const router = renderApp("/");
+
+    const link = (await screen.findByText("Chờ điều phối")).closest("a") as HTMLElement;
+    expect(link.className).toContain("focus-visible:ring-2");
+    link.focus();
+    await userEvent.setup().keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(router.state.location.pathname + router.state.location.search).toBe(
+        "/orders?status=PENDING_DISPATCH&mine=1",
+      );
+    });
+  });
+
+  test("AC-DASH-031 Hoa mobile 390px: thẻ order_summary vẫn vùng chạm ≥44px, lưới 2 cột như cũ", async () => {
+    mobile();
+    signedInAs("hoa-id", HOA);
+    mockDashboard({
+      order_summary: {
+        scope: "own",
+        counts_by_status: {
+          DRAFT: 0,
+          PENDING_DISPATCH: 3,
+          IN_PROGRESS: 0,
+          AWAITING_CONFIRMATION: 0,
+          COMPLETED: 0,
+          REVISION: 0,
+          CANCELLED: 0,
+        },
+      },
+    });
+    renderApp("/");
+
+    const link = (await screen.findByText("Chờ điều phối")).closest("a") as HTMLElement;
+    expect(link.className).toContain("min-h-11");
+    const grid = link.closest(".grid") as HTMLElement;
+    expect(grid.className).toContain("grid-cols-2");
+  });
 });

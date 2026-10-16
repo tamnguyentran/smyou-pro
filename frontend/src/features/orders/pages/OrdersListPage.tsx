@@ -1,5 +1,6 @@
 import { Search, ShoppingBag } from "lucide-react";
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
 import { ForbiddenPage } from "../../../app/shell/StatusPage";
@@ -27,16 +28,20 @@ function Waiting() {
   );
 }
 
-/** AC-ORD-069: trang `/orders` — capability hiệu lực để vào trang là `order.read` (spec §6, Q56). */
+/** AC-ORD-069: trang `/orders` — capability hiệu lực để vào trang là `order.read` (spec §6, Q56).
+ * AC-DASH-022/023/026 (M10-03): đọc `status`/`mine` từ URL 1 lần lúc tải để khớp đúng drill-down
+ * từ Tổng quan — không đồng bộ URL ngược lại sau đó (ngoài phạm vi spec §2). */
 export function OrdersListPage() {
   usePageTitle("Danh sách đơn");
   const me = useMe();
+  const [searchParams] = useSearchParams();
   const [q, setQ] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(() => searchParams.get("status") ?? "");
+  const [mine, setMine] = useState(() => searchParams.get("mine") === "1");
   const [offset, setOffset] = useState(0);
   const debouncedQ = useDebouncedValue(q, 300);
 
-  const filters: OrderFilters = { q: debouncedQ, status, limit: PAGE_SIZE, offset };
+  const filters: OrderFilters = { q: debouncedQ, status, mine, limit: PAGE_SIZE, offset };
   const orders = useOrders(filters);
 
   if (!me.data && me.isError) {
@@ -73,18 +78,32 @@ export function OrdersListPage() {
         />
       </div>
 
-      <ChipGroup
-        label="Trạng thái"
-        value={status}
-        options={[
-          { value: "", label: "Tất cả" },
-          ...ORDER_STATUS_ORDER.map((value) => ({ value, label: ORDER_STATUS_LABEL[value] })),
-        ]}
-        onChange={(value) => {
-          setStatus(value);
-          setOffset(0);
-        }}
-      />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <ChipGroup
+          label="Trạng thái"
+          value={status}
+          options={[
+            { value: "", label: "Tất cả" },
+            ...ORDER_STATUS_ORDER.map((value) => ({ value, label: ORDER_STATUS_LABEL[value] })),
+          ]}
+          onChange={(value) => {
+            setStatus(value);
+            setOffset(0);
+          }}
+        />
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-body">
+          <input
+            type="checkbox"
+            checked={mine}
+            onChange={(event) => {
+              setMine(event.target.checked);
+              setOffset(0);
+            }}
+            className="size-5 shrink-0 rounded border-line accent-[color:var(--color-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+          />
+          Chỉ đơn của tôi
+        </label>
+      </div>
 
       {orders.isPending ? (
         <Waiting />

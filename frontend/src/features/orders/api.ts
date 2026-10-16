@@ -30,11 +30,13 @@ export const ORDER_HISTORY_KEY = "order-history";
 export interface OrderFilters {
   q: string;
   status: string;
+  mine: boolean;
   limit: number;
   offset: number;
 }
 
-/** AC-ORD-069: danh sách đơn — tìm theo mã/tên khách/SĐT, lọc theo trạng thái. */
+/** AC-ORD-069: danh sách đơn — tìm theo mã/tên khách/SĐT, lọc theo trạng thái.
+ * AC-DASH-022/023/024/025 (M10-03): `mine` lọc hẹp thêm theo `created_by` sau scope hiện có. */
 export function useOrders(filters: OrderFilters, { enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     enabled,
@@ -45,6 +47,7 @@ export function useOrders(filters: OrderFilters, { enabled = true }: { enabled?:
           query: {
             q: filters.q || undefined,
             status: (filters.status || undefined) as OrderStatus | undefined,
+            mine: filters.mine || undefined,
             limit: filters.limit,
             offset: filters.offset,
           },

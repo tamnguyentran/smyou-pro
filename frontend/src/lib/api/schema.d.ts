@@ -4051,6 +4051,7 @@ export interface operations {
             )
           | null;
         sort?: "created_at_desc" | "dispatch";
+        mine?: boolean;
         limit?: number;
         offset?: number;
       };

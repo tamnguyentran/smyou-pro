@@ -141,7 +141,17 @@ test("AC-EMP-016 khoá tài khoản, cấp lại mật khẩu, mở khoá (backe
     .click();
   await expect(page.getByText(`Đã thêm nhân viên ${name}.`)).toBeVisible();
 
-  await page.getByText(name).first().click();
+  // Lọc theo email (duy nhất trong lần chạy này) rồi mới bấm vào dòng — tên có thể trùng
+  // với nhân viên QA tạo ở các lần chạy e2e trước, và dòng mới có thể nằm ở trang khác.
+  // Desktop hiển thị dạng bảng (<tr>, nút chỉ chứa tên); mobile hiển thị dạng danh sách
+  // (<li>, nút chứa cả tên lẫn email) — lọc theo dòng chứa email rồi tìm nút theo tên
+  // hoạt động cho cả hai bố cục.
+  await page.getByLabel("Tìm kiếm").fill(email);
+  const row = page.locator("li, tr").filter({ hasText: email });
+  await row
+    .getByRole("button", { name: new RegExp(name) })
+    .first()
+    .click();
   const editDialog = page.getByRole("dialog", { name: "Sửa nhân viên" });
 
   await editDialog.getByRole("button", { name: "Khoá tài khoản" }).click();

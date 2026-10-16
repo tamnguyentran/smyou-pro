@@ -31,7 +31,7 @@ export function RevisionQueuePage() {
   const [offset, setOffset] = useState(0);
   const allowed = me.data !== undefined && "task.manage" in me.data.capabilities;
   const orders = useOrders(
-    { q: "", status: "REVISION", limit: PAGE_SIZE, offset },
+    { q: "", status: "REVISION", mine: false, limit: PAGE_SIZE, offset },
     { enabled: allowed },
   );
 

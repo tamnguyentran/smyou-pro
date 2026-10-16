@@ -548,6 +548,7 @@ def list_orders(
     q: str | None,
     status: str | None,
     sort: str = "created_at_desc",
+    mine: bool = False,
     limit: int,
     offset: int,
 ) -> OrderPage:
@@ -565,6 +566,8 @@ def list_orders(
         )
     if status is not None:
         query = query.where(Order.status == status)
+    if mine:
+        query = query.where(Order.created_by == actor.id)
     total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
     if sort == "dispatch":
         # M4-01a dispatch queue (spec §4): priority desc, then requested_date asc (null last).
