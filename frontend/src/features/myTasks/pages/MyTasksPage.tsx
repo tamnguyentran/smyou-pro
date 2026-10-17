@@ -1,5 +1,6 @@
 import { Inbox } from "lucide-react";
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
 import { ForbiddenPage } from "../../../app/shell/StatusPage";
@@ -70,7 +71,12 @@ export function MyTasksPage() {
   usePageTitle("Việc của tôi");
   const toast = useToast();
   const me = useMe();
-  const [tab, setTab] = useState<TabId>("pending");
+  const [searchParams] = useSearchParams();
+  const [focus] = useState(() => searchParams.get("focus"));
+  const [now] = useState(() => Date.now());
+  const [tab, setTab] = useState<TabId>(() =>
+    focus === "not_started" || focus === "overdue" ? "active" : "pending",
+  );
   const allowed = me.data !== undefined && "assignment.respond" in me.data.capabilities;
   const assignments = useMyAssignments({ enabled: allowed });
   const acceptAssignment = useAcceptAssignment();
@@ -194,7 +200,13 @@ export function MyTasksPage() {
 
   const activeTab = TABS[tab];
   const items = assignments.data?.items ?? [];
-  const tabItems = items.filter((item) => activeTab.statuses.includes(item.assignment_status));
+  const tabItems = items
+    .filter((item) => activeTab.statuses.includes(item.assignment_status))
+    .filter((item) => {
+      if (focus === "not_started") return item.assignment_status === "ACCEPTED";
+      if (focus === "overdue") return new Date(item.due_at).getTime() < now;
+      return true;
+    });
 
   return (
     <div className="space-y-4">
