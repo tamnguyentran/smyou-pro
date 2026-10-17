@@ -1,5 +1,6 @@
 import { Inbox } from "lucide-react";
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
 import { ForbiddenPage } from "../../../app/shell/StatusPage";
@@ -8,11 +9,11 @@ import { EmptyState } from "../../../components/ui/EmptyState";
 import { cn } from "../../../lib/cn";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
 import { useMe } from "../../me/api";
-import { useActiveTechnicians, useTaskBoard } from "../api";
+import { useActiveTechnicians, useTaskBoard, type TaskBoardFilters as Filters } from "../api";
 import { EMPTY_TASK_BOARD_FILTERS, TaskBoardFilters } from "../components/TaskBoardFilters";
 import { TaskBoardCard } from "../components/TaskBoardCard";
 import { TaskBoardColumn } from "../components/TaskBoardColumn";
-import { TASK_STATUS_ORDER } from "../taskStatus";
+import { knownTaskStatus, TASK_STATUS_ORDER } from "../taskStatus";
 
 function Waiting({ desktop }: { desktop: boolean }) {
   return (
@@ -36,12 +37,18 @@ function Waiting({ desktop }: { desktop: boolean }) {
 }
 
 /** AC-DSP-082…091: trang `/dispatch/board` — capability vào trang là `task.manage`, giống
- * `DispatchQueuePage` (M4-01b); API `GET /api/v1/tasks` đã có từ M4-03a. */
+ * `DispatchQueuePage` (M4-01b); API `GET /api/v1/tasks` đã có từ M4-03a.
+ * AC-DASH-040 (M10-07b): đọc `status` từ URL 1 lần lúc mount (drill-down từ Tổng quan) — không
+ * đồng bộ ngược URL sau đó (spec §2/§6). */
 export function TaskBoardPage() {
   usePageTitle("Bảng đầu việc");
   const me = useMe();
   const desktop = useMediaQuery("(min-width: 1024px)", true);
-  const [filters, setFilters] = useState(EMPTY_TASK_BOARD_FILTERS);
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters] = useState<Filters>(() => ({
+    ...EMPTY_TASK_BOARD_FILTERS,
+    status: knownTaskStatus(searchParams.get("status") ?? "") ?? "",
+  }));
   const allowed = me.data !== undefined && "task.manage" in me.data.capabilities;
   const board = useTaskBoard(filters, { enabled: allowed });
   const technicians = useActiveTechnicians(allowed);

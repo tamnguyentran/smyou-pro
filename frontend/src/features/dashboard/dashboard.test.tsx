@@ -104,6 +104,7 @@ describe("Tổng quan", () => {
     mockDashboard({
       dispatch_summary: {
         pending_dispatch_count: 4,
+        in_progress_order_count: 0,
         needs_assignee_count: 3,
         overdue_task_count: 2,
       },
@@ -122,6 +123,7 @@ describe("Tổng quan", () => {
     mockDashboard({
       dispatch_summary: {
         pending_dispatch_count: 0,
+        in_progress_order_count: 0,
         needs_assignee_count: 0,
         overdue_task_count: 0,
       },
@@ -196,6 +198,7 @@ describe("Tổng quan", () => {
       },
       dispatch_summary: {
         pending_dispatch_count: 1,
+        in_progress_order_count: 1,
         needs_assignee_count: 1,
         overdue_task_count: 1,
       },
@@ -243,6 +246,7 @@ describe("Tổng quan", () => {
       staff_summary: {
         active_technician_count: 5,
         counts_by_status: { IN_PROGRESS: 2, NOT_STARTED: 1, IDLE: 2 },
+        pending_acceptance_count: 0,
       },
     });
     renderApp("/");
@@ -254,7 +258,7 @@ describe("Tổng quan", () => {
     const notStartedTile = screen.getByText("Chưa thực hiện").closest("div") as HTMLElement;
     expect(within(notStartedTile).getByText("1")).toBeInTheDocument();
     expect(notStartedTile.className).toContain("review");
-    const idleTile = screen.getByText("Chưa có đầu việc").closest("div") as HTMLElement;
+    const idleTile = screen.getByText("Chờ giao việc").closest("div") as HTMLElement;
     expect(within(idleTile).getByText("2")).toBeInTheDocument();
     expect(idleTile.className).toContain("urgent");
   });
@@ -375,6 +379,7 @@ describe("Tổng quan", () => {
     mockDashboard({
       dispatch_summary: {
         pending_dispatch_count: 4,
+        in_progress_order_count: 0,
         needs_assignee_count: 0,
         overdue_task_count: 0,
       },
@@ -399,6 +404,7 @@ describe("Tổng quan", () => {
     mockDashboard({
       dispatch_summary: {
         pending_dispatch_count: 0,
+        in_progress_order_count: 0,
         needs_assignee_count: 3,
         overdue_task_count: 1,
       },
@@ -428,6 +434,7 @@ describe("Tổng quan", () => {
       staff_summary: {
         active_technician_count: 1,
         counts_by_status: { IN_PROGRESS: 1, NOT_STARTED: 0, IDLE: 0 },
+        pending_acceptance_count: 0,
       },
     });
     renderApp("/");
@@ -556,5 +563,125 @@ describe("Tổng quan", () => {
     const link = (await screen.findByText("Quá hạn")).closest("a") as HTMLElement;
     expect(link.getAttribute("href")).toBe("/orders?overdue=1");
     expect(within(link).getByText("0")).toBeInTheDocument();
+  });
+
+  test("AC-DASH-038 (M10-07b) Tuấn bấm thẻ 'Đang thực hiện' (khối Điều phối) → /orders?status=IN_PROGRESS (không mine)", async () => {
+    signedInAs("tuan-id", TUAN);
+    mockDashboard({
+      dispatch_summary: {
+        pending_dispatch_count: 0,
+        in_progress_order_count: 5,
+        needs_assignee_count: 0,
+        overdue_task_count: 0,
+      },
+    });
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+      ),
+    );
+    const router = renderApp("/");
+
+    const link = (await screen.findByText("Đang thực hiện")).closest("a") as HTMLElement;
+    await userEvent.setup().click(link);
+
+    await waitFor(() => {
+      expect(router.state.location.pathname + router.state.location.search).toBe(
+        "/orders?status=IN_PROGRESS",
+      );
+    });
+  });
+
+  test("AC-DASH-040 (M10-07b) Tuấn (TECH_LEAD, có task.manage) bấm thẻ 'Chưa tiếp nhận' → /dispatch/board?status=PENDING_ACCEPTANCE", async () => {
+    signedInAs("tuan-id", TUAN);
+    mockDashboard({
+      staff_summary: {
+        active_technician_count: 3,
+        counts_by_status: { IN_PROGRESS: 0, NOT_STARTED: 0, IDLE: 0 },
+        pending_acceptance_count: 4,
+      },
+    });
+    server.use(
+      http.get("/api/v1/tasks", () => HttpResponse.json({ items: [] })),
+      http.get("/api/v1/employees", () => HttpResponse.json({ items: [], total: 0 })),
+    );
+    const router = renderApp("/");
+
+    const link = (await screen.findByText("Chưa tiếp nhận")).closest("a") as HTMLElement;
+    await userEvent.setup().click(link);
+
+    await waitFor(() => {
+      expect(router.state.location.pathname + router.state.location.search).toBe(
+        "/dispatch/board?status=PENDING_ACCEPTANCE",
+      );
+    });
+  });
+
+  test("AC-DASH-041 (M10-07b) An (MANAGER, không có task.manage): thẻ 'Chưa tiếp nhận' hiện số nhưng không phải link", async () => {
+    signedInAs("an-id", AN);
+    mockDashboard({
+      staff_summary: {
+        active_technician_count: 3,
+        counts_by_status: { IN_PROGRESS: 0, NOT_STARTED: 0, IDLE: 0 },
+        pending_acceptance_count: 4,
+      },
+    });
+    const router = renderApp("/");
+
+    const tile = (await screen.findByText("Chưa tiếp nhận")).closest("div") as HTMLElement;
+    expect(within(tile).getByText("4")).toBeInTheDocument();
+    expect(screen.getByText("Chưa tiếp nhận").closest("a")).toBeNull();
+    await userEvent.setup().click(tile);
+    expect(router.state.location.pathname).toBe("/");
+  });
+
+  test("AC-DASH-042 (M10-07b) thứ tự 4 thẻ staff_summary: Đang làm, Chưa tiếp nhận, Chưa thực hiện, Chờ giao việc", async () => {
+    signedInAs("tuan-id", TUAN);
+    mockDashboard({
+      staff_summary: {
+        active_technician_count: 3,
+        counts_by_status: { IN_PROGRESS: 1, NOT_STARTED: 1, IDLE: 1 },
+        pending_acceptance_count: 1,
+      },
+    });
+    renderApp("/");
+
+    await screen.findByText("Nhân sự kỹ thuật (3 đang hoạt động)");
+    const labels = screen
+      .getAllByText(/^(Đang làm|Chưa tiếp nhận|Chưa thực hiện|Chờ giao việc)$/)
+      .map((el) => el.textContent);
+    expect(labels).toEqual(["Đang làm", "Chưa tiếp nhận", "Chưa thực hiện", "Chờ giao việc"]);
+  });
+
+  test("AC-DASH-051 (M10-07b) in_progress_order_count/pending_acceptance_count = 0 vẫn hiện và bấm được", async () => {
+    signedInAs("tuan-id", TUAN);
+    mockDashboard({
+      dispatch_summary: {
+        pending_dispatch_count: 0,
+        in_progress_order_count: 0,
+        needs_assignee_count: 0,
+        overdue_task_count: 0,
+      },
+      staff_summary: {
+        active_technician_count: 0,
+        counts_by_status: { IN_PROGRESS: 0, NOT_STARTED: 0, IDLE: 0 },
+        pending_acceptance_count: 0,
+      },
+    });
+    renderApp("/");
+
+    const inProgressOrderLink = (await screen.findByText("Đang thực hiện")).closest(
+      "a",
+    ) as HTMLElement;
+    expect(inProgressOrderLink.getAttribute("href")).toBe("/orders?status=IN_PROGRESS");
+    expect(within(inProgressOrderLink).getByText("0")).toBeInTheDocument();
+
+    const pendingAcceptanceLink = (await screen.findByText("Chưa tiếp nhận")).closest(
+      "a",
+    ) as HTMLElement;
+    expect(pendingAcceptanceLink.getAttribute("href")).toBe(
+      "/dispatch/board?status=PENDING_ACCEPTANCE",
+    );
+    expect(within(pendingAcceptanceLink).getByText("0")).toBeInTheDocument();
   });
 });
