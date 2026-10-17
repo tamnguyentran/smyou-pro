@@ -181,4 +181,30 @@ describe("/my-tasks đọc `focus` từ URL lúc tải (M10-07c)", () => {
     expect(await screen.findByText("ACC1")).toBeInTheDocument();
     expect(screen.getByText("PROG1")).toBeInTheDocument();
   });
+
+  test("AC-DASH-047 ?focus=not_started: chuyển tab thủ công rồi quay lại Đang làm thì hết lọc focus (không còn ẩn IN_PROGRESS)", async () => {
+    signedInAs(khoaId, KHOA);
+    mockAssignments([
+      assignment({ assignment_id: "a1", assignment_status: "PENDING", task_code: "PENDING1" }),
+      assignment({ assignment_id: "a2", assignment_status: "ACCEPTED", task_code: "ACC1" }),
+      assignment({
+        assignment_id: "a3",
+        assignment_status: "IN_PROGRESS",
+        task_code: "PROG1",
+      }),
+    ]);
+    renderApp("/my-tasks?focus=not_started");
+
+    const tabs = await screen.findByRole("tablist", { name: "Việc của tôi" });
+    await screen.findByText("ACC1");
+    expect(screen.queryByText("PROG1")).not.toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(within(tabs).getByRole("tab", { name: /Chờ nhận/ }));
+    await screen.findByText("PENDING1");
+    await user.click(within(tabs).getByRole("tab", { name: /Đang làm/ }));
+
+    expect(await screen.findByText("ACC1")).toBeInTheDocument();
+    expect(screen.getByText("PROG1")).toBeInTheDocument();
+  });
 });
