@@ -1,6 +1,6 @@
 # M10-07b — Quản lý/Điều phối: đơn đang thực hiện + đầu việc chưa tiếp nhận
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M10-07b · **Milestone:** M10 (2/3 lát cắt của M10-07; xem `M10-07a`/`M10-07c`)
 - **Liên quan:** `docs/specs/M7-02-role-dashboard.md` (`dispatch_summary`/`staff_summary`, component `DispatchSummarySection`/`StaffSummarySection`); `docs/specs/M10-07a-dashboard-overdue-orders.md` (lát cắt trước, cùng cơ chế drill-down); `spec/permissions.yaml#task.manage` (TECH_LEAD only — MANAGER **không** có); `spec/state_machines.yaml#task.states` (`PENDING_ACCEPTANCE` suy ra "có assignment PENDING"); `frontend/src/features/dispatch/pages/TaskBoardPage.tsx`/`TaskBoardFilters.tsx` (lọc theo `status`, hiện là local state, chưa đọc URL).
 
