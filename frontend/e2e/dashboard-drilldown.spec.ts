@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 const PASSWORD = "E2e@SmYou2026";
 const SALE = "hoa.e2e@smyou.vn";
 const TECH_LEAD = "tuan.lead@smyou.vn";
+const TECHNICIAN = "khoa.mobile@smyou.vn";
 
 async function signIn(page: Page, email: string, path: string) {
   await page.goto(`./dang-nhap?next=${encodeURIComponent(path)}`);
@@ -114,4 +115,32 @@ test("AC-DASH-040 (M10-07b) @screenshot Tuấn (TECH_LEAD, có task.manage) bấ
   await expect(page).toHaveURL(/\/dispatch\/board\?status=PENDING_ACCEPTANCE$/);
   await expect(page.getByRole("heading", { name: "Bảng đầu việc", level: 1 })).toBeVisible();
   await evidence(page, info, "dashboard-drilldown-task-board.png");
+});
+
+test("AC-DASH-046 (M10-07c) @screenshot Khoa (TECHNICIAN) bấm 'Chưa hoàn tất, cần KH xác nhận' → /orders?status=AWAITING_CONFIRMATION", async ({
+  page,
+}, info) => {
+  await signIn(page, TECHNICIAN, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+  const tile = page.getByText("Chưa hoàn tất, cần KH xác nhận").locator("xpath=ancestor::a[1]");
+
+  await tile.click();
+  await expect(page).toHaveURL(/\/orders\?status=AWAITING_CONFIRMATION$/);
+  await evidence(page, info, "dashboard-drilldown-orders-awaiting-confirmation.png");
+});
+
+test("AC-DASH-047 (M10-07c) @screenshot Khoa (TECHNICIAN) bấm 'Chưa thực hiện' → /my-tasks?focus=not_started, tab Đang làm đã chọn", async ({
+  page,
+}, info) => {
+  await signIn(page, TECHNICIAN, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+  const tile = page.getByText("Chưa thực hiện").locator("xpath=ancestor::a[1]");
+
+  await tile.click();
+  await expect(page).toHaveURL(/\/my-tasks\?focus=not_started$/);
+  await expect(page.getByRole("tab", { name: /Đang làm/ })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await evidence(page, info, "dashboard-drilldown-my-tasks-not-started.png");
 });

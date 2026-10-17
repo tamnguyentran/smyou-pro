@@ -528,7 +528,147 @@ def test_my_task_summary_groups_own_assignments(
 
     duc = client_as(app, DUC)
     data = body(duc.get("/api/v1/dashboard"))
-    assert data["my_task_summary"] == {"pending_count": 1, "active_count": 2, "done_today_count": 1}
+    assert data["my_task_summary"] == {
+        "pending_count": 1,
+        "active_count": 2,
+        "done_today_count": 1,
+        "not_started_count": 1,
+        "overdue_count": 0,
+        "awaiting_confirmation_count": 0,
+    }
+
+
+@pytest.mark.ac("AC-DASH-043")
+def test_my_task_summary_not_started_count_excludes_in_progress(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    order = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code="DH2609-N01")
+    t1 = insert_task(
+        db,
+        order,
+        code="DH2609-N01-T1",
+        title="Chưa bắt đầu",
+        status="ACCEPTED",
+        priority="NORMAL",
+        due_at=TOMORROW_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, t1, people["NV017"], "ACCEPTED")
+    t2 = insert_task(
+        db,
+        order,
+        code="DH2609-N01-T2",
+        title="Đang thực hiện",
+        status="IN_PROGRESS",
+        priority="NORMAL",
+        due_at=TOMORROW_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, t2, people["NV017"], "IN_PROGRESS")
+    t3 = insert_task(
+        db,
+        order,
+        code="DH2609-N01-T3",
+        title="Chờ nhận",
+        status="PENDING_ACCEPTANCE",
+        priority="NORMAL",
+        due_at=TOMORROW_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, t3, people["NV017"], "PENDING")
+
+    duc = client_as(app, DUC)
+    data = body(duc.get("/api/v1/dashboard"))
+    assert data["my_task_summary"]["not_started_count"] == 1
+
+
+@pytest.mark.ac("AC-DASH-044")
+def test_my_task_summary_overdue_count_excludes_pending(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    order = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code="DH2609-N02")
+    a1 = insert_task(
+        db,
+        order,
+        code="DH2609-N02-T1",
+        title="Quá hạn, chưa bắt đầu",
+        status="ACCEPTED",
+        priority="NORMAL",
+        due_at=YESTERDAY_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, a1, people["NV017"], "ACCEPTED")
+    a2 = insert_task(
+        db,
+        order,
+        code="DH2609-N02-T2",
+        title="Quá hạn, đang làm",
+        status="IN_PROGRESS",
+        priority="NORMAL",
+        due_at=YESTERDAY_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, a2, people["NV017"], "IN_PROGRESS")
+    a3 = insert_task(
+        db,
+        order,
+        code="DH2609-N02-T3",
+        title="Quá hạn, chưa tiếp nhận",
+        status="PENDING_ACCEPTANCE",
+        priority="NORMAL",
+        due_at=YESTERDAY_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, a3, people["NV017"], "PENDING")
+    a4 = insert_task(
+        db,
+        order,
+        code="DH2609-N02-T4",
+        title="Chưa quá hạn",
+        status="ACCEPTED",
+        priority="NORMAL",
+        due_at=TOMORROW_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, a4, people["NV017"], "ACCEPTED")
+
+    duc = client_as(app, DUC)
+    data = body(duc.get("/api/v1/dashboard"))
+    assert data["my_task_summary"]["overdue_count"] == 2
+
+
+@pytest.mark.ac("AC-DASH-045")
+def test_my_task_summary_awaiting_confirmation_count_distinct_orders(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    order_x = insert_order(db, created_by=people["NV005"], status="AWAITING_CONFIRMATION", code="DH2609-N03")
+    tx = insert_task(
+        db,
+        order_x,
+        code="DH2609-N03-T1",
+        title="Đã xong, chờ KH xác nhận",
+        status="DONE",
+        priority="NORMAL",
+        due_at=YESTERDAY_VN,
+        created_by=people["NV010"],
+    )
+    insert_done_assignment(db, tx, people["NV017"], done_at=TODAY_VN)
+    order_y = insert_order(db, created_by=people["NV005"], status="AWAITING_CONFIRMATION", code="DH2609-N04")
+    ty = insert_task(
+        db,
+        order_y,
+        code="DH2609-N04-T1",
+        title="Đơn khác, không liên quan Đức",
+        status="DONE",
+        priority="NORMAL",
+        due_at=YESTERDAY_VN,
+        created_by=people["NV010"],
+    )
+    insert_done_assignment(db, ty, people["NV015"], done_at=TODAY_VN)
+
+    duc = client_as(app, DUC)
+    data = body(duc.get("/api/v1/dashboard"))
+    assert data["my_task_summary"]["awaiting_confirmation_count"] == 1
 
 
 def test_dashboard_route_declares_capability(app: FastAPI) -> None:
