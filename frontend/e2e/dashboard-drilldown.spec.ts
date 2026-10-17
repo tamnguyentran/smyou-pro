@@ -84,3 +84,34 @@ test("AC-DASH-027 AC-DASH-028 @a11y @screenshot Tuấn (TECH_LEAD) bấm 'Chờ 
   await expect(page).toHaveURL(/\/dispatch\/queue$/);
   await evidence(page, info, "dashboard-drilldown-dispatch-queue.png");
 });
+
+test("AC-DASH-038 (M10-07b) @screenshot Tuấn (TECH_LEAD) bấm 'Đang thực hiện' (khối Điều phối) → /orders?status=IN_PROGRESS (không mine)", async ({
+  page,
+}, info) => {
+  await signIn(page, TECH_LEAD, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+  const tile = page.getByText("Đang thực hiện").locator("xpath=ancestor::a[1]");
+
+  await tile.click();
+  await expect(page).toHaveURL(/\/orders\?status=IN_PROGRESS$/);
+  await expect(page.getByRole("checkbox", { name: "Chỉ đơn của tôi" })).not.toBeChecked();
+  await expect(
+    page
+      .getByRole("radiogroup", { name: "Trạng thái" })
+      .getByRole("radio", { name: "Đang thực hiện" }),
+  ).toHaveAttribute("aria-checked", "true");
+  await evidence(page, info, "dashboard-drilldown-orders-in-progress.png");
+});
+
+test("AC-DASH-040 (M10-07b) @screenshot Tuấn (TECH_LEAD, có task.manage) bấm 'Chưa tiếp nhận' (khối Nhân sự kỹ thuật) → /dispatch/board?status=PENDING_ACCEPTANCE", async ({
+  page,
+}, info) => {
+  await signIn(page, TECH_LEAD, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+  const tile = page.getByText("Chưa tiếp nhận").locator("xpath=ancestor::a[1]");
+
+  await tile.click();
+  await expect(page).toHaveURL(/\/dispatch\/board\?status=PENDING_ACCEPTANCE$/);
+  await expect(page.getByRole("heading", { name: "Bảng đầu việc", level: 1 })).toBeVisible();
+  await evidence(page, info, "dashboard-drilldown-task-board.png");
+});

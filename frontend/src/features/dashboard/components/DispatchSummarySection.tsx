@@ -3,10 +3,11 @@ import { StatTile } from "./StatTile";
 
 type DispatchSummary = NonNullable<Dashboard["dispatch_summary"]>;
 
-/** AC-DASH-002/003/004/007/008/011/014: 3 thẻ điều phối (toàn công ty, không có khái niệm "của tôi").
+/** AC-DASH-002/003/004/007/008/011/014: 4 thẻ điều phối (toàn công ty, không có khái niệm "của tôi").
  * AC-DASH-027/028 (M10-03): chỉ "Chờ điều phối" drill-down tới `/dispatch/queue` (đã tự giới hạn
  * đúng danh sách, không cần param); "Cần giao lại"/"Quá hạn" đếm theo đầu việc, chưa có đích lọc phù hợp
- * → không link (ngoài phạm vi, xem spec §2). */
+ * → không link (ngoài phạm vi, xem spec §2). AC-DASH-037/038 (M10-07b): "Đang thực hiện" drill-down
+ * tới `/orders?status=IN_PROGRESS` (`order.read` scope "all" cho cả MANAGER/TECH_LEAD, không cần `mine`). */
 export function DispatchSummarySection({ summary }: { summary: DispatchSummary }) {
   return (
     <section className="space-y-3">
@@ -16,6 +17,12 @@ export function DispatchSummarySection({ summary }: { summary: DispatchSummary }
           label="Chờ điều phối"
           value={summary.pending_dispatch_count}
           to="/dispatch/queue"
+        />
+        <StatTile
+          label="Đang thực hiện"
+          value={summary.in_progress_order_count}
+          tone="in_progress"
+          to="/orders?status=IN_PROGRESS"
         />
         <StatTile label="Cần giao lại" value={summary.needs_assignee_count} tone="urgent" />
         <StatTile label="Quá hạn" value={summary.overdue_task_count} tone="urgent" />

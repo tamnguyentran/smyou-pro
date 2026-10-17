@@ -88,9 +88,14 @@ def _staff_summary(session: Session) -> StaffSummaryOut:
         else:
             idle += 1
 
+    pending_acceptance_count = (
+        session.scalar(select(func.count()).select_from(Task).where(Task.status == "PENDING_ACCEPTANCE")) or 0
+    )
+
     return StaffSummaryOut(
         active_technician_count=len(technician_ids),
         counts_by_status=StaffStatusCounts(IN_PROGRESS=in_progress, NOT_STARTED=not_started, IDLE=idle),
+        pending_acceptance_count=pending_acceptance_count,
     )
 
 
@@ -131,6 +136,9 @@ def _dispatch_summary(session: Session, *, now: datetime) -> DispatchSummaryOut:
     pending_dispatch_count = (
         session.scalar(select(func.count()).select_from(Order).where(Order.status == "PENDING_DISPATCH")) or 0
     )
+    in_progress_order_count = (
+        session.scalar(select(func.count()).select_from(Order).where(Order.status == "IN_PROGRESS")) or 0
+    )
     needs_assignee_count = (
         session.scalar(select(func.count()).select_from(Task).where(Task.status == "NEEDS_ASSIGNEE")) or 0
     )
@@ -144,6 +152,7 @@ def _dispatch_summary(session: Session, *, now: datetime) -> DispatchSummaryOut:
     )
     return DispatchSummaryOut(
         pending_dispatch_count=pending_dispatch_count,
+        in_progress_order_count=in_progress_order_count,
         needs_assignee_count=needs_assignee_count,
         overdue_task_count=overdue_task_count,
     )

@@ -25,6 +25,7 @@ class OrderSummaryOut(BaseModel):
 
 class DispatchSummaryOut(BaseModel):
     pending_dispatch_count: int
+    in_progress_order_count: int
     needs_assignee_count: int
     overdue_task_count: int
 
@@ -51,6 +52,7 @@ class StaffStatusCounts(BaseModel):
 class StaffSummaryOut(BaseModel):
     active_technician_count: int
     counts_by_status: StaffStatusCounts
+    pending_acceptance_count: int
 
 
 class MyTaskSummaryOut(BaseModel):

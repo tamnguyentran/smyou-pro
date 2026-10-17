@@ -461,6 +461,7 @@ def test_staff_summary_groups_active_technicians(
     assert data["staff_summary"] == {
         "active_technician_count": 3,
         "counts_by_status": {"IN_PROGRESS": 1, "NOT_STARTED": 1, "IDLE": 1},
+        "pending_acceptance_count": 0,
     }
 
 
@@ -532,3 +533,62 @@ def test_my_task_summary_groups_own_assignments(
 
 def test_dashboard_route_declares_capability(app: FastAPI) -> None:
     assert ("GET", "/api/v1/dashboard", "dashboard.read") in declared_routes(app)
+
+
+@pytest.mark.ac("AC-DASH-037")
+def test_dispatch_summary_in_progress_order_count(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    for i in range(3):
+        insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code=f"DH2609-I{i:02d}")
+    insert_order(db, created_by=people["NV005"], status="DRAFT", code="DH2609-I10")
+    insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code="DH2609-I11")
+
+    tuan = client_as(app, TUAN)
+    data = body(tuan.get("/api/v1/dashboard"))
+    assert data["dispatch_summary"]["in_progress_order_count"] == 3
+
+
+@pytest.mark.ac("AC-DASH-039")
+def test_staff_summary_pending_acceptance_counts_by_task(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    order = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code="DH2609-W01")
+    for i in range(3):
+        task = insert_task(
+            db,
+            order,
+            code=f"DH2609-W01-T{i + 1}",
+            title="Chờ tiếp nhận",
+            status="PENDING_ACCEPTANCE",
+            priority="NORMAL",
+            due_at=TOMORROW_VN,
+            created_by=people["NV010"],
+        )
+        insert_assignment(db, task, people["NV017"], "PENDING")
+    shared_task = insert_task(
+        db,
+        order,
+        code="DH2609-W01-T4",
+        title="2 KTV cùng chờ tiếp nhận",
+        status="PENDING_ACCEPTANCE",
+        priority="NORMAL",
+        due_at=TOMORROW_VN,
+        created_by=people["NV010"],
+    )
+    insert_assignment(db, shared_task, people["NV015"], "PENDING")
+    insert_assignment(db, shared_task, people["NV014"], "PENDING")
+    insert_task(
+        db,
+        order,
+        code="DH2609-W01-T5",
+        title="Cần giao lại, không tính",
+        status="NEEDS_ASSIGNEE",
+        priority="NORMAL",
+        due_at=TOMORROW_VN,
+        created_by=people["NV010"],
+    )
+
+    tuan = client_as(app, TUAN)
+    data = body(tuan.get("/api/v1/dashboard"))
+    assert data["staff_summary"]["pending_acceptance_count"] == 4

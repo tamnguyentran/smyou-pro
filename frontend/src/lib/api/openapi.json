@@ -891,6 +891,10 @@
       },
       "DispatchSummaryOut": {
         "properties": {
+          "in_progress_order_count": {
+            "title": "In Progress Order Count",
+            "type": "integer"
+          },
           "needs_assignee_count": {
             "title": "Needs Assignee Count",
             "type": "integer"
@@ -904,7 +908,12 @@
             "type": "integer"
           }
         },
-        "required": ["pending_dispatch_count", "needs_assignee_count", "overdue_task_count"],
+        "required": [
+          "pending_dispatch_count",
+          "in_progress_order_count",
+          "needs_assignee_count",
+          "overdue_task_count"
+        ],
         "title": "DispatchSummaryOut",
         "type": "object"
       },
@@ -3918,9 +3927,13 @@
           },
           "counts_by_status": {
             "$ref": "#/components/schemas/StaffStatusCounts"
+          },
+          "pending_acceptance_count": {
+            "title": "Pending Acceptance Count",
+            "type": "integer"
           }
         },
-        "required": ["active_technician_count", "counts_by_status"],
+        "required": ["active_technician_count", "counts_by_status", "pending_acceptance_count"],
         "title": "StaffSummaryOut",
         "type": "object"
       },
