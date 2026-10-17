@@ -16,6 +16,7 @@ import { OrderList } from "../components/OrderList";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_ORDER } from "../orderStatus";
 
 const PAGE_SIZE = 20;
+const OVERDUE_CHIP_VALUE = "OVERDUE";
 
 function Waiting() {
   return (
@@ -38,10 +39,11 @@ export function OrdersListPage() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState(() => searchParams.get("status") ?? "");
   const [mine, setMine] = useState(() => searchParams.get("mine") === "1");
+  const [overdue, setOverdue] = useState(() => searchParams.get("overdue") === "1");
   const [offset, setOffset] = useState(0);
   const debouncedQ = useDebouncedValue(q, 300);
 
-  const filters: OrderFilters = { q: debouncedQ, status, mine, limit: PAGE_SIZE, offset };
+  const filters: OrderFilters = { q: debouncedQ, status, mine, overdue, limit: PAGE_SIZE, offset };
   const orders = useOrders(filters);
 
   if (!me.data && me.isError) {
@@ -81,13 +83,20 @@ export function OrdersListPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <ChipGroup
           label="Trạng thái"
-          value={status}
+          value={overdue ? OVERDUE_CHIP_VALUE : status}
           options={[
             { value: "", label: "Tất cả" },
             ...ORDER_STATUS_ORDER.map((value) => ({ value, label: ORDER_STATUS_LABEL[value] })),
+            { value: OVERDUE_CHIP_VALUE, label: "Quá hạn" },
           ]}
           onChange={(value) => {
-            setStatus(value);
+            if (value === OVERDUE_CHIP_VALUE) {
+              setOverdue(true);
+              setStatus("");
+            } else {
+              setOverdue(false);
+              setStatus(value);
+            }
             setOffset(0);
           }}
         />

@@ -27,7 +27,7 @@ from app.modules.dashboard.schemas import (
     TaskStatusCounts,
     TaskSummaryOut,
 )
-from app.modules.dispatch.models import TASK_STATUSES, Assignment, Task
+from app.modules.dispatch.models import OPEN_TASK_STATUSES_EXCLUDE, TASK_STATUSES, Assignment, Task
 from app.modules.identity.models import Employee, EmployeeRole
 from app.modules.orders.models import STATUSES as ORDER_STATUSES
 from app.modules.orders.models import Order
@@ -37,8 +37,6 @@ VIETNAM = ZoneInfo("Asia/Ho_Chi_Minh")
 # "Đang mở" cho today_tasks: không DONE (khác list_my_assignments của M5-01, vốn gồm DONE) —
 # spec §2 today_tasks: "đang mở (không REJECTED/REMOVED/DONE)".
 _OPEN_ASSIGNMENT_STATUSES = ("PENDING", "ACCEPTED", "IN_PROGRESS")
-# "Đang mở" cho overdue_task_count: task chưa xong/huỷ.
-_OPEN_TASK_STATUSES_EXCLUDE = ("DONE", "CANCELLED")
 
 
 def _task_summary(session: Session) -> TaskSummaryOut:
@@ -100,14 +98,33 @@ def _vn_day_start_utc(day: date) -> datetime:
     return datetime.combine(day, time.min, tzinfo=VIETNAM)
 
 
-def _order_summary(session: Session, *, scope: Literal["own", "all"], actor: Actor) -> OrderSummaryOut:
+def _order_summary(
+    session: Session, *, scope: Literal["own", "all"], actor: Actor, now: datetime
+) -> OrderSummaryOut:
     query = select(Order.status, func.count()).group_by(Order.status)
     if scope == "own":
         query = query.where(Order.created_by == actor.id)
     counts = dict.fromkeys(ORDER_STATUSES, 0)
     for status, count in session.execute(query).all():
         counts[status] = count
-    return OrderSummaryOut(scope=scope, counts_by_status=OrderStatusCounts(**counts))
+
+    overdue_query = (
+        select(func.count())
+        .select_from(Order)
+        .where(
+            Order.status.notin_(("COMPLETED", "CANCELLED")),
+            Order.id.in_(
+                select(Task.order_id).where(Task.status.notin_(OPEN_TASK_STATUSES_EXCLUDE), Task.due_at < now)
+            ),
+        )
+    )
+    if scope == "own":
+        overdue_query = overdue_query.where(Order.created_by == actor.id)
+    overdue_count = session.scalar(overdue_query) or 0
+
+    return OrderSummaryOut(
+        scope=scope, counts_by_status=OrderStatusCounts(**counts), overdue_count=overdue_count
+    )
 
 
 def _dispatch_summary(session: Session, *, now: datetime) -> DispatchSummaryOut:
@@ -121,7 +138,7 @@ def _dispatch_summary(session: Session, *, now: datetime) -> DispatchSummaryOut:
         session.scalar(
             select(func.count())
             .select_from(Task)
-            .where(Task.status.notin_(_OPEN_TASK_STATUSES_EXCLUDE), Task.due_at < now)
+            .where(Task.status.notin_(OPEN_TASK_STATUSES_EXCLUDE), Task.due_at < now)
         )
         or 0
     )
@@ -233,7 +250,7 @@ def get_dashboard(session: Session, actor: Actor, *, now: datetime) -> Dashboard
     out = DashboardOut()
     if "SALE" in roles or "MANAGER" in roles:
         scope: Literal["own", "all"] = "all" if "MANAGER" in roles else "own"
-        out.order_summary = _order_summary(session, scope=scope, actor=actor)
+        out.order_summary = _order_summary(session, scope=scope, actor=actor, now=now)
     if "TECH_LEAD" in roles or "MANAGER" in roles:
         out.dispatch_summary = _dispatch_summary(session, now=now)
         out.task_summary = _task_summary(session)

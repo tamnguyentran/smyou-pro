@@ -69,17 +69,28 @@ def create_order(body: OrderCreate, request: Request, session: DbSession, actor:
     response_model=OrderPage,
 )
 def list_orders(
+    request: Request,
     session: DbSession,
     actor: Reader,
     q: Annotated[str | None, Query(max_length=100)] = None,
     status: OrderStatus | None = None,
     sort: OrderSort = "created_at_desc",
     mine: bool = False,
+    overdue: bool = False,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> OrderPage:
     return service.list_orders(
-        session, actor, q=q, status=status, sort=sort, mine=mine, limit=limit, offset=offset
+        session,
+        actor,
+        q=q,
+        status=status,
+        sort=sort,
+        mine=mine,
+        overdue=overdue,
+        now=request.app.state.clock(),
+        limit=limit,
+        offset=offset,
     )
 
 

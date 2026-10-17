@@ -53,6 +53,21 @@ test("AC-DASH-022 AC-DASH-023 AC-DASH-026 AC-DASH-031 @a11y @screenshot Hoa (SAL
   await evidence(page, info, "dashboard-drilldown-orders-filtered.png");
 });
 
+test("AC-DASH-035 (M10-07a) @screenshot Hoa (SALE) bấm thẻ 'Quá hạn' → /orders?overdue=1&mine=1", async ({
+  page,
+}) => {
+  await signIn(page, SALE, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+  const tile = page.getByText("Quá hạn").locator("xpath=ancestor::a[1]");
+
+  await tile.click();
+  await expect(page).toHaveURL(/\/orders\?overdue=1&mine=1$/);
+  await expect(page.getByRole("checkbox", { name: "Chỉ đơn của tôi" })).toBeChecked();
+  await expect(
+    page.getByRole("radiogroup", { name: "Trạng thái" }).getByRole("radio", { name: "Quá hạn" }),
+  ).toHaveAttribute("aria-checked", "true");
+});
+
 test("AC-DASH-027 AC-DASH-028 @a11y @screenshot Tuấn (TECH_LEAD) bấm 'Chờ điều phối' → /dispatch/queue; 'Cần giao lại'/'Quá hạn' không phải link", async ({
   page,
 }, info) => {

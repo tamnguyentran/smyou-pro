@@ -18,7 +18,7 @@ from app.modules.audit import service as audit
 from app.modules.audit.schemas import AuditEventPage
 from app.modules.catalog.models import Product, Service
 from app.modules.customers.models import Customer
-from app.modules.dispatch.models import Assignment, Task
+from app.modules.dispatch.models import OPEN_TASK_STATUSES_EXCLUDE, Assignment, Task
 from app.modules.files import service as files
 from app.modules.files.models import Attachment
 from app.modules.identity.models import Employee
@@ -549,6 +549,8 @@ def list_orders(
     status: str | None,
     sort: str = "created_at_desc",
     mine: bool = False,
+    overdue: bool = False,
+    now: datetime,
     limit: int,
     offset: int,
 ) -> OrderPage:
@@ -568,6 +570,13 @@ def list_orders(
         query = query.where(Order.status == status)
     if mine:
         query = query.where(Order.created_by == actor.id)
+    if overdue:
+        query = query.where(
+            Order.status.notin_(("COMPLETED", "CANCELLED")),
+            Order.id.in_(
+                select(Task.order_id).where(Task.status.notin_(OPEN_TASK_STATUSES_EXCLUDE), Task.due_at < now)
+            ),
+        )
     total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
     if sort == "dispatch":
         # M4-01a dispatch queue (spec §4): priority desc, then requested_date asc (null last).

@@ -72,9 +72,62 @@ def test_order_summary_own_scope_for_sale(db: Connection, app: FastAPI, people: 
             "REVISION": 0,
             "CANCELLED": 0,
         },
+        "overdue_count": 0,
     }
     assert "dispatch_summary" not in data
     assert "today_tasks" not in data
+
+
+@pytest.mark.ac("AC-DASH-032")
+def test_order_summary_overdue_count(db: Connection, app: FastAPI, people: dict[str, uuid.UUID]) -> None:
+    order_a = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code="DH2609-OA1")
+    insert_task(
+        db,
+        order_a,
+        code="DH2609-OA1-T1",
+        title="Quá hạn, chưa xong",
+        status="ACCEPTED",
+        priority="NORMAL",
+        due_at=YESTERDAY_VN,
+        created_by=people["NV010"],
+    )
+    order_b = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code="DH2609-OA2")
+    insert_task(
+        db,
+        order_b,
+        code="DH2609-OA2-T1",
+        title="Chưa quá hạn",
+        status="ACCEPTED",
+        priority="NORMAL",
+        due_at=TOMORROW_VN,
+        created_by=people["NV010"],
+    )
+    order_c = insert_order(db, created_by=people["NV005"], status="COMPLETED", code="DH2609-OA3")
+    insert_task(
+        db,
+        order_c,
+        code="DH2609-OA3-T1",
+        title="Đơn đã hoàn tất, không tính",
+        status="DONE",
+        priority="NORMAL",
+        due_at=YESTERDAY_VN,
+        created_by=people["NV010"],
+    )
+    order_d = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code="DH2609-OA4")
+    insert_task(
+        db,
+        order_d,
+        code="DH2609-OA4-T1",
+        title="Quá hạn nhưng task đã xong, không tính",
+        status="DONE",
+        priority="NORMAL",
+        due_at=YESTERDAY_VN,
+        created_by=people["NV010"],
+    )
+
+    hoa = client_as(app, HOA)
+    data = body(hoa.get("/api/v1/dashboard"))
+    assert data["order_summary"]["overdue_count"] == 1
 
 
 @pytest.mark.ac("AC-DASH-002")
