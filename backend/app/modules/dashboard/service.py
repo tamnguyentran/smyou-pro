@@ -247,10 +247,43 @@ def _my_task_summary(session: Session, actor: Actor, *, now: datetime) -> MyTask
         or 0
     )
 
+    overdue_count = (
+        session.scalar(
+            select(func.count())
+            .select_from(Assignment)
+            .join(Task, Task.id == Assignment.task_id)
+            .where(
+                Assignment.employee_id == actor.id,
+                Assignment.cycle == Task.cycle,
+                Assignment.status.in_(("ACCEPTED", "IN_PROGRESS")),
+                Task.due_at < now,
+            )
+        )
+        or 0
+    )
+    awaiting_confirmation_count = (
+        session.scalar(
+            select(func.count(func.distinct(Order.id)))
+            .select_from(Order)
+            .where(
+                Order.status == "AWAITING_CONFIRMATION",
+                Order.id.in_(
+                    select(Task.order_id)
+                    .join(Assignment, Assignment.task_id == Task.id)
+                    .where(Assignment.employee_id == actor.id, Assignment.cycle == Task.cycle)
+                ),
+            )
+        )
+        or 0
+    )
+
     return MyTaskSummaryOut(
         pending_count=open_counts.get("PENDING", 0),
         active_count=open_counts.get("ACCEPTED", 0) + open_counts.get("IN_PROGRESS", 0),
         done_today_count=done_today_count,
+        not_started_count=open_counts.get("ACCEPTED", 0),
+        overdue_count=overdue_count,
+        awaiting_confirmation_count=awaiting_confirmation_count,
     )
 
 
