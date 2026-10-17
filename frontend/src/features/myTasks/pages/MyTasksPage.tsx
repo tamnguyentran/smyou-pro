@@ -72,7 +72,7 @@ export function MyTasksPage() {
   const toast = useToast();
   const me = useMe();
   const [searchParams] = useSearchParams();
-  const [focus] = useState(() => searchParams.get("focus"));
+  const [focus, setFocus] = useState(() => searchParams.get("focus"));
   const [now] = useState(() => Date.now());
   const [tab, setTab] = useState<TabId>(() =>
     focus === "not_started" || focus === "overdue" ? "active" : "pending",
@@ -221,6 +221,7 @@ export function MyTasksPage() {
             aria-controls="my-tasks-tabpanel"
             onClick={() => {
               setTab(id);
+              setFocus(null);
             }}
             className={cn(
               "min-h-11 shrink-0 rounded-full border px-4 text-sm font-semibold transition duration-200",
