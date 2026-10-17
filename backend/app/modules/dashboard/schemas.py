@@ -59,6 +59,9 @@ class MyTaskSummaryOut(BaseModel):
     pending_count: int
     active_count: int
     done_today_count: int
+    not_started_count: int
+    overdue_count: int
+    awaiting_confirmation_count: int
 
 
 class DashboardOut(BaseModel):

@@ -1817,8 +1817,14 @@ export interface components {
     MyTaskSummaryOut: {
       /** Active Count */
       active_count: number;
+      /** Awaiting Confirmation Count */
+      awaiting_confirmation_count: number;
       /** Done Today Count */
       done_today_count: number;
+      /** Not Started Count */
+      not_started_count: number;
+      /** Overdue Count */
+      overdue_count: number;
       /** Pending Count */
       pending_count: number;
     };

@@ -166,7 +166,14 @@ describe("Tổng quan", () => {
   test("AC-DASH-021 (M7-02d) Đức (TECHNICIAN) thấy khối 'Đầu việc của tôi' đúng 3 số", async () => {
     signedInAs(ducId, DUC);
     mockDashboard({
-      my_task_summary: { pending_count: 2, active_count: 3, done_today_count: 1 },
+      my_task_summary: {
+        pending_count: 2,
+        active_count: 3,
+        done_today_count: 1,
+        not_started_count: 0,
+        overdue_count: 0,
+        awaiting_confirmation_count: 0,
+      },
       today_tasks: [],
     });
     renderApp("/");
