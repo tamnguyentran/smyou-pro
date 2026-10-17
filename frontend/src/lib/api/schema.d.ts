@@ -1464,6 +1464,8 @@ export interface components {
     };
     /** DispatchSummaryOut */
     DispatchSummaryOut: {
+      /** In Progress Order Count */
+      in_progress_order_count: number;
       /** Needs Assignee Count */
       needs_assignee_count: number;
       /** Overdue Task Count */
@@ -2494,6 +2496,8 @@ export interface components {
       /** Active Technician Count */
       active_technician_count: number;
       counts_by_status: components["schemas"]["StaffStatusCounts"];
+      /** Pending Acceptance Count */
+      pending_acceptance_count: number;
     };
     /** TaskAddAssignee */
     TaskAddAssignee: {
