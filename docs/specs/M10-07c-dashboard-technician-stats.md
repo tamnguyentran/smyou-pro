@@ -1,6 +1,6 @@
 # M10-07c — Kỹ thuật viên: đầu việc chưa thực hiện/quá hạn + đơn chờ KH xác nhận
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M10-07c · **Milestone:** M10 (3/3 lát cắt của M10-07; xem `M10-07a`/`M10-07b`)
 - **Liên quan:** `docs/specs/M7-02-role-dashboard.md` (`my_task_summary`, component `MyTaskSummarySection`, `_OPEN_ASSIGNMENT_STATUSES`); `docs/specs/M10-07a-dashboard-overdue-orders.md` (lát cắt trước, cùng cơ chế drill-down); `spec/permissions.yaml#order.read` (TECHNICIAN scope `assigned`); `frontend/src/features/myTasks/pages/MyTasksPage.tsx` (3 tab Chờ nhận/Đang làm/Đã xong, local state).
 
