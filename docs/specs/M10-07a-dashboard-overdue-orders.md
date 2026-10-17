@@ -2,13 +2,13 @@
 
 - **Status:** Done
 - **Backlog:** M10-07a · **Milestone:** M10 (1/3 lát cắt của M10-07; xem `M10-07b`/`M10-07c`)
-- **Liên quan:** `docs/specs/M7-02-role-dashboard.md` (nguồn `order_summary`, component `StatTile`/`OrderSummarySection`); `docs/specs/M10-03-dashboard-drilldown.md` (cơ chế drill-down `StatTile.to`, `mine` filter, đọc URL 1 lần lúc mount); `backend/app/modules/dashboard/service.py` (`_order_summary`, `_OPEN_TASK_STATUSES_EXCLUDE`); `backend/app/modules/orders/service.py` `list_orders()`.
+- **Liên quan:** `docs/specs/M7-02-role-dashboard.md` (nguồn `order_summary`, component `StatTile`/`OrderSummarySection`); `docs/specs/M10-03-dashboard-drilldown.md` (cơ chế drill-down `StatTile.to`, `mine` filter, đọc URL 1 lần lúc mount); `backend/app/modules/dashboard/service.py` (`_order_summary`); `backend/app/modules/orders/service.py` `list_orders()`; `backend/app/modules/dispatch/models.py` (`OPEN_TASK_STATUSES_EXCLUDE`, dùng chung bởi cả hai module trên — review M10-07a chuyển ra đây để tránh trùng lặp).
 
 ## 1. Mục tiêu
 Là Sale, tôi muốn trang "Tổng quan" thêm thống kê "đơn quá hạn chưa hoàn tất" và bấm được vào đó để đi thẳng tới danh sách đơn quá hạn, để biết đơn nào cần xử lý gấp.
 
 ## 2. Phạm vi
-- `order_summary` (đã có, SALE scope `own` / MANAGER scope `all`) thêm 1 trường mới `overdue_count`: đếm đơn **chưa hoàn tất** (status ∉ {COMPLETED, CANCELLED}) và có **ít nhất 1 đầu việc đang mở** (status ∉ {DONE, CANCELLED}, tái dùng `_OPEN_TASK_STATUSES_EXCLUDE`) với `due_at` đã qua — cùng khái niệm "quá hạn" đã dùng ở `dispatch_summary.overdue_task_count`, chỉ khác là đếm theo **đơn** (distinct order) thay vì theo **đầu việc**.
+- `order_summary` (đã có, SALE scope `own` / MANAGER scope `all`) thêm 1 trường mới `overdue_count`: đếm đơn **chưa hoàn tất** (status ∉ {COMPLETED, CANCELLED}) và có **ít nhất 1 đầu việc đang mở** (status ∉ {DONE, CANCELLED}, tái dùng `OPEN_TASK_STATUSES_EXCLUDE`) với `due_at` đã qua — cùng khái niệm "quá hạn" đã dùng ở `dispatch_summary.overdue_task_count`, chỉ khác là đếm theo **đơn** (distinct order) thay vì theo **đầu việc**.
 - `GET /api/v1/orders` thêm query param tuỳ chọn `overdue: bool = false` (độc lập với `status`, kết hợp được với `mine`/`q`): lọc đúng điều kiện trên.
 - `OrdersListPage`: thêm 1 chip "Quá hạn" vào cuối `ChipGroup` "Trạng thái" hiện có (cùng hàng với 7 trạng thái + "Tất cả") — chọn "Quá hạn" đặt bộ lọc `overdue=true` (gửi lên API) và bỏ chọn `status`; chọn 1 trạng thái thật hoặc "Tất cả" sẽ bỏ `overdue`. Đọc `overdue` từ URL lúc mount qua quy ước `overdue=1` (giống `mine=1`, M10-03), không phải `overdue=true`.
 - `StatTile` mới "Quá hạn" trong `OrderSummarySection`, tông `urgent`, nối vào sau 7 thẻ trạng thái; `to` = `/orders?overdue=1${scope === "own" ? "&mine=1" : ""}` (URL điều hướng nội bộ dùng `overdue=1`, khác với query param `overdue=true` gửi lên API — xem §4).
