@@ -1805,8 +1805,20 @@
             "title": "Active Count",
             "type": "integer"
           },
+          "awaiting_confirmation_count": {
+            "title": "Awaiting Confirmation Count",
+            "type": "integer"
+          },
           "done_today_count": {
             "title": "Done Today Count",
+            "type": "integer"
+          },
+          "not_started_count": {
+            "title": "Not Started Count",
+            "type": "integer"
+          },
+          "overdue_count": {
+            "title": "Overdue Count",
             "type": "integer"
           },
           "pending_count": {
@@ -1814,7 +1826,14 @@
             "type": "integer"
           }
         },
-        "required": ["pending_count", "active_count", "done_today_count"],
+        "required": [
+          "pending_count",
+          "active_count",
+          "done_today_count",
+          "not_started_count",
+          "overdue_count",
+          "awaiting_confirmation_count"
+        ],
         "title": "MyTaskSummaryOut",
         "type": "object"
       },
