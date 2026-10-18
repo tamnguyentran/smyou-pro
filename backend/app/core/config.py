@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     smtp_from: str | None = None
     smtp_use_tls: bool = True
     public_url: str = "http://localhost:5183"
+    # E2E-only (M12-01b §8): when set, every "sent" email is also appended (JSON line) to this file
+    # and GET /auth/_e2e/last-mail can read it back — lets Playwright get the reset link without a
+    # real SMTP server. Never set in compose.prod.yml/.env.prod.
+    mail_capture_file: Path | None = None
 
     @field_validator("base_path")
     @classmethod
@@ -67,6 +71,12 @@ class Settings(BaseSettings):
             raise ValueError(
                 f"JWT_SECRET must be at least {MIN_PRODUCTION_SECRET_LENGTH} characters in production"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _no_mail_capture_in_production(self) -> "Settings":
+        if self.app_env == "production" and self.mail_capture_file is not None:
+            raise ValueError("MAIL_CAPTURE_FILE must not be set in production")
         return self
 
     @model_validator(mode="after")

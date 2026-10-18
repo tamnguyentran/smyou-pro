@@ -47,6 +47,13 @@ class ResetPasswordRequest(BaseModel):
     new_password: Annotated[str, StringConstraints(max_length=1024)]
 
 
+class E2ELastMailResponse(BaseModel):
+    """M12-01b §8: dev/CI only — GET /auth/_e2e/last-mail."""
+
+    subject: str
+    body: str
+
+
 class MeEmployee(BaseModel):
     id: uuid.UUID
     code: str

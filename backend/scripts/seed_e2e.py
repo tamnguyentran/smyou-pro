@@ -42,6 +42,10 @@ ACCOUNTS = [
     # M6-04 golden path: 2 more "clean" technicians so the scenario has 3 (khoa.shell + these 2).
     ("minh.ktv2@smyou.vn", "E2E10", "Nguyễn Thành Minh", ("TECHNICIAN",), "E2e@SmYou2026", False),
     ("duc.ktv3@smyou.vn", "E2E11", "Đỗ Văn Đức", ("TECHNICIAN",), "E2e@SmYou2026", False),
+    # M12-01b: forgot/reset-password e2e actually changes the password — dedicated accounts, not
+    # shared with any other test, so they stay idempotent across `make e2e` runs (reset here).
+    ("mai.quenmk.mobile@smyou.vn", "E2E12", "Bùi Thị Mai", ("SALE",), "QuenMK@E2E1", False),
+    ("mai.quenmk.desktop@smyou.vn", "E2E13", "Bùi Thị Mai", ("SALE",), "QuenMK@E2E1", False),
 ]
 
 # (sku, name, category, brand, unit, price, is_active, price_fixed) — M2-01b: stable data for the

@@ -39,6 +39,9 @@ services:
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:5183}
+      # M12-01b §8: dev/CI only — lets Playwright read the reset link without real SMTP. Never set
+      # this in compose.prod.yml. Reuses the uploads volume already mounted below.
+      MAIL_CAPTURE_FILE: ${MAIL_CAPTURE_FILE:-/data/uploads/mail-capture.jsonl}
     volumes:
       - ./backend:/app
       - ./spec:/spec:ro       # Settings.spec_dir resolves to /spec inside the container

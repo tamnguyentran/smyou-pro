@@ -17,3 +17,19 @@ export const changePasswordSchema = z
     message: "Mật khẩu nhập lại không khớp.",
   });
 export type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().min(1, "Vui lòng nhập email.").pipe(z.email("Email không hợp lệ.")),
+});
+export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    new_password: z.string().min(8, "Mật khẩu cần ít nhất 8 ký tự."),
+    confirm: z.string(),
+  })
+  .refine((v) => v.new_password === v.confirm, {
+    path: ["confirm"],
+    message: "Mật khẩu nhập lại không khớp.",
+  });
+export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;

@@ -1,5 +1,6 @@
 """/api/v1/auth — thin HTTP layer: parse, call service, set or clear session cookies."""
 
+import json
 from datetime import datetime
 from typing import Annotated, Any
 
@@ -14,6 +15,7 @@ from app.core.request_id import get_request_id
 from app.modules.identity import service
 from app.modules.identity.schemas import (
     ChangePasswordRequest,
+    E2ELastMailResponse,
     EmployeeSummary,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
@@ -23,6 +25,26 @@ from app.modules.identity.schemas import (
     ResetPasswordRequest,
 )
 from app.modules.identity.service import ACCESS_COOKIE, Failure, Issued, Mailer
+
+
+def _e2e_last_mail_for(settings: Settings, email: str) -> dict[str, str] | None:
+    """M12-01b §8: last captured email to `email`, or None if unset/unmatched (dev/CI only)."""
+    if settings.mail_capture_file is None or not settings.mail_capture_file.exists():
+        return None
+    target = email.strip().lower()
+    latest: dict[str, str] | None = None
+    for line in settings.mail_capture_file.read_text(encoding="utf-8").splitlines():
+        if not line:
+            continue
+        entry = json.loads(line)
+        if entry.get("to", "").strip().lower() == target:
+            latest = entry
+    return latest
+
+
+def _e2e_not_found(request: Request) -> JSONResponse:
+    return problem_response(request, 404, "NOT_FOUND", "Không tìm thấy tài nguyên.")
+
 
 REFRESH_COOKIE = "smyou_refresh"
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -255,6 +277,20 @@ def reset_password(body: ResetPasswordRequest, request: Request, session: DbSess
     response = Response(status_code=204)
     _clear_session_cookies(response, settings)
     return response
+
+
+@router.get(
+    "/_e2e/last-mail",
+    operation_id="auth_e2e_last_mail",
+    summary="[E2E] Email cuối gửi tới một địa chỉ (chỉ hoạt động khi MAIL_CAPTURE_FILE được set)",
+    response_model=E2ELastMailResponse,
+    responses={404: {"description": "MAIL_CAPTURE_FILE chưa được cấu hình, hoặc không có email nào khớp"}},
+)
+def e2e_last_mail(email: str, request: Request) -> E2ELastMailResponse | JSONResponse:
+    mail = _e2e_last_mail_for(_settings(request), email)
+    if mail is None:
+        return _e2e_not_found(request)
+    return E2ELastMailResponse(subject=mail["subject"], body=mail["body"])
 
 
 @me_router.get(

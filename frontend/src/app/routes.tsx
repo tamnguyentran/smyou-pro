@@ -2,7 +2,9 @@ import type { RouteObject } from "react-router";
 import { AuditPage } from "../features/audit/pages/AuditPage";
 import { RequireSession, SignedOutOnly } from "../features/auth/guards";
 import { ChangePasswordPage } from "../features/auth/pages/ChangePasswordPage";
+import { ForgotPasswordPage } from "../features/auth/pages/ForgotPasswordPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
+import { ResetPasswordPage } from "../features/auth/pages/ResetPasswordPage";
 import { CustomersPage } from "../features/customers/pages/CustomersPage";
 import { DispatchQueuePage } from "../features/dispatch/pages/DispatchQueuePage";
 import { RevisionQueuePage } from "../features/dispatch/pages/RevisionQueuePage";
@@ -81,6 +83,17 @@ export const routes: RouteObject[] = [
       </RequireSession>
     ),
   },
+  {
+    path: "/quen-mat-khau",
+    element: (
+      <SignedOutOnly>
+        <ForgotPasswordPage />
+      </SignedOutOnly>
+    ),
+  },
+  // Not SignedOutOnly: the link must always work, even for a browser with a different active
+  // session — reset-password itself revokes every session for the account (M12-01a AC-046).
+  { path: "/reset-password", element: <ResetPasswordPage /> },
   {
     element: (
       <RequireSession>
