@@ -1,6 +1,6 @@
 # M12-01a — Quên mật khẩu (backend): gửi link đặt lại qua email, đặt mật khẩu mới
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M12-01a · **Milestone:** M12
 - **Liên quan:** PRD §5 (ngoại lệ Q86 — SMTP chỉ cho luồng này); `docs/specs/M1-01a-auth-api.md` (quy tắc mật khẩu Q21, mẫu dữ liệu An/Khoa); ADR-015 (SMTP Gmail); `spec/permissions.yaml` (`public_routes` — xem §8 diff đề xuất); OPEN_QUESTIONS_ARCHIVE Q86–Q88
 

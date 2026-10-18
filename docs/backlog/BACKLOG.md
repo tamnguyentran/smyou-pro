@@ -5,7 +5,7 @@ Mỗi item là **lát cắt dọc** (DB → API → UI → test) giao được t
 Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatch), `ASG`, `CMP` (completion/revision), `NTF`, `DASH` (dashboard), `KPI`, `UI` (style thuần, xuyên module, không đổi API/quyền).
 
 ## M12 — Quên mật khẩu (SMTP)
-- [~] `M12-01a` — Backend: `POST /auth/forgot-password`, `POST /auth/reset-password`, bảng `password_reset_tokens`, gửi email qua SMTP (ADR-015). Spec: `docs/specs/M12-01a-forgot-password-api.md`.
+- [x] `M12-01a` — Backend: `POST /auth/forgot-password`, `POST /auth/reset-password`, bảng `password_reset_tokens`, gửi email qua SMTP (ADR-015). Spec: `docs/specs/M12-01a-forgot-password-api.md`.
 - [ ] `M12-01b` — UI: trang "Quên mật khẩu" + "Đặt lại mật khẩu", liên kết từ trang Đăng nhập. Phụ thuộc `M12-01a`.
 
 ## Đã xong (tự động lưu trữ)
