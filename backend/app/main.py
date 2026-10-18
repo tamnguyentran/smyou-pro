@@ -11,6 +11,7 @@ from app.core.config import Settings
 from app.core.counters import CounterProvider, check_counter_registry
 from app.core.db import create_db_engine, create_session_factory
 from app.core.errors import register_error_handlers
+from app.core.mailer import send_email
 from app.core.request_id import RequestIdMiddleware
 from app.core.spec_loader import check_guard_registry, load_specs
 from app.modules.assignments import service as assignments_service
@@ -81,6 +82,7 @@ def create_app(
     app.state.clock = lambda: datetime.now(UTC)  # tests swap in a fake clock
     app.state.authenticator = authenticate
     app.state.counters = counters
+    app.state.mailer = send_email  # tests swap in a fake that records calls instead of real SMTP
 
     register_error_handlers(app)
     app.add_middleware(RequestIdMiddleware)

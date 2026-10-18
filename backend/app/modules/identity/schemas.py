@@ -34,6 +34,19 @@ class ChangePasswordRequest(BaseModel):
     new_password: Annotated[str, StringConstraints(max_length=1024)]
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: Email
+
+
+class ForgotPasswordResponse(BaseModel):
+    detail: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: Annotated[str, StringConstraints(min_length=1, max_length=256)]
+    new_password: Annotated[str, StringConstraints(max_length=1024)]
+
+
 class MeEmployee(BaseModel):
     id: uuid.UUID
     code: str

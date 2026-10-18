@@ -60,6 +60,8 @@ public_routes:
   - POST /api/v1/auth/login
   - POST /api/v1/auth/refresh
   - POST /api/v1/auth/logout
+  - POST /api/v1/auth/forgot-password
+  - POST /api/v1/auth/reset-password
 
 # Routes whose capability is chosen per-record, not statically (M6-01): `GET /attachments/{id}`
 # picks `catalog.read` or `order.read` depending on the attachment's `owner_type` at runtime.

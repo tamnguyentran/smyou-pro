@@ -4,6 +4,7 @@ The app under test gets `app.state.session_factory` bound to that transaction (S
 and `app.state.clock` returning the fake time, so lock-outs and token expiry are tested without sleeping.
 """
 
+import re
 import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
