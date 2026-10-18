@@ -18,7 +18,13 @@ from app.modules.customers.models import Customer
 from app.modules.dispatch.models import Assignment, DefectRecord, Task
 from app.modules.files import service as files_service
 from app.modules.files.models import Attachment
-from app.modules.identity.models import AuthSession, Employee, EmployeeRole
+from app.modules.identity.models import (
+    AuthSession,
+    Employee,
+    EmployeeRole,
+    PasswordResetRequest,
+    PasswordResetToken,
+)
 from app.modules.orders.models import Order, OrderLine, OrderRevision
 
 # Tiny valid JPEG (magic bytes + EOI marker) — same idiom as test_orders_confirmation_api.py's
@@ -166,6 +172,10 @@ def main() -> int:
                 .where(AuthSession.employee_id == employee.id, AuthSession.revoked_at.is_(None))
                 .values(revoked_at=now)
             )
+            # M12-01b: clear any rate-limit/token history from previous `make e2e` runs — otherwise
+            # the forgot-password e2e account hits RESET_RATE_LIMIT (3/hour) after a few local reruns.
+            session.execute(delete(PasswordResetToken).where(PasswordResetToken.employee_id == employee.id))
+            session.execute(delete(PasswordResetRequest).where(PasswordResetRequest.email == email))
         for sku, name, category, brand, unit, price, is_active, price_fixed in PRODUCTS:
             product = session.scalars(select(Product).where(Product.sku == sku)).one_or_none()
             if product is None:
