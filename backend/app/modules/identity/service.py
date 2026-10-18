@@ -5,12 +5,12 @@ Security events are logged by employee id only — never email, password or toke
 
 import logging
 import uuid
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 
-from sqlalchemy import ColumnElement, exists, select, update
+from sqlalchemy import ColumnElement, exists, func, select, update
 from sqlalchemy.orm import Session
 from starlette.requests import HTTPConnection
 
@@ -31,13 +31,28 @@ from app.core.security import (
 from app.core.spec_loader import PermissionsSpec
 from app.modules.audit import service as audit
 from app.modules.identity.domain import is_locked, password_problems, register_failure
-from app.modules.identity.models import AuthSession, Employee, EmployeeRole
+from app.modules.identity.models import (
+    AuthSession,
+    Employee,
+    EmployeeRole,
+    PasswordResetRequest,
+    PasswordResetToken,
+)
 from app.modules.identity.schemas import MeEmployee, MeResponse
 from app.modules.notifications import service as notifications
 
 logger = logging.getLogger(__name__)
 
 ACCESS_COOKIE = "smyou_access"
+
+RESET_TOKEN_TTL = timedelta(minutes=30)
+RESET_RATE_LIMIT = 3
+RESET_RATE_WINDOW = timedelta(hours=1)
+FORGOT_DETAIL = (
+    "Nếu email tồn tại và tài khoản đang hoạt động, chúng tôi đã gửi email hướng dẫn đặt lại mật khẩu."
+)
+
+Mailer = Callable[[Settings, str, str, str], None]
 
 
 class Failure(StrEnum):
@@ -48,6 +63,8 @@ class Failure(StrEnum):
     SESSION_REVOKED = "SESSION_REVOKED"
     DUPLICATE_EMAIL = "DUPLICATE_EMAIL"
     DUPLICATE_CODE = "DUPLICATE_CODE"
+    TOO_MANY_REQUESTS = "TOO_MANY_REQUESTS"
+    INVALID_RESET = "INVALID_RESET_TOKEN"
 
 
 @dataclass(frozen=True)
@@ -297,6 +314,79 @@ def change_password(
         session, employee, family_id=uuid.uuid4(), now=now, settings=settings, user_agent=user_agent
     )
     return issued
+
+
+def forgot_password(
+    session: Session, *, email: str, now: datetime, settings: Settings, mailer: Mailer
+) -> Failure | None:
+    """Always 'succeeds' from the caller's point of view (Q86-88): the account's existence and whether
+    an email was actually sent are never revealed — only the rate limit produces a different response."""
+    email = email.strip().lower()
+    recent_count = session.scalar(
+        select(func.count())
+        .select_from(PasswordResetRequest)
+        .where(
+            PasswordResetRequest.email == email, PasswordResetRequest.requested_at > now - RESET_RATE_WINDOW
+        )
+    )
+    if recent_count is not None and recent_count >= RESET_RATE_LIMIT:
+        logger.info("forgot-password rate limited")
+        return Failure.TOO_MANY_REQUESTS
+    session.add(PasswordResetRequest(email=email, requested_at=now))
+    employee = session.scalar(select(Employee).where(Employee.email == email))
+    if employee is not None and employee.is_active:
+        session.execute(
+            update(PasswordResetToken)
+            .where(PasswordResetToken.employee_id == employee.id, PasswordResetToken.used_at.is_(None))
+            .values(used_at=now)
+        )
+        raw = new_opaque_token()
+        session.add(
+            PasswordResetToken(
+                employee_id=employee.id,
+                token_hash=sha256_hex(raw),
+                expires_at=now + RESET_TOKEN_TTL,
+                created_at=now,
+            )
+        )
+        reset_link = f"{settings.public_url}/reset-password?token={raw}"
+        body = (
+            "Xin chào,\n\n"
+            "Có yêu cầu đặt lại mật khẩu cho tài khoản SMYou Pro của bạn. "
+            "Nhấn vào liên kết sau để đặt mật khẩu mới (liên kết hết hạn sau 30 phút):\n\n"
+            f"{reset_link}\n\n"
+            "Nếu bạn không yêu cầu điều này, hãy bỏ qua email này."
+        )
+        mailer(settings, employee.email, "Đặt lại mật khẩu — SMYou Pro", body)
+        logger.info("forgot-password: reset email dispatched for %s", employee.id)
+    return None
+
+
+def reset_password(
+    session: Session, *, token: str, new_password: str, now: datetime, settings: Settings
+) -> Failure | list[tuple[str, str]] | None:
+    token_hash = sha256_hex(token)
+    row = session.scalars(
+        select(PasswordResetToken).where(PasswordResetToken.token_hash == token_hash).with_for_update()
+    ).one_or_none()
+    if row is None or row.used_at is not None or row.expires_at <= now:
+        return Failure.INVALID_RESET
+    employee = session.get(Employee, row.employee_id, with_for_update=True, populate_existing=True)
+    if employee is None or not employee.is_active:
+        return Failure.INVALID_RESET
+    if verify_password(new_password, employee.password_hash):
+        return [("new_password", "Mật khẩu mới phải khác mật khẩu hiện tại.")]
+    problems = password_problems(new_password, current_password=None, email=employee.email)
+    if problems:
+        return problems
+    employee.password_hash = hash_password(new_password)
+    employee.must_change_password = False
+    employee.password_changed_at = now
+    employee.version += 1
+    _revoke(session, AuthSession.employee_id == employee.id, now=now)
+    row.used_at = now
+    logger.info("password reset for %s via emailed token; sessions revoked", employee.id)
+    return None
 
 
 def create_manager(

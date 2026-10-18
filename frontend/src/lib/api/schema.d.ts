@@ -140,6 +140,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/auth/forgot-password": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Yêu cầu link đặt lại mật khẩu qua email */
+    post: operations["auth_forgot_password"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/auth/login": {
     parameters: {
       query?: never;
@@ -185,6 +202,23 @@ export interface paths {
     put?: never;
     /** Làm mới phiên đăng nhập (xoay vòng refresh token) */
     post: operations["auth_refresh"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/reset-password": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Đặt mật khẩu mới bằng token nhận qua email */
+    post: operations["auth_reset_password"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1595,6 +1629,16 @@ export interface components {
      * @enum {string}
      */
     EntityType: "EMPLOYEE" | "PRODUCT" | "SERVICE" | "CUSTOMER" | "ORDER" | "TASK" | "ASSIGNMENT";
+    /** ForgotPasswordRequest */
+    ForgotPasswordRequest: {
+      /** Email */
+      email: string;
+    };
+    /** ForgotPasswordResponse */
+    ForgotPasswordResponse: {
+      /** Detail */
+      detail: string;
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -2383,6 +2427,13 @@ export interface components {
       /** Skill */
       SKILL: number;
     };
+    /** ResetPasswordRequest */
+    ResetPasswordRequest: {
+      /** New Password */
+      new_password: string;
+      /** Token */
+      token: string;
+    };
     /** RolesRequest */
     RolesRequest: {
       /** Roles */
@@ -3117,6 +3168,44 @@ export interface operations {
       };
     };
   };
+  auth_forgot_password: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ForgotPasswordRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ForgotPasswordResponse"];
+        };
+      };
+      /** @description problem+json — VALIDATION_ERROR (email) */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — TOO_MANY_REQUESTS: Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau. */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   auth_login: {
     parameters: {
       query?: never;
@@ -3209,6 +3298,35 @@ export interface operations {
       };
       /** @description problem+json — UNAUTHENTICATED: Vui lòng đăng nhập. | SESSION_REVOKED: Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại. */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  auth_reset_password: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ResetPasswordRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — INVALID_RESET_TOKEN | VALIDATION_ERROR (new_password) */
+      422: {
         headers: {
           [name: string]: unknown;
         };

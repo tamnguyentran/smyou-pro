@@ -6,14 +6,19 @@ MIN_PASSWORD_LENGTH = 8
 MAX_PASSWORD_LENGTH = 128
 
 
-def password_problems(new_password: str, *, current_password: str, email: str) -> list[tuple[str, str]]:
-    """(field, Vietnamese message) for every rule the new password breaks; empty when acceptable."""
+def password_problems(
+    new_password: str, *, current_password: str | None, email: str
+) -> list[tuple[str, str]]:
+    """(field, Vietnamese message) for every rule the new password breaks; empty when acceptable.
+
+    `current_password` is the plaintext of the account's current password, when known (change-password);
+    pass `None` to skip the equality check (reset-password checks it separately, against the hash)."""
     problems: list[str] = []
     if len(new_password) < MIN_PASSWORD_LENGTH:
         problems.append(f"Mật khẩu cần ít nhất {MIN_PASSWORD_LENGTH} ký tự.")
     if len(new_password) > MAX_PASSWORD_LENGTH:
         problems.append(f"Mật khẩu tối đa {MAX_PASSWORD_LENGTH} ký tự.")
-    if new_password == current_password:
+    if current_password is not None and new_password == current_password:
         problems.append("Mật khẩu mới phải khác mật khẩu hiện tại.")
     email_name = email.strip().split("@", 1)[0].lower()
     if email_name and email_name in new_password.lower():

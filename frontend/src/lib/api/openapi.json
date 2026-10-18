@@ -1267,6 +1267,30 @@
         "title": "EntityType",
         "type": "string"
       },
+      "ForgotPasswordRequest": {
+        "properties": {
+          "email": {
+            "maxLength": 254,
+            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": ["email"],
+        "title": "ForgotPasswordRequest",
+        "type": "object"
+      },
+      "ForgotPasswordResponse": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": ["detail"],
+        "title": "ForgotPasswordResponse",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -3610,6 +3634,24 @@
         "title": "RejectionCounts",
         "type": "object"
       },
+      "ResetPasswordRequest": {
+        "properties": {
+          "new_password": {
+            "maxLength": 1024,
+            "title": "New Password",
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": ["token", "new_password"],
+        "title": "ResetPasswordRequest",
+        "type": "object"
+      },
       "RolesRequest": {
         "properties": {
           "roles": {
@@ -5073,6 +5115,41 @@
         "tags": ["auth"]
       }
     },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "operationId": "auth_forgot_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgotPasswordResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "problem+json — VALIDATION_ERROR (email)"
+          },
+          "429": {
+            "description": "problem+json — TOO_MANY_REQUESTS: Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau."
+          }
+        },
+        "summary": "Yêu cầu link đặt lại mật khẩu qua email",
+        "tags": ["auth"]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "operationId": "auth_login",
@@ -5152,6 +5229,31 @@
           }
         },
         "summary": "Làm mới phiên đăng nhập (xoay vòng refresh token)",
+        "tags": ["auth"]
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "operationId": "auth_reset_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "problem+json — INVALID_RESET_TOKEN | VALIDATION_ERROR (new_password)"
+          }
+        },
+        "summary": "Đặt mật khẩu mới bằng token nhận qua email",
         "tags": ["auth"]
       }
     },

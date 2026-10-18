@@ -39,6 +39,8 @@ def test_repo_specs_load() -> None:
         "POST /api/v1/auth/login",
         "POST /api/v1/auth/refresh",
         "POST /api/v1/auth/logout",
+        "POST /api/v1/auth/forgot-password",
+        "POST /api/v1/auth/reset-password",
     ]
     assert perm.dynamic_routes == ["GET /api/v1/attachments/{attachment_id}"]
 

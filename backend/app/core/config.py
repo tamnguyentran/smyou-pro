@@ -43,6 +43,16 @@ class Settings(BaseSettings):
     vapid_private_key: str | None = None
     vapid_subject: str = "mailto:admin@smyou.vn"
 
+    # Forgot-password email (M12-01a, ADR-015) — unset SMTP_HOST means dev without email: forgot-password
+    # still works (just doesn't send). PUBLIC_URL builds the reset link; defaults to the dev frontend.
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_from: str | None = None
+    smtp_use_tls: bool = True
+    public_url: str = "http://localhost:5183"
+
     @field_validator("base_path")
     @classmethod
     def _normalise_base_path(cls, value: str) -> str:

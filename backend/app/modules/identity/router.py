@@ -15,11 +15,14 @@ from app.modules.identity import service
 from app.modules.identity.schemas import (
     ChangePasswordRequest,
     EmployeeSummary,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
     LoginRequest,
     LoginResponse,
     MeResponse,
+    ResetPasswordRequest,
 )
-from app.modules.identity.service import ACCESS_COOKIE, Failure, Issued
+from app.modules.identity.service import ACCESS_COOKIE, Failure, Issued, Mailer
 
 REFRESH_COOKIE = "smyou_refresh"
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -34,6 +37,8 @@ _FAILURES: dict[Failure, tuple[int, str]] = {
     Failure.ACCOUNT_DISABLED: (403, "Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản lý."),
     Failure.UNAUTHENTICATED: (401, "Vui lòng đăng nhập."),
     Failure.SESSION_REVOKED: (401, "Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại."),
+    Failure.TOO_MANY_REQUESTS: (429, "Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau."),
+    Failure.INVALID_RESET: (422, "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn."),
 }
 
 
@@ -58,6 +63,11 @@ def _now(request: Request) -> datetime:
 
 def _user_agent(request: Request) -> str:
     return request.headers.get("user-agent", "")
+
+
+def _mailer(request: Request) -> Mailer:
+    mailer: Mailer = request.app.state.mailer
+    return mailer
 
 
 def _cookie_paths(settings: Settings) -> tuple[str, str]:
@@ -198,6 +208,52 @@ def change_password(
         return problem_response(request, 422, "VALIDATION_ERROR", "Dữ liệu không hợp lệ.", errors=errors)
     response = Response(status_code=204)
     _set_session_cookies(response, settings, result)
+    return response
+
+
+@router.post(
+    "/forgot-password",
+    operation_id="auth_forgot_password",
+    summary="Yêu cầu link đặt lại mật khẩu qua email",
+    response_model=ForgotPasswordResponse,
+    responses={
+        **_responses(Failure.TOO_MANY_REQUESTS),
+        422: {"description": "problem+json — VALIDATION_ERROR (email)"},
+    },
+)
+def forgot_password(
+    body: ForgotPasswordRequest, request: Request, session: DbSession
+) -> ForgotPasswordResponse | JSONResponse:
+    result = service.forgot_password(
+        session, email=body.email, now=_now(request), settings=_settings(request), mailer=_mailer(request)
+    )
+    if isinstance(result, Failure):
+        return _failure(request, result)
+    return ForgotPasswordResponse(detail=service.FORGOT_DETAIL)
+
+
+@router.post(
+    "/reset-password",
+    operation_id="auth_reset_password",
+    summary="Đặt mật khẩu mới bằng token nhận qua email",
+    status_code=204,
+    responses={
+        **_responses(Failure.INVALID_RESET),
+        422: {"description": "problem+json — INVALID_RESET_TOKEN | VALIDATION_ERROR (new_password)"},
+    },
+)
+def reset_password(body: ResetPasswordRequest, request: Request, session: DbSession) -> Response:
+    settings = _settings(request)
+    result = service.reset_password(
+        session, token=body.token, new_password=body.new_password, now=_now(request), settings=settings
+    )
+    if isinstance(result, Failure):
+        return _failure(request, result)
+    if isinstance(result, list):
+        errors = [{"field": field, "code": "invalid", "message": message} for field, message in result]
+        return problem_response(request, 422, "VALIDATION_ERROR", "Dữ liệu không hợp lệ.", errors=errors)
+    response = Response(status_code=204)
+    _clear_session_cookies(response, settings)
     return response
 
 

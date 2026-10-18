@@ -8,6 +8,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -84,3 +85,27 @@ class AuthSession(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     replaced_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("auth_sessions.id"), index=True)
     user_agent: Mapped[str | None] = mapped_column(String(200))
+
+
+class PasswordResetToken(Base):
+    """One-time, 30-minute reset link (M12-01a). A new request invalidates every previous token."""
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
+    employee_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("employees.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PasswordResetRequest(Base):
+    """One row per forgot-password call (even for unknown emails) — counts toward the hourly rate limit."""
+
+    __tablename__ = "password_reset_requests"
+    __table_args__ = (Index("ix_password_reset_requests_email_requested_at", "email", "requested_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
+    email: Mapped[str] = mapped_column(CITEXT)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
