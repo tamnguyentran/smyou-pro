@@ -405,6 +405,12 @@ describe("Trang Quên mật khẩu", () => {
     );
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
   });
+
+  test("có link Quay lại đăng nhập ngay trên form (chưa gửi)", async () => {
+    renderApp("/quen-mat-khau");
+    const link = await screen.findByRole("link", { name: "Quay lại đăng nhập" });
+    expect(link).toHaveAttribute("href", "/dang-nhap");
+  });
 });
 
 const INVALID_LINK_MESSAGE = "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.";

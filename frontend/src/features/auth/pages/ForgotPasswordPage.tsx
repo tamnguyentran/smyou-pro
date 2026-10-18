@@ -44,9 +44,6 @@ export function ForgotPasswordPage() {
           />
         ) : (
           <>
-            <p className="mt-1 text-sm leading-relaxed text-body">
-              Nhập email đã đăng ký, chúng tôi sẽ gửi liên kết đặt lại mật khẩu.
-            </p>
             <form noValidate onSubmit={(e) => void onSubmit(e)} className="mt-4 space-y-4">
               {formMessage ? <Alert>{formMessage}</Alert> : null}
               <TextField
@@ -66,6 +63,12 @@ export function ForgotPasswordPage() {
                 Gửi liên kết
               </Button>
             </form>
+            <Link
+              to="/dang-nhap"
+              className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-heading transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+            >
+              Quay lại đăng nhập
+            </Link>
           </>
         )}
       </section>
