@@ -36,7 +36,9 @@ Vấn đề: không theo dõi được ai đang làm gì, trễ hạn ở đâu,
 - Nhật ký hệ thống (audit).
 
 ## 5. Ngoài phạm vi v1 (Out of scope — không tự ý làm)
-Xuất hoá đơn điện tử, quản lý kho/tồn kho, công nợ chi tiết, tích hợp Zalo/SMS/email, chữ ký điện tử trên màn hình, app native, đa công ty, đa ngôn ngữ, chấm công/lương. Các mục này có thể vào v2 — ghi vào `OPEN_QUESTIONS.md` nếu cần.
+Xuất hoá đơn điện tử, quản lý kho/tồn kho, công nợ chi tiết, tích hợp Zalo/SMS, chữ ký điện tử trên màn hình, app native, đa công ty, đa ngôn ngữ, chấm công/lương. Các mục này có thể vào v2 — ghi vào `OPEN_QUESTIONS.md` nếu cần.
+
+Ngoại lệ (Q86, 2026-10-18): gửi email qua SMTP **chỉ** cho luồng "Quên mật khẩu" (M12) — cấu hình qua biến môi trường (`SMTP_*`), không dùng cho Zalo/SMS hay các loại email khác.
 
 ## 6. Yêu cầu phi chức năng
 | Hạng mục | Yêu cầu |

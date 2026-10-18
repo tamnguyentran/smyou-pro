@@ -35,6 +35,9 @@ Frontend không viết tay type API. `make contract` xuất `openapi.json` và s
 ## ADR-011: Image đa kiến trúc
 Dev arm64 (M2), prod amd64 (AlmaLinux). Image production build với `--platform linux/amd64` và chạy smoke test trên runner amd64 của CI. Không phụ thuộc native lib không có wheel amd64/arm64.
 
+## ADR-015: SMTP (Gmail) cho luồng "Quên mật khẩu"
+Bối cảnh: PRD §5 chốt "không tích hợp email" cho v1, nhưng chủ dự án yêu cầu trực tiếp (Q86) thêm tự đặt lại mật khẩu qua email vì nhân viên không nhớ mật khẩu phải chờ Manager reset tay. Quyết định: dùng `smtplib`/`email` (thư viện chuẩn Python, không thêm dependency ngoài) gửi qua Gmail SMTP (`smtp.gmail.com:587`, STARTTLS, App Password — không dùng mật khẩu Gmail thật); toàn bộ cấu hình (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`) nằm trong file biến môi trường (`.env.dev`/`.env.prod`), không hard-code, không commit giá trị thật. Hệ quả: SMTP chỉ dùng cho email đặt lại mật khẩu (không mở rộng sang Zalo/SMS/email khác — vẫn ngoài phạm vi theo PRD §5); gửi email là tác vụ đồng bộ trong request (tải thấp, ~30 người dùng, không cần hàng đợi); lỗi gửi email (SMTP timeout/sai cấu hình) không được lộ chi tiết lỗi cho người dùng cuối (tránh dò email tồn tại) — chỉ log phía server.
+
 ## ADR-014: Triển khai dưới subpath sau nginx hệ thống
 Bối cảnh: server AlmaLinux dùng chung với nhiều app; nginx hệ thống đã giữ HTTPS cho `ilabsviet.com` và proxy theo subpath (Q12). Quyết định: SMYou chạy ở `https://ilabsviet.com/smyoutask/`; container `web` publish `127.0.0.1:6890`; nginx hệ thống forward nguyên path (không strip); container `web` định tuyến `/smyoutask/api/` → backend và phục vụ SPA. Subpath là cấu hình (`BASE_PATH`), dev dùng root. Hệ quả: mọi URL phía frontend (asset, router, API client) và cookie `Path` phải lấy từ `BASE_PATH` — không hard-code `/`; E2E production-like chạy với `BASE_PATH=/smyoutask` để bắt lỗi đường dẫn.
 
