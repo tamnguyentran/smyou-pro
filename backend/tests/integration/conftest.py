@@ -79,14 +79,30 @@ def clock() -> FakeClock:
     return FakeClock()
 
 
+@dataclass
+class FakeMailer:
+    sent: list[tuple[str, str, str]] = field(default_factory=list)
+
+    def __call__(self, settings: object, to: str, subject: str, body: str) -> None:
+        self.sent.append((to, subject, body))
+
+
 @pytest.fixture
-def auth_app(make_app: Callable[..., FastAPI], db: Connection, clock: FakeClock) -> Callable[..., FastAPI]:
+def mailer() -> FakeMailer:
+    return FakeMailer()
+
+
+@pytest.fixture
+def auth_app(
+    make_app: Callable[..., FastAPI], db: Connection, clock: FakeClock, mailer: FakeMailer
+) -> Callable[..., FastAPI]:
     def _make(**overrides: str) -> FastAPI:
         app = make_app(**overrides)
         app.state.session_factory = sessionmaker(
             bind=db, join_transaction_mode="create_savepoint", expire_on_commit=False
         )
         app.state.clock = clock
+        app.state.mailer = mailer
         return app
 
     return _make
@@ -141,6 +157,21 @@ def login(client: TestClient, email: str, password: str) -> httpx.Response:
     return client.post("/api/v1/auth/login", json={"email": email, "password": password})
 
 
+def forgot_password(client: TestClient, email: str) -> httpx.Response:
+    return client.post("/api/v1/auth/forgot-password", json={"email": email})
+
+
+def reset_password(client: TestClient, token: str, new_password: str) -> httpx.Response:
+    return client.post("/api/v1/auth/reset-password", json={"token": token, "new_password": new_password})
+
+
+def extract_reset_token(mailer: FakeMailer) -> str:
+    body = mailer.sent[-1][2]
+    match = re.search(r"token=(\S+)", body)
+    assert match, f"no reset link found in email body: {body!r}"
+    return match.group(1)
+
+
 def set_cookies(response: httpx.Response) -> dict[str, str]:
     """cookie name → full Set-Cookie header (attributes included)."""
     return {h.split("=", 1)[0]: h for h in response.headers.get_list("set-cookie")}
@@ -158,3 +189,11 @@ def cookie_attrs(header: str) -> dict[str, str]:
 def employee_row(db: Connection, employee_id: uuid.UUID) -> dict[str, object]:
     row = db.execute(text("SELECT * FROM employees WHERE id = :id"), {"id": employee_id}).mappings().one()
     return dict(row)
+
+
+def reset_token_rows(db: Connection, employee_id: uuid.UUID) -> list[dict[str, object]]:
+    rows = db.execute(
+        text("SELECT * FROM password_reset_tokens WHERE employee_id = :id ORDER BY created_at"),
+        {"id": employee_id},
+    ).mappings()
+    return [dict(row) for row in rows]
