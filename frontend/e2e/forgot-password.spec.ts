@@ -90,7 +90,12 @@ test("AC-AUTH-059 AC-AUTH-063 @a11y @screenshot luồng đầy đủ quên/đặ
   await page.getByRole("button", { name: "Đăng nhập" }).click();
   await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
 
+  // Reopening the link alone shows the form again (AC-AUTH-058 — opening never pre-validates the
+  // token); only a submit attempt reveals it's already used (AC-AUTH-061).
   await page.goto(`./reset-password?token=${token}`);
+  await page.getByLabel("Mật khẩu mới", { exact: true }).fill(newPassword);
+  await page.getByLabel("Nhập lại mật khẩu mới").fill(newPassword);
+  await page.getByRole("button", { name: "Đặt lại mật khẩu" }).click();
   await expect(
     page.getByText("Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn."),
   ).toBeVisible();

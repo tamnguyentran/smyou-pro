@@ -58,7 +58,7 @@ Không có bảng/cột mới. Nếu chủ dự án chọn phương án "endpoin
 2. Nhập email nhân viên thật đang hoạt động → bấm "Gửi liên kết" → thấy thông báo chung; kiểm tra hộp mail nhận được liên kết trong vài giây (SMTP đã cấu hình ở M12-01a).
 3. Mở liên kết trong email → trang "Đặt lại mật khẩu" hiện form → đặt mật khẩu mới → toast → về trang Đăng nhập.
 4. Đăng nhập lại bằng mật khẩu mới → thành công; nếu đang đăng nhập sẵn ở thiết bị khác, phiên đó cũng bị đăng xuất (đã được bảo đảm ở M12-01a, kiểm tra lại qua UI).
-5. Mở lại liên kết cũ (đã dùng) → thấy "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn." + nút "Gửi lại yêu cầu".
+5. Mở lại liên kết cũ (đã dùng) → form hiện lại như bình thường (mở trang không kiểm tra token trước — AC-AUTH-058); bấm "Đặt lại mật khẩu" → lúc này mới thấy "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn." + nút "Gửi lại yêu cầu" (AC-AUTH-061).
 
 ## 8. Giả định & câu hỏi
 - **Đường dẫn trang "Đặt lại mật khẩu" là `/reset-password` (tiếng Anh), không theo quy ước slug tiếng Việt (`/dang-nhap`, `/doi-mat-khau`) của phần còn lại của app.** Lý do: `backend/app/modules/identity/service.py` (đã merge ở M12-01a) tạo sẵn liên kết email theo mẫu cố định `{PUBLIC_URL}/reset-password?token=<raw_token>` — email thật đã/sẽ được gửi với đường dẫn này, và `PUBLIC_URL` đã bao gồm `BASE_PATH` cho production. Đổi path này sang tiếng Việt sẽ cần sửa lại chuỗi trong code backend đã merge (không phải migration, nhưng là sửa lại 1 file của item đã Done) **và** có thể có email đã gửi trước đó còn trỏ tới path cũ. Giả định: **giữ `/reset-password`** làm ngoại lệ route duy nhất, không sửa lại M12-01a. Nếu chủ dự án muốn slug tiếng Việt, cần duyệt sửa `service.py` kèm theo.
