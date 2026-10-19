@@ -841,7 +841,7 @@ def test_cancel_task(app: FastAPI, db: Connection, people: dict[str, uuid.UUID])
     assert body["order_version"] == created["order_version"] + 1
 
     order_res = tuan.get(f"/api/v1/orders/{order_id}")
-    assert order_res.json()["status"] == "PENDING_DISPATCH"  # Q81: no one ever started the task
+    assert order_res.json()["status"] == "PENDING_DISPATCH"  # undispatch — cancelled its only task
 
     rows = (
         db.execute(text("SELECT status, removed_at FROM assignments WHERE task_id = :id"), {"id": task_id})
