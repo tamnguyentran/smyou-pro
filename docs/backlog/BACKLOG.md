@@ -6,7 +6,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 
 ## M12 — Quên mật khẩu (SMTP)
 - [x] `M12-01a` — Backend: `POST /auth/forgot-password`, `POST /auth/reset-password`, bảng `password_reset_tokens`, gửi email qua SMTP (ADR-015). Spec: `docs/specs/M12-01a-forgot-password-api.md`.
-- [ ] `M12-01b` — UI: trang "Quên mật khẩu" + "Đặt lại mật khẩu", liên kết từ trang Đăng nhập. Phụ thuộc `M12-01a`.
+- [~] `M12-01b` — UI: trang "Quên mật khẩu" + "Đặt lại mật khẩu", liên kết từ trang Đăng nhập. Phụ thuộc `M12-01a`. Spec: `docs/specs/M12-01b-forgot-password-ui.md`.
 
 ## Đã xong (tự động lưu trữ)
 - M10 — xem `BACKLOG_ARCHIVE.md`.
