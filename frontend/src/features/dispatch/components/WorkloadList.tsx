@@ -3,11 +3,13 @@ import { formatDateTime } from "../../../lib/format";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
 import type { EmployeeWorkload } from "../api";
 
-type WorkloadGroupKey = "IN_PROGRESS" | "NOT_STARTED" | "IDLE";
+export type WorkloadGroupKey = "IN_PROGRESS" | "NOT_STARTED" | "IDLE";
 
 /** AC-DSP-108/109 (M4-04b): nhóm theo `in_progress_count`/`open_task_count` — không suy luận
- * trạng thái phân công nào cả, chỉ dùng 2 số đã tổng hợp sẵn từ `GET /api/v1/tasks/workload`. */
-function groupKeyOf(item: EmployeeWorkload): WorkloadGroupKey {
+ * trạng thái phân công nào cả, chỉ dùng 2 số đã tổng hợp sẵn từ `GET /api/v1/tasks/workload`.
+ * Export để `WorkloadPage` lọc theo `?group=` (drill-down từ dashboard, dùng lại đúng logic nhóm
+ * này thay vì suy luận lại). */
+export function groupKeyOf(item: EmployeeWorkload): WorkloadGroupKey {
   if (item.in_progress_count > 0) return "IN_PROGRESS";
   if (item.open_task_count > 0) return "NOT_STARTED";
   return "IDLE";

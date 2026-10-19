@@ -109,6 +109,42 @@ describe("/my-tasks đọc `focus` từ URL lúc tải (M10-07c)", () => {
     expect(screen.queryByText("PROG1")).not.toBeInTheDocument();
   });
 
+  test("?focus=active (drill-down từ thẻ 'Đang làm' ở Tổng quan): tab Đang làm đã chọn, không ẩn item nào", async () => {
+    signedInAs(khoaId, KHOA);
+    mockAssignments([
+      assignment({ assignment_id: "a1", assignment_status: "ACCEPTED", task_code: "ACC1" }),
+      assignment({
+        assignment_id: "a2",
+        assignment_status: "IN_PROGRESS",
+        task_code: "PROG1",
+      }),
+    ]);
+    renderApp("/my-tasks?focus=active");
+
+    const tabs = await screen.findByRole("tablist", { name: "Việc của tôi" });
+    expect(within(tabs).getByRole("tab", { name: /Đang làm/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await screen.findByText("ACC1");
+    expect(screen.getByText("PROG1")).toBeInTheDocument();
+  });
+
+  test("?focus=done (drill-down từ thẻ 'Đã xong hôm nay' ở Tổng quan): tab Đã xong đã chọn", async () => {
+    signedInAs(khoaId, KHOA);
+    mockAssignments([
+      assignment({ assignment_id: "a1", assignment_status: "DONE", task_code: "DONE1" }),
+    ]);
+    renderApp("/my-tasks?focus=done");
+
+    const tabs = await screen.findByRole("tablist", { name: "Việc của tôi" });
+    expect(within(tabs).getByRole("tab", { name: /Đã xong/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await screen.findByText("DONE1");
+  });
+
   test("AC-DASH-048 ?focus=overdue: chỉ hiện phân công có due_at đã qua trong số ACCEPTED/IN_PROGRESS", async () => {
     vi.setSystemTime(new Date("2026-10-10T00:00:00Z"));
     signedInAs(khoaId, KHOA);

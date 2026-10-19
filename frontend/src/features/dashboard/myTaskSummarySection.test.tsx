@@ -45,6 +45,37 @@ test("AC-DASH-046 thẻ 'Chưa hoàn tất, cần KH xác nhận' dẫn tới /o
   ).toBe("/orders?status=AWAITING_CONFIRMATION");
 });
 
+test("thẻ 'Chờ nhận' dẫn tới /my-tasks", () => {
+  render(
+    <MemoryRouter>
+      <MyTaskSummarySection summary={{ ...ZERO_SUMMARY, pending_count: 2 }} />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole("link", { name: /Chờ nhận/ }).getAttribute("href")).toBe("/my-tasks");
+});
+
+test("thẻ 'Đang làm' dẫn tới /my-tasks?focus=active", () => {
+  render(
+    <MemoryRouter>
+      <MyTaskSummarySection summary={{ ...ZERO_SUMMARY, active_count: 1 }} />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole("link", { name: /Đang làm/ }).getAttribute("href")).toBe(
+    "/my-tasks?focus=active",
+  );
+});
+
+test("thẻ 'Đã xong hôm nay' dẫn tới /my-tasks?focus=done", () => {
+  render(
+    <MemoryRouter>
+      <MyTaskSummarySection summary={{ ...ZERO_SUMMARY, done_today_count: 1 }} />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole("link", { name: /Đã xong hôm nay/ }).getAttribute("href")).toBe(
+    "/my-tasks?focus=done",
+  );
+});
+
 test("AC-DASH-052 cả 3 thẻ mới có giá trị 0 vẫn render như link bấm được", () => {
   render(
     <MemoryRouter>

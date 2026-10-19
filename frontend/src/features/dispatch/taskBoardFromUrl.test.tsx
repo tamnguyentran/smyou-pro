@@ -59,4 +59,21 @@ describe("/dispatch/board đọc status từ URL lúc tải", () => {
       within(screen.getByTestId("task-board-column-ACCEPTED")).queryByText("DH2610-D01-T1"),
     ).not.toBeInTheDocument();
   });
+
+  test("?overdue=1: request gửi overdue=1 (drill-down từ thẻ 'Quá hạn' ở Tổng quan)", async () => {
+    signedInAs(tuanId, TUAN);
+    const queries: string[] = [];
+    server.use(
+      http.get("/api/v1/tasks", ({ request }) => {
+        queries.push(new URL(request.url).search);
+        return HttpResponse.json({ items: [boardItem()] });
+      }),
+      http.get("/api/v1/employees", () => HttpResponse.json({ items: [], total: 0 })),
+    );
+    renderApp("/dispatch/board?overdue=1");
+
+    await waitFor(() => {
+      expect(queries[0]).toContain("overdue=true");
+    });
+  });
 });
