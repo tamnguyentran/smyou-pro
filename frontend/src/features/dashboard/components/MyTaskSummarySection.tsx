@@ -1,3 +1,4 @@
+import { ORDER_STATUS_LABEL } from "../../orders/orderStatus";
 import type { Dashboard } from "../api";
 import { StatTile } from "./StatTile";
 
@@ -8,7 +9,9 @@ type MyTaskSummary = NonNullable<Dashboard["my_task_summary"]>;
  * Drill-down: "Chờ nhận" → `/my-tasks` (tab mặc định đã là "pending"); "Đang làm" →
  * `/my-tasks?focus=active`; "Đã xong hôm nay" → `/my-tasks?focus=done` — tab "done" hiện toàn bộ
  * lịch sử đã xong, `MyAssignmentOut` chưa có field thời điểm hoàn thành nên không lọc riêng được
- * đúng "hôm nay" (giới hạn đã biết, không đổi contract trong lượt này). */
+ * đúng "hôm nay" (giới hạn đã biết, không đổi contract trong lượt này). Thẻ cuối dùng chung
+ * `ORDER_STATUS_LABEL.AWAITING_CONFIRMATION` — không hardcode chuỗi riêng, để đổi nhãn 1 nơi
+ * (`orderStatus.ts`) là khớp mọi nơi. */
 export function MyTaskSummarySection({ summary }: { summary: MyTaskSummary }) {
   return (
     <section className="space-y-3">
@@ -40,7 +43,7 @@ export function MyTaskSummarySection({ summary }: { summary: MyTaskSummary }) {
           to="/my-tasks?focus=overdue"
         />
         <StatTile
-          label="Chưa hoàn tất, cần KH xác nhận"
+          label={ORDER_STATUS_LABEL.AWAITING_CONFIRMATION}
           value={summary.awaiting_confirmation_count}
           tone="review"
           to="/orders?status=AWAITING_CONFIRMATION"

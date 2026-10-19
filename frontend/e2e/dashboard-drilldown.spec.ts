@@ -125,12 +125,12 @@ test("AC-DASH-040 (M10-07b) @screenshot Tuấn (TECH_LEAD, có task.manage) bấ
   await evidence(page, info, "dashboard-drilldown-task-board.png");
 });
 
-test("AC-DASH-046 (M10-07c) @screenshot Đức (TECHNICIAN) bấm 'Chưa hoàn tất, cần KH xác nhận' → /orders?status=AWAITING_CONFIRMATION", async ({
+test("AC-DASH-046 (M10-07c) @screenshot Đức (TECHNICIAN) bấm 'Chờ KH xác nhận' → /orders?status=AWAITING_CONFIRMATION", async ({
   page,
 }, info) => {
   await signIn(page, TECHNICIAN, "/");
   await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
-  const tile = page.getByText("Chưa hoàn tất, cần KH xác nhận").locator("xpath=ancestor::a[1]");
+  const tile = page.getByText("Chờ KH xác nhận").locator("xpath=ancestor::a[1]");
 
   await tile.click();
   await expect(page).toHaveURL(/\/orders\?status=AWAITING_CONFIRMATION$/);
