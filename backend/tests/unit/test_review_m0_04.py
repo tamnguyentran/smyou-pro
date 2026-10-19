@@ -68,7 +68,8 @@ def test_unknown_field_is_forbidden(tmp_path: Path) -> None:
     [
         (
             SM,
-            r"to: IN_PROGRESS\n(      actor: system\n      effects: \[audit\])",
+            r"to: IN_PROGRESS\n(      actor: system\n      guards: \[has_active_assignment\]\n"
+            r"      effects: \[audit\])",
             r"to: IN_PROGRES\n\1",
             "order.transitions[2].to: unknown state 'IN_PROGRES'",
         ),
@@ -111,6 +112,6 @@ def test_error_messages_point_at_the_exact_place(
 @pytest.mark.ac("AC-SYS-024")
 def test_app_state_holds_full_specs(make_app: Callable[..., FastAPI]) -> None:
     specs = make_app().state.specs
-    assert len(specs.state_machines.guards) == 20
+    assert len(specs.state_machines.guards) == 23
     assert len(specs.state_machines.order.states) == 7
     assert specs.permissions.menu[0].id == "dashboard"

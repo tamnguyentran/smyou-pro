@@ -4,6 +4,9 @@ Trạng thái: `[ ]` chưa làm · `[S]` spec đang viết · `[A]` spec Approve
 Mỗi item là **lát cắt dọc** (DB → API → UI → test) giao được trong 1 phiên. Làm theo thứ tự; item sau phụ thuộc item trước.
 Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatch), `ASG`, `CMP` (completion/revision), `NTF`, `DASH` (dashboard), `KPI`, `UI` (style thuần, xuyên module, không đổi API/quyền).
 
+## M13 — Đơn hàng: điều phối chuyển thẳng "Đang thực hiện"
+- [~] `M-order-dispatched-state-a` — Đảo lại Q81 (chốt Q90, 2026-10-19): `start_dispatch` dời về `task.create` (QLKT giao ≥1 người không bị từ chối → đơn `IN_PROGRESS` ngay, không chờ KTV bấm "Bắt đầu"), 2 chiều (`undispatch` khi từ chối/gỡ hết → về `PENDING_DISPATCH`); `cancel_active` thêm guard chặn huỷ khi đã có ảnh KH xác nhận. Spec: `docs/specs/M-order-dispatched-state-a-order-state-machine.md`.
+
 ## Đã xong (tự động lưu trữ)
 - M12 — xem `BACKLOG_ARCHIVE.md`.
 

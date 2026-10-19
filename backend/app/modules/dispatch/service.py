@@ -264,14 +264,14 @@ def create_task(
     assignees = _load_assignees(session, task.id, task.cycle)
 
     # effects order (spec/state_machines.yaml#task.commands[create]): create_pending_assignments
-    # (above), notify_assignees (below), then this task's own `audit` last. The order does NOT
-    # flip to IN_PROGRESS here (Q81, changed 2026-10-15) — only when the first assignment of the
-    # order actually starts (`assignments.service.start_assignment`'s
-    # `fire_order_start_dispatch_if_first_start`).
+    # (above), notify_assignees (below), then this task's own `audit` last. The order DOES flip
+    # PENDING_DISPATCH → IN_PROGRESS here (Q90, 2026-10-19, reverses Q81) via
+    # `reevaluate_dispatch_state`'s `fire_order_reevaluate` below.
     notifications.notify_task_assigned(session, task, order, body.assignee_ids)
 
     order.version += 1  # Order is the aggregate root (Q62) — bumped once per command.
     session.flush()
+    orders_service.reevaluate_dispatch_state(session, order, actor, now=now, request_id=request_id)
 
     audit.record(
         session,
@@ -425,6 +425,9 @@ def remove_assignee(
     )
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
+    # fire_order_reevaluate (Q90) — gỡ người có thể làm đơn hết assignment active và lùi lại
+    # PENDING_DISPATCH.
+    orders_service.reevaluate_dispatch_state(session, order, actor, now=now, request_id=request_id)
 
     notifications.notify_assignment_removed(session, task, order, assignment.employee_id)
     audit.record(
@@ -477,6 +480,9 @@ def cancel_task(
     task.status = domain.derive_task_status([], cancelled=True)
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
+    # fire_order_reevaluate (Q90) — cancelling the order's last active-assignment task falls it
+    # back to PENDING_DISPATCH.
+    orders_service.reevaluate_dispatch_state(session, order, actor, now=now, request_id=request_id)
 
     notifications.notify_task_cancelled(session, task, order, [a.employee_id for a in open_assignments])
     audit.record(
