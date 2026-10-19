@@ -210,6 +210,49 @@ def test_list_tasks_filter_by_due_range(app: FastAPI, board: dict[str, uuid.UUID
     assert set(items) == {str(board["t1"]), str(board["t2"])}
 
 
+def test_list_tasks_filter_by_overdue(
+    db: Connection, app: FastAPI, board: dict[str, uuid.UUID], people: dict[str, uuid.UUID]
+) -> None:
+    """Dashboard drill-down (M10-07b follow-up): `/dispatch/board?overdue=1` must show exactly the
+    same tasks `dispatch_summary.overdue_task_count` counts — open status (not DONE/CANCELLED) and
+    `due_at` before now (2026-09-26 per the shared FakeClock), never a task that is merely due in
+    the future or one that is already finished despite being overdue."""
+    overdue_open = insert_task(
+        db,
+        board["order_d"],
+        code="DH2610-D01-T6",
+        title="Quá hạn, chưa xong",
+        status="IN_PROGRESS",
+        priority="NORMAL",
+        due_at=datetime(2026, 9, 20, 9, 0, tzinfo=VIETNAM),
+        created_by=people["NV010"],
+    )
+    insert_task(
+        db,
+        board["order_d"],
+        code="DH2610-D01-T7",
+        title="Quá hạn nhưng đã xong",
+        status="DONE",
+        priority="NORMAL",
+        due_at=datetime(2026, 9, 20, 9, 0, tzinfo=VIETNAM),
+        created_by=people["NV010"],
+    )
+    insert_task(
+        db,
+        board["order_d"],
+        code="DH2610-D01-T8",
+        title="Chưa tới hạn",
+        status="ACCEPTED",
+        priority="NORMAL",
+        due_at=datetime(2026, 10, 10, 9, 0, tzinfo=VIETNAM),
+        created_by=people["NV010"],
+    )
+
+    tuan = client_as(app, TUAN)
+    items = items_by_id(tuan.get("/api/v1/tasks?overdue=1"))
+    assert set(items) == {str(overdue_open)}
+
+
 @pytest.mark.ac("AC-DSP-075")
 def test_list_tasks_filters_combine_with_and(app: FastAPI, board: dict[str, uuid.UUID]) -> None:
     tuan = client_as(app, TUAN)

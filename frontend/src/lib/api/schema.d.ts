@@ -6217,6 +6217,7 @@ export interface operations {
         assignee_id?: string | null;
         due_from?: string | null;
         due_to?: string | null;
+        overdue?: boolean;
       };
       header?: never;
       path?: never;

@@ -9102,6 +9102,16 @@
               ],
               "title": "Due To"
             }
+          },
+          {
+            "in": "query",
+            "name": "overdue",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Overdue",
+              "type": "boolean"
+            }
           }
         ],
         "responses": {

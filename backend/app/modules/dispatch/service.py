@@ -14,7 +14,7 @@ from app.core.errors import AppError
 from app.core.spec_loader import Specs, TaskCommand, Transition
 from app.modules.audit import service as audit
 from app.modules.dispatch import domain
-from app.modules.dispatch.models import Assignment, DefectRecord, Task
+from app.modules.dispatch.models import OPEN_TASK_STATUSES_EXCLUDE, Assignment, DefectRecord, Task
 from app.modules.dispatch.schemas import (
     EmployeeWorkloadItem,
     EmployeeWorkloadOut,
@@ -637,6 +637,8 @@ def list_tasks(
     assignee_id: uuid.UUID | None,
     due_from: date | None,
     due_to: date | None,
+    overdue: bool = False,
+    now: datetime,
 ) -> TaskBoardOut:
     """GET /api/v1/tasks (M4-03a) — every task across every order, for the dispatch board.
 
@@ -644,6 +646,9 @@ def list_tasks(
     ever had an assignment on, REJECTED/REMOVED included — same rule `get_task` already applies.
     `assignee_id` is a separate, narrower filter (active assignments only) that intersects with
     scope rather than replacing it, so it can never surface a task outside the caller's scope.
+    `overdue` mirrors the exact predicate `dispatch_summary.overdue_task_count` already counts
+    (`dashboard/service.py`) and `orders.list_orders`'s own `overdue` filter — dashboard drill-down
+    (M10-07b follow-up) needs the list to match the count it links from.
     """
     if due_from is not None and due_to is not None and due_from > due_to:
         message = "Từ ngày không được sau Đến ngày."
@@ -663,6 +668,8 @@ def list_tasks(
         query = query.where(Task.due_at >= _vn_day_start_utc(due_from))
     if due_to is not None:
         query = query.where(Task.due_at < _vn_day_start_utc(due_to) + timedelta(days=1))
+    if overdue:
+        query = query.where(Task.status.notin_(OPEN_TASK_STATUSES_EXCLUDE), Task.due_at < now)
     if assignee_id is not None:
         query = query.where(
             Task.id.in_(
