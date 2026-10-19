@@ -40,7 +40,12 @@ export const TERMINAL_TASK_STATUSES = new Set<string>(["DONE", "CANCELLED"]);
  * `backend/app/modules/workflow/guards.py`) — một nguồn quy tắc duy nhất cho nút "Tạo đầu việc"
  * (Q65) và các nút sửa/thêm/gỡ/huỷ trong `TaskEditSheet` (M4-02b, AC-DSP-066). Server vẫn là nơi
  * chặn thật. */
-export const DISPATCHABLE_STATUSES = new Set(["PENDING_DISPATCH", "IN_PROGRESS", "REVISION"]);
+export const DISPATCHABLE_STATUSES = new Set([
+  "PENDING_DISPATCH",
+  "DISPATCHED",
+  "IN_PROGRESS",
+  "REVISION",
+]);
 
 /** spec/state_machines.yaml#assignment.states — nhãn + tone cho trạng thái 1 phân công trong
  * "Người được giao" của `TaskEditSheet`. API chỉ trả phân công đang hoạt động (M4-02a), nên

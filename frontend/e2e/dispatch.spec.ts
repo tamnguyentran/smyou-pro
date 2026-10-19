@@ -153,9 +153,9 @@ test("AC-DSP-015 AC-DSP-016 AC-DSP-019 AC-DSP-022 AC-DSP-026 AC-DSP-027 AC-UI-03
     page.getByText(`Đã tạo đầu việc ${code}-T1 và giao cho 1 kỹ thuật viên.`),
   ).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  // Q81 (2026-10-15): đơn vẫn PENDING_DISPATCH sau khi tạo task — chỉ rời hàng đợi khi người
-  // được giao bấm "Bắt đầu" (M5-03 AC-ASG-069), không phải ngay lúc tạo task.
-  await expect(page.getByRole("button", { name: new RegExp(code) })).toHaveCount(1);
+  // Q90 (2026-10-19, đảo Q81): tạo task + giao người làm đơn chuyển DISPATCHED ngay — rời khỏi
+  // hàng đợi "Chờ điều phối" (chỉ đếm PENDING_DISPATCH, Q91) dù chưa ai bấm "Bắt đầu".
+  await expect(page.getByRole("button", { name: new RegExp(code) })).toHaveCount(0);
 });
 
 test("AC-SYS-089 form Tạo đầu việc ở 390px: footer bấm được khi form lỗi, nhập đủ rồi tạo thành công", async ({
@@ -288,10 +288,11 @@ test("AC-DSP-028 AC-DSP-032 AC-DSP-033 AC-DSP-035 AC-DSP-036 AC-DSP-037 AC-UI-02
   await editPanel.getByRole("button", { name: "Đóng hộp thoại" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
-  // AC-DSP-033 (Q81, 2026-10-15): tạo task đầu tiên không còn tự đưa đơn sang IN_PROGRESS — đơn
-  // vẫn "Chờ điều phối" cho tới khi người được giao bấm "Bắt đầu" (M5-03 AC-ASG-069); đơn đã có
-  // task nên guard `order_has_no_tasks` chặn "Thu hồi"/"Huỷ đơn" như trước (độc lập với Q81).
-  await expect(page.getByText("Chờ điều phối").first()).toBeVisible();
+  // AC-DSP-033 (Q90, 2026-10-19, đảo Q81): tạo task đầu tiên + giao người làm đơn chuyển
+  // "Đã điều phối" ngay — không còn tự đưa đơn sang IN_PROGRESS (chỉ khi người được giao bấm
+  // "Bắt đầu", M5-03 AC-ASG-069); đơn đã có task nên guard `order_has_no_tasks` vẫn chặn
+  // "Thu hồi"/"Huỷ đơn" như trước (độc lập với Q81/Q90).
+  await expect(page.getByText("Đã điều phối").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Thu hồi" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Huỷ đơn" })).toHaveCount(0);
 

@@ -5,6 +5,7 @@ import type { OrderStatus } from "./api";
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   DRAFT: "Nháp",
   PENDING_DISPATCH: "Chờ điều phối",
+  DISPATCHED: "Đã điều phối",
   IN_PROGRESS: "Đang thực hiện",
   AWAITING_CONFIRMATION: "Chờ KH xác nhận",
   COMPLETED: "Hoàn tất",
@@ -18,6 +19,7 @@ export const ORDER_STATUS_TONE: Record<
 > = {
   DRAFT: "todo",
   PENDING_DISPATCH: "review",
+  DISPATCHED: "review",
   IN_PROGRESS: "in_progress",
   AWAITING_CONFIRMATION: "review",
   COMPLETED: "completed",
@@ -25,7 +27,11 @@ export const ORDER_STATUS_TONE: Record<
   CANCELLED: "todo",
 };
 
-export const ORDER_STATUS_ORDER: OrderStatus[] = [
+// DISPATCHED giữ nguyên ngoài danh sách này (chỉ dùng cho bộ lọc đơn/dashboard) — hàng đợi "Chờ
+// điều phối", bộ lọc danh sách đơn theo trạng thái là phạm vi item -b (M-order-dispatched-state-b).
+// `dashboard/schemas.py#OrderStatusCounts` cũng chưa có khoá DISPATCHED (cùng lý do), nên kiểu ở
+// đây phải loại trừ nó để khớp.
+export const ORDER_STATUS_ORDER: Exclude<OrderStatus, "DISPATCHED">[] = [
   "DRAFT",
   "PENDING_DISPATCH",
   "IN_PROGRESS",

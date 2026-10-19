@@ -17,6 +17,7 @@ Priority = Literal["LOW", "NORMAL", "HIGH", "URGENT"]
 OrderStatus = Literal[
     "DRAFT",
     "PENDING_DISPATCH",
+    "DISPATCHED",
     "IN_PROGRESS",
     "AWAITING_CONFIRMATION",
     "COMPLETED",
