@@ -12,6 +12,7 @@ order:
   states:
     DRAFT:                 { label: Nháp,               color: todo }
     PENDING_DISPATCH:      { label: Chờ điều phối,       color: review }
+    DISPATCHED:            { label: Đã điều phối,        color: review }
     IN_PROGRESS:           { label: Đang thực hiện,      color: in_progress }
     AWAITING_CONFIRMATION: { label: "Chờ KH xác nhận", color: review }
     COMPLETED:             { label: Hoàn tất,            color: completed, terminal: false }  # can go to REVISION
@@ -37,9 +38,27 @@ order:
     # audited with the triggering technician's actor_id, never NULL (every transition has a real
     # person behind it; "Hệ thống" must never appear in order history, 2026-10-15).
     - command: start_dispatch
-      from: [PENDING_DISPATCH]
+      from: [PENDING_DISPATCH, DISPATCHED]
       to: IN_PROGRESS
       actor: system
+      effects: [audit]
+    # system: re-evaluated after every task/assignment change (create/cancel/reopen a task; accept/
+    # reject/start/complete/remove an assignment) — Q90 (2026-10-19, reverses Q81): the order moves
+    # to "Đã điều phối" as soon as it has ≥1 non-rejected/non-removed assignment, independent of
+    # whether anyone has started work yet.
+    - command: dispatch
+      from: [PENDING_DISPATCH]
+      to: DISPATCHED
+      actor: system
+      guards: [has_active_assignment]
+      effects: [audit]
+    # system: two-way with dispatch above — if every assignment of the order ends up REJECTED/
+    # REMOVED, the order falls back to "Chờ điều phối" (Q90).
+    - command: undispatch
+      from: [DISPATCHED]
+      to: PENDING_DISPATCH
+      actor: system
+      guards: [no_active_assignment]
       effects: [audit]
     # system: re-evaluated after every task/assignment change. Audited with the technician's
     # actor_id from the `complete` that finished the last active task — see start_dispatch above.
@@ -68,7 +87,7 @@ order:
       guards: [reason_present, order_has_no_tasks]
       effects: [audit]
     - command: cancel_active
-      from: [IN_PROGRESS, AWAITING_CONFIRMATION, REVISION]
+      from: [IN_PROGRESS, AWAITING_CONFIRMATION, REVISION, DISPATCHED]
       to: CANCELLED
       capability: order.cancel_active
       guards: [reason_present]
@@ -182,8 +201,10 @@ guards:
   confirmation_attachment_in_current_revision: ≥1 attachment kind=CUSTOMER_CONFIRMATION with revision_no = order.revision_no
   signer_name_present: customer signer name is non-empty
   reason_present: reason text trimmed length ≥ 5
-  order_in_dispatchable_state: order status in [PENDING_DISPATCH, IN_PROGRESS, REVISION]
+  order_in_dispatchable_state: order status in [PENDING_DISPATCH, DISPATCHED, IN_PROGRESS, REVISION]
   order_in_revision: order status == REVISION
+  has_active_assignment: order has ≥1 assignment with status in [PENDING, ACCEPTED, IN_PROGRESS, DONE]
+  no_active_assignment: not has_active_assignment
   at_least_one_assignee: ≥1 assignee given
   assignees_are_active_technicians: every assignee is active and has role TECHNICIAN
   not_already_active_assignee: employee has no active assignment on this task in the current cycle

@@ -362,6 +362,90 @@ def test_reject_forbidden_for_sale_manager_tech_lead(
         problem(res, 403, "FORBIDDEN")
 
 
+@pytest.mark.ac("AC-ORD-172")
+def test_reject_last_active_assignment_undispatches_order(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    """AC-ORD-172: đơn `DISPATCHED`, đúng 1 task 1 assignment `PENDING` — KTV từ chối, không còn
+    assignment active nào trong đơn → đơn lùi lại `PENDING_DISPATCH` (`undispatch`, Q90)."""
+    order_id = insert_order(db, created_by=people["NV005"], status="DISPATCHED", code="DH2610-0172")
+    task_id = insert_task(
+        db,
+        order_id,
+        code="DH2610-0172-T1",
+        title="Lắp 4 camera an ninh",
+        status="PENDING_ACCEPTANCE",
+        priority="NORMAL",
+        due_at=datetime(2026, 10, 9, 9, 0, tzinfo=VIETNAM),
+        created_by=people["NV010"],
+    )
+    assignment_id = insert_assignment(db, task_id, people["NV014"], "PENDING")
+    khoa = client_as(app, KHOA)
+
+    res = khoa.post(
+        f"/api/v1/assignments/{assignment_id}/reject",
+        json={"version": 1, "reason_code": "BUSY", "reason_text": "Đang kẹt lắp đặt đơn khác"},
+    )
+
+    assert res.status_code == 200, res.text
+    assert task_row(db, task_id).status == "NEEDS_ASSIGNEE"
+    assert order_status(db, order_id) == "PENDING_DISPATCH"
+
+    undispatch_events = [e for e in audit_rows(db, order_id) if e.action == "undispatch"]
+    assert len(undispatch_events) == 1
+    assert (
+        undispatch_events[0].from_status,
+        undispatch_events[0].to_status,
+        undispatch_events[0].actor_id,
+    ) == (
+        "DISPATCHED",
+        "PENDING_DISPATCH",
+        people["NV014"],
+    )
+
+
+@pytest.mark.ac("AC-ORD-173")
+def test_reject_one_of_two_tasks_keeps_order_dispatched(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    """AC-ORD-173: đơn `DISPATCHED` có 2 task độc lập, mỗi task 1 assignment `PENDING` cho 2 KTV
+    khác nhau — 1 KTV từ chối task của mình, task B vẫn `PENDING` active → đơn **vẫn** `DISPATCHED`."""
+    order_id = insert_order(db, created_by=people["NV005"], status="DISPATCHED", code="DH2610-0173")
+    task_a = insert_task(
+        db,
+        order_id,
+        code="DH2610-0173-T1",
+        title="Lắp camera tầng 1",
+        status="PENDING_ACCEPTANCE",
+        priority="NORMAL",
+        due_at=datetime(2026, 10, 9, 9, 0, tzinfo=VIETNAM),
+        created_by=people["NV010"],
+    )
+    task_b = insert_task(
+        db,
+        order_id,
+        code="DH2610-0173-T2",
+        title="Lắp camera tầng 2",
+        status="PENDING_ACCEPTANCE",
+        priority="NORMAL",
+        due_at=datetime(2026, 10, 9, 9, 0, tzinfo=VIETNAM),
+        created_by=people["NV010"],
+    )
+    assignment_a = insert_assignment(db, task_a, people["NV014"], "PENDING")
+    insert_assignment(db, task_b, people["NV015"], "PENDING")
+    khoa = client_as(app, KHOA)
+
+    res = khoa.post(
+        f"/api/v1/assignments/{assignment_a}/reject",
+        json={"version": 1, "reason_code": "BUSY", "reason_text": "Đang kẹt lắp đặt đơn khác"},
+    )
+
+    assert res.status_code == 200, res.text
+    assert task_row(db, task_a).status == "NEEDS_ASSIGNEE"
+    assert order_status(db, order_id) == "DISPATCHED"
+    assert [e for e in audit_rows(db, order_id) if e.action == "undispatch"] == []
+
+
 # ---------------- start ----------------
 
 
@@ -451,6 +535,43 @@ def test_start_first_assignment_starts_dispatch(
         order_events[0].to_status,
         order_events[0].actor_id,
     ) == ("ORDER", "start_dispatch", "PENDING_DISPATCH", "IN_PROGRESS", people["NV014"])
+
+
+@pytest.mark.ac("AC-ORD-175")
+def test_start_from_dispatched_moves_order_to_in_progress(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    """AC-ORD-175: đơn đã `DISPATCHED` (KTV đã `ACCEPTED` 1 assignment) — bấm "Bắt đầu" chuyển đơn
+    thẳng sang `IN_PROGRESS` (không còn `DISPATCHED`), `start_dispatch` nay nhận cả 2 trạng thái
+    nguồn (Q90)."""
+    order_id = insert_order(db, created_by=people["NV005"], status="DISPATCHED", code="DH2610-0175")
+    task_id = insert_task(
+        db,
+        order_id,
+        code="DH2610-0175-T1",
+        title="Lắp 4 camera ngoài trời",
+        status="ACCEPTED",
+        priority="NORMAL",
+        due_at=datetime(2026, 10, 9, 9, 0, tzinfo=VIETNAM),
+        created_by=people["NV010"],
+        estimated_hours="3.5",
+    )
+    assignment_id = insert_assignment(db, task_id, people["NV014"], "ACCEPTED")
+    khoa = client_as(app, KHOA)
+
+    res = khoa.post(f"/api/v1/assignments/{assignment_id}/start", json={"version": 1})
+
+    assert res.status_code == 200, res.text
+    assert res.json()["assignment_status"] == "IN_PROGRESS"
+    assert order_status(db, order_id) == "IN_PROGRESS"
+
+    order_events = [e for e in audit_rows(db, order_id) if e.action == "start_dispatch"]
+    assert len(order_events) == 1
+    assert (order_events[0].from_status, order_events[0].to_status, order_events[0].actor_id) == (
+        "DISPATCHED",
+        "IN_PROGRESS",
+        people["NV014"],
+    )
 
 
 @pytest.mark.ac("AC-ASG-070")

@@ -34,8 +34,10 @@ def reason_present(reason: str | None) -> bool:
 
 def order_in_dispatchable_state(order_status: str) -> bool:
     # REVISION included: task.commands[create].origin ("INITIAL if order not in REVISION, else
-    # ADDITIONAL") presupposes a task can be created while the order is in REVISION.
-    return order_status in ("PENDING_DISPATCH", "IN_PROGRESS", "REVISION")
+    # ADDITIONAL") presupposes a task can be created while the order is in REVISION. DISPATCHED
+    # added per Q90 (2026-10-19) — an order with ≥1 assignment already given out is still
+    # dispatchable (e.g. adding a second task, or a technician starting work).
+    return order_status in ("PENDING_DISPATCH", "DISPATCHED", "IN_PROGRESS", "REVISION")
 
 
 def at_least_one_assignee(assignee_count: int) -> bool:
@@ -102,6 +104,14 @@ def revision_has_work_if_revision(order_status: str, has_matching_task: bool) ->
     return order_status != "REVISION" or has_matching_task
 
 
+def has_active_assignment(has_active: bool) -> bool:
+    return has_active
+
+
+def no_active_assignment(has_active: bool) -> bool:
+    return not has_active
+
+
 GUARDS: dict[str, Callable[..., bool]] = {
     "customer_present": customer_present,
     "has_lines_or_description": has_lines_or_description,
@@ -123,6 +133,8 @@ GUARDS: dict[str, Callable[..., bool]] = {
     "signer_name_present": signer_name_present,
     "order_in_revision": order_in_revision,
     "revision_has_work_if_revision": revision_has_work_if_revision,
+    "has_active_assignment": has_active_assignment,
+    "no_active_assignment": no_active_assignment,
 }
 
 PENDING_GUARDS: dict[str, str] = {}
