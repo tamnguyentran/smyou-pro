@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response
 from fastapi.responses import JSONResponse
 
 from app.core.authz import Actor, require
@@ -27,8 +27,24 @@ from app.modules.identity.schemas import (
 from app.modules.identity.service import ACCESS_COOKIE, Failure, Issued, Mailer
 
 
+def _deferred_mailer(background_tasks: BackgroundTasks, mailer: Mailer) -> Mailer:
+    """Schedule the real SMTP send after the response is built instead of calling it inline —
+    blocking on SMTP before responding let an attacker tell existing from unknown emails apart by
+    forgot-password response latency (independent security review, M12-01b)."""
+
+    def _schedule(settings: Settings, to: str, subject: str, body: str) -> None:
+        background_tasks.add_task(mailer, settings, to, subject, body)
+
+    return _schedule
+
+
 def _e2e_last_mail_for(settings: Settings, email: str) -> dict[str, str] | None:
-    """M12-01b §8: last captured email to `email`, or None if unset/unmatched (dev/CI only)."""
+    """M12-01b §8: last captured email to `email`, or None if unset/unmatched (dev/CI only).
+
+    Also refuses in production regardless of config, as defense-in-depth (independent security
+    review, M12-01b) — the prior version relied only on `MAIL_CAPTURE_FILE` being unset."""
+    if settings.app_env == "production":
+        return None
     if settings.mail_capture_file is None or not settings.mail_capture_file.exists():
         return None
     target = email.strip().lower()
@@ -244,10 +260,14 @@ def change_password(
     },
 )
 def forgot_password(
-    body: ForgotPasswordRequest, request: Request, session: DbSession
+    body: ForgotPasswordRequest, request: Request, session: DbSession, background_tasks: BackgroundTasks
 ) -> ForgotPasswordResponse | JSONResponse:
     result = service.forgot_password(
-        session, email=body.email, now=_now(request), settings=_settings(request), mailer=_mailer(request)
+        session,
+        email=body.email,
+        now=_now(request),
+        settings=_settings(request),
+        mailer=_deferred_mailer(background_tasks, _mailer(request)),
     )
     if isinstance(result, Failure):
         return _failure(request, result)
