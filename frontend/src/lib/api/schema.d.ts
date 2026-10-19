@@ -4255,7 +4255,6 @@ export interface operations {
           | (
               | "DRAFT"
               | "PENDING_DISPATCH"
-              | "DISPATCHED"
               | "IN_PROGRESS"
               | "AWAITING_CONFIRMATION"
               | "COMPLETED"
