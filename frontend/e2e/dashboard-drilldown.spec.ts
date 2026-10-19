@@ -69,16 +69,21 @@ test("AC-DASH-035 (M10-07a) @screenshot Hoa (SALE) bấm thẻ 'Quá hạn' → 
   ).toHaveAttribute("aria-checked", "true");
 });
 
-test("AC-DASH-027 AC-DASH-028 @a11y @screenshot Tuấn (TECH_LEAD) bấm 'Chờ điều phối' → /dispatch/queue; 'Cần giao lại'/'Quá hạn' không phải link", async ({
+test("AC-DASH-027 AC-DASH-028 @a11y @screenshot Tuấn (TECH_LEAD) bấm 'Chờ điều phối' → /dispatch/queue; 'Cần giao lại'/'Quá hạn' (khối Điều phối) drill-down tới /dispatch/board đúng filter", async ({
   page,
 }, info) => {
   await signIn(page, TECH_LEAD, "/");
   await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
 
-  const needsAssignee = page.getByText("Cần giao lại");
-  const overdue = page.getByText("Quá hạn");
-  await expect(needsAssignee.locator("xpath=ancestor::a")).toHaveCount(0);
-  await expect(overdue.locator("xpath=ancestor::a")).toHaveCount(0);
+  const dispatchSection = page.locator("section", {
+    has: page.getByRole("heading", { name: "Điều phối" }),
+  });
+  await expect(
+    dispatchSection.getByText("Cần giao lại").locator("xpath=ancestor::a[1]"),
+  ).toHaveAttribute("href", /\/dispatch\/board\?status=NEEDS_ASSIGNEE$/);
+  await expect(
+    dispatchSection.getByText("Quá hạn").locator("xpath=ancestor::a[1]"),
+  ).toHaveAttribute("href", /\/dispatch\/board\?overdue=1$/);
 
   const pendingDispatchTile = page.getByText("Chờ điều phối").locator("xpath=ancestor::a[1]");
   await pendingDispatchTile.click();
@@ -91,7 +96,10 @@ test("AC-DASH-038 (M10-07b) @screenshot Tuấn (TECH_LEAD) bấm 'Đang thực h
 }, info) => {
   await signIn(page, TECH_LEAD, "/");
   await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
-  const tile = page.getByText("Đang thực hiện").locator("xpath=ancestor::a[1]");
+  const dispatchSection = page.locator("section", {
+    has: page.getByRole("heading", { name: "Điều phối" }),
+  });
+  const tile = dispatchSection.getByText("Đang thực hiện").locator("xpath=ancestor::a[1]");
 
   await tile.click();
   await expect(page).toHaveURL(/\/orders\?status=IN_PROGRESS$/);

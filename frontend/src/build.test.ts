@@ -66,6 +66,6 @@ describe("production build", () => {
       expect(text).not.toMatch(/fonts\.(googleapis|gstatic)\.com/);
     }
     expect(css).toContain("Plus Jakarta Sans Variable");
-    expect(css).toMatch(/--color-brand:\s*#0f2f2e/i);
+    expect(css).toMatch(/--color-brand:\s*#c2410c/i);
   }, 120_000);
 });

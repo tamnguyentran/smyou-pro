@@ -186,7 +186,7 @@ export function TaskCreateSheet({
             {detail.data.customer_phone ? (
               <a
                 href={`tel:${detail.data.customer_phone}`}
-                className="inline-flex min-h-11 items-center gap-2 text-brand underline-offset-2 hover:underline"
+                className="inline-flex min-h-11 items-center gap-2 text-heading underline-offset-2 hover:underline"
               >
                 <Phone aria-hidden="true" className="size-4" />
                 {formatPhone(detail.data.customer_phone)}
@@ -197,7 +197,7 @@ export function TaskCreateSheet({
                 href={mapHref(detail.data.service_address)}
                 target="_blank"
                 rel="noreferrer"
-                className="flex min-h-11 items-center gap-2 text-brand underline-offset-2 hover:underline"
+                className="flex min-h-11 items-center gap-2 text-heading underline-offset-2 hover:underline"
               >
                 <MapPin aria-hidden="true" className="size-4 shrink-0" />
                 {detail.data.service_address}

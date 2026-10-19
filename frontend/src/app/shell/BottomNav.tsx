@@ -81,7 +81,7 @@ export function BottomNav() {
               to={action.path}
               className="flex size-14 items-center justify-center rounded-full bg-brand shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
             >
-              <Plus aria-hidden="true" className="size-7 text-accent" />
+              <Plus aria-hidden="true" className="size-7 text-white" />
               <span className="sr-only">{action.label}</span>
             </NavLink>
           </div>

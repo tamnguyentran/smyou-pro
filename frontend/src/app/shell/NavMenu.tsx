@@ -49,7 +49,7 @@ function Leaf({
           <MenuItemIcon
             name={item.icon}
             aria-hidden="true"
-            className={cn("size-5 shrink-0", isActive ? "text-accent" : "text-muted")}
+            className={cn("size-5 shrink-0", isActive ? "text-white" : "text-muted")}
           />
           <span data-menu-label>{item.label}</span>
           <Badge count={item.badge ? counters[item.badge] : undefined} />

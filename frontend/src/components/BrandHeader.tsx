@@ -5,7 +5,7 @@ export function BrandHeader() {
       <div className="flex items-center gap-3">
         <div
           aria-hidden="true"
-          className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand text-xl font-bold text-accent"
+          className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand text-xl font-bold text-white"
         >
           S
         </div>

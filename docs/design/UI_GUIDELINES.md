@@ -3,7 +3,7 @@
 Chuyển thể từ `Tài liệu tham khảo/UI.md` (bản gốc giữ nguyên để tham khảo code mẫu). Phần gốc về "Workspace / Dự án" **không áp dụng**; menu cấp 2 ở đây là menu theo vai trò (`spec/permissions.yaml`).
 
 ## 1. Nguyên tắc
-1. **Sang trọng, tiết chế:** nền Deep Slate Teal `#0F2F2E` cho điểm nhấn chính, vàng hổ phách `#D97706` cho CTA/biểu tượng nổi bật; bóng mờ nhẹ.
+1. **Sang trọng, tiết chế:** cam đậm (burnt orange) `#C2410C` cho điểm nhấn chính, vàng hổ phách `#D97706` cho CTA/biểu tượng nổi bật; bóng mờ nhẹ.
    - **Card nổi bằng `shadow-card`, bỏ viền (`border-line`)** trừ khi cần phân tách mạnh (bảng, input) hoặc thẻ đang tô màu theo trạng thái (ví dụ `StatTile` có `tone`) — viền màu ở nhóm này là tín hiệu quét nhanh (§1.3), không phải viền trang trí (M11-01).
 2. **Thân thiện:** bo `rounded-xl`/`rounded-2xl`, khoảng trắng thoáng, chuyển động `duration-200 ease-in-out`, mỗi mục menu/trạng thái/nút chính có icon lucide.
 3. **Quét nhanh:** trạng thái luôn là badge màu + chữ (không chỉ màu); con số quan trọng (hạn chót, số giờ, tổng tiền) in đậm.
@@ -14,16 +14,17 @@ Chuyển thể từ `Tài liệu tham khảo/UI.md` (bản gốc giữ nguyên �
 @import "tailwindcss";
 @theme {
   --font-sans: "Plus Jakarta Sans Variable", "Inter", system-ui, sans-serif;
-  --color-brand: #0F2F2E;          --color-brand-hover: #164543;   --color-brand-light: #E6F0EE;
+  --color-brand: #C2410C;          --color-brand-hover: #9A3412;   --color-brand-light: #FFEDD5;
+  --color-input-focus: #FED7AA;    /* viền focus riêng cho ô nhập liệu dạng text (TextField/Textarea/Select) — nhạt hơn brand để không trùng màu nút/CTA cùng đang focus */
   --color-accent: #D97706;         --color-accent-light: #FEF3C7;
-  --color-page: #F8FAFC;           --color-card: #FFFFFF;          --color-sidebar-sub: #F1F5F9;
+  --color-page: #EEF1F4;           --color-card: #FFFFFF;          --color-sidebar-sub: #DDE2E7;
   --color-line: #E2E8F0;
-  --color-heading: #0F172A;        --color-body: #334155;          --color-muted: #64748B;  --color-placeholder: #94A3B8;
+  --color-heading: #0F172A;        --color-body: #334155;          --color-muted: #475569;  --color-placeholder: #94A3B8;
   --shadow-card: 0 2px 8px rgba(15,47,46,0.04);
   --shadow-card-hover: 0 8px 20px rgba(15,47,46,0.08);
 }
 ```
-Không dùng mã màu hex rời rạc trong component (`bg-[#0F2F2E]` ❌ → `bg-brand` ✅). Test lint (`scripts/check_no_raw_colors`) bắt lỗi này.
+Không dùng mã màu hex rời rạc trong component (`bg-[#C2410C]` ❌ → `bg-brand` ✅). Test lint (`scripts/check_no_raw_colors`) bắt lỗi này.
 
 ### Màu trạng thái
 | Token | bg / text / border | Dùng cho |
@@ -90,7 +91,7 @@ Tổng quan `LayoutDashboard` · Việc của tôi `ClipboardCheck` · Điều p
 
 ## 8. Khả năng truy cập & chất lượng (được test tự động)
 - axe-core không có vi phạm `serious`/`critical` trên mọi trang trong E2E.
-- Tương phản ≥ 4.5:1 cho chữ; focus ring `focus-visible:ring-2 ring-brand ring-offset-2`.
+- Tương phản ≥ 4.5:1 cho chữ; focus ring `focus-visible:ring-2 ring-brand ring-offset-2`. Riêng ô nhập liệu dạng text (`TextField`/`Textarea`/`Select`) dùng `ring-input-focus` (cam nhạt) thay vì `ring-brand`, để không trùng màu với nút/CTA.
 - Mọi input có `<label>`; icon-only button có `aria-label` tiếng Việt.
 - Không cuộn ngang ở 360px (E2E kiểm tra `scrollWidth <= clientWidth`).
 - Lighthouse mobile (CI, trang đăng nhập + Việc của tôi): Performance ≥ 85, Accessibility ≥ 95.

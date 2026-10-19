@@ -5,18 +5,19 @@
 @theme {
   --font-sans: "Plus Jakarta Sans Variable", "Inter", system-ui, sans-serif;
 
-  --color-brand: #0f2f2e;
-  --color-brand-hover: #164543;
-  --color-brand-light: #e6f0ee;
+  --color-brand: #c2410c;
+  --color-brand-hover: #9a3412;
+  --color-brand-light: #ffedd5;
+  --color-input-focus: #fed7aa;
   --color-accent: #d97706;
   --color-accent-light: #fef3c7;
-  --color-page: #f8fafc;
+  --color-page: #eef1f4;
   --color-card: #ffffff;
-  --color-sidebar-sub: #f1f5f9;
+  --color-sidebar-sub: #dde2e7;
   --color-line: #e2e8f0;
   --color-heading: #0f172a;
   --color-body: #334155;
-  --color-muted: #64748b;
+  --color-muted: #475569;
   --color-placeholder: #94a3b8;
 
   /* Status colours (bg / fg / border) — mapped from `color` in spec/state_machines.yaml. */
