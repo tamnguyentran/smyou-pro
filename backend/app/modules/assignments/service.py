@@ -29,6 +29,7 @@ from app.modules.audit import service as audit
 from app.modules.dispatch import domain
 from app.modules.dispatch.models import Assignment, Task
 from app.modules.notifications import service as notifications
+from app.modules.orders import service as orders_service
 from app.modules.orders.models import Order
 from app.modules.workflow.guards import GUARDS
 
@@ -284,6 +285,10 @@ def reject_assignment(
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
 
+    # fire_order_reevaluate (spec/state_machines.yaml#assignment.transitions[reject].effects, Q90):
+    # if this was the order's last active assignment, it falls back to PENDING_DISPATCH.
+    orders_service.reevaluate_dispatch_state(session, order, actor, now=now, request_id=request_id)
+
     audit.record(
         session,
         actor_id=actor.id,
@@ -325,7 +330,9 @@ def start_assignment(
     # spec/state_machines.yaml#assignment.transitions[start].effects: fire_order_start_dispatch_if_first_start
     # (Q81, 2026-10-15) — the order only becomes "Đang thực hiện" once someone actually starts
     # work, not merely when a task/assignee is created (that used to flip it, changed per Q81).
-    if order.status == "PENDING_DISPATCH":
+    # DISPATCHED added (Q90, 2026-10-19): `start_dispatch` now also fires from the order's
+    # "Đã điều phối" state, not just "Chờ điều phối".
+    if order.status in ("PENDING_DISPATCH", "DISPATCHED"):
         order_from_status = order.status
         order.status = "IN_PROGRESS"
         # actor_id = the technician whose `start` triggered this order-level transition — spec's

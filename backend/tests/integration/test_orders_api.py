@@ -909,6 +909,7 @@ def test_routes_declare_capability(app: FastAPI) -> None:
         ("POST", "/api/v1/orders/{order_id}/submit", "order.submit"),
         ("POST", "/api/v1/orders/{order_id}/recall", "order.submit"),
         ("POST", "/api/v1/orders/{order_id}/cancel", "order.cancel"),
+        ("POST", "/api/v1/orders/{order_id}/cancel-active", "order.cancel_active"),
         ("POST", "/api/v1/orders/{order_id}/complete", "order.complete"),
         ("POST", "/api/v1/orders/{order_id}/revise", "order.revise"),
         ("GET", "/api/v1/orders/{order_id}/history", "order.read"),
