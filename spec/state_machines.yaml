@@ -13,7 +13,7 @@ order:
     DRAFT:                 { label: Nháp,               color: todo }
     PENDING_DISPATCH:      { label: Chờ điều phối,       color: review }
     IN_PROGRESS:           { label: Đang thực hiện,      color: in_progress }
-    AWAITING_CONFIRMATION: { label: "Hoàn thành, chờ KH xác nhận", color: review }
+    AWAITING_CONFIRMATION: { label: "Chờ KH xác nhận", color: review }
     COMPLETED:             { label: Hoàn tất,            color: completed, terminal: false }  # can go to REVISION
     REVISION:              { label: Chỉnh sửa,           color: urgent }
     CANCELLED:             { label: Đã huỷ,              color: todo, terminal: true }

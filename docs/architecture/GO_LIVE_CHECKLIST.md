@@ -47,7 +47,7 @@ Mỗi dòng tham chiếu §7 (kịch bản UAT thủ công) của spec milestone
 | ☐ | M5-01 việc của tôi | TECHNICIAN | xem đầu việc được giao |
 | ☐ | M5-02 nhận/từ chối | TECHNICIAN | nhận hoặc từ chối đầu việc |
 | ☐ | M5-03 bắt đầu/hoàn thành | TECHNICIAN | bắt đầu, hoàn thành đầu việc |
-| ☐ | M6-01 ảnh xác nhận | TECHNICIAN | tải ảnh phiếu, đơn → "Hoàn thành, chờ KH xác nhận" |
+| ☐ | M6-01 ảnh xác nhận | TECHNICIAN | tải ảnh phiếu, đơn → "Chờ KH xác nhận" |
 | ☐ | M6-02 hoàn tất đơn | TECHNICIAN | hoàn tất đơn sau khi khách ký |
 | ☐ | M6-03a/b chỉnh sửa/mở lại | TECH_LEAD | chuyển đơn sang "Chỉnh sửa", ghi lý do |
 | ☐ | M6-04 golden path | mọi vai trò | `make e2e` golden-path pass (đã chạy ở dev, không chạy lại trên server) |

@@ -89,7 +89,7 @@ describe("Tổng quan", () => {
       ["Nháp", "2"],
       ["Chờ điều phối", "3"],
       ["Đang thực hiện", "1"],
-      ["Hoàn thành, chờ KH xác nhận", "0"],
+      ["Chờ KH xác nhận", "0"],
       ["Hoàn tất", "0"],
       ["Chỉnh sửa", "0"],
       ["Đã huỷ", "0"],
@@ -406,7 +406,7 @@ describe("Tổng quan", () => {
     });
   });
 
-  test("AC-DASH-028 Tuấn: 'Cần giao lại'/'Quá hạn' không phải link, bấm không điều hướng", async () => {
+  test("AC-DASH-028 Tuấn: 'Cần giao lại'/'Quá hạn' drill-down tới /dispatch/board đúng filter", async () => {
     signedInAs("tuan-id", TUAN);
     mockDashboard({
       dispatch_summary: {
@@ -416,16 +416,18 @@ describe("Tổng quan", () => {
         overdue_task_count: 1,
       },
     });
-    const router = renderApp("/");
+    renderApp("/");
 
     const needsAssignee = await screen.findByText("Cần giao lại");
     const overdue = await screen.findByText("Quá hạn");
-    expect(needsAssignee.closest("a")).toBeNull();
-    expect(overdue.closest("a")).toBeNull();
-    expect(router.state.location.pathname).toBe("/");
+    expect(needsAssignee.closest("a")).toHaveAttribute(
+      "href",
+      "/dispatch/board?status=NEEDS_ASSIGNEE",
+    );
+    expect(overdue.closest("a")).toHaveAttribute("href", "/dispatch/board?overdue=1");
   });
 
-  test("AC-DASH-029 Tuấn: thẻ task_summary/staff_summary không có affordance bấm được", async () => {
+  test("AC-DASH-029 Tuấn: thẻ task_summary/staff_summary drill-down tới /dispatch/board hoặc /dispatch/workload", async () => {
     signedInAs("tuan-id", TUAN);
     mockDashboard({
       task_summary: {
@@ -447,9 +449,15 @@ describe("Tổng quan", () => {
     renderApp("/");
 
     const needsAssigneeTile = await screen.findByText("Chờ tiếp nhận");
-    expect(needsAssigneeTile.closest("a")).toBeNull();
+    expect(needsAssigneeTile.closest("a")).toHaveAttribute(
+      "href",
+      "/dispatch/board?status=PENDING_ACCEPTANCE",
+    );
     const activeStaffTile = await screen.findByText("Đang làm");
-    expect(activeStaffTile.closest("a")).toBeNull();
+    expect(activeStaffTile.closest("a")).toHaveAttribute(
+      "href",
+      "/dispatch/workload?group=IN_PROGRESS",
+    );
   });
 
   test("AC-DASH-030 Hoa dùng bàn phím: Enter trên thẻ 'Chờ điều phối' điều hướng giống bấm chuột", async () => {
