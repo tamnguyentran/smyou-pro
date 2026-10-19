@@ -40,9 +40,9 @@ test("AC-DASH-046 thẻ 'Chờ KH xác nhận' dẫn tới /orders?status=AWAITI
       <MyTaskSummarySection summary={{ ...ZERO_SUMMARY, awaiting_confirmation_count: 1 }} />
     </MemoryRouter>,
   );
-  expect(
-    screen.getByRole("link", { name: /Chờ KH xác nhận/ }).getAttribute("href"),
-  ).toBe("/orders?status=AWAITING_CONFIRMATION");
+  expect(screen.getByRole("link", { name: /Chờ KH xác nhận/ }).getAttribute("href")).toBe(
+    "/orders?status=AWAITING_CONFIRMATION",
+  );
 });
 
 test("thẻ 'Chờ nhận' dẫn tới /my-tasks", () => {
