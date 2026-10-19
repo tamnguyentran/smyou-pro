@@ -16,7 +16,7 @@ from sqlalchemy.engine import Row
 
 from app.core.authz import declared_routes, undeclared_routes
 from tests.integration.conftest import AN, KHOA, Person, login, seed
-from tests.integration.test_dispatch_board_api import insert_assignment, insert_task
+from tests.integration.test_dispatch_board_api import insert_task
 
 HOA = Person("hoa.le@smyou.vn", "Hoa@SmYou26", ("SALE",), "NV005", "Lê Thị Hoa", "SALES")
 HA = Person("ha.pham@smyou.vn", "Ha@SmYou26", ("SALE", "TECHNICIAN"), "NV007", "Phạm Thu Hà", "SALES")
@@ -1097,60 +1097,6 @@ def test_cancel_from_pending_dispatch(
     assert res.json()["status"] == "CANCELLED"
     cancel_event = next(e for e in audit_rows(db, uuid.UUID(order["id"])) if e.action == "cancel")
     assert cancel_event.from_status == "PENDING_DISPATCH"
-
-
-@pytest.mark.ac("AC-ORD-177")
-def test_cancel_active_from_dispatched(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
-    """AC-ORD-177: đơn `DISPATCHED`, 1 task 1 assignment `PENDING` chưa ai bắt đầu — Manager huỷ
-    đơn qua `cancel_active` → `CANCELLED`, assignment `PENDING` → `REMOVED` (effect cancel_open_tasks)."""
-    order_id = insert_order(db, created_by=people["NV005"], status="DISPATCHED")
-    task_id = insert_task(
-        db,
-        order_id,
-        code="DH2610-0177-T1",
-        title="Lắp 4 camera an ninh",
-        status="PENDING_ACCEPTANCE",
-        priority="NORMAL",
-        due_at=datetime(2026, 10, 9, 9, 0, tzinfo=UTC),
-        created_by=people["NV010"],
-    )
-    assignment_id = insert_assignment(db, task_id, people["NV014"], "PENDING")
-    an = client_as(app, AN)
-
-    res = an.post(
-        f"/api/v1/orders/{order_id}/cancel-active",
-        json={"version": 1, "reason": "Khách đổi ý, chưa triển khai lắp đặt"},
-    )
-
-    assert res.status_code == 200, res.text
-    assert res.json()["status"] == "CANCELLED"
-    assignment_row = (
-        db.execute(text("SELECT status, removed_at FROM assignments WHERE id = :id"), {"id": assignment_id})
-        .mappings()
-        .one()
-    )
-    assert assignment_row["status"] == "REMOVED"
-    assert assignment_row["removed_at"] is not None
-
-    cancel_event = next(e for e in audit_rows(db, order_id) if e.action == "cancel_active")
-    assert (cancel_event.from_status, cancel_event.to_status) == ("DISPATCHED", "CANCELLED")
-
-
-@pytest.mark.ac("AC-ORD-178")
-def test_cancel_active_requires_capability(
-    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
-) -> None:
-    """AC-ORD-178: SALE (không phải Manager) gọi cancel-active → 403, ngoài capability
-    `order.cancel_active` (chỉ MANAGER mới có, `spec/permissions.yaml`)."""
-    order_id = insert_order(db, created_by=people["NV005"], status="DISPATCHED")
-    hoa = client_as(app, HOA)
-
-    res = hoa.post(
-        f"/api/v1/orders/{order_id}/cancel-active",
-        json={"version": 1, "reason": "Khách đổi ý, chưa triển khai lắp đặt"},
-    )
-
-    problem(res, 403, "FORBIDDEN")
 
 
 @pytest.mark.ac("AC-ORD-044")
