@@ -6731,63 +6731,6 @@
         "tags": ["orders"]
       }
     },
-    "/api/v1/orders/{order_id}/cancel-active": {
-      "post": {
-        "operationId": "orders_cancel_active",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "order_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Order Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrderCancel"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrderDetail"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "404": {
-            "description": "problem+json — NOT_FOUND"
-          },
-          "409": {
-            "description": "problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Huỷ đơn đang điều phối/thực hiện",
-        "tags": ["orders"]
-      }
-    },
     "/api/v1/orders/{order_id}/complete": {
       "post": {
         "operationId": "orders_complete",
