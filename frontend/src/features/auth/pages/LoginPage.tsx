@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LogIn } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { Link } from "react-router";
 import { BrandHeader } from "../../../components/BrandHeader";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
@@ -44,6 +45,12 @@ export function LoginPage() {
             error={formState.errors.password?.message ?? server.password}
             {...register("password")}
           />
+          <Link
+            to="/quen-mat-khau"
+            className="inline-flex min-h-11 items-center text-sm text-brand underline-offset-2 hover:underline"
+          >
+            Quên mật khẩu?
+          </Link>
           <Button
             type="submit"
             loading={login.isPending}

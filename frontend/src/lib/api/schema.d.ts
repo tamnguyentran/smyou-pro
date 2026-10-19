@@ -123,6 +123,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/auth/_e2e/last-mail": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** [E2E] Email cuối gửi tới một địa chỉ (chỉ hoạt động khi MAIL_CAPTURE_FILE được set) */
+    get: operations["auth_e2e_last_mail"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/auth/change-password": {
     parameters: {
       query?: never;
@@ -1506,6 +1523,16 @@ export interface components {
       overdue_task_count: number;
       /** Pending Dispatch Count */
       pending_dispatch_count: number;
+    };
+    /**
+     * E2ELastMailResponse
+     * @description M12-01b §8: dev/CI only — GET /auth/_e2e/last-mail.
+     */
+    E2ELastMailResponse: {
+      /** Body */
+      body: string;
+      /** Subject */
+      subject: string;
     };
     /** EmployeeCreate */
     EmployeeCreate: {
@@ -3113,6 +3140,44 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["AuditEventPage"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  auth_e2e_last_mail: {
+    parameters: {
+      query: {
+        email: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["E2ELastMailResponse"];
+        };
+      };
+      /** @description MAIL_CAPTURE_FILE chưa được cấu hình, hoặc không có email nào khớp */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {

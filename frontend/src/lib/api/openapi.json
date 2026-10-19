@@ -917,6 +917,22 @@
         "title": "DispatchSummaryOut",
         "type": "object"
       },
+      "E2ELastMailResponse": {
+        "description": "M12-01b §8: dev/CI only — GET /auth/_e2e/last-mail.",
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": ["subject", "body"],
+        "title": "E2ELastMailResponse",
+        "type": "object"
+      },
       "EmployeeCreate": {
         "additionalProperties": false,
         "properties": {
@@ -5082,6 +5098,49 @@
         },
         "summary": "Nhật ký hệ thống (lọc theo thực thể / người thực hiện / khoảng ngày)",
         "tags": ["audit"]
+      }
+    },
+    "/api/v1/auth/_e2e/last-mail": {
+      "get": {
+        "operationId": "auth_e2e_last_mail",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "email",
+            "required": true,
+            "schema": {
+              "title": "Email",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/E2ELastMailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "MAIL_CAPTURE_FILE chưa được cấu hình, hoặc không có email nào khớp"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "[E2E] Email cuối gửi tới một địa chỉ (chỉ hoạt động khi MAIL_CAPTURE_FILE được set)",
+        "tags": ["auth"]
       }
     },
     "/api/v1/auth/change-password": {

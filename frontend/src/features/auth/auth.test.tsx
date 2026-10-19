@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { delay, http, HttpResponse } from "msw";
 import { describe, expect, test } from "vitest";
-import { markSignedIn } from "../../lib/sessionHint";
+import { hasSignedIn, markSignedIn } from "../../lib/sessionHint";
 import { server } from "../../test/msw";
 import { renderApp } from "../../test/renderApp";
 
@@ -150,6 +150,13 @@ describe("Trang đăng nhập", () => {
 
     expect(await screen.findByRole("heading", { name: "Tổng quan" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe(expected);
+  });
+
+  test("AC-AUTH-052 có link Quên mật khẩu? dưới ô Mật khẩu, trỏ /quen-mat-khau, vùng chạm ≥44px", async () => {
+    renderApp("/dang-nhap");
+    const link = await screen.findByRole("link", { name: "Quên mật khẩu?" });
+    expect(link).toHaveAttribute("href", "/quen-mat-khau");
+    expect(link.className).toContain("min-h-11");
   });
 });
 
@@ -317,5 +324,204 @@ describe("AC-UI-038 khung thẻ đổi mật khẩu bỏ viền", () => {
     expect(section.className).not.toMatch(/\bborder\b/);
     expect(screen.getByRole("button", { name: "Huỷ" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Đăng xuất" })).not.toBeInTheDocument();
+  });
+});
+
+const GENERIC_RESET_DETAIL =
+  "Nếu email tồn tại và tài khoản đang hoạt động, chúng tôi đã gửi email hướng dẫn đặt lại mật khẩu.";
+
+describe("Trang Quên mật khẩu", () => {
+  test("AC-AUTH-053 gửi thành công → thay form bằng thông báo của server + nút về đăng nhập", async () => {
+    server.use(
+      http.post("/api/v1/auth/forgot-password", () =>
+        HttpResponse.json({ detail: GENERIC_RESET_DETAIL }),
+      ),
+    );
+    renderApp("/quen-mat-khau");
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText("Email"), "an.nguyen@smyou.vn");
+    await user.click(screen.getByRole("button", { name: "Gửi liên kết" }));
+
+    expect(await screen.findByText(GENERIC_RESET_DETAIL)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Về trang đăng nhập" })).toHaveAttribute(
+      "href",
+      "/dang-nhap",
+    );
+  });
+
+  test("AC-AUTH-054 email không tồn tại → hiện y hệt lúc gửi thành công", async () => {
+    server.use(
+      http.post("/api/v1/auth/forgot-password", () =>
+        HttpResponse.json({ detail: GENERIC_RESET_DETAIL }),
+      ),
+    );
+    renderApp("/quen-mat-khau");
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText("Email"), "ai.do@smyou.vn");
+    await user.click(screen.getByRole("button", { name: "Gửi liên kết" }));
+
+    expect(await screen.findByText(GENERIC_RESET_DETAIL)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Về trang đăng nhập" })).toBeInTheDocument();
+  });
+
+  test("AC-AUTH-055 email rỗng/sai định dạng → lỗi dưới ô, không gọi API", async () => {
+    let requests = 0;
+    server.use(
+      http.post("/api/v1/auth/forgot-password", () => {
+        requests += 1;
+        return HttpResponse.json({ detail: GENERIC_RESET_DETAIL });
+      }),
+    );
+    renderApp("/quen-mat-khau");
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Gửi liên kết" }));
+    expect(await screen.findByText("Vui lòng nhập email.")).toBeInTheDocument();
+    expect(requests).toBe(0);
+
+    await user.type(screen.getByLabelText("Email"), "khong-phai-email");
+    await user.click(screen.getByRole("button", { name: "Gửi liên kết" }));
+    expect(await screen.findByText("Email không hợp lệ.")).toBeInTheDocument();
+    expect(requests).toBe(0);
+  });
+
+  test("AC-AUTH-056 429 → Alert hiện đúng detail của server, form vẫn còn", async () => {
+    server.use(
+      http.post("/api/v1/auth/forgot-password", () =>
+        problem(429, "TOO_MANY_REQUESTS", "Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau."),
+      ),
+    );
+    renderApp("/quen-mat-khau");
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText("Email"), "an.nguyen@smyou.vn");
+    await user.click(screen.getByRole("button", { name: "Gửi liên kết" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau.",
+    );
+    expect(screen.getByLabelText("Email")).toBeInTheDocument();
+  });
+
+  test("có link Quay lại đăng nhập ngay trên form (chưa gửi)", async () => {
+    renderApp("/quen-mat-khau");
+    const link = await screen.findByRole("link", { name: "Quay lại đăng nhập" });
+    expect(link).toHaveAttribute("href", "/dang-nhap");
+  });
+});
+
+const INVALID_LINK_MESSAGE = "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.";
+
+describe("Trang Đặt lại mật khẩu", () => {
+  test("AC-AUTH-057 không có token → EmptyState liên kết không hợp lệ + nút Gửi lại yêu cầu", async () => {
+    renderApp("/reset-password");
+
+    expect(await screen.findByText(INVALID_LINK_MESSAGE)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Gửi lại yêu cầu" })).toHaveAttribute(
+      "href",
+      "/quen-mat-khau",
+    );
+    expect(screen.queryByLabelText("Mật khẩu mới")).not.toBeInTheDocument();
+  });
+
+  test("AC-AUTH-057 token rỗng → cùng EmptyState", async () => {
+    renderApp("/reset-password?token=");
+
+    expect(await screen.findByText(INVALID_LINK_MESSAGE)).toBeInTheDocument();
+  });
+
+  test("AC-AUTH-058 có token → hiện form 2 ô mật khẩu mới + gợi ý quy tắc", async () => {
+    renderApp("/reset-password?token=abc123");
+
+    expect(await screen.findByLabelText("Mật khẩu mới")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nhập lại mật khẩu mới")).toBeInTheDocument();
+    expect(
+      screen.getByText("Ít nhất 8 ký tự, khác mật khẩu hiện tại, không chứa tên email."),
+    ).toBeInTheDocument();
+  });
+
+  test("AC-AUTH-059 submit hợp lệ → toast, xoá session cục bộ, về /dang-nhap", async () => {
+    server.use(
+      http.post("/api/v1/auth/reset-password", () => new HttpResponse(null, { status: 204 })),
+    );
+    markSignedIn();
+    const router = renderApp("/reset-password?token=abc123");
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText("Mật khẩu mới"), "Khoa@SmYou9");
+    await user.type(screen.getByLabelText("Nhập lại mật khẩu mới"), "Khoa@SmYou9");
+    await user.click(screen.getByRole("button", { name: "Đặt lại mật khẩu" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Đã đặt lại mật khẩu. Vui lòng đăng nhập lại.",
+    );
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/dang-nhap");
+    });
+    expect(hasSignedIn()).toBe(false);
+  });
+
+  test("AC-AUTH-060 nhập lại không khớp → lỗi dưới ô xác nhận, không gọi API", async () => {
+    let requests = 0;
+    server.use(
+      http.post("/api/v1/auth/reset-password", () => {
+        requests += 1;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    renderApp("/reset-password?token=abc123");
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText("Mật khẩu mới"), "Khoa@SmYou9");
+    await user.type(screen.getByLabelText("Nhập lại mật khẩu mới"), "Khac@SmYou9");
+    await user.click(screen.getByRole("button", { name: "Đặt lại mật khẩu" }));
+
+    expect(await screen.findByText("Mật khẩu nhập lại không khớp.")).toBeInTheDocument();
+    expect(requests).toBe(0);
+  });
+
+  test("AC-AUTH-061 token đã dùng/hết hạn khi submit → chuyển sang EmptyState liên kết không hợp lệ", async () => {
+    server.use(
+      http.post("/api/v1/auth/reset-password", () =>
+        problem(422, "INVALID_RESET_TOKEN", INVALID_LINK_MESSAGE),
+      ),
+    );
+    renderApp("/reset-password?token=abc123");
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText("Mật khẩu mới"), "Khoa@SmYou9");
+    await user.type(screen.getByLabelText("Nhập lại mật khẩu mới"), "Khoa@SmYou9");
+    await user.click(screen.getByRole("button", { name: "Đặt lại mật khẩu" }));
+
+    expect(await screen.findByText(INVALID_LINK_MESSAGE)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Gửi lại yêu cầu" })).toBeInTheDocument();
+  });
+
+  test("AC-AUTH-062 mật khẩu mới yếu/trùng mật khẩu hiện tại → lỗi dưới ô, giữ form + token", async () => {
+    server.use(
+      http.post("/api/v1/auth/reset-password", () =>
+        problem(422, "VALIDATION_ERROR", "Dữ liệu không hợp lệ.", [
+          {
+            field: "new_password",
+            code: "invalid",
+            message: "Mật khẩu mới phải khác mật khẩu hiện tại.",
+          },
+        ]),
+      ),
+    );
+    renderApp("/reset-password?token=abc123");
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText("Mật khẩu mới"), "SmYou@2026");
+    await user.type(screen.getByLabelText("Nhập lại mật khẩu mới"), "SmYou@2026");
+    await user.click(screen.getByRole("button", { name: "Đặt lại mật khẩu" }));
+
+    expect(
+      await screen.findByText("Mật khẩu mới phải khác mật khẩu hiện tại."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Mật khẩu mới")).toBeInTheDocument();
   });
 });
