@@ -17,14 +17,14 @@ PERM = "permissions.yaml"
 def test_repo_specs_load() -> None:
     specs = load_specs(REPO_SPEC_DIR)
     sm = specs.state_machines
-    assert len(sm.order.states) == 8
-    assert len(sm.order.transitions) == 10
+    assert len(sm.order.states) == 7
+    assert len(sm.order.transitions) == 8
     assert sm.order.initial == "DRAFT"
     assert len(sm.task.states) == 6
     assert len(sm.task.commands) == 5
     assert len(sm.assignment.states) == 6
     assert len(sm.assignment.transitions) == 5
-    assert len(sm.guards) == 22
+    assert len(sm.guards) == 20
     perm = specs.permissions
     assert set(perm.roles) == {"MANAGER", "SALE", "TECH_LEAD", "TECHNICIAN"}
     assert len(perm.capabilities) == 28
@@ -113,7 +113,7 @@ INCONSISTENT = [
         SM,
         r"^      capability: order\.complete\n",
         "",
-        "order.transitions[6]",
+        "order.transitions[4]",
         id="neither-capability-nor-actor",
     ),
     pytest.param(

@@ -35,7 +35,6 @@ Reader = Annotated[Actor, Depends(require("order.read"))]
 Editor = Annotated[Actor, Depends(require("order.edit_draft"))]
 Submitter = Annotated[Actor, Depends(require("order.submit"))]
 Canceler = Annotated[Actor, Depends(require("order.cancel"))]
-ActiveCanceler = Annotated[Actor, Depends(require("order.cancel_active"))]
 Completer = Annotated[Actor, Depends(require("order.complete"))]
 Reviser = Annotated[Actor, Depends(require("order.revise"))]
 ContactEditor = Annotated[Actor, Depends(require("order.edit_contact"))]
@@ -238,28 +237,6 @@ def cancel_order(
 ) -> OrderDetail:
     now = request.app.state.clock()
     return service.cancel_order(
-        session,
-        actor,
-        order_id,
-        body,
-        now=now,
-        specs=request.app.state.specs,
-        request_id=get_request_id(request),
-    )
-
-
-@router.post(
-    "/{order_id}/cancel-active",
-    operation_id="orders_cancel_active",
-    summary="Huỷ đơn đang điều phối/thực hiện",
-    response_model=OrderDetail,
-    responses=_docs(NOT_FOUND, TRANSITION_CONFLICTS),
-)
-def cancel_active_order(
-    order_id: uuid.UUID, body: OrderCancel, request: Request, session: DbSession, actor: ActiveCanceler
-) -> OrderDetail:
-    now = request.app.state.clock()
-    return service.cancel_active_order(
         session,
         actor,
         order_id,

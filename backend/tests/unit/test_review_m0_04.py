@@ -111,6 +111,6 @@ def test_error_messages_point_at_the_exact_place(
 @pytest.mark.ac("AC-SYS-024")
 def test_app_state_holds_full_specs(make_app: Callable[..., FastAPI]) -> None:
     specs = make_app().state.specs
-    assert len(specs.state_machines.guards) == 22
-    assert len(specs.state_machines.order.states) == 8
+    assert len(specs.state_machines.guards) == 20
+    assert len(specs.state_machines.order.states) == 7
     assert specs.permissions.menu[0].id == "dashboard"
