@@ -106,3 +106,7 @@ Các milestone đã hoàn tất 100% (`[x]` toàn bộ), chuyển ra khỏi `BAC
 - [x] **M10-06 Đơn chỉ "Đang thực hiện" khi KTV thật sự Bắt đầu** — dời effect `start_dispatch` từ lúc tạo task sang lúc phân công đầu tiên `start` (ORD/DSP/ASG); phản hồi chủ dự án 2026-10-15, Q81. Tác dụng phụ: `recall`/`cancel` đổi mã lỗi từ `INVALID_TRANSITION` sang `GUARD_FAILED` khi đơn đã có task; hàng đợi "Chờ điều phối" giữ nguyên hành vi cũ (chưa tách loại "đã giao, chưa ai bắt đầu"). Spec: `docs/specs/M5-03-start-complete-assignment.md` (AC-ASG-069/070), amend `M4-01a`/`M4-01b`.
 - [x] **M10-05 Web Push cho thông báo (khi đã đóng tab/app)** — Service Worker + VAPID key + bảng `push_subscriptions` mới (NTF); tách riêng khỏi `M7-03` theo quyết định của chủ dự án (làm WebSocket trước); spec: `docs/specs/M10-05-web-push-notifications.md`.
 - [x] **M7-03 Thông báo realtime qua WebSocket** — thay polling 30s bằng đẩy tức thời khi tab đang mở (vẫn giữ polling làm lưới an toàn); Web Push (khi đã đóng tab) tách làm backlog riêng, chưa có ID; spec: `docs/specs/M7-03-notifications-realtime-ws.md`.
+
+## M12 — Quên mật khẩu (SMTP)
+- [x] `M12-01a` — Backend: `POST /auth/forgot-password`, `POST /auth/reset-password`, bảng `password_reset_tokens`, gửi email qua SMTP (ADR-015). Spec: `docs/specs/M12-01a-forgot-password-api.md`.
+- [x] `M12-01b` — UI: trang "Quên mật khẩu" + "Đặt lại mật khẩu", liên kết từ trang Đăng nhập. Phụ thuộc `M12-01a`. Spec: `docs/specs/M12-01b-forgot-password-ui.md`.

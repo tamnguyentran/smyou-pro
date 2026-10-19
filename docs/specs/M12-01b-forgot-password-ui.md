@@ -1,6 +1,6 @@
 # M12-01b — Quên mật khẩu (giao diện): trang "Quên mật khẩu", "Đặt lại mật khẩu", liên kết từ Đăng nhập
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M12-01b · **Milestone:** M12
 - **Liên quan:** `docs/specs/M12-01a-forgot-password-api.md` (API đã merge); `docs/specs/M1-01b-auth-ui.md` (mẫu trang Đăng nhập/Đổi mật khẩu, component dùng lại); ADR-015; `spec/permissions.yaml` (`public_routes`, không đổi thêm ở item này)
 

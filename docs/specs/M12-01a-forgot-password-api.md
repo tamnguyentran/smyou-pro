@@ -17,7 +17,7 @@ Là nhân viên quên mật khẩu, tôi bấm "Quên mật khẩu", nhập emai
   - Giao diện (trang "Quên mật khẩu", "Đặt lại mật khẩu") + E2E: `M12-01b`.
   - Đổi mật khẩu khi đã đăng nhập (đã có, `change-password` — M1-01a).
   - Zalo/SMS hay bất kỳ loại email khác ngoài luồng này (vẫn ngoài phạm vi theo PRD §5).
-  - Hàng đợi/retry gửi email bất đồng bộ (tải thấp, gửi đồng bộ trong request — ADR-015).
+  - Hàng đợi/retry gửi email bất đồng bộ (tải thấp, không cần hàng đợi — ADR-015). SMTP vẫn gửi trong tiến trình request (`BackgroundTasks`, không qua queue ngoài), nhưng *sau khi* response đã dựng xong — tránh độ trễ phản hồi lộ email có tồn tại hay không (finding bảo mật M12-01b, khắc phục 2026-10-19).
 
 ## 3. Acceptance Criteria
 Dữ liệu mẫu (tiếp tục dùng nhân vật của M1-01a): Manager **Nguyễn Văn An**, `an.nguyen@smyou.vn`, mật khẩu hiện tại `SmYou@2026`; KTV **Trần Minh Khoa**, `khoa.tran@smyou.vn`, `is_active=false`.
