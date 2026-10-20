@@ -110,3 +110,6 @@ Các milestone đã hoàn tất 100% (`[x]` toàn bộ), chuyển ra khỏi `BAC
 ## M12 — Quên mật khẩu (SMTP)
 - [x] `M12-01a` — Backend: `POST /auth/forgot-password`, `POST /auth/reset-password`, bảng `password_reset_tokens`, gửi email qua SMTP (ADR-015). Spec: `docs/specs/M12-01a-forgot-password-api.md`.
 - [x] `M12-01b` — UI: trang "Quên mật khẩu" + "Đặt lại mật khẩu", liên kết từ trang Đăng nhập. Phụ thuộc `M12-01a`. Spec: `docs/specs/M12-01b-forgot-password-ui.md`.
+
+## M13 — Đơn hàng: điều phối chuyển thẳng "Đang thực hiện"
+- [x] `M-order-dispatched-state-a` — Đảo lại Q81 (chốt Q90, 2026-10-19): `start_dispatch` dời về `task.create` (QLKT giao ≥1 người không bị từ chối → đơn `IN_PROGRESS` ngay, không chờ KTV bấm "Bắt đầu"), 2 chiều (`undispatch` khi từ chối/gỡ hết → về `PENDING_DISPATCH`); `cancel_active` thêm guard chặn huỷ khi đã có ảnh KH xác nhận. Spec: `docs/specs/M-order-dispatched-state-a-order-state-machine.md`.

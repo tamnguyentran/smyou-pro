@@ -1,6 +1,6 @@
 # M-order-dispatched-state-a — Điều phối chuyển thẳng đơn sang "Đang thực hiện"
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** `M-order-dispatched-state-a` · **Milestone:** M13
 - **Liên quan:** `spec/state_machines.yaml#order` (đảo Q81, chốt Q90 — 2026-10-19), `spec/permissions.yaml#order.cancel_active`, `docs/product/OPEN_QUESTIONS_ARCHIVE.md#Q90` (+ `#Q76` cho `cancel_active`)
 
