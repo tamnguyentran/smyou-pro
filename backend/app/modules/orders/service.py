@@ -797,9 +797,10 @@ def reevaluate_dispatch_state(
 
 
 def _cancel_open_assignments_and_notify(session: Session, order: Order, now: datetime) -> None:
-    """`cancel_active`'s `cancel_open_tasks` effect: every still-open assignment across the order's
-    tasks is force-REMOVED (same treatment as dispatch/service.py's `cancel_task`), each notified —
-    no audit event of its own, only the order's own `cancel_active` event."""
+    """`cancel_active`'s `cancel_open_tasks` effect (docs/product/WORKFLOWS.md#L92): every task of
+    the order that isn't DONE is cancelled, and every still-open assignment is force-REMOVED (same
+    treatment as dispatch/service.py's `cancel_task`), each notified — no audit event of its own,
+    only the order's own `cancel_active` event."""
     open_assignments = session.scalars(
         select(Assignment)
         .join(Task, Task.id == Assignment.task_id)
@@ -809,21 +810,13 @@ def _cancel_open_assignments_and_notify(session: Session, order: Order, now: dat
         assignment.status = "REMOVED"
         assignment.removed_at = now
     session.flush()
-    touched_task_ids = {a.task_id for a in open_assignments}
     tasks_by_id = {
-        task.id: task for task in session.scalars(select(Task).where(Task.id.in_(touched_task_ids)))
+        task.id: task
+        for task in session.scalars(select(Task).where(Task.order_id == order.id, Task.status != "DONE"))
     }
     for task in tasks_by_id.values():
-        active_statuses = session.scalars(
-            select(Assignment.status).where(
-                Assignment.task_id == task.id,
-                Assignment.cycle == task.cycle,
-                Assignment.status.in_(_ACTIVE_ASSIGNMENT_STATUSES),
-            )
-        ).all()
-        task.status = dispatch_domain.derive_task_status(
-            list(active_statuses), cancelled=task.cancelled_at is not None
-        )
+        task.cancelled_at = now
+        task.status = dispatch_domain.derive_task_status([], cancelled=True)
     for assignment in open_assignments:
         notifications.notify_assignment_removed(
             session, tasks_by_id[assignment.task_id], order, assignment.employee_id

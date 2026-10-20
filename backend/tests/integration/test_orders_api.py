@@ -17,6 +17,7 @@ from sqlalchemy.engine import Row
 from app.core.authz import declared_routes, undeclared_routes
 from tests.integration.conftest import AN, KHOA, Person, login, seed
 from tests.integration.test_dispatch_board_api import insert_assignment, insert_task
+from tests.integration.test_notifications_api import notifications_for
 
 HOA = Person("hoa.le@smyou.vn", "Hoa@SmYou26", ("SALE",), "NV005", "Lê Thị Hoa", "SALES")
 HA = Person("ha.pham@smyou.vn", "Ha@SmYou26", ("SALE", "TECHNICIAN"), "NV007", "Phạm Thu Hà", "SALES")
@@ -1133,6 +1134,16 @@ def test_cancel_active_from_in_progress(app: FastAPI, db: Connection, people: di
     )
     assert assignment_row["status"] == "REMOVED"
     assert assignment_row["removed_at"] is not None
+
+    task_row = (
+        db.execute(text("SELECT status, cancelled_at FROM tasks WHERE id = :id"), {"id": task_id})
+        .mappings()
+        .one()
+    )
+    assert task_row["status"] == "CANCELLED"
+    assert task_row["cancelled_at"] is not None
+
+    assert len(notifications_for(db, people["NV014"], type_="ASSIGNMENT_REMOVED")) == 1
 
     cancel_event = next(e for e in audit_rows(db, order_id) if e.action == "cancel_active")
     assert (cancel_event.from_status, cancel_event.to_status) == ("IN_PROGRESS", "CANCELLED")
