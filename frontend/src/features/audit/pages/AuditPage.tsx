@@ -8,6 +8,7 @@ import { EmptyState } from "../../../components/ui/EmptyState";
 import { Pagination } from "../../../components/ui/Pagination";
 import { Select } from "../../../components/ui/Select";
 import { TextField } from "../../../components/ui/TextField";
+import { defaultMonthToDateRange } from "../../../lib/dateRange";
 import { useMe } from "../../me/api";
 import { useAuditEvents, useEmployeeDirectory, type AuditEventFilters } from "../api";
 import { AuditEventList, type EntityNames } from "../components/AuditEventList";
@@ -21,6 +22,12 @@ const EMPTY_FILTERS: AuditEventFilters = {
   limit: PAGE_SIZE,
   offset: 0,
 };
+/** Mặc định đầu tháng hiện tại → hôm nay (quyết định 2026-10-20) — "Xoá lọc" vẫn về EMPTY_FILTERS
+ * (không lọc ngày) chứ không phải về mặc định này. */
+function defaultFilters(): AuditEventFilters {
+  const { from, to } = defaultMonthToDateRange();
+  return { ...EMPTY_FILTERS, occurredFrom: from, occurredTo: to };
+}
 
 function Waiting() {
   return (
@@ -37,7 +44,7 @@ function Waiting() {
 export function AuditPage() {
   usePageTitle("Nhật ký hệ thống");
   const me = useMe();
-  const [filters, setFilters] = useState<AuditEventFilters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<AuditEventFilters>(defaultFilters);
   const employees = useEmployeeDirectory();
   // Checked here so a reversed range never reaches the API (whose 422 would read as a load error).
   const rangeInvalid =
