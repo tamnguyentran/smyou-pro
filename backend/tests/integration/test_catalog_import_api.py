@@ -334,6 +334,30 @@ def test_services_import_preview_and_commit(
         assert actions == ["create"]
 
 
+@pytest.mark.ac("AC-CAT-033")
+def test_preview_accepts_utf8_bom(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    an = client_as(app, AN)
+    content = ("﻿" + PRODUCTS_OK_CSV).encode("utf-8")
+    res = an.post("/api/v1/products/import/preview", files={"file": ("import.csv", content, "text/csv")})
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["total"] == 3
+    assert body["invalid_count"] == 0
+
+
+@pytest.mark.ac("AC-CAT-033")
+def test_preview_accepts_semicolon_delimiter(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    semicolon_csv = PRODUCTS_OK_CSV.replace(",", ";")
+    res = an.post("/api/v1/products/import/preview", files=csv_file(semicolon_csv))
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["total"] == 3
+    assert body["invalid_count"] == 0
+
+
 @pytest.mark.ac("AC-CAT-045")
 def test_routes_declare_capability(app: FastAPI) -> None:
     routes = {r for r in declared_routes(app) if "/import/" in r[1]}
