@@ -10,7 +10,7 @@ Là Quản lý kỹ thuật/Quản lý, tôi mở trang "Báo cáo KPI" để xe
 ## 2. Phạm vi
 - **Trong phạm vi:**
   - Trang `/reports/kpi` (route + capability `kpi.read` đã gắn sẵn trong `menu.ts`, chỉ cần thêm nội dung):
-    - Bộ lọc đầu trang: 2 ô chọn ngày "Từ ngày"/"Đến ngày" (mặc định 30 ngày gần nhất tính tới hôm nay, giờ VN); với MANAGER/TECH_LEAD thêm ô chọn KTV (dropdown "Tất cả KTV" + danh sách tên, tuỳ chọn) — ẩn hẳn ô này với TECHNICIAN (API tự bỏ qua, nhưng ẩn luôn ở UI cho rõ ràng, tránh gây hiểu lầm "lọc được người khác").
+    - Bộ lọc đầu trang: 2 ô chọn ngày "Từ ngày"/"Đến ngày" (mặc định đầu tháng hiện tại → hôm nay, giờ VN — quyết định 2026-10-20, thay cho mặc định cũ "30 ngày gần nhất"); với MANAGER/TECH_LEAD thêm ô chọn KTV (dropdown "Tất cả KTV" + danh sách tên, tuỳ chọn) — ẩn hẳn ô này với TECHNICIAN (API tự bỏ qua, nhưng ẩn luôn ở UI cho rõ ràng, tránh gây hiểu lầm "lọc được người khác").
     - Nút "Xuất CSV" (icon `Download`) gọi thẳng `GET /api/v1/kpi/report/export` với cùng tham số lọc đang chọn (mở trình duyệt tải file, không qua `fetch` + blob trừ khi cần gắn cookie session — dùng cách đã chuẩn hoá cho tải file có auth trong dự án, xem "Ghi chú kỹ thuật").
     - MANAGER/TECH_LEAD (nhiều dòng — scope `all`), **M8-01c (đơn giản hoá)**: lưới card — không còn bảng ngang nhiều cột. 1 cột ở mobile (<768px), nhiều cột ở desktop (≥1024px, `md:grid-cols-2 lg:grid-cols-3`). Mỗi card 1 KTV: tên+mã (+ badge "Đã nghỉ" nếu có), 3 số chính to "Xong"/"Đúng hạn %"/"Lỗi", 1 thanh tiến trình trực quan cho tỷ lệ đúng hạn (kèm "x/y đúng hạn" phụ đề), dòng "Giờ ước tính/thực tế", và "Tổng từ chối: {n}" — 5 lý do từ chối **gộp vào** 1 khối chi tiết ẩn mặc định (`<details>`/`<summary>`, không cần JS/state riêng), chỉ hiện khi bấm mở.
     - TECHNICIAN (luôn đúng 1 dòng — scope `self`): không hiện bảng/danh sách nhiều dòng; hiện đúng card như trên (3 số chính + thanh đúng hạn + "Tổng từ chối" gộp) — không có ô chọn KTV, không cần "Xuất CSV" nổi bật nhưng vẫn cho phép (xuất ra đúng 1 dòng của mình).
@@ -54,7 +54,7 @@ Không có.
 - Icon dùng `lucide-react`: `Download` (xuất CSV), `Users`/`UserCog` nếu cần icon cho dropdown KTV (tuỳ chọn, không bắt buộc).
 
 ## 7. Kịch bản UAT thủ công
-1. Đăng nhập Manager → menu "Báo cáo KPI" → thấy bảng số liệu các KTV trong 30 ngày gần nhất.
+1. Đăng nhập Manager → menu "Báo cáo KPI" → thấy bảng số liệu các KTV từ đầu tháng hiện tại tới hôm nay.
 2. Đổi "Từ ngày"/"Đến ngày" sang khoảng có dữ liệu biết trước (đối chiếu Postman/API docs) → số khớp.
 3. Chọn 1 KTV cụ thể trong dropdown → bảng chỉ còn 1 dòng → bấm "Xuất CSV" → mở file, so khớp số với màn hình.
 4. Đăng nhập 1 KTV → mở trang → chỉ thấy số liệu của chính mình, không có ô chọn người khác.
