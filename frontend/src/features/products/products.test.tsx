@@ -274,7 +274,7 @@ describe("AC-CAT-013 thêm sản phẩm", () => {
     expect(posted).toBe(false);
   });
 
-  test("409 CONFLICT sku hiện dưới đúng ô; lưu xong → toast, chuyển sang chi tiết sản phẩm mới", async () => {
+  test("409 CONFLICT sku hiện dưới đúng ô; lưu xong → toast, đóng modal", async () => {
     let attempt = 0;
     signedInAs(AN, () => HttpResponse.json(page([])));
     server.use(
@@ -318,8 +318,8 @@ describe("AC-CAT-013 thêm sản phẩm", () => {
 
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
     expect(await screen.findByText("Đã thêm sản phẩm PC SMYOU CORE I5-13400.")).toBeInTheDocument();
-    // cùng Sheet chuyển sang chế độ sửa cho sản phẩm vừa tạo (§8 giả định) — không mở sku nữa
-    expect(await screen.findByRole("dialog", { name: "Sửa sản phẩm" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Thêm sản phẩm" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Sửa sản phẩm" })).not.toBeInTheDocument();
   });
 
   test("AC-CAT-071: 409 CONFLICT name hiện dưới ô Tên sản phẩm", async () => {
