@@ -26,7 +26,7 @@ Là Quản lý kỹ thuật/Quản lý, tôi mở trang "Báo cáo KPI" để xe
 
 | ID | Given | When | Then | Lớp test |
 |---|---|---|---|---|
-| AC-KPI-016 | An (MANAGER) mở `/reports/kpi` lần đầu, chưa đổi bộ lọc | render | Gọi `GET /api/v1/kpi/report?from=<hôm_nay-30>&to=<hôm_nay>` (định dạng `YYYY-MM-DD`, giờ VN); ô "Từ ngày"/"Đến ngày" hiện đúng 2 giá trị mặc định đó | component |
+| AC-KPI-016 | An (MANAGER) mở `/reports/kpi` lần đầu, chưa đổi bộ lọc | render | Gọi `GET /api/v1/kpi/report?from=<đầu_tháng_hiện_tại>&to=<hôm_nay>` (định dạng `YYYY-MM-DD`, giờ VN; quyết định 2026-10-20, thay cho mặc định cũ "30 ngày gần nhất") — ô "Từ ngày"/"Đến ngày" hiện đúng 2 giá trị mặc định đó | component |
 | AC-KPI-017 | An trên desktop (1440px); API trả 3 dòng KTV (Khoa, Minh, Lan) như `M8-01a` AC-KPI-004 | render | Lưới 3 card (không bảng); mỗi card: tên+mã, 3 số chính "Xong"/"Đúng hạn %"/"Lỗi", thanh tiến trình đúng hạn, "Giờ ước tính/thực tế", "Tổng từ chối: {n}"; Lan (đã nghỉ) có badge nhỏ "Đã nghỉ" cạnh tên | component |
 | AC-KPI-018 | An trên mobile (390px); cùng dữ liệu | render | Lưới 1 cột (cùng card như desktop, không bảng ngang) | component |
 | AC-KPI-019 | An; dòng Khoa `completed_task_count=0` | render | Ô "Đúng hạn" của Khoa hiện "—" (không hiện "0%" gây hiểu lầm tỷ lệ, khớp `on_time_rate=null`), không có thanh tiến trình | component |

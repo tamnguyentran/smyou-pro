@@ -115,6 +115,7 @@ Module mới `backend/app/modules/audit/` (`domain.py`, `models.py`, `service.py
 5. Mở lại trên điện thoại (390px) → cùng dữ liệu hiển thị dạng thẻ, không cuộn ngang.
 
 ## 8. Giả định & câu hỏi
+- **Mặc định bộ lọc ngày (quyết định 2026-10-20)**: mở trang lần đầu, "Từ ngày"/"Đến ngày" mặc định đầu tháng hiện tại → hôm nay (giờ VN) thay vì để trống; "Xoá lọc" vẫn về trạng thái không lọc ngày (trống), không phải về mặc định này.
 - Giả định: `entity_type` v1 chỉ có `EMPLOYEE`; enum mở rộng dần (không cần migration) khi M3/M4/M6 nối hiệu ứng `audit` của `spec/state_machines.yaml` vào các module Đơn hàng/Đầu việc — đúng như WORKFLOWS.md §5 đã mô tả effect này từ trước.
 - Giả định: chặn append-only chỉ ở tầng ứng dụng (không có route sửa/xoá) cho v1; chưa thêm rule/trigger DB — có thể bổ sung sau nếu cần chống một thao tác `UPDATE` chạy thẳng bằng tay/psql.
 - Giả định: theo Q23, chỉ audit các sự kiện đăng nhập/sai mật khẩu/khoá và (mở rộng tự nhiên) đổi mật khẩu thành công — **không** audit `logout`, làm mới token, hay lần đăng nhập với email không tồn tại (không có thực thể để gắn).

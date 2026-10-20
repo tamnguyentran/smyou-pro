@@ -106,8 +106,8 @@ function mockReport(rows: KpiRow[], onRequest?: (search: string) => void) {
 }
 
 describe("Báo cáo KPI", () => {
-  test("AC-KPI-016 mặc định 30 ngày gần nhất, gọi API đúng tham số", async () => {
-    vi.setSystemTime(new Date("2026-09-30T10:00:00Z"));
+  test("AC-KPI-016 mặc định đầu tháng hiện tại → hôm nay, gọi API đúng tham số", async () => {
+    vi.setSystemTime(new Date("2026-09-15T10:00:00Z"));
     signedInAs(anId, AN);
     const requests: string[] = [];
     mockReport([KHOA], (search) => {
@@ -117,10 +117,10 @@ describe("Báo cáo KPI", () => {
 
     await screen.findByRole("heading", { name: "Báo cáo KPI" });
     await waitFor(() => {
-      expect(requests).toContain("?from=2026-09-01&to=2026-09-30");
+      expect(requests).toContain("?from=2026-09-01&to=2026-09-15");
     });
     expect(screen.getByLabelText("Từ ngày")).toHaveValue("2026-09-01");
-    expect(screen.getByLabelText("Đến ngày")).toHaveValue("2026-09-30");
+    expect(screen.getByLabelText("Đến ngày")).toHaveValue("2026-09-15");
     vi.useRealTimers();
   });
 
