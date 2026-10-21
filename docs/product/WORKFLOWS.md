@@ -86,10 +86,33 @@ stateDiagram-v2
 | Effect | Ý nghĩa |
 |---|---|
 | audit | ghi 1 dòng `audit_events` (from/to, actor, lý do) |
-| notify_* | tạo `notifications` cho nhóm người tương ứng |
+| notify_* | tạo `notifications` cho nhóm người tương ứng (chi tiết §5.1) |
 | fire_order_reevaluate | gọi `reevaluate_order` trong cùng transaction |
 | record_defect_for_previous_cycle_assignees | tạo `defect_records` |
 | cancel_open_tasks | huỷ task chưa DONE và gỡ các assignment mở |
+
+### 5.1 Thông báo (notify_*) — ai nhận khi nào
+In-app (chuông) và Web Push dùng **chung một nguồn**: cứ có dòng `notifications` mới (`recipient_id`) là cả 2 kênh cùng bắn cho người đó (`backend/app/modules/notifications/realtime.py`). Không có kênh riêng, không có luật lọc thêm — nhận notify nghĩa là cũng nhận push.
+
+| Hành động (ai bấm / hệ thống) | Lệnh (`spec/state_machines.yaml`) | Ai nhận |
+|---|---|---|
+| Sale/Manager **gửi đơn** | `order.submit` | Mọi **TECH_LEAD** đang active |
+| Hệ thống: đơn **Chờ điều phối → Đang thực hiện** (có assignment active đầu tiên) | `order.start_dispatch` | **Người tạo đơn** + mọi TECH_LEAD active *(đổi 2026-10-21 — trước đó không báo ai)* |
+| Hệ thống: đơn **Đang thực hiện → Chờ điều phối** (mất hết assignment active — bị từ chối/gỡ hết) | `order.undispatch` | **Người tạo đơn** + mọi TECH_LEAD active *(đổi 2026-10-21 — trước đó không báo ai)* |
+| Hệ thống: **mọi task đã DONE → Chờ KH xác nhận** | `order.all_tasks_done` | **Người tạo đơn** + mọi TECH_LEAD active |
+| QLKT/Sale **xác nhận khách ký → Hoàn tất** | `order.complete` | **Người tạo đơn** + mọi TECH_LEAD active *(đổi 2026-10-21 — trước đó chỉ người tạo đơn)* |
+| QLKT **yêu cầu chỉnh sửa** | `order.request_revision` | Chỉ **người tạo đơn** |
+| QLKT **gỡ hết assignment đang mở** (huỷ active) | `order.cancel_active` | Các KTV bị gỡ |
+| QLKT **tạo đầu việc + giao người** | `task.create` | Chỉ các **KTV được giao** |
+| QLKT **sửa** đầu việc | `task.update` | KTV đang hoạt động ở chu kỳ hiện tại |
+| QLKT **thêm người** vào task | `task.add_assignee` | Chỉ người vừa thêm |
+| QLKT **mở lại** task | `task.reopen` | KTV được giao lại ở chu kỳ mới |
+| QLKT **huỷ** task | `task.cancel` | KTV đang có assignment hoạt động bị gỡ |
+| KTV **từ chối** đầu việc | `assignment.reject` | Mọi TECH_LEAD active |
+| KTV **hoàn thành** đầu việc, khiến task đạt `DONE` | `assignment.complete` | Mọi TECH_LEAD active (chỉ khi task đạt `DONE`) |
+| QLKT **gỡ 1 người** khỏi đầu việc | `assignment.remove` | Đúng người bị gỡ |
+
+**MANAGER không có kênh thông báo riêng** — không hiệu ứng nào trong hệ thống nhắm đến role này. MANAGER chỉ nhận được khi trùng vai (cũng có role TECH_LEAD) hoặc chính là người tạo/gửi đơn đó (`order.created_by`, vì MANAGER cũng có `order.create`/`order.submit: all` — `spec/permissions.yaml`).
 
 ## 6. Đồng thời (concurrency)
 Mọi lệnh: `BEGIN` → `SELECT … FROM orders WHERE id = :id FOR UPDATE` (khoá đơn gốc, kể cả khi lệnh nhắm vào assignment) → kiểm tra `version` client gửi → áp dụng → `COMMIT`. Sai version → 409 `STALE_VERSION`, client tải lại.

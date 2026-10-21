@@ -784,6 +784,10 @@ def reevaluate_dispatch_state(
     from_status = order.status
     order.status = to_status
     session.flush()
+    if action == "start_dispatch":
+        notifications.notify_order_dispatch_started(session, order)
+    else:
+        notifications.notify_order_undispatched(session, order)
     audit.record(
         session,
         actor_id=actor.id,

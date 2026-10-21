@@ -42,7 +42,7 @@ order:
       to: IN_PROGRESS
       actor: system
       guards: [has_active_assignment]
-      effects: [audit]
+      effects: [notify_tech_leads, notify_order_owner, audit]
     # system: two-way with start_dispatch above — if every assignment of the order ends up
     # REJECTED/REMOVED before any task reaches DONE, the order falls back to "Chờ điều phối" (Q90).
     - command: undispatch
@@ -50,7 +50,7 @@ order:
       to: PENDING_DISPATCH
       actor: system
       guards: [no_active_assignment]
-      effects: [audit]
+      effects: [notify_tech_leads, notify_order_owner, audit]
     # system: re-evaluated after every task/assignment change. Audited with the technician's
     # actor_id from the `complete` that finished the last active task — see start_dispatch above.
     - command: all_tasks_done
@@ -64,7 +64,7 @@ order:
       to: COMPLETED
       capability: order.complete
       guards: [confirmation_attachment_in_current_revision, signer_name_present]
-      effects: [notify_order_owner, audit]
+      effects: [notify_tech_leads, notify_order_owner, audit]
     - command: request_revision
       from: [AWAITING_CONFIRMATION, COMPLETED]
       to: REVISION

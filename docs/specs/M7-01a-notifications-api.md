@@ -23,13 +23,15 @@ Hệ thống tự tạo thông báo trong CSDL cho đúng người liên quan m�
 ## 3. Quyết định thiết kế (không phải giả định cần hỏi — suy ra thẳng từ tài liệu đã chốt)
 - **`entity_type`/`entity_id` luôn là `ORDER`/`order.id`**, bất kể lệnh gốc là trên order/task/assignment: ứng dụng không có trang chi tiết riêng cho task/assignment (đầu việc chỉ xem trong tab "Đầu việc" của trang đơn — `docs/product/WORKFLOWS.md`, `frontend/src/features/dispatch/orderTasksTab.test.tsx`), nên nơi đến duy nhất khi bấm vào thông báo là `/orders/{order_id}`.
 - **`type`** (enum lưu dạng string, không cần bảng riêng) đặt theo tên effect + ngữ cảnh, dùng để UI chọn icon/màu ở `M7-01b` và để test khẳng định đúng loại:
-  `ORDER_SUBMITTED`, `ORDER_AWAITING_CONFIRMATION`, `ORDER_COMPLETED`, `ORDER_REVISION_REQUESTED`, `TASK_ASSIGNED`, `TASK_UPDATED`, `TASK_REOPENED`, `TASK_CANCELLED`, `ASSIGNMENT_REJECTED`, `ASSIGNMENT_DONE`, `ASSIGNMENT_REMOVED`.
+  `ORDER_SUBMITTED`, `ORDER_DISPATCH_STARTED`, `ORDER_UNDISPATCHED`, `ORDER_AWAITING_CONFIRMATION`, `ORDER_COMPLETED`, `ORDER_REVISION_REQUESTED`, `TASK_ASSIGNED`, `TASK_UPDATED`, `TASK_REOPENED`, `TASK_CANCELLED`, `ASSIGNMENT_REJECTED`, `ASSIGNMENT_DONE`, `ASSIGNMENT_REMOVED`.
 - **Người nhận mỗi effect** (suy từ tên effect + vai trò liên quan trong `DOMAIN_MODEL`/`PERMISSIONS`):
   | Effect (tại lệnh) | Người nhận |
   |---|---|
   | `notify_tech_leads` (`order.submit`) | mọi `Employee` đang active, có role `TECH_LEAD` |
+  | `notify_tech_leads` + `notify_order_owner` (`order.start_dispatch`, hệ thống — quyết định chủ dự án 2026-10-21) | mọi TECH_LEAD active + `order.created_by` |
+  | `notify_tech_leads` + `notify_order_owner` (`order.undispatch`, hệ thống — quyết định chủ dự án 2026-10-21) | mọi TECH_LEAD active + `order.created_by` |
   | `notify_tech_leads` + `notify_order_owner` (`order.all_tasks_done`, hệ thống) | mọi TECH_LEAD active + `order.created_by` |
-  | `notify_order_owner` (`order.complete`) | `order.created_by` |
+  | `notify_tech_leads` + `notify_order_owner` (`order.complete` — quyết định chủ dự án 2026-10-21, trước đó chỉ `notify_order_owner`) | mọi TECH_LEAD active + `order.created_by` |
   | `notify_order_owner` (`order.request_revision`) | `order.created_by` |
   | `notify_assignees` (`task.create`) | mọi nhân viên vừa được gán ở lệnh này (`assignee_ids` vừa tạo `PENDING` assignment) |
   | `notify_assignees` (`task.update`) | mọi nhân viên có assignment đang hoạt động (không `REJECTED`/`REMOVED`) ở chu kỳ hiện tại của task |
@@ -48,8 +50,10 @@ Hệ thống tự tạo thông báo trong CSDL cho đúng người liên quan m�
 |---|---|---|---|---|
 | AC-NTF-001 | Đơn DH-0001 `DRAFT` do Sale A tạo; có 2 TECH_LEAD active (T1, T2) và 1 TECH_LEAD đã khoá (T3) | A gửi đơn (`submit`) | API 200; `notifications` có đúng 2 dòng mới, `recipient_id ∈ {T1,T2}`, `type=ORDER_SUBMITTED`, `entity_type=ORDER`, `entity_id=DH-0001.id`, `read_at IS NULL`; T3 không có dòng nào | integration |
 | AC-NTF-002 | Đơn `IN_PROGRESS`, mọi task đã `DONE`, `created_by`=Sale B | lệnh hệ thống `all_tasks_done` chạy (qua `complete` assignment cuối) | đơn → `AWAITING_CONFIRMATION`; có thông báo `type=ORDER_AWAITING_CONFIRMATION` cho mọi TECH_LEAD active **và** 1 thông báo cùng `type` cho Sale B (`order.created_by`) | integration |
-| AC-NTF-003 | Đơn `AWAITING_CONFIRMATION`, `created_by`=Sale B, QLKT hoàn tất | `complete` | 1 thông báo `type=ORDER_COMPLETED` cho Sale B; không tạo thông báo cho TECH_LEAD khác | integration |
+| AC-NTF-003 | Đơn `AWAITING_CONFIRMATION`, `created_by`=Sale B, QLKT hoàn tất | `complete` | 1 thông báo `type=ORDER_COMPLETED` cho Sale B **và** mọi TECH_LEAD active (đổi 2026-10-21 — trước đó chỉ Sale B) | integration |
 | AC-NTF-004 | Đơn `COMPLETED`, `created_by`=Sale B | QLKT `request_revision` (lý do ≥5 ký tự) | 1 thông báo `type=ORDER_REVISION_REQUESTED` cho Sale B | integration |
+| AC-NTF-049 | Đơn `PENDING_DISPATCH`, `created_by`=Sale B; 2 TECH_LEAD active (T1,T2) + 1 đã khoá (T3) | QLKT tạo task đầu tiên có người nhận → hệ thống tự chạy `start_dispatch` (Q90) | đơn → `IN_PROGRESS`; 1 thông báo `type=ORDER_DISPATCH_STARTED` cho Sale B **và** cho T1, T2; T3 không có | integration |
+| AC-NTF-050 | Đơn `IN_PROGRESS` còn đúng 1 assignment `PENDING` của K1; `created_by`=Sale B; 2 TECH_LEAD active (T1,T2) | K1 `reject` → hết assignment active → hệ thống tự chạy `undispatch` (Q90) | đơn → `PENDING_DISPATCH`; 1 thông báo `type=ORDER_UNDISPATCHED` cho Sale B **và** cho T1, T2 | integration |
 | AC-NTF-005 | Task mới tạo, giao cho KTV K1, K2 | `task.create` | 2 thông báo `type=TASK_ASSIGNED`, `recipient_id ∈ {K1,K2}`, `body` chứa tên đầu việc | integration |
 | AC-NTF-006 | Task đang có assignment hoạt động của K1 (chu kỳ hiện tại); K cũ ở chu kỳ trước đã `DONE` không tính | QLKT `task.update` đổi `due_at` | 1 thông báo `type=TASK_UPDATED` cho K1; không có thông báo cho người ở chu kỳ trước | integration |
 | AC-NTF-007 | Task đang giao K1; QLKT thêm K2 (`task.add_assignee`) | hành động | Chỉ 1 thông báo `type=TASK_ASSIGNED` cho K2 — **không** tạo lại thông báo cho K1 (đã có từ lúc tạo) | integration |

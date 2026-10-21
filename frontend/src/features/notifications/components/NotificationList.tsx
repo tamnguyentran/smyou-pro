@@ -16,6 +16,8 @@ import { useMarkRead, type Notification } from "../api";
 // UI_GUIDELINES §7 icon glossary; type tên theo M7-01a §3. Loại lạ (không nên xảy ra) → `Bell`.
 const TYPE_ICONS: Record<string, LucideIcon> = {
   ORDER_SUBMITTED: ShoppingBag,
+  ORDER_DISPATCH_STARTED: Wrench,
+  ORDER_UNDISPATCHED: RotateCcw,
   ORDER_AWAITING_CONFIRMATION: BadgeCheck,
   ORDER_COMPLETED: BadgeCheck,
   ORDER_REVISION_REQUESTED: RotateCcw,
