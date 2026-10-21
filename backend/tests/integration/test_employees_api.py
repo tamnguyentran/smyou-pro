@@ -367,6 +367,7 @@ def test_create_with_manager_and_technician_is_a_role_conflict(
 
 
 @pytest.mark.ac("AC-EMP-025")
+@pytest.mark.ac("AC-EMP-026")
 def test_customer_care_can_create_orders_and_read_any_order(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
