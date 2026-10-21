@@ -928,6 +928,8 @@ def test_routes_declare_capability(app: FastAPI) -> None:
             "/api/v1/orders/{order_id}/lines-after-submit/{line_id}/remove",
             "order.edit_lines_after_submit",
         ),
+        ("GET", "/api/v1/orders/csat-summary", "customer_care.manage_feedback"),
+        ("POST", "/api/v1/orders/{order_id}/csat", "customer_care.manage_feedback"),
     }
 
 
@@ -1436,6 +1438,7 @@ def test_list_orders_basic(app: FastAPI, db: Connection, three_orders: dict[str,
         "created_by_name",
         "created_at",
         "revision_no",
+        "csat_rating",
     }
     # order A was created by HOA (NV005) — M3-03b's list page needs a name, not just the UUID.
     assert body["items"][0]["created_by_name"] == "Lê Thị Hoa"

@@ -1,6 +1,7 @@
 """/api/v1/orders — thin HTTP layer (M3-02a, M3-03a)."""
 
 import uuid
+from datetime import date
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
@@ -18,6 +19,7 @@ from app.modules.orders.schemas import (
     OrderComplete,
     OrderContactUpdate,
     OrderCreate,
+    OrderCsatUpdate,
     OrderDetail,
     OrderLineCreate,
     OrderLineRemove,
@@ -41,6 +43,7 @@ Reviser = Annotated[Actor, Depends(require("order.revise"))]
 ContactEditor = Annotated[Actor, Depends(require("order.edit_contact"))]
 AfterSubmitLineEditor = Annotated[Actor, Depends(require("order.edit_lines_after_submit"))]
 ConfirmationUploader = Annotated[Actor, Depends(require("order.upload_confirmation"))]
+CsatRecorder = Annotated[Actor, Depends(require("customer_care.manage_feedback"))]
 
 
 def _docs(*lines: tuple[int, str]) -> dict[int | str, dict[str, Any]]:
@@ -78,6 +81,9 @@ def list_orders(
     sort: OrderSort = "created_at_desc",
     mine: bool = False,
     overdue: bool = False,
+    date_from: Annotated[date | None, Query(alias="from")] = None,
+    date_to: Annotated[date | None, Query(alias="to")] = None,
+    csat_rating: Annotated[int | None, Query(ge=1, le=5)] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> OrderPage:
@@ -89,9 +95,59 @@ def list_orders(
         sort=sort,
         mine=mine,
         overdue=overdue,
+        date_from=date_from,
+        date_to=date_to,
+        csat_rating=csat_rating,
         now=request.app.state.clock(),
         limit=limit,
         offset=offset,
+    )
+
+
+@router.get(
+    "/csat-summary",
+    operation_id="orders_csat_summary",
+    summary="Thống kê phản hồi khách hàng theo mức sao",
+    response_model=dict[str, int],
+)
+def get_csat_summary(
+    request: Request,
+    session: DbSession,
+    actor: CsatRecorder,
+    date_from: Annotated[date | None, Query(alias="from")] = None,
+    date_to: Annotated[date | None, Query(alias="to")] = None,
+    customer_id: uuid.UUID | None = None,
+    created_by: uuid.UUID | None = None,
+) -> dict[str, int]:
+    return service.get_csat_summary(
+        session,
+        actor,
+        date_from=date_from,
+        date_to=date_to,
+        customer_id=customer_id,
+        created_by=created_by,
+        now=request.app.state.clock(),
+    )
+
+
+@router.post(
+    "/{order_id}/csat",
+    operation_id="orders_record_csat",
+    summary="Ghi phản hồi khách hàng (CSKH)",
+    response_model=OrderDetail,
+    responses=_docs(NOT_FOUND, TRANSITION_CONFLICTS),
+)
+def record_csat(
+    order_id: uuid.UUID, body: OrderCsatUpdate, request: Request, session: DbSession, actor: CsatRecorder
+) -> OrderDetail:
+    return service.record_csat(
+        session,
+        actor,
+        order_id,
+        body,
+        now=request.app.state.clock(),
+        specs=request.app.state.specs,
+        request_id=get_request_id(request),
     )
 
 

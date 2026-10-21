@@ -587,6 +587,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/orders/csat-summary": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Thống kê phản hồi khách hàng theo mức sao */
+    get: operations["orders_csat_summary"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/orders/{order_id}": {
     parameters: {
       query?: never;
@@ -689,6 +706,23 @@ export interface paths {
     head?: never;
     /** Sửa liên hệ/mô tả sau khi gửi */
     patch: operations["orders_update_contact"];
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/csat": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Ghi phản hồi khách hàng (CSKH) */
+    post: operations["orders_record_csat"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   "/api/v1/orders/{order_id}/history": {
@@ -1565,7 +1599,7 @@ export interface components {
       /** Phone */
       phone?: string | null;
       /** Roles */
-      roles: ("MANAGER" | "SALE" | "TECH_LEAD" | "TECHNICIAN")[];
+      roles: ("MANAGER" | "SALE" | "CUSTOMER_CARE" | "TECH_LEAD" | "TECHNICIAN")[];
       /** Title */
       title?: string | null;
     };
@@ -2033,6 +2067,15 @@ export interface components {
       /** Work Description */
       work_description?: string | null;
     };
+    /** OrderCsatUpdate */
+    OrderCsatUpdate: {
+      /** Csat Comment */
+      csat_comment?: string | null;
+      /** Csat Rating */
+      csat_rating?: number | null;
+      /** Version */
+      version: number;
+    };
     /** OrderDetail */
     OrderDetail: {
       /** Allowed Commands */
@@ -2054,6 +2097,14 @@ export interface components {
        * Format: uuid
        */
       created_by: string;
+      /** Csat Comment */
+      csat_comment: string | null;
+      /** Csat Rating */
+      csat_rating: number | null;
+      /** Csat Recorded At */
+      csat_recorded_at: string | null;
+      /** Csat Recorded By */
+      csat_recorded_by: string | null;
       /** Customer Email */
       customer_email: string | null;
       /** Customer Id */
@@ -2262,6 +2313,8 @@ export interface components {
       created_by: string;
       /** Created By Name */
       created_by_name: string | null;
+      /** Csat Rating */
+      csat_rating: number | null;
       /** Customer Name */
       customer_name: string | null;
       /** Customer Phone */
@@ -2481,7 +2534,7 @@ export interface components {
     /** RolesRequest */
     RolesRequest: {
       /** Roles */
-      roles: ("MANAGER" | "SALE" | "TECH_LEAD" | "TECHNICIAN")[];
+      roles: ("MANAGER" | "SALE" | "CUSTOMER_CARE" | "TECH_LEAD" | "TECHNICIAN")[];
       /** Version */
       version: number;
     };
@@ -3594,7 +3647,7 @@ export interface operations {
     parameters: {
       query?: {
         q?: string | null;
-        role?: ("MANAGER" | "SALE" | "TECH_LEAD" | "TECHNICIAN") | null;
+        role?: ("MANAGER" | "SALE" | "CUSTOMER_CARE" | "TECH_LEAD" | "TECHNICIAN") | null;
         is_active?: boolean | null;
         limit?: number;
         offset?: number;
@@ -4265,6 +4318,9 @@ export interface operations {
         sort?: "created_at_desc" | "dispatch";
         mine?: boolean;
         overdue?: boolean;
+        from?: string | null;
+        to?: string | null;
+        csat_rating?: number | null;
         limit?: number;
         offset?: number;
       };
@@ -4314,6 +4370,42 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_csat_summary: {
+    parameters: {
+      query?: {
+        from?: string | null;
+        to?: string | null;
+        customer_id?: string | null;
+        created_by?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: number;
+          };
         };
       };
       /** @description Validation Error */
@@ -4671,6 +4763,55 @@ export interface operations {
         content?: never;
       };
       /** @description problem+json — STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_record_csat: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderCsatUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED */
       409: {
         headers: {
           [name: string]: unknown;

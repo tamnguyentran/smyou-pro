@@ -16,6 +16,7 @@ from tests.integration.conftest import AN, KHOA, FakeClock, Person, employee_row
 BINH = Person("binh.le@smyou.vn", "Binh@SmYou26", ("MANAGER",), "NV002", "Lê Văn Bình", "MANAGEMENT")
 HOA = Person("hoa.le@smyou.vn", "Hoa@SmYou26", ("SALE",), "NV005", "Lê Thị Hoa", "SALES")
 TUAN = Person("tuan.pham@smyou.vn", "Tuan@SmYou26", ("TECH_LEAD",), "NV010", "Phạm Quốc Tuấn", "TECHNICAL")
+LAN = Person("lan.vo@smyou.vn", "Lan@SmYou26", ("CUSTOMER_CARE",), "NV020", "Võ Thị Lan", "SALES")
 
 ITEM_KEYS = {
     "id",
@@ -252,6 +253,141 @@ def test_set_roles_takes_effect_on_the_next_request(
         "VALIDATION_ERROR",
     )
     assert body["errors"]
+
+
+@pytest.mark.ac("AC-EMP-019")
+def test_granting_manager_also_grants_sale_customer_care_and_tech_lead(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa_id = people["NV005"]
+    an = client_as(app, AN)
+
+    res = an.post(f"/api/v1/employees/{hoa_id}/roles", json={"version": 1, "roles": ["MANAGER"]})
+
+    assert res.status_code == 200, res.text
+    assert sorted(res.json()["roles"]) == ["CUSTOMER_CARE", "MANAGER", "SALE", "TECH_LEAD"]
+
+
+@pytest.mark.ac("AC-EMP-020")
+def test_manager_and_technician_together_is_a_role_conflict(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa_id = people["NV005"]
+    an = client_as(app, AN)
+
+    body = problem(
+        an.post(
+            f"/api/v1/employees/{hoa_id}/roles",
+            json={"version": 1, "roles": ["MANAGER", "TECHNICIAN"]},
+        ),
+        422,
+        "ROLE_CONFLICT",
+    )
+    assert body["errors"] == [
+        {
+            "field": "roles",
+            "code": "manager_technician",
+            "message": "Quản lý chung không thể đồng thời là Nhân viên kỹ thuật.",
+        }
+    ]
+    assert an.get(f"/api/v1/employees/{hoa_id}").json()["roles"] == ["SALE"]  # unchanged
+
+
+@pytest.mark.ac("AC-EMP-021")
+def test_non_manager_roles_combine_freely(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    khoa_id = people["NV014"]
+    an = client_as(app, AN)
+
+    res = an.post(
+        f"/api/v1/employees/{khoa_id}/roles",
+        json={"version": 1, "roles": ["SALE", "CUSTOMER_CARE"]},
+    )
+
+    assert res.status_code == 200, res.text
+    assert sorted(res.json()["roles"]) == ["CUSTOMER_CARE", "SALE"]
+
+
+@pytest.mark.ac("AC-EMP-022")
+def test_non_manager_roles_combine_freely_including_technician(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    khoa_id = people["NV014"]
+    an = client_as(app, AN)
+
+    res = an.post(
+        f"/api/v1/employees/{khoa_id}/roles",
+        json={"version": 1, "roles": ["SALE", "CUSTOMER_CARE", "TECHNICIAN"]},
+    )
+
+    assert res.status_code == 200, res.text
+    assert sorted(res.json()["roles"]) == ["CUSTOMER_CARE", "SALE", "TECHNICIAN"]
+
+
+@pytest.mark.ac("AC-EMP-023")
+def test_removing_manager_drops_the_roles_granted_alongside_it(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    an_id, binh_id = people["NV001"], people["NV002"]
+    an = client_as(app, AN)
+    # Binh stays MANAGER so An remains free to give up the role (last-active-manager guard).
+    assert (
+        an.post(f"/api/v1/employees/{binh_id}/roles", json={"version": 1, "roles": ["MANAGER"]}).status_code
+        == 200
+    )
+
+    res = an.post(f"/api/v1/employees/{an_id}/roles", json={"version": 1, "roles": ["TECH_LEAD"]})
+
+    assert res.status_code == 200, res.text
+    assert res.json()["roles"] == ["TECH_LEAD"]  # SALE/CUSTOMER_CARE granted alongside MANAGER are gone too
+
+
+@pytest.mark.ac("AC-EMP-019")
+def test_create_with_manager_role_also_grants_the_bundled_roles(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+
+    res = an.post("/api/v1/employees", json={**NEW_HOA, "roles": ["MANAGER"]})
+
+    assert res.status_code == 201, res.text
+    assert sorted(res.json()["employee"]["roles"]) == ["CUSTOMER_CARE", "MANAGER", "SALE", "TECH_LEAD"]
+
+
+@pytest.mark.ac("AC-EMP-020")
+def test_create_with_manager_and_technician_is_a_role_conflict(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+
+    problem(
+        an.post("/api/v1/employees", json={**NEW_HOA, "roles": ["MANAGER", "TECHNICIAN"]}),
+        422,
+        "ROLE_CONFLICT",
+    )
+
+
+@pytest.mark.ac("AC-EMP-025")
+@pytest.mark.ac("AC-EMP-026")
+def test_customer_care_can_create_orders_and_read_any_order(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    seed(db, LAN)
+    lan = client_as(app, LAN)
+
+    created = lan.post(
+        "/api/v1/orders",
+        json={"division": "GENERAL", "customer_name": "Khách lẻ", "customer_phone": "0909000000"},
+    )
+    assert created.status_code == 201, created.text
+
+    hoa = client_as(app, HOA)
+    hoa_order = hoa.post(
+        "/api/v1/orders",
+        json={"division": "GENERAL", "customer_name": "Khách khác", "customer_phone": "0909111111"},
+    )
+    assert hoa_order.status_code == 201, hoa_order.text
+    seen = lan.get(f"/api/v1/orders/{hoa_order.json()['id']}")
+    assert seen.status_code == 200, seen.text  # order.read: all — not limited to Lan's own orders
 
 
 @pytest.mark.ac("AC-EMP-007")

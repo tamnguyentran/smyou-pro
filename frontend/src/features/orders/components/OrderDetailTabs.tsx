@@ -24,6 +24,7 @@ import { AddLineSheet } from "./AddLineSheet";
 import { CancelOrderSheet } from "./CancelOrderSheet";
 import { CompleteOrderSheet } from "./CompleteOrderSheet";
 import { ConfirmationAttachmentsTab } from "./ConfirmationAttachmentsTab";
+import { CustomerFeedbackBlock } from "./CustomerFeedbackBlock";
 import { EditContactSheet } from "./EditContactSheet";
 import { OrderHistoryTab } from "./OrderHistoryTab";
 import { OrderInfoTab } from "./OrderInfoTab";
@@ -302,16 +303,19 @@ export function OrderDetailTabs({
 
       <div role="tabpanel">
         {tab === "info" ? (
-          <OrderInfoTab
-            order={order}
-            onEditContact={
-              order.can_edit_contact
-                ? () => {
-                    setEditContactOpen(true);
-                  }
-                : undefined
-            }
-          />
+          <div className="space-y-4">
+            <OrderInfoTab
+              order={order}
+              onEditContact={
+                order.can_edit_contact
+                  ? () => {
+                      setEditContactOpen(true);
+                    }
+                  : undefined
+              }
+            />
+            <CustomerFeedbackBlock order={order} />
+          </div>
         ) : null}
         {tab === "lines" ? (
           <div className="space-y-4">

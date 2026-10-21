@@ -2,7 +2,7 @@
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -34,6 +34,7 @@ from app.modules.orders.schemas import (
     OrderComplete,
     OrderContactUpdate,
     OrderCreate,
+    OrderCsatUpdate,
     OrderDetail,
     OrderLineCreate,
     OrderLineOut,
@@ -123,6 +124,7 @@ _GUARD_MESSAGES = {
     ),
     "confirmation_attachment_not_uploaded": "Đơn đã có ảnh khách ký xác nhận, không thể huỷ.",
     "signer_name_present": "Vui lòng nhập tên người ký.",
+    "order_completed": "Chỉ ghi phản hồi khách hàng khi đơn đã Hoàn tất.",
 }
 
 
@@ -217,6 +219,15 @@ def _require_editable_after_submit(order: Order) -> None:
         raise _order_not_submitted()
     if order.status not in EDITABLE_AFTER_SUBMIT_STATUSES:
         raise _order_locked()
+
+
+def _require_completed(order: Order) -> None:
+    """`AC-CSK-003`: CSAT can only be recorded while the order's *current* status is `COMPLETED` —
+    a `REVISION`'d order can't, even though it was completed before (Q89, 2026-10-21 default)."""
+    if order.status != "COMPLETED":
+        raise AppError(
+            409, "GUARD_FAILED", _GUARD_MESSAGES["order_completed"], extra={"guard": "order_completed"}
+        )
 
 
 def lock_order(session: Session, actor: Actor, order_id: uuid.UUID, version: int) -> Order:
@@ -355,6 +366,10 @@ def _out(order: Order, actor: Actor, specs: Specs) -> OrderDetail:
         total=order.total,
         payment_status=order.payment_status,
         payment_method=order.payment_method,
+        csat_rating=order.csat_rating,
+        csat_comment=order.csat_comment,
+        csat_recorded_by=order.csat_recorded_by,
+        csat_recorded_at=order.csat_recorded_at,
         revision_no=order.revision_no,
         created_by=order.created_by,
         version=order.version,
@@ -385,6 +400,7 @@ def _summary(order: Order, created_by_name: str | None) -> OrderSummary:
         created_by_name=created_by_name,
         created_at=order.created_at,
         revision_no=order.revision_no,
+        csat_rating=order.csat_rating,
     )
 
 
@@ -552,6 +568,9 @@ def list_orders(
     sort: str = "created_at_desc",
     mine: bool = False,
     overdue: bool = False,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    csat_rating: int | None = None,
     now: datetime,
     limit: int,
     offset: int,
@@ -572,6 +591,12 @@ def list_orders(
         query = query.where(Order.status == status)
     if mine:
         query = query.where(Order.created_by == actor.id)
+    if date_from is not None:
+        query = query.where(Order.completed_at >= _vn_day_start_utc(date_from))
+    if date_to is not None:
+        query = query.where(Order.completed_at < _vn_day_start_utc(date_to + timedelta(days=1)))
+    if csat_rating is not None:
+        query = query.where(Order.csat_rating == csat_rating)
     if overdue:
         query = query.where(
             Order.status.notin_(("COMPLETED", "CANCELLED")),
@@ -1034,6 +1059,76 @@ def request_revision(
 
 def count_revision_orders(session: Session, actor: Actor) -> int:  # CounterProvider shape
     return session.scalar(select(func.count()).select_from(Order).where(Order.status == "REVISION")) or 0
+
+
+def record_csat(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    body: OrderCsatUpdate,
+    *,
+    now: datetime,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    """M15-02a (AC-CSK-001...005): overwrite-only, no history of past calls (Q89 default) — the
+    audit event is the only record of *who* called/when a prior value was replaced."""
+    order = lock_order(session, actor, order_id, body.version)
+    _require_completed(order)
+    order.csat_rating = body.csat_rating
+    order.csat_comment = body.csat_comment
+    order.csat_recorded_by = actor.id
+    order.csat_recorded_at = now
+    _bump(order)
+    session.flush()
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ORDER",
+        entity_id=order.id,
+        action="csat_recorded",
+        data={"csat_rating": body.csat_rating, "csat_comment": body.csat_comment},
+        request_id=request_id,
+    )
+    return _out(order, actor, specs)
+
+
+def _vn_day_start_utc(day: date) -> datetime:
+    return datetime.combine(day, time.min, tzinfo=VIETNAM)
+
+
+def get_csat_summary(
+    session: Session,
+    actor: Actor,
+    *,
+    date_from: date | None,
+    date_to: date | None,
+    customer_id: uuid.UUID | None,
+    created_by: uuid.UUID | None,
+    now: datetime,
+) -> dict[str, int]:
+    today_vn = now.astimezone(VIETNAM).date()
+    date_from = date_from or today_vn.replace(day=1)
+    date_to = date_to or today_vn
+    query = apply_scope(
+        select(Order.csat_rating, func.count())
+        .where(
+            Order.status == "COMPLETED",
+            Order.completed_at >= _vn_day_start_utc(date_from),
+            Order.completed_at < _vn_day_start_utc(date_to + timedelta(days=1)),
+        )
+        .group_by(Order.csat_rating),
+        actor,
+        RULES,
+    )
+    if customer_id is not None:
+        query = query.where(Order.customer_id == customer_id)
+    if created_by is not None:
+        query = query.where(Order.created_by == created_by)
+    counts = {"5": 0, "4": 0, "3": 0, "2": 0, "1": 0, "none": 0}
+    for rating, count in session.execute(query).all():
+        counts[str(rating) if rating is not None else "none"] = count
+    return counts
 
 
 def update_order(

@@ -38,6 +38,8 @@ import { TemporaryPasswordDialog } from "./TemporaryPasswordDialog";
 
 type ConfirmKind = "deactivate" | "activate" | "reset" | null;
 const ROLES_FIELD = "roles";
+// M15-01: Manager always comes bundled with Sale/CSKH/QLKT, and can never be Technician too.
+const MANAGER_BUNDLE: Role[] = ["SALE", "CUSTOMER_CARE", "TECH_LEAD"];
 
 function rolesErrorFrom(errors: Record<string, string>): string | null {
   const entry = Object.entries(errors).find(
@@ -71,23 +73,31 @@ function RoleField({
       </div>
     );
   }
+  const managerSelected = selected.has("MANAGER");
   return (
     <fieldset>
       <legend className="mb-1.5 text-sm font-medium text-heading">Vai trò</legend>
       <div className="space-y-1">
-        {ROLE_ORDER.map((role) => (
-          <label key={role} className="flex min-h-11 items-center gap-2 text-sm text-body">
-            <input
-              type="checkbox"
-              checked={selected.has(role)}
-              onChange={() => {
-                onToggle(role);
-              }}
-              className="size-5 rounded border-line text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-            />
-            {ROLE_LABELS[role]}
-          </label>
-        ))}
+        {ROLE_ORDER.map((role) => {
+          // Sale/CSKH/QLKT are forced on (and locked) while Manager is ticked; Technician is
+          // forced off (and locked) — a Manager can never also be a Technician (M15-01).
+          const locked = managerSelected && role !== "MANAGER";
+          const checked = role === "TECHNICIAN" && managerSelected ? false : selected.has(role);
+          return (
+            <label key={role} className="flex min-h-11 items-center gap-2 text-sm text-body">
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={locked}
+                onChange={() => {
+                  if (!locked) onToggle(role);
+                }}
+                className="size-5 rounded border-line text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-60"
+              />
+              {ROLE_LABELS[role]}
+            </label>
+          );
+        })}
       </div>
       {error ? <p className="mt-1 text-xs font-medium text-urgent-fg">{error}</p> : null}
     </fieldset>
@@ -155,6 +165,16 @@ export function EmployeeFormSheet({
     setRolesTouched(true);
     setSelectedRoles((current) => {
       const next = new Set(current);
+      if (role === "MANAGER") {
+        if (next.has("MANAGER")) {
+          next.delete("MANAGER"); // bundled roles stay as-is, now unlocked (M15-01)
+        } else {
+          next.add("MANAGER");
+          for (const bundled of MANAGER_BUNDLE) next.add(bundled);
+          next.delete("TECHNICIAN");
+        }
+        return next;
+      }
       if (next.has(role)) next.delete(role);
       else next.add(role);
       return next;

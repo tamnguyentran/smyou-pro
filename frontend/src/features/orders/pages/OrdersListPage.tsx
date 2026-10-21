@@ -9,9 +9,11 @@ import { ChipGroup } from "../../../components/ui/Chip";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { Pagination } from "../../../components/ui/Pagination";
 import { TextField } from "../../../components/ui/TextField";
+import { defaultMonthToDateRange } from "../../../lib/dateRange";
 import { useDebouncedValue } from "../../../lib/useDebouncedValue";
 import { useMe } from "../../me/api";
-import { useOrders, type OrderFilters } from "../api";
+import { useCsatSummary, useOrders, type OrderFilters } from "../api";
+import { CsatSummaryStats } from "../components/CsatSummaryStats";
 import { OrderList } from "../components/OrderList";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_ORDER } from "../orderStatus";
 
@@ -31,7 +33,10 @@ function Waiting() {
 
 /** AC-ORD-069: trang `/orders` — capability hiệu lực để vào trang là `order.read` (spec §6, Q56).
  * AC-DASH-022/023/026 (M10-03): đọc `status`/`mine` từ URL 1 lần lúc tải để khớp đúng drill-down
- * từ Tổng quan — không đồng bộ URL ngược lại sau đó (ngoài phạm vi spec §2). */
+ * từ Tổng quan — không đồng bộ URL ngược lại sau đó (ngoài phạm vi spec §2).
+ * AC-CSK-010/012 (M15-02b): CUSTOMER_CARE mặc định bộ lọc ngày = đầu tháng hiện tại → hôm nay —
+ * tính thẳng từ vai trò mỗi lần render (không lưu vào state) để không phụ thuộc thời điểm `me`
+ * tải xong; `dateFrom`/`dateTo`/`csatRating` chỉ vào state khi người dùng tự đổi. */
 export function OrdersListPage() {
   usePageTitle("Danh sách đơn");
   const me = useMe();
@@ -40,11 +45,34 @@ export function OrdersListPage() {
   const [status, setStatus] = useState(() => searchParams.get("status") ?? "");
   const [mine, setMine] = useState(() => searchParams.get("mine") === "1");
   const [overdue, setOverdue] = useState(() => searchParams.get("overdue") === "1");
+  const [dateFrom, setDateFrom] = useState<string | undefined>(
+    () => searchParams.get("from") ?? undefined,
+  );
+  const [dateTo, setDateTo] = useState<string | undefined>(
+    () => searchParams.get("to") ?? undefined,
+  );
+  const [csatRating, setCsatRating] = useState<number | undefined>(undefined);
   const [offset, setOffset] = useState(0);
   const debouncedQ = useDebouncedValue(q, 300);
 
-  const filters: OrderFilters = { q: debouncedQ, status, mine, overdue, limit: PAGE_SIZE, offset };
+  const isCustomerCare = me.data?.roles.includes("CUSTOMER_CARE") ?? false;
+  const csCareDefault = isCustomerCare ? defaultMonthToDateRange() : undefined;
+  const effectiveDateFrom = dateFrom ?? csCareDefault?.from;
+  const effectiveDateTo = dateTo ?? csCareDefault?.to;
+
+  const filters: OrderFilters = {
+    q: debouncedQ,
+    status,
+    mine,
+    overdue,
+    dateFrom: effectiveDateFrom,
+    dateTo: effectiveDateTo,
+    csatRating,
+    limit: PAGE_SIZE,
+    offset,
+  };
   const orders = useOrders(filters);
+  const csatSummary = useCsatSummary({ dateFrom: effectiveDateFrom, dateTo: effectiveDateTo });
 
   if (!me.data && me.isError) {
     return (
@@ -60,6 +88,17 @@ export function OrdersListPage() {
 
   return (
     <div className="space-y-4">
+      {isCustomerCare ? (
+        <CsatSummaryStats
+          summary={csatSummary.data ?? {}}
+          selected={csatRating}
+          onSelect={(rating) => {
+            setCsatRating(rating);
+            setOffset(0);
+          }}
+        />
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-2">
         <TextField
           label="Tìm kiếm"
@@ -79,6 +118,29 @@ export function OrdersListPage() {
           }
         />
       </div>
+
+      {isCustomerCare ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <TextField
+            type="date"
+            label="Từ ngày"
+            value={effectiveDateFrom ?? ""}
+            onChange={(event) => {
+              setDateFrom(event.target.value);
+              setOffset(0);
+            }}
+          />
+          <TextField
+            type="date"
+            label="Đến ngày"
+            value={effectiveDateTo ?? ""}
+            onChange={(event) => {
+              setDateTo(event.target.value);
+              setOffset(0);
+            }}
+          />
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <ChipGroup

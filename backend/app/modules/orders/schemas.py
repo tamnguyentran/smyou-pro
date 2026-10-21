@@ -32,6 +32,7 @@ TaxCode = Annotated[str, StringConstraints(strip_whitespace=True, max_length=20)
 
 PAYMENT_METHOD_REQUIRED = "Chọn hình thức thanh toán khi đơn đã thu tiền."
 FIELD_REQUIRED = "Bắt buộc nhập."
+CSAT_COMMENT_REQUIRED = "Vui lòng nhập nội dung phản hồi khi có đánh giá sao."
 
 
 def _check_vat_rate(value: Decimal | None) -> Decimal | None:
@@ -187,6 +188,23 @@ class OrderRevise(BaseModel):
     reason: str | None = None
 
 
+def _check_csat_comment(value: str | None, info: ValidationInfo) -> str | None:
+    rating = info.data.get("csat_rating")
+    if rating is not None and not (value or "").strip():
+        raise ValueError(CSAT_COMMENT_REQUIRED)
+    return value
+
+
+class OrderCsatUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: int
+    csat_rating: Annotated[int, Field(ge=1, le=5)] | None = None
+    csat_comment: str | None = None
+
+    _check_csat_comment = field_validator("csat_comment")(_check_csat_comment)
+
+
 class OrderLineOut(BaseModel):
     id: uuid.UUID
     position: int
@@ -231,6 +249,10 @@ class OrderDetail(BaseModel):
     total: int
     payment_status: str
     payment_method: str | None
+    csat_rating: int | None
+    csat_comment: str | None
+    csat_recorded_by: uuid.UUID | None
+    csat_recorded_at: datetime | None
     revision_no: int
     created_by: uuid.UUID
     version: int
@@ -271,6 +293,7 @@ class OrderSummary(BaseModel):
     created_by_name: str | None
     created_at: datetime
     revision_no: int
+    csat_rating: int | None
 
 
 class OrderPage(BaseModel):
