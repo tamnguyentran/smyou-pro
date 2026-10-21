@@ -49,6 +49,7 @@ Là Sale/Quản lý kỹ thuật (QLKT)/Kỹ thuật viên (KTV)/Quản lý (Man
 | AC-DASH-017 (M7-02c) | Tuấn (TECH_LEAD) mở trang "Tổng quan" | render | Thêm khối "Nhân sự kỹ thuật ({n} đang hoạt động)" với 3 thẻ "Đang làm"/"Chưa thực hiện"/"Chưa có đầu việc", tông màu đúng theo `in_progress`/`review`/`urgent` — nhất quán với "Lịch & tải việc" | component |
 | AC-DASH-020 (M7-02d) | Đức (TECHNICIAN) có: 1 phân công `PENDING`, 1 `ACCEPTED`, 1 `IN_PROGRESS`, 1 `DONE` với `done_at` hôm nay, 1 `DONE` với `done_at` hôm qua | Đức `GET /api/v1/dashboard` | `my_task_summary = {pending_count: 1, active_count: 2, done_today_count: 1}` (chỉ tính `DONE` hôm nay, không tính cái hôm qua) | integration |
 | AC-DASH-021 (M7-02d) | Đức (TECHNICIAN) mở trang "Tổng quan" | render | Thêm khối "Đầu việc của tôi" với 3 thẻ "Chờ nhận"/"Đang làm"/"Đã xong hôm nay", đứng trước khối `today_tasks` | component |
+| AC-DASH-053 (quyết định 2026-10-21) | Bất kỳ vai trò mở trang "Tổng quan" | Bấm nút icon "Làm mới" (góc trên phải nội dung trang) | Gọi lại `GET /api/v1/dashboard`; nút chuyển trạng thái đang tải (icon xoay) trong lúc chờ | component |
 
 ## 4. API
 
@@ -112,3 +113,4 @@ Không có bảng/cột mới. Toàn bộ số liệu tính trực tiếp từ `
 - Giả định: `order_summary` đếm đủ 7 trạng thái kể cả `DRAFT`/`CANCELLED` (Sale cũng cần thấy đơn nháp chưa gửi và đơn đã huỷ của mình) — không lọc bớt trạng thái nào.
 - Giả định: "quá hạn" (`overdue_task_count`, và lọc `today_tasks`) so `due_at` với thời điểm hiện tại theo giờ máy chủ (UTC), quy đổi hiển thị/ranh giới "hôm nay" theo giờ Việt Nam (giống `_vn_day_start_utc` đã dùng ở `M4-03a`) — không có giờ hành chính đặc biệt (đã chốt ở Q14/archive: so theo giờ đồng hồ, không trừ Chủ nhật/lễ).
 - Không có câu hỏi mới cần chốt — toàn bộ dựa trên scope/role đã có sẵn trong `permissions.yaml`, không đổi quy tắc nghiệp vụ nào.
+- **Nút "Làm mới" + tự cập nhật khi có thông báo mới (quyết định 2026-10-21, AC-DASH-053)**: ngoài nút thủ công, nhận WebSocket `type: "notification"` (`M7-03`) cũng tự làm mới dữ liệu trang này — xem `M7-03-notifications-realtime-ws.md` §8.
