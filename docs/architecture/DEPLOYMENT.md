@@ -92,6 +92,28 @@ Container backend chạy `alembic upgrade head` khi khởi động. Migration ph
 - Cron hằng ngày 01:00: `pg_dump -Fc` → `/opt/smyou/backups/db-YYYYMMDD.dump`; `tar` volume uploads; giữ 14 bản; copy ra ngoài server (rclone/NAS).
 - Mỗi tháng thử khôi phục vào DB tạm (`scripts/restore_check.sh`) — backup chưa thử khôi phục = chưa có backup.
 
+### 7.1 Dọn rác sau build & deploy
+Mỗi lần `make build-prod`/`make smoke-prod` (Mac) và `docker load` + `up -d` (server) đều để lại rác — dọn định kỳ, không chỉ chờ đầy đĩa.
+
+**Trên Mac M2 (sau build):**
+```bash
+docker image prune -f                      # layer <none> (dangling) sinh ra sau mỗi build mới
+docker buildx du                           # xem cache buildx đang chiếm bao nhiêu
+docker buildx prune --filter until=168h    # dọn cache build cũ hơn 7 ngày
+docker images | grep smyou                 # rà tag cũ không còn deploy nữa
+```
+Chỉ giữ **2 tag gần nhất** của `smyou-backend`/`smyou-web` trên máy build (bản đang chạy production + 1 bản trước để `docker save` lại ngay nếu cần rollback khẩn); tag cũ hơn xoá bằng `docker rmi`.
+
+**Trên AlmaLinux (sau khi healthcheck xác nhận bản mới OK):**
+```bash
+docker image prune -f        # image <none> do docker load đè tag mới lên tag cũ
+docker container prune -f    # container đã dừng (ví dụ lần up -d lỗi trước đó)
+docker system df             # kiểm tra dung lượng trước khi dọn mạnh hơn
+```
+**Không** chạy `docker system prune -a` ngay sau deploy — tag `IMAGE_TAG` trước vẫn cần giữ tối thiểu tới khi chắc bản mới ổn (đường rollback ở §8). Quy tắc: trên server cũng chỉ giữ **2 image tag gần nhất** (đang chạy + bản trước) cho mỗi service, xoá tag cũ hơn bằng `docker rmi smyou-backend:<tag_cũ> smyou-web:<tag_cũ>`. Log container đã cấu hình `json-file` max-size 10m (`compose.prod.yml`) — tự xoay vòng, không cần dọn tay.
+
+**Backup dữ liệu (`/opt/smyou/backups`):** `scripts/backup.sh` tự dọn (`prune()`) theo biến `KEEP`, hiện đang giữ **14 bản** mỗi loại (`db-*.dump`, `uploads-*.tar.gz`) — đúng như spec `M9-02` đã merge. Chủ dự án đã quyết định đổi chính sách giữ hàng xuống **2 bản gần nhất** cho cả backup dữ liệu và image (2026-10-21) — **chưa áp dụng vào `scripts/backup.sh`**: đổi `KEEP=14`→`2` phải sửa test `backend/tests/docker/test_backup_restore.py::test_backup_keeps_14_newest_per_type` trước (TDD), cập nhật spec `M9-02`, rồi mới sửa script. Theo dõi ở `docs/backlog/BACKLOG.md` (M14-01).
+
 ## 8. Rollback
 đổi `IMAGE_TAG=<tag cũ>` trong `.env.prod` rồi `docker compose -f compose.prod.yml --env-file .env.prod up -d`. Nếu migration mới không tương thích → khôi phục từ dump trước deploy (script deploy luôn dump trước khi `up`).
 

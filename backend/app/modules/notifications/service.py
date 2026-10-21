@@ -58,7 +58,9 @@ def _notify_many(
     entity_type: str,
     entity_id: uuid.UUID,
 ) -> None:
-    for recipient_id in recipient_ids:
+    # dict.fromkeys: dedup while preserving order — a recipient who is e.g. both the order owner
+    # and an active TECH_LEAD must get exactly 1 row, not 2, for the same event.
+    for recipient_id in dict.fromkeys(recipient_ids):
         _create(
             session,
             recipient_id=recipient_id,
@@ -109,12 +111,39 @@ def notify_order_awaiting_confirmation(session: Session, order: Order) -> None:
 
 
 def notify_order_completed(session: Session, order: Order) -> None:
-    _create(
+    recipients = [*_active_tech_lead_ids(session), order.created_by]
+    _notify_many(
         session,
-        recipient_id=order.created_by,
+        recipients,
         type="ORDER_COMPLETED",
         title="Đơn hàng đã hoàn tất",
         body=f"Đơn {order.code} đã hoàn tất.",
+        entity_type="ORDER",
+        entity_id=order.id,
+    )
+
+
+def notify_order_dispatch_started(session: Session, order: Order) -> None:
+    recipients = [*_active_tech_lead_ids(session), order.created_by]
+    _notify_many(
+        session,
+        recipients,
+        type="ORDER_DISPATCH_STARTED",
+        title="Đơn hàng đã bắt đầu thực hiện",
+        body=f"Đơn {order.code} đã có kỹ thuật viên nhận và bắt đầu thực hiện.",
+        entity_type="ORDER",
+        entity_id=order.id,
+    )
+
+
+def notify_order_undispatched(session: Session, order: Order) -> None:
+    recipients = [*_active_tech_lead_ids(session), order.created_by]
+    _notify_many(
+        session,
+        recipients,
+        type="ORDER_UNDISPATCHED",
+        title="Đơn hàng quay lại chờ điều phối",
+        body=f"Đơn {order.code} không còn kỹ thuật viên nhận việc, cần điều phối lại.",
         entity_type="ORDER",
         entity_id=order.id,
     )

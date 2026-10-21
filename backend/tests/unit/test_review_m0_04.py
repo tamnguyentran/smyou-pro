@@ -69,7 +69,7 @@ def test_unknown_field_is_forbidden(tmp_path: Path) -> None:
         (
             SM,
             r"to: IN_PROGRESS\n(      actor: system\n      guards: \[has_active_assignment\]\n"
-            r"      effects: \[audit\])",
+            r"      effects: \[notify_tech_leads, notify_order_owner, audit\])",
             r"to: IN_PROGRES\n\1",
             "order.transitions[2].to: unknown state 'IN_PROGRES'",
         ),

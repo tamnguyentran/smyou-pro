@@ -221,7 +221,9 @@ def test_all_tasks_done_notifies_tech_leads_and_owner(
 
 
 @pytest.mark.ac("AC-NTF-003")
-def test_complete_notifies_owner_only(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+def test_complete_notifies_owner_and_tech_leads(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
     order_id = insert_order(
         db, created_by=people["NV005"], status="AWAITING_CONFIRMATION", code="DH2610-N003"
     )
@@ -236,7 +238,30 @@ def test_complete_notifies_owner_only(app: FastAPI, db: Connection, people: dict
 
     owner_rows = notifications_for(db, people["NV005"], type_="ORDER_COMPLETED")
     assert len(owner_rows) == 1
-    assert notifications_for(db, people["NV011"], type_="ORDER_COMPLETED") == []
+    for recipient in (people["NV010"], people["NV011"]):
+        assert len(notifications_for(db, recipient, type_="ORDER_COMPLETED")) == 1
+    assert notifications_for(db, people["NV012"], type_="ORDER_COMPLETED") == []  # SON, locked TECH_LEAD
+
+
+@pytest.mark.ac("AC-NTF-003")
+def test_complete_notifies_owner_once_when_owner_is_also_tech_lead(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    """Người tạo đơn vừa là TECH_LEAD active (role trùng) — vẫn chỉ 1 dòng thông báo, không 2 (dedup
+    trong `_notify_many`, review code-reviewer phát hiện)."""
+    order_id = insert_order(
+        db, created_by=people["NV010"], status="AWAITING_CONFIRMATION", code="DH2610-N003B"
+    )
+    insert_confirmation_attachment(db, order_id, uploaded_by=people["NV010"])
+    vy = client_as(app, VY)
+
+    res = vy.post(
+        f"/api/v1/orders/{order_id}/complete",
+        json={"version": 1, "confirmation_signer_name": "Lê Thị Mai"},
+    )
+    assert res.status_code == 200, res.text
+
+    assert len(notifications_for(db, people["NV010"], type_="ORDER_COMPLETED")) == 1
 
 
 @pytest.mark.ac("AC-NTF-004")
@@ -252,6 +277,59 @@ def test_request_revision_notifies_owner(app: FastAPI, db: Connection, people: d
 
     owner_rows = notifications_for(db, people["NV005"], type_="ORDER_REVISION_REQUESTED")
     assert len(owner_rows) == 1
+
+
+@pytest.mark.ac("AC-NTF-049")
+def test_start_dispatch_notifies_owner_and_tech_leads(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    """Đơn `PENDING_DISPATCH`; QLKT tạo task đầu tiên có người nhận → hệ thống tự chuyển đơn sang
+    `IN_PROGRESS` (`start_dispatch`) ngay (Q90) — người tạo đơn và mọi TECH_LEAD active phải biết."""
+    order_id = insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code="DH2610-N049")
+    tuan = client_as(app, TUAN)
+
+    res = tuan.post(
+        f"/api/v1/orders/{order_id}/tasks",
+        json={
+            "version": 1,
+            "title": "Lắp 2 camera",
+            "estimated_hours": "2",
+            "due_at": "2026-10-07T09:00:00+07:00",
+            "assignee_ids": [str(people["NV014"])],
+        },
+    )
+    assert res.status_code == 200, res.text
+    assert order_row(db, order_id).status == "IN_PROGRESS"
+
+    owner_rows = notifications_for(db, people["NV005"], type_="ORDER_DISPATCH_STARTED")
+    assert len(owner_rows) == 1
+    for recipient in (people["NV010"], people["NV011"]):
+        assert len(notifications_for(db, recipient, type_="ORDER_DISPATCH_STARTED")) == 1
+    assert notifications_for(db, people["NV012"], type_="ORDER_DISPATCH_STARTED") == []  # locked TECH_LEAD
+
+
+@pytest.mark.ac("AC-NTF-050")
+def test_undispatch_notifies_owner_and_tech_leads(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    """Đơn `IN_PROGRESS` còn đúng 1 assignment `PENDING`; KTV từ chối → hết assignment active, đơn
+    lùi lại `PENDING_DISPATCH` (`undispatch`, Q90) — người tạo đơn và mọi TECH_LEAD active phải biết."""
+    order_id = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code="DH2610-N050")
+    task_id = insert_task(db, order_id, created_by=people["NV010"], status="PENDING_ACCEPTANCE")
+    assignment_id = insert_assignment(db, task_id, people["NV014"], "PENDING")
+    khoa = client_as(app, KHOA)
+
+    res = khoa.post(
+        f"/api/v1/assignments/{assignment_id}/reject",
+        json={"version": 1, "reason_code": "BUSY", "reason_text": "Đang kẹt lắp đặt đơn khác"},
+    )
+    assert res.status_code == 200, res.text
+    assert order_row(db, order_id).status == "PENDING_DISPATCH"
+
+    owner_rows = notifications_for(db, people["NV005"], type_="ORDER_UNDISPATCHED")
+    assert len(owner_rows) == 1
+    for recipient in (people["NV010"], people["NV011"]):
+        assert len(notifications_for(db, recipient, type_="ORDER_UNDISPATCHED")) == 1
 
 
 # ---------------- task effects ----------------
