@@ -1,6 +1,6 @@
 # M15-02b — Ghi nhận phản hồi khách hàng (CSKH) — Giao diện
 
-- **Status:** Draft
+- **Status:** Approved (2026-10-21, chốt Q91 — xem mục 8)
 - **Backlog:** M15-02b · **Milestone:** M15
 - **Liên quan:** M15-02a (API `PUT /orders/{id}/csat`, `GET /orders/csat-summary`); `docs/specs/M3-03b-order-list-detail-ui.md` (trang danh sách/chi tiết đơn tái dùng); `docs/design/UI_GUIDELINES.md` (màu nền thẻ/dòng, token màu)
 
@@ -12,7 +12,9 @@ Là CSKH, tôi muốn thấy ngay trên danh sách đơn đơn nào đã đượ
   - Trang `/orders` (dùng lại danh sách hiện có, M3-03b): khi người dùng có vai trò CUSTOMER_CARE, mặc định bộ lọc ngày = từ ngày đầu tháng hiện tại đến hôm nay (người dùng đổi được).
   - Tô màu nền mỗi dòng/thẻ đơn theo `csat_rating`: `csat_rating >= 4` → xanh nhạt (token `success-subtle` hoặc tương đương trong UI_GUIDELINES); `csat_rating == 3` → vàng nhạt (`warning-subtle`); `csat_rating <= 2` → hồng nhạt (`danger-subtle`); `csat_rating == null` → giữ nguyên nền hiện tại (không đổi).
   - Ô thống kê ngay trên danh sách: 5 số đếm theo sao (và số "chưa đánh giá"), lấy từ `GET /orders/csat-summary` với đúng filter hiện tại của danh sách; bấm vào 1 số → lọc danh sách theo đúng mức sao đó (ví dụ bấm "3★: 4" → danh sách chỉ còn 4 đơn 3 sao).
-  - Trang chi tiết đơn (`/orders/:id`): thêm khối "Phản hồi khách hàng" (chỉ hiện với CUSTOMER_CARE hoặc MANAGER, chỉ khi đơn `COMPLETED`) — chọn sao (1–5) + ô nhập nội dung (bắt buộc) + nút "Lưu phản hồi"; nếu đã có phản hồi, hiện lại giá trị cũ, cho sửa.
+  - Trang chi tiết đơn (`/orders/:id`): thêm khối "Phản hồi khách hàng", chỉ khi đơn `COMPLETED`.
+    - CUSTOMER_CARE/MANAGER: form đầy đủ — chọn sao (1–5) + ô nhập nội dung (bắt buộc) + nút "Lưu phản hồi"; nếu đã có phản hồi, hiện lại giá trị cũ, cho sửa (nút đổi thành "Cập nhật phản hồi").
+    - TECH_LEAD/SALE: chỉ-đọc — nếu đơn đã có phản hồi, hiện lại sao + nội dung đã lưu, không có ô nhập/nút lưu nào; nếu đơn `COMPLETED` nhưng **chưa** có phản hồi, ẩn hoàn toàn khối (không có gì để đọc).
 - Ngoài phạm vi: nút "Tạo yêu cầu chỉnh sửa" (M15-03).
 
 ## 3. Acceptance Criteria
@@ -25,10 +27,13 @@ Là CSKH, tôi muốn thấy ngay trên danh sách đơn đơn nào đã đượ
 | AC-CSK-013 | Mở đơn `COMPLETED` chưa có phản hồi | render chi tiết đơn | Khối "Phản hồi khách hàng" hiện form trống: 5 ô sao + ô nội dung + nút "Lưu phản hồi" (disabled khi chưa chọn sao hoặc chưa nhập nội dung) | component |
 | AC-CSK-014 | Form đã chọn 4 sao, nhập "Khách hài lòng" | Bấm "Lưu phản hồi" | Gọi `PUT /orders/{id}/csat`; thành công → toast "Đã lưu phản hồi của khách hàng."; khối cập nhật hiện lại giá trị đã lưu, nút đổi thành "Cập nhật phản hồi" | component |
 | AC-CSK-015 | Mở đơn chưa `COMPLETED` (vd `PENDING_DISPATCH`) | render chi tiết đơn | Không hiện khối "Phản hồi khách hàng" (ẩn hoàn toàn, không hiện form disabled) | component |
-| AC-CSK-016 | Hoa (SALE, không phải CUSTOMER_CARE/MANAGER) mở đơn `COMPLETED` | render chi tiết đơn | Không hiện khối "Phản hồi khách hàng" | component |
+| AC-CSK-016 | Hoa (SALE, không phải CUSTOMER_CARE/MANAGER) mở đơn `COMPLETED` **đã có** phản hồi (4 sao, "Khách hài lòng") | render chi tiết đơn | Khối "Phản hồi khách hàng" hiện chỉ-đọc: 4 sao + nội dung đã lưu, không có ô nhập/nút "Lưu phản hồi"/"Cập nhật phản hồi" | component |
+| AC-CSK-017 | Hoa (SALE) hoặc Nam (TECH_LEAD) mở đơn `COMPLETED` **chưa có** phản hồi | render chi tiết đơn | Không hiện khối "Phản hồi khách hàng" (ẩn hoàn toàn) | component |
 
 ## 4. API
-Không có route mới — dùng `GET /orders`, `GET /orders/csat-summary`, `PUT /orders/{id}/csat` từ M15-02a.
+Không có route mới — dùng `GET /orders`, `GET /orders/csat-summary`, `POST /orders/{id}/csat` từ M15-02a. `GET /orders` hiện **chưa** có tham số `from`/`to` (ngày) hay `csat_rating`, và `OrderSummary` (item danh sách) chưa có trường `csat_rating` — mở rộng route hiện có (không phải route mới) để đáp ứng AC-CSK-010/011/012:
+- Thêm query `from`/`to` (alias trùng `GET /orders/csat-summary`, lọc theo `Order.completed_at` — khớp Q92: đơn chưa `COMPLETED` sẽ không có trong danh sách khi đặt bộ lọc ngày) và `csat_rating: int | None` (lọc chính xác 1 mức sao).
+- Thêm trường `csat_rating: int | None` vào `OrderSummary` để FE tô màu dòng/thẻ mà không phải gọi thêm API theo từng đơn.
 
 ## 5. Dữ liệu / Migration
 Không có (đã làm ở M15-02a).
@@ -45,4 +50,4 @@ Không có (đã làm ở M15-02a).
 
 ## 8. Giả định & câu hỏi
 - Giả định: màu nền áp cho **toàn dòng/thẻ**, không chỉ 1 cột riêng — để dễ nhận biết từ xa trên danh sách dài.
-- Câu hỏi mới (→ `OPEN_QUESTIONS.md`): có cần hiện khối "Phản hồi khách hàng" ở dạng chỉ-đọc cho TECH_LEAD/SALE (không sửa, chỉ xem) để họ biết khách đánh giá sao không, hay giữ kín hoàn toàn với 2 vai trò đó như AC-CSK-016? Mặc định: giữ kín (chỉ CUSTOMER_CARE/MANAGER thấy khối này trên trang chi tiết đơn — các vai trò khác xem số liệu tổng hợp qua Dashboard M15-04 thay vì từng đơn).
+- Q91 (đã chốt 2026-10-21, `docs/product/OPEN_QUESTIONS_ARCHIVE.md`): khối "Phản hồi khách hàng" hiện chỉ-đọc cho TECH_LEAD/SALE khi đơn đã có phản hồi (AC-CSK-016/017), thay vì giữ kín hoàn toàn như bản Draft ban đầu.
