@@ -31,6 +31,7 @@ MANAGER_CAPABILITIES = {
     "order.submit": ["all"],
     "order.cancel": ["all"],
     "order.cancel_active": ["all"],
+    "customer_care.manage_feedback": ["all"],
     "task.read": ["all"],
     "dashboard.read": ["all"],
     "kpi.read": ["all"],
@@ -77,7 +78,7 @@ def test_manager_sees_profile_roles_and_exactly_their_capabilities(api: TestClie
     }
     assert body["roles"] == ["MANAGER"]
     assert body["capabilities"] == MANAGER_CAPABILITIES
-    assert len(MANAGER_CAPABILITIES) == 21
+    assert len(MANAGER_CAPABILITIES) == 22
     assert "task.manage" not in MANAGER_CAPABILITIES
     assert "assignment.respond" not in MANAGER_CAPABILITIES
     assert body["counters"] == {}

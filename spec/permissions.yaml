@@ -44,6 +44,7 @@ capabilities:
   order.upload_confirmation: { TECH_LEAD: all, TECHNICIAN: assigned }
   order.complete:        { TECH_LEAD: all, TECHNICIAN: assigned }  # Q04
   order.revise:          { TECH_LEAD: all }
+  customer_care.manage_feedback: { MANAGER: all, CUSTOMER_CARE: all }  # scaffolded here (M15-01), used from M15-02a
   # --- Đầu việc ---
   task.read:             { MANAGER: all, TECH_LEAD: all, TECHNICIAN: assigned }
   task.manage:           { TECH_LEAD: all }          # create, update, assign, remove assignee, cancel
