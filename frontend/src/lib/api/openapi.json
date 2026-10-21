@@ -2252,24 +2252,17 @@
             "title": "Csat Comment"
           },
           "csat_rating": {
-            "anyOf": [
-              {
-                "maximum": 5.0,
-                "minimum": 1.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Csat Rating"
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Csat Rating",
+            "type": "integer"
           },
           "version": {
             "title": "Version",
             "type": "integer"
           }
         },
-        "required": ["version"],
+        "required": ["version", "csat_rating"],
         "title": "OrderCsatUpdate",
         "type": "object"
       },
