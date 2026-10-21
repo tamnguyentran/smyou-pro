@@ -3073,6 +3073,17 @@
             ],
             "title": "Created By Name"
           },
+          "csat_rating": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Csat Rating"
+          },
           "customer_name": {
             "anyOf": [
               {
@@ -3153,7 +3164,8 @@
           "created_by",
           "created_by_name",
           "created_at",
-          "revision_no"
+          "revision_no",
+          "csat_rating"
         ],
         "title": "OrderSummary",
         "type": "object"
@@ -6572,6 +6584,58 @@
               "default": false,
               "title": "Overdue",
               "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "csat_rating",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 5,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Csat Rating"
             }
           },
           {

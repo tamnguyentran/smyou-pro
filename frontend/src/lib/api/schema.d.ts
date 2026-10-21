@@ -2313,6 +2313,8 @@ export interface components {
       created_by: string;
       /** Created By Name */
       created_by_name: string | null;
+      /** Csat Rating */
+      csat_rating: number | null;
       /** Customer Name */
       customer_name: string | null;
       /** Customer Phone */
@@ -4316,6 +4318,9 @@ export interface operations {
         sort?: "created_at_desc" | "dispatch";
         mine?: boolean;
         overdue?: boolean;
+        from?: string | null;
+        to?: string | null;
+        csat_rating?: number | null;
         limit?: number;
         offset?: number;
       };
