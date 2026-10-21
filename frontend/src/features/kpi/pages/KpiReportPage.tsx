@@ -11,13 +11,16 @@ import { KpiFilters } from "../components/KpiFilters";
 import { KpiRows } from "../components/KpiRows";
 import { KpiSelfCard } from "../components/KpiSelfCard";
 import { KpiSkeleton } from "../components/KpiSkeleton";
-import { defaultKpiRange } from "../dateRange";
+import { defaultMonthToDateRange } from "../../../lib/dateRange";
 
 /** AC-KPI-016…026 (M8-01b): trang `/reports/kpi` — số liệu KPI thô theo KTV. */
 export function KpiReportPage() {
   usePageTitle("Báo cáo KPI");
   const me = useMe();
-  const [filters, setFilters] = useState<Filters>(() => ({ ...defaultKpiRange(), employeeId: "" }));
+  const [filters, setFilters] = useState<Filters>(() => ({
+    ...defaultMonthToDateRange(),
+    employeeId: "",
+  }));
 
   const allowed = me.data !== undefined && "kpi.read" in me.data.capabilities;
   const isSelf = me.data !== undefined && (me.data.capabilities["kpi.read"] ?? []).includes("self");

@@ -209,6 +209,25 @@ describe("AC-SYS-073 danh sách nhật ký (điện thoại)", () => {
 });
 
 describe("AC-SYS-074 bộ lọc", () => {
+  test("mặc định đầu tháng hiện tại → hôm nay, gọi API đúng tham số", async () => {
+    vi.setSystemTime(new Date("2026-09-15T10:00:00Z"));
+    let lastQuery = "";
+    signedInAs(AN, ({ request }) => {
+      lastQuery = new URL(request.url).search;
+      return HttpResponse.json(page([auditEvent()]));
+    });
+    renderApp("/audit");
+    await openAudit();
+
+    await waitFor(() => {
+      expect(lastQuery).toContain("occurred_from=2026-09-01");
+      expect(lastQuery).toContain("occurred_to=2026-09-15");
+    });
+    expect(screen.getByLabelText("Từ ngày")).toHaveValue("2026-09-01");
+    expect(screen.getByLabelText("Đến ngày")).toHaveValue("2026-09-15");
+    vi.useRealTimers();
+  });
+
   test("chọn người thực hiện gọi lại API với actor_id; Xoá lọc trả về danh sách đầy đủ", async () => {
     let lastQuery = "";
     signedInAs(AN, ({ request }) => {

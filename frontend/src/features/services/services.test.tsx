@@ -244,7 +244,7 @@ describe("AC-CAT-028 thêm dịch vụ", () => {
     expect(posted).toBe(false);
   });
 
-  test("409 CONFLICT code hiện dưới đúng ô; lưu xong → toast, chuyển sang chi tiết dịch vụ mới", async () => {
+  test("409 CONFLICT code hiện dưới đúng ô; lưu xong → toast, đóng modal", async () => {
     let attempt = 0;
     signedInAs(AN, () => HttpResponse.json(page([])));
     server.use(
@@ -292,8 +292,8 @@ describe("AC-CAT-028 thêm dịch vụ", () => {
 
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
     expect(await screen.findByText("Đã thêm dịch vụ Cài đặt phần mềm.")).toBeInTheDocument();
-    // cùng Sheet chuyển sang chế độ sửa cho dịch vụ vừa tạo — không mở lại ô mã dịch vụ nữa
-    expect(await screen.findByRole("dialog", { name: "Sửa dịch vụ" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Thêm dịch vụ" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Sửa dịch vụ" })).not.toBeInTheDocument();
   });
 
   test("AC-CAT-072: 409 CONFLICT name hiện dưới ô Tên dịch vụ", async () => {

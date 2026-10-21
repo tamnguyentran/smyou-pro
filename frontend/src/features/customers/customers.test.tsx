@@ -304,6 +304,35 @@ describe("AC-CUS-010 thêm khách hàng", () => {
     ).toBeInTheDocument();
   });
 
+  test("lưu xong, không trùng SĐT → đóng modal luôn (không chuyển sang chi tiết)", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([])));
+    server.use(
+      http.post("/api/v1/customers", async ({ request }) => {
+        const body = (await request.json()) as { name: string; phone: string };
+        return HttpResponse.json(
+          {
+            ...customer({ id: "new-id", name: body.name, phone: body.phone }),
+            duplicate_phone_matches: [],
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    renderApp("/customers");
+    await openMenu();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Thêm khách hàng" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm khách hàng" });
+    await user.type(within(dialog).getByLabelText("Tên khách hàng"), "Cty Việt Phát");
+    await user.type(within(dialog).getByLabelText("Số điện thoại"), "0909123456");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+
+    expect(await screen.findByText("Đã thêm khách hàng Cty Việt Phát.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Thêm khách hàng" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Sửa khách hàng" })).not.toBeInTheDocument();
+  });
+
   test("409 CONFLICT (mã trùng) hiện dưới đúng ô", async () => {
     signedInAs(AN, () => HttpResponse.json(page([])));
     server.use(

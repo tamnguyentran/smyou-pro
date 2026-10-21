@@ -80,8 +80,8 @@ test("AC-CAT-028 AC-CAT-032 @a11y @screenshot thêm dịch vụ", async ({ page 
 
   await form.getByRole("button", { name: "Lưu" }).click();
   await expect(page.getByText(`Đã thêm dịch vụ ${name}.`)).toBeVisible();
-  // Cùng Sheet chuyển sang chế độ sửa cho dịch vụ vừa tạo (như M2-01b)
-  await expect(page.getByRole("dialog", { name: "Sửa dịch vụ" })).toBeVisible();
+  // Lưu thành công → đóng Sheet (quyết định 2026-10-20, xem M2-01b §8)
+  await expect(page.getByRole("dialog", { name: "Thêm dịch vụ" })).not.toBeVisible();
 });
 
 test("AC-CAT-030 ngừng kinh doanh, badge đổi ngay không cần tải lại", async ({ page }) => {
@@ -89,13 +89,19 @@ test("AC-CAT-030 ngừng kinh doanh, badge đổi ngay không cần tải lại"
   await page.getByRole("button", { name: "Thêm dịch vụ" }).click();
   const form = page.getByRole("dialog", { name: "Thêm dịch vụ" });
   const code = `QA-DV-STOP-${String(Date.now())}`;
+  const name = `QA Ngừng kinh doanh ${code}`;
   await form.getByLabel("Mã dịch vụ").fill(code);
-  await form.getByLabel("Tên dịch vụ").fill(`QA Ngừng kinh doanh ${code}`);
+  await form.getByLabel("Tên dịch vụ").fill(name);
   await form.getByLabel("Nhóm dịch vụ").selectOption("OTHER");
   await form.getByLabel("Đơn vị tính").selectOption("LAN");
   await form.getByLabel("Đơn giá (chưa VAT)").fill("100000");
   await form.getByRole("button", { name: "Lưu" }).click();
+  await expect(page.getByText(`Đã thêm dịch vụ ${name}.`)).toBeVisible();
 
+  await page.getByLabel("Tìm kiếm").fill(code);
+  // getByRole("button", …) (chứ không phải getByText): toast "Đã thêm dịch vụ {name}." vẫn còn
+  // hiện và chứa `name` làm chuỗi con — getByText sẽ khớp nhầm vào đó thay vì dòng trong bảng.
+  await page.getByRole("button", { name }).click();
   const editDialog = page.getByRole("dialog", { name: "Sửa dịch vụ" });
   await expect(editDialog).toBeVisible();
   await editDialog.getByRole("button", { name: "Ngừng kinh doanh" }).click();
