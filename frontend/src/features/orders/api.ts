@@ -20,6 +20,8 @@ export type OrderContactUpdateBody = components["schemas"]["OrderContactUpdate"]
 export type OrderCancelBody = components["schemas"]["OrderCancel"];
 export type OrderCompleteBody = components["schemas"]["OrderComplete"];
 export type OrderReviseBody = components["schemas"]["OrderRevise"];
+export type OrderCsatBody = components["schemas"]["OrderCsatUpdate"];
+export type CsatSummary = Record<string, number>;
 export type AuditEventOut = components["schemas"]["AuditEventOut"];
 export type ConfirmationAttachment = components["schemas"]["ConfirmationAttachment"];
 
@@ -32,12 +34,17 @@ export interface OrderFilters {
   status: string;
   mine: boolean;
   overdue: boolean;
+  dateFrom?: string;
+  dateTo?: string;
+  csatRating?: number;
   limit: number;
   offset: number;
 }
 
 /** AC-ORD-069: danh sách đơn — tìm theo mã/tên khách/SĐT, lọc theo trạng thái.
- * AC-DASH-022/023/024/025 (M10-03): `mine` lọc hẹp thêm theo `created_by` sau scope hiện có. */
+ * AC-DASH-022/023/024/025 (M10-03): `mine` lọc hẹp thêm theo `created_by` sau scope hiện có.
+ * AC-CSK-010/012 (M15-02b): `dateFrom`/`dateTo` lọc theo `Order.completed_at` (Q92), `csatRating`
+ * lọc theo 1 mức sao — cùng tham số với `GET /orders/csat-summary` để số đếm luôn khớp danh sách. */
 export function useOrders(filters: OrderFilters, { enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     enabled,
@@ -50,6 +57,9 @@ export function useOrders(filters: OrderFilters, { enabled = true }: { enabled?:
             status: (filters.status || undefined) as OrderStatus | undefined,
             mine: filters.mine || undefined,
             overdue: filters.overdue || undefined,
+            from: filters.dateFrom,
+            to: filters.dateTo,
+            csat_rating: filters.csatRating,
             limit: filters.limit,
             offset: filters.offset,
           },
@@ -58,6 +68,38 @@ export function useOrders(filters: OrderFilters, { enabled = true }: { enabled?:
       if (!data) throw toApiError(response, error);
       return data;
     },
+  });
+}
+
+export const CSAT_SUMMARY_KEY = "orders-csat-summary";
+
+/** AC-CSK-012 (M15-02b): ô thống kê theo mức sao trên `/orders`, cùng `from`/`to` của danh sách. */
+export function useCsatSummary(filters: { dateFrom?: string; dateTo?: string }) {
+  return useQuery({
+    queryKey: [CSAT_SUMMARY_KEY, filters],
+    queryFn: async () => {
+      const { data, error, response } = await api.GET("/api/v1/orders/csat-summary", {
+        params: { query: { from: filters.dateFrom, to: filters.dateTo } },
+      });
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+  });
+}
+
+/** AC-CSK-014 (M15-02b): CUSTOMER_CARE/MANAGER ghi/sửa phản hồi khách hàng trên đơn COMPLETED. */
+export function useRecordCsat() {
+  const setOrder = useSetOrder();
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: OrderCsatBody }) => {
+      const { data, error, response } = await api.POST("/api/v1/orders/{order_id}/csat", {
+        params: { path: { order_id: id } },
+        body,
+      });
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: setOrder,
   });
 }
 

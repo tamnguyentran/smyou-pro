@@ -1,10 +1,20 @@
 import type { ReactNode } from "react";
 import { Badge } from "../../../components/ui/Badge";
+import { cn } from "../../../lib/cn";
 import { formatCurrency, formatDate } from "../../../lib/format";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
 import { useNavigate } from "react-router";
 import type { OrderSummary } from "../api";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, type OrderStatus } from "../orderStatus";
+
+/** AC-CSK-011 (M15-02b): tô nền toàn dòng/thẻ theo `csat_rating` — >=4 xanh nhạt, ==3 vàng nhạt,
+ * <=2 hồng nhạt, chưa đánh giá giữ nguyên nền mặc định. Dùng lại token màu Badge, không tạo mới. */
+function csatRowClass(rating: number | null): string | undefined {
+  if (rating === null) return undefined;
+  if (rating >= 4) return "bg-completed-bg";
+  if (rating === 3) return "bg-review-bg";
+  return "bg-urgent-bg";
+}
 
 const CODE_BUTTON =
   "min-h-11 rounded font-semibold text-heading underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2";
@@ -57,7 +67,10 @@ export function OrderList({
             return (
               <tr
                 key={order.id}
-                className="cursor-pointer hover:bg-sidebar-sub"
+                className={cn(
+                  "cursor-pointer hover:bg-sidebar-sub",
+                  csatRowClass(order.csat_rating),
+                )}
                 onClick={() => {
                   open(order);
                 }}
@@ -105,7 +118,10 @@ export function OrderList({
               onClick={() => {
                 open(order);
               }}
-              className="flex w-full flex-col items-start gap-1 rounded-2xl bg-card p-5 text-left shadow-card transition duration-200 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+              className={cn(
+                "flex w-full flex-col items-start gap-1 rounded-2xl p-5 text-left shadow-card transition duration-200 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
+                csatRowClass(order.csat_rating) ?? "bg-card",
+              )}
             >
               <div className="flex w-full items-center justify-between gap-2">
                 <span className="font-semibold text-heading">{order.code}</span>
