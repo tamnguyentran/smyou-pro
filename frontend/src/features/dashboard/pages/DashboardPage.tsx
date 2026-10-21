@@ -16,10 +16,28 @@ import { TodayTasksSection } from "../components/TodayTasksSection";
 
 /** AC-DASH-001…015 (M7-02): trang "/" — dashboard thật theo (các) vai trò, thay `HomePage` cũ. */
 export function DashboardPage() {
-  usePageTitle("Tổng quan");
   const me = useMe();
   const allowed = me.data !== undefined && "dashboard.read" in me.data.capabilities;
   const dashboard = useDashboard({ enabled: allowed });
+  usePageTitle(
+    "Tổng quan",
+    allowed ? (
+      <button
+        type="button"
+        aria-label="Làm mới"
+        disabled={dashboard.isFetching}
+        onClick={() => {
+          void dashboard.refetch();
+        }}
+        className="flex size-9 shrink-0 items-center justify-center rounded-xl text-heading hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        <RefreshCw
+          aria-hidden="true"
+          className={cn("size-5", dashboard.isFetching && "animate-spin")}
+        />
+      </button>
+    ) : null,
+  );
 
   if (!me.data && me.isError) {
     return (
@@ -55,22 +73,6 @@ export function DashboardPage() {
   const data = dashboard.data;
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <button
-          type="button"
-          aria-label="Làm mới"
-          disabled={dashboard.isFetching}
-          onClick={() => {
-            void dashboard.refetch();
-          }}
-          className="flex size-11 items-center justify-center rounded-xl text-heading hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          <RefreshCw
-            aria-hidden="true"
-            className={cn("size-5", dashboard.isFetching && "animate-spin")}
-          />
-        </button>
-      </div>
       {data.order_summary ? <OrderSummarySection summary={data.order_summary} /> : null}
       {data.dispatch_summary ? (
         <DispatchSummarySection

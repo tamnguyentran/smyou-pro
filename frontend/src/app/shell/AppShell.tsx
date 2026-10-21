@@ -192,6 +192,11 @@ export function AppShell() {
   useNotificationsRealtime();
   const desktop = useMediaQuery(DESKTOP, true);
   const [title, setTitle] = useState("");
+  const [titleAction, setTitleAction] = useState<ReactNode>(null);
+  const setPageTitle = useCallback((next: string, action?: ReactNode) => {
+    setTitle(next);
+    setTitleAction(action ?? null);
+  }, []);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
@@ -206,14 +211,17 @@ export function AppShell() {
 
   if (desktop) {
     return (
-      <PageTitleContext value={setTitle}>
+      <PageTitleContext value={setPageTitle}>
         <div className="flex h-dvh overflow-hidden bg-page">
           <aside className="w-72 shrink-0 border-r border-line bg-card">
             <Panel />
           </aside>
           <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
             <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-line bg-card px-8">
-              <h1 className="truncate text-2xl font-bold tracking-tight text-heading">{title}</h1>
+              <div className="flex min-w-0 items-center gap-2">
+                <h1 className="truncate text-2xl font-bold tracking-tight text-heading">{title}</h1>
+                {titleAction}
+              </div>
               <div className="flex items-center gap-2">
                 <NotificationBell />
                 <PrimaryAction />
@@ -228,7 +236,7 @@ export function AppShell() {
     );
   }
   return (
-    <PageTitleContext value={setTitle}>
+    <PageTitleContext value={setPageTitle}>
       <div className="flex min-h-dvh flex-col bg-page" inert={drawerOpen}>
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b border-line bg-card px-2">
           <button
@@ -242,7 +250,10 @@ export function AppShell() {
           >
             <MenuIcon aria-hidden="true" className="size-6" />
           </button>
-          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-heading">{title}</h1>
+          <div className="flex min-w-0 flex-1 items-center gap-1">
+            <h1 className="min-w-0 truncate text-lg font-semibold text-heading">{title}</h1>
+            {titleAction}
+          </div>
           <NotificationBell />
         </header>
         <Content className="pb-24">
