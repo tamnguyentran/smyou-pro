@@ -93,14 +93,24 @@ def _detail_for(missing: list[str]) -> str:
     return ", ".join(missing)
 
 
+def _sniff_delimiter(first_line: str) -> str:
+    try:
+        return csv.Sniffer().sniff(first_line, delimiters=",;").delimiter
+    except csv.Error:
+        return ","
+
+
 def read_rows(file_bytes: bytes, kind: Kind) -> list[tuple[int, dict[str, str]]]:
     if len(file_bytes) > MAX_FILE_BYTES:
         raise AppError(422, "FILE_TOO_LARGE", "Tệp vượt quá 2MB.")
     try:
-        text = file_bytes.decode("utf-8")
+        # utf-8-sig: strips a UTF-8 BOM if present (Excel adds one on save), no-op otherwise.
+        text = file_bytes.decode("utf-8-sig")
     except UnicodeDecodeError as exc:
         raise AppError(422, "INVALID_FILE", "Tệp không phải CSV hợp lệ (cần mã hoá UTF-8).") from exc
-    reader = csv.DictReader(io.StringIO(text))
+    first_line, _, _ = text.partition("\n")
+    delimiter = _sniff_delimiter(first_line)
+    reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
     fieldnames = reader.fieldnames or []
     missing = [c for c in _REQUIRED[kind] if c not in fieldnames]
     if missing:
