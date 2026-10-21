@@ -13,7 +13,7 @@ Dữ liệu mẫu: **An** NV001 [MANAGER]; **Hoa** NV005 [SALE]; **Tuấn** NV01
 | ID | Given | When | Then | Lớp test |
 |---|---|---|---|---|
 | AC-CAT-012 | An trên máy tính / điện thoại | mở "Danh mục" → "Sản phẩm" | máy tính: bảng Mã hàng · Tên · Danh mục · Giá (đã format `12.500.000 ₫`) · Trạng thái (badge); điện thoại: thẻ xếp dọc kèm ảnh thu nhỏ; ô tìm (gõ xong 300ms mới gọi API), lọc danh mục (`category`), lọc trạng thái; phân trang; trạng thái tải (Skeleton), trống ("Chưa có sản phẩm phù hợp."), lỗi (Thử lại) | component + e2e |
-| AC-CAT-013 | An | bấm "Thêm sản phẩm" (icon `Monitor`), điền `sku, name, category, brand, unit, price, vat_rate, price_fixed, warranty_months, specs`, Lưu | zod kiểm ở client trước (giá ≥ 0, VAT `[0,100]`); lỗi 409/422 server hiện dưới đúng ô; lưu xong → toast "Đã thêm sản phẩm PC SMYOU CORE I5-13400."; điều hướng sang trang chi tiết | component + e2e |
+| AC-CAT-013 | An | bấm "Thêm sản phẩm" (icon `Monitor`), điền `sku, name, category, brand, unit, price, vat_rate, price_fixed, warranty_months, specs`, Lưu | zod kiểm ở client trước (giá ≥ 0, VAT `[0,100]`); lỗi 409/422 server hiện dưới đúng ô; lưu xong → toast "Đã thêm sản phẩm PC SMYOU CORE I5-13400."; đóng Sheet | component + e2e |
 | AC-CAT-014 | An mở một sản phẩm đã tồn tại | sửa thông tin (không có ô `sku`/`category`/`unit` — đã khoá sau khi tạo), Lưu | toast "Đã cập nhật."; 409 `STALE_VERSION` → "Thông tin đã bị người khác thay đổi. Vui lòng tải lại." + nút Tải lại | component |
 | AC-CAT-015 | An | "Ngừng kinh doanh" / "Mở lại kinh doanh" | `ConfirmDialog`: ngừng → "Sản phẩm sẽ không hiện khi tạo đơn mới."; xác nhận → badge đổi ngay, không cần tải lại trang | component + e2e |
 | AC-CAT-016 | An mở form sản phẩm chưa có ảnh | chọn file ảnh từ máy (`accept="image/*"`) | xem trước ảnh trước khi lưu; nén phía client (cạnh dài ≤ 2000px, JPEG 0.85, theo mẫu UI_GUIDELINES dòng 71) trước khi tải lên; thanh tiến trình khi tải; tải xong → ảnh hiện trong danh sách và trang chi tiết. Chọn file không phải ảnh / > 10MB → thông báo tiếng Việt tương ứng lỗi server (`INVALID_FILE_TYPE`→"Tệp không phải ảnh hợp lệ.", `FILE_TOO_LARGE`→"Ảnh vượt quá 10MB.") mà **không** gọi API nén/tải nếu client tự phát hiện được kích thước trước | component + e2e |
@@ -40,5 +40,6 @@ Không có.
 
 ## 8. Giả định
 Theo Q42–Q44 (OPEN_QUESTIONS, xem M2-01a §8).
-- **"Điều hướng sang trang chi tiết" (AC-CAT-013)**: app chưa có route theo id nào (kể cả `/employees`, M1-04b) — mọi nơi dùng Sheet. Hiểu là: tạo xong, cùng Sheet chuyển sang chế độ sửa cho sản phẩm vừa tạo (đã có `id`, phần ảnh xuất hiện), không mở URL riêng `/catalog/products/:id`. Nhất quán với M1-04b.
+- **"Điều hướng sang trang chi tiết" (AC-CAT-013)**: app chưa có route theo id nào (kể cả `/employees`, M1-04b) — mọi nơi dùng Sheet, không mở URL riêng `/catalog/products/:id`.
+- **Đóng Sheet sau khi lưu (quyết định 2026-10-20, thay cho giả định cũ "chuyển sang chế độ sửa")**: tạo mới hoặc sửa thành công → đóng Sheet luôn, không giữ mở để chuyển chế độ. Chỉ giữ mở khi lưu lỗi (để sửa) — áp dụng chung cho mọi Sheet thêm/sửa trong app (Sản phẩm, Dịch vụ, Nhân viên, Khách hàng).
 - **Copy nút "Mở lại kinh doanh"**: spec chỉ cho câu xác nhận khi ngừng. Dùng câu đối xứng: "Sản phẩm sẽ hiện lại khi tạo đơn mới."

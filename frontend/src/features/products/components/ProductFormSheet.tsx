@@ -127,8 +127,7 @@ export function ProductFormSheet({
         };
         const created = await create.mutateAsync(body);
         toast(`Đã thêm sản phẩm ${created.name}.`);
-        // §8 giả định: cùng Sheet chuyển sang chế độ sửa cho sản phẩm vừa tạo — không mở URL riêng.
-        setProduct(created);
+        onClose();
         return;
       }
       const updated = await update.mutateAsync({

@@ -127,8 +127,12 @@ export function CustomerFormSheet({
         const body: CustomerCreateBody = shared;
         const created = await create.mutateAsync(body);
         toast(`Đã thêm khách hàng ${created.name}.`);
-        // Cùng Sheet chuyển sang chế độ sửa cho khách hàng vừa tạo (như M2-01b/M2-02) — banner cảnh
-        // báo (nếu có) vẫn hiện vì Sheet không đóng.
+        // Trùng SĐT là cảnh báo không chặn (AC-CUS-010) nhưng cần ở lại để người dùng đọc được —
+        // đóng ngay sẽ làm banner biến mất trước khi kịp thấy (giống nhánh sửa ở dưới).
+        if (created.duplicate_phone_matches.length === 0) {
+          onClose();
+          return;
+        }
         setCustomer(created);
         setDuplicateMatches(created.duplicate_phone_matches);
         return;
