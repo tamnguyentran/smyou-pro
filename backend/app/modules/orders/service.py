@@ -1100,14 +1100,16 @@ def get_csat_summary(
     today_vn = now.astimezone(VIETNAM).date()
     date_from = date_from or today_vn.replace(day=1)
     date_to = date_to or today_vn
-    query = (
+    query = apply_scope(
         select(Order.csat_rating, func.count())
         .where(
             Order.status == "COMPLETED",
             Order.completed_at >= _vn_day_start_utc(date_from),
             Order.completed_at < _vn_day_start_utc(date_to + timedelta(days=1)),
         )
-        .group_by(Order.csat_rating)
+        .group_by(Order.csat_rating),
+        actor,
+        RULES,
     )
     if customer_id is not None:
         query = query.where(Order.customer_id == customer_id)
