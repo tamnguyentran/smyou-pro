@@ -38,8 +38,8 @@ function Waiting({ desktop }: { desktop: boolean }) {
 
 /** AC-DSP-082…091: trang `/dispatch/board` — capability vào trang là `task.manage`, giống
  * `DispatchQueuePage` (M4-01b); API `GET /api/v1/tasks` đã có từ M4-03a.
- * AC-DASH-040 (M10-07b): đọc `status` từ URL 1 lần lúc mount (drill-down từ Tổng quan) — không
- * đồng bộ ngược URL sau đó (spec §2/§6). */
+ * AC-DASH-040 (M10-07b): đọc `status`/`overdue` từ URL 1 lần lúc mount (drill-down từ Tổng quan) —
+ * không đồng bộ ngược URL sau đó (spec §2/§6). */
 export function TaskBoardPage() {
   usePageTitle("Bảng đầu việc");
   const me = useMe();
@@ -48,6 +48,7 @@ export function TaskBoardPage() {
   const [filters, setFilters] = useState<Filters>(() => ({
     ...EMPTY_TASK_BOARD_FILTERS,
     status: knownTaskStatus(searchParams.get("status") ?? "") ?? "",
+    overdue: searchParams.get("overdue") === "1",
   }));
   const allowed = me.data !== undefined && "task.manage" in me.data.capabilities;
   const board = useTaskBoard(filters, { enabled: allowed });

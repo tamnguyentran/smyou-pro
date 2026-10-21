@@ -95,7 +95,7 @@ Không có — dùng lại cột đã có của bảng `assignments` (`started_a
 1. Đăng nhập bằng kỹ thuật viên có 1 đầu việc đã tiếp nhận (tab "Đang làm").
 2. Bấm "Bắt đầu" → nhãn trạng thái đổi "Đang thực hiện", nút đổi thành "Báo hoàn thành".
 3. Bấm "Báo hoàn thành" → nhập ghi chú + giờ thực tế (tuỳ chọn) → xác nhận → thẻ biến mất khỏi "Đang làm", xuất hiện ở "Đã xong".
-4. Nếu đó là đầu việc cuối cùng của đơn → mở trang chi tiết đơn (nếu có quyền) kiểm tra đơn đã chuyển "Hoàn thành, chờ KH xác nhận".
+4. Nếu đó là đầu việc cuối cùng của đơn → mở trang chi tiết đơn (nếu có quyền) kiểm tra đơn đã chuyển "Chờ KH xác nhận".
 
 ## 8. Giả định & câu hỏi
 - Giả định: `version` trong body vẫn là **version của đơn hàng** (Order = aggregate root, Q62), giống M5-02.

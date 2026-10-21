@@ -31,6 +31,7 @@ export interface TaskBoardFilters {
   assigneeId: string;
   dueFrom: string;
   dueTo: string;
+  overdue: boolean;
 }
 
 /** AC-DSP-082…091: bảng đầu việc toàn công ty (M4-03b) — `GET /api/v1/tasks` của M4-03a. */
@@ -47,6 +48,7 @@ export function useTaskBoard(filters: TaskBoardFilters, { enabled = true } = {})
             assignee_id: filters.assigneeId || undefined,
             due_from: filters.dueFrom || undefined,
             due_to: filters.dueTo || undefined,
+            overdue: filters.overdue || undefined,
           },
         },
       });

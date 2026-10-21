@@ -19,7 +19,7 @@ Dữ liệu mẫu: **An** NV001 [MANAGER]; **Hoa** NV005 [SALE]. Đơn mẫu đ�
 
 | ID | Given | When | Then | Lớp test |
 |---|---|---|---|---|
-| AC-ORD-110 | An hoặc Hoa ở `/orders` | mở trang | bộ lọc trạng thái là nhóm chip (`role="radiogroup"` aria-label "Trạng thái"), không còn `<select>`; thứ tự: "Tất cả", "Nháp", "Chờ điều phối", "Đang thực hiện", "Hoàn thành, chờ KH xác nhận", "Hoàn tất", "Chỉnh sửa", "Đã huỷ"; "Tất cả" đang chọn theo mặc định (`aria-checked="true"`) | component + e2e |
+| AC-ORD-110 | An hoặc Hoa ở `/orders` | mở trang | bộ lọc trạng thái là nhóm chip (`role="radiogroup"` aria-label "Trạng thái"), không còn `<select>`; thứ tự: "Tất cả", "Nháp", "Chờ điều phối", "Đang thực hiện", "Chờ KH xác nhận", "Hoàn tất", "Chỉnh sửa", "Đã huỷ"; "Tất cả" đang chọn theo mặc định (`aria-checked="true"`) | component + e2e |
 | AC-ORD-111 | Như trên, danh sách đang hiện đơn ở nhiều trạng thái | bấm chip "Chờ điều phối" | chip "Chờ điều phối" chuyển `aria-checked="true"`, các chip khác `false`; gọi lại `GET /orders?status=PENDING_DISPATCH...`; danh sách chỉ còn đơn `PENDING_DISPATCH` | component |
 | AC-ORD-112 | Đang chọn chip "Chờ điều phối" (như AC-ORD-111) | bấm chip "Tất cả" | "Tất cả" `aria-checked="true"`, "Chờ điều phối" trở lại `false`; gọi lại `GET /orders` không có tham số `status`; danh sách về đầy đủ | component |
 | AC-ORD-113 | Màn hình trên, iPhone 13 (390px) | mở trang, có đủ 8 chip | nhóm chip tự xuống dòng (wrap), không gây cuộn ngang trang ở 360px; mỗi chip cao ≥ 44px | e2e |

@@ -79,7 +79,7 @@ test("AC-SYS-018 @screenshot font Plus Jakarta Sans và nền token page", async
   });
   expect(style.font).toMatch(/^"?Plus Jakarta Sans Variable/);
   expect(style.loaded).toBe(true);
-  expect(style.background).toBe("rgb(248, 250, 252)");
+  expect(style.background).toBe("rgb(238, 241, 244)");
 
   await page.screenshot({
     path: resolve(

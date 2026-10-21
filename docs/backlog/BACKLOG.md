@@ -5,6 +5,9 @@ Mỗi item là **lát cắt dọc** (DB → API → UI → test) giao được t
 Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatch), `ASG`, `CMP` (completion/revision), `NTF`, `DASH` (dashboard), `KPI`, `UI` (style thuần, xuyên module, không đổi API/quyền).
 
 ## Đã xong (tự động lưu trữ)
+- M13 — xem `BACKLOG_ARCHIVE.md`.
+
+## Đã xong (tự động lưu trữ)
 - M12 — xem `BACKLOG_ARCHIVE.md`.
 
 ## Đã xong (tự động lưu trữ)

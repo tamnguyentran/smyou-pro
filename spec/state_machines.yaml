@@ -13,7 +13,7 @@ order:
     DRAFT:                 { label: Nháp,               color: todo }
     PENDING_DISPATCH:      { label: Chờ điều phối,       color: review }
     IN_PROGRESS:           { label: Đang thực hiện,      color: in_progress }
-    AWAITING_CONFIRMATION: { label: "Hoàn thành, chờ KH xác nhận", color: review }
+    AWAITING_CONFIRMATION: { label: "Chờ KH xác nhận", color: review }
     COMPLETED:             { label: Hoàn tất,            color: completed, terminal: false }  # can go to REVISION
     REVISION:              { label: Chỉnh sửa,           color: urgent }
     CANCELLED:             { label: Đã huỷ,              color: todo, terminal: true }
@@ -30,9 +30,10 @@ order:
       capability: order.submit
       guards: [order_has_no_tasks]
       effects: [audit]
-    # system: fired when the first assignment of the order starts (assignment.transitions[start]),
-    # NOT when a task/assignee is merely created — Q81 (2026-10-15): the order must stay "Chờ điều
-    # phối" until a technician actually begins work, not just because one was assigned a task.
+    # system: re-evaluated after every task/assignment change (create/cancel a task; reject/remove
+    # an assignment) — Q90 (2026-10-19, reverses Q81): the order moves to "Đang thực hiện" as soon
+    # as it has ≥1 non-rejected/non-removed assignment, independent of whether anyone has clicked
+    # "Bắt đầu" yet (`assignment.transitions[start]` no longer has any order-level effect).
     # `actor: system` means no capability-checked endpoint invokes this directly — it is still
     # audited with the triggering technician's actor_id, never NULL (every transition has a real
     # person behind it; "Hệ thống" must never appear in order history, 2026-10-15).
@@ -40,6 +41,15 @@ order:
       from: [PENDING_DISPATCH]
       to: IN_PROGRESS
       actor: system
+      guards: [has_active_assignment]
+      effects: [audit]
+    # system: two-way with start_dispatch above — if every assignment of the order ends up
+    # REJECTED/REMOVED before any task reaches DONE, the order falls back to "Chờ điều phối" (Q90).
+    - command: undispatch
+      from: [IN_PROGRESS]
+      to: PENDING_DISPATCH
+      actor: system
+      guards: [no_active_assignment]
       effects: [audit]
     # system: re-evaluated after every task/assignment change. Audited with the technician's
     # actor_id from the `complete` that finished the last active task — see start_dispatch above.
@@ -67,11 +77,15 @@ order:
       capability: order.cancel
       guards: [reason_present, order_has_no_tasks]
       effects: [audit]
+    # guards (Q90, 2026-10-19): cancel_active is wired to POST /orders/{id}/cancel-active for the
+    # first time in this item (Q76) — previously declared but unreachable. Blocked once the
+    # customer has already signed off (confirmation_attachment_not_uploaded), even though
+    # AWAITING_CONFIRMATION/REVISION are otherwise still in the dispatchable `from` list.
     - command: cancel_active
       from: [IN_PROGRESS, AWAITING_CONFIRMATION, REVISION]
       to: CANCELLED
       capability: order.cancel_active
-      guards: [reason_present]
+      guards: [reason_present, confirmation_attachment_not_uploaded]
       effects: [cancel_open_tasks, notify_assignees, audit]
 
 task:
@@ -180,10 +194,13 @@ guards:
   all_active_tasks_done: every non-cancelled task has derived status DONE
   revision_has_work_if_revision: if order is REVISION, ≥1 task was created or reopened in the current revision
   confirmation_attachment_in_current_revision: ≥1 attachment kind=CUSTOMER_CONFIRMATION with revision_no = order.revision_no
+  confirmation_attachment_not_uploaded: not confirmation_attachment_in_current_revision
   signer_name_present: customer signer name is non-empty
   reason_present: reason text trimmed length ≥ 5
   order_in_dispatchable_state: order status in [PENDING_DISPATCH, IN_PROGRESS, REVISION]
   order_in_revision: order status == REVISION
+  has_active_assignment: order has ≥1 assignment with status in [PENDING, ACCEPTED, IN_PROGRESS, DONE]
+  no_active_assignment: not has_active_assignment
   at_least_one_assignee: ≥1 assignee given
   assignees_are_active_technicians: every assignee is active and has role TECHNICIAN
   not_already_active_assignee: employee has no active assignment on this task in the current cycle

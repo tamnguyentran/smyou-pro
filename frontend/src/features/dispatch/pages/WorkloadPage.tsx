@@ -1,5 +1,6 @@
 import { Search, UserCog } from "lucide-react";
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
 import { ForbiddenPage } from "../../../app/shell/StatusPage";
@@ -9,7 +10,13 @@ import { TextField } from "../../../components/ui/TextField";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
 import { useMe } from "../../me/api";
 import { useWorkload } from "../api";
-import { WorkloadList } from "../components/WorkloadList";
+import { groupKeyOf, WorkloadList, type WorkloadGroupKey } from "../components/WorkloadList";
+
+const GROUP_KEYS: readonly WorkloadGroupKey[] = ["IN_PROGRESS", "NOT_STARTED", "IDLE"];
+
+function knownGroup(value: string): WorkloadGroupKey | null {
+  return (GROUP_KEYS as readonly string[]).includes(value) ? (value as WorkloadGroupKey) : null;
+}
 
 function Waiting({ desktop }: { desktop: boolean }) {
   return (
@@ -27,7 +34,10 @@ function Waiting({ desktop }: { desktop: boolean }) {
 }
 
 /** AC-DSP-101…107: trang `/dispatch/workload` — capability vào trang là `task.manage`, giống
- * `TaskBoardPage`/`DispatchQueuePage`; API `GET /api/v1/tasks/workload` đã có từ M4-04. */
+ * `TaskBoardPage`/`DispatchQueuePage`; API `GET /api/v1/tasks/workload` đã có từ M4-04.
+ * Đọc `group` từ URL 1 lần lúc mount (drill-down từ Tổng quan, cùng cách `TaskBoardPage` đọc
+ * `status`) — lọc bằng đúng `groupKeyOf()` mà `WorkloadList` tự dùng để chia nhóm, không suy luận
+ * lại ngưỡng "đang làm"/"chưa thực hiện"/"chờ giao việc". */
 export function WorkloadPage() {
   usePageTitle("Lịch & tải việc");
   const me = useMe();
@@ -35,6 +45,8 @@ export function WorkloadPage() {
   const allowed = me.data !== undefined && "task.manage" in me.data.capabilities;
   const workload = useWorkload(allowed);
   const [q, setQ] = useState("");
+  const [searchParams] = useSearchParams();
+  const [group] = useState(() => knownGroup(searchParams.get("group") ?? ""));
 
   if (!me.data && me.isError) {
     return (
@@ -48,9 +60,9 @@ export function WorkloadPage() {
   if (!me.data) return <Waiting desktop={desktop} />;
   if (!allowed) return <ForbiddenPage />;
 
-  const filteredItems = workload.data?.items.filter((item) =>
-    item.full_name.toLowerCase().includes(q.trim().toLowerCase()),
-  );
+  const filteredItems = workload.data?.items
+    .filter((item) => group === null || groupKeyOf(item) === group)
+    .filter((item) => item.full_name.toLowerCase().includes(q.trim().toLowerCase()));
 
   return (
     <div className="space-y-4">

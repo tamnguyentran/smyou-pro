@@ -16,7 +16,8 @@ from sqlalchemy.engine import Row
 
 from app.core.authz import declared_routes, undeclared_routes
 from tests.integration.conftest import AN, KHOA, Person, login, seed
-from tests.integration.test_dispatch_board_api import insert_task
+from tests.integration.test_dispatch_board_api import insert_assignment, insert_task
+from tests.integration.test_notifications_api import notifications_for
 
 HOA = Person("hoa.le@smyou.vn", "Hoa@SmYou26", ("SALE",), "NV005", "Lê Thị Hoa", "SALES")
 HA = Person("ha.pham@smyou.vn", "Ha@SmYou26", ("SALE", "TECHNICIAN"), "NV007", "Phạm Thu Hà", "SALES")
@@ -909,6 +910,7 @@ def test_routes_declare_capability(app: FastAPI) -> None:
         ("POST", "/api/v1/orders/{order_id}/submit", "order.submit"),
         ("POST", "/api/v1/orders/{order_id}/recall", "order.submit"),
         ("POST", "/api/v1/orders/{order_id}/cancel", "order.cancel"),
+        ("POST", "/api/v1/orders/{order_id}/cancel-active", "order.cancel_active"),
         ("POST", "/api/v1/orders/{order_id}/complete", "order.complete"),
         ("POST", "/api/v1/orders/{order_id}/revise", "order.revise"),
         ("GET", "/api/v1/orders/{order_id}/history", "order.read"),
@@ -1097,6 +1099,99 @@ def test_cancel_from_pending_dispatch(
     assert res.json()["status"] == "CANCELLED"
     cancel_event = next(e for e in audit_rows(db, uuid.UUID(order["id"])) if e.action == "cancel")
     assert cancel_event.from_status == "PENDING_DISPATCH"
+
+
+@pytest.mark.ac("AC-ORD-177")
+def test_cancel_active_from_in_progress(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    """AC-ORD-177: đơn `IN_PROGRESS`, 1 task 1 assignment `PENDING` chưa ai bắt đầu, chưa có ảnh
+    xác nhận — Manager huỷ đơn qua `cancel_active` → `CANCELLED`, assignment `PENDING` → `REMOVED`
+    (effect cancel_open_tasks)."""
+    order_id = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS")
+    task_id = insert_task(
+        db,
+        order_id,
+        code="DH2610-0177-T1",
+        title="Lắp 4 camera an ninh",
+        status="PENDING_ACCEPTANCE",
+        priority="NORMAL",
+        due_at=datetime(2026, 10, 9, 9, 0, tzinfo=UTC),
+        created_by=people["NV010"],
+    )
+    assignment_id = insert_assignment(db, task_id, people["NV014"], "PENDING")
+    an = client_as(app, AN)
+
+    res = an.post(
+        f"/api/v1/orders/{order_id}/cancel-active",
+        json={"version": 1, "reason": "Khách đổi ý, chưa triển khai lắp đặt"},
+    )
+
+    assert res.status_code == 200, res.text
+    assert res.json()["status"] == "CANCELLED"
+    assignment_row = (
+        db.execute(text("SELECT status, removed_at FROM assignments WHERE id = :id"), {"id": assignment_id})
+        .mappings()
+        .one()
+    )
+    assert assignment_row["status"] == "REMOVED"
+    assert assignment_row["removed_at"] is not None
+
+    task_row = (
+        db.execute(text("SELECT status, cancelled_at FROM tasks WHERE id = :id"), {"id": task_id})
+        .mappings()
+        .one()
+    )
+    assert task_row["status"] == "CANCELLED"
+    assert task_row["cancelled_at"] is not None
+
+    assert len(notifications_for(db, people["NV014"], type_="ASSIGNMENT_REMOVED")) == 1
+
+    cancel_event = next(e for e in audit_rows(db, order_id) if e.action == "cancel_active")
+    assert (cancel_event.from_status, cancel_event.to_status) == ("IN_PROGRESS", "CANCELLED")
+
+
+@pytest.mark.ac("AC-ORD-178")
+def test_cancel_active_requires_capability(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    """AC-ORD-178: SALE (không phải Manager) gọi cancel-active → 403, ngoài capability
+    `order.cancel_active` (chỉ MANAGER mới có, `spec/permissions.yaml`)."""
+    order_id = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS")
+    hoa = client_as(app, HOA)
+
+    res = hoa.post(
+        f"/api/v1/orders/{order_id}/cancel-active",
+        json={"version": 1, "reason": "Khách đổi ý, chưa triển khai lắp đặt"},
+    )
+
+    problem(res, 403, "FORBIDDEN")
+
+
+@pytest.mark.ac("AC-ORD-180")
+def test_cancel_active_guard_confirmation_attachment_not_uploaded(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    """AC-ORD-180: đơn `AWAITING_CONFIRMATION` đã có 1 attachment CUSTOMER_CONFIRMATION ở
+    revision_no hiện tại (KTV đã tải ảnh KH ký, chưa bấm "Hoàn tất đơn") — Manager gọi cancel_active
+    → 409 GUARD_FAILED guard=confirmation_attachment_not_uploaded."""
+    order_id = insert_order(db, created_by=people["NV005"], status="AWAITING_CONFIRMATION")
+    db.execute(
+        text(
+            "INSERT INTO attachments (id, owner_type, owner_id, kind, revision_no, storage_key,"
+            " original_filename, mime_type, size_bytes, sha256, uploaded_by)"
+            " VALUES (gen_random_uuid(), 'ORDER', :order_id, 'CUSTOMER_CONFIRMATION', 0,"
+            " 'orders/test.jpg', 'test.jpg', 'image/jpeg', 1024, repeat('a', 64), :uploaded_by)"
+        ),
+        {"order_id": order_id, "uploaded_by": people["NV014"]},
+    )
+    an = client_as(app, AN)
+
+    res = an.post(
+        f"/api/v1/orders/{order_id}/cancel-active",
+        json={"version": 1, "reason": "Khách đổi ý, chưa triển khai lắp đặt"},
+    )
+
+    body = problem(res, 409, "GUARD_FAILED")
+    assert body["guard"] == "confirmation_attachment_not_uploaded"
 
 
 @pytest.mark.ac("AC-ORD-044")

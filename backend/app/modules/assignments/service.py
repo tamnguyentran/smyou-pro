@@ -29,6 +29,7 @@ from app.modules.audit import service as audit
 from app.modules.dispatch import domain
 from app.modules.dispatch.models import Assignment, Task
 from app.modules.notifications import service as notifications
+from app.modules.orders import service as orders_service
 from app.modules.orders.models import Order
 from app.modules.workflow.guards import GUARDS
 
@@ -284,6 +285,10 @@ def reject_assignment(
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
 
+    # fire_order_reevaluate (spec/state_machines.yaml#assignment.transitions[reject].effects, Q90):
+    # if this was the order's last active assignment, it falls back to PENDING_DISPATCH.
+    orders_service.reevaluate_dispatch_state(session, order, actor, now=now, request_id=request_id)
+
     audit.record(
         session,
         actor_id=actor.id,
@@ -322,25 +327,9 @@ def start_assignment(
     task.status = domain.derive_task_status(
         _active_assignment_statuses(session, task.id, task.cycle), cancelled=task.cancelled_at is not None
     )
-    # spec/state_machines.yaml#assignment.transitions[start].effects: fire_order_start_dispatch_if_first_start
-    # (Q81, 2026-10-15) — the order only becomes "Đang thực hiện" once someone actually starts
-    # work, not merely when a task/assignee is created (that used to flip it, changed per Q81).
-    if order.status == "PENDING_DISPATCH":
-        order_from_status = order.status
-        order.status = "IN_PROGRESS"
-        # actor_id = the technician whose `start` triggered this order-level transition — spec's
-        # `actor: system` only means the command isn't invoked through its own capability-checked
-        # endpoint, not that no human caused it (every transition has a real person behind it).
-        audit.record(
-            session,
-            actor_id=actor.id,
-            entity_type="ORDER",
-            entity_id=order.id,
-            action="start_dispatch",
-            from_status=order_from_status,
-            to_status="IN_PROGRESS",
-            request_id=request_id,
-        )
+    # Q90 (2026-10-19, reverses Q81): `assignment.start` no longer has any order-level effect —
+    # the order already reached IN_PROGRESS back when the task/assignee was created (or earlier
+    # task/assignment changes). No order-level audit event fires here any more.
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
 

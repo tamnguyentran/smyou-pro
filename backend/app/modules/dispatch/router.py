@@ -241,11 +241,13 @@ VALIDATION_ERROR = (422, "VALIDATION_ERROR")
 def list_board_tasks(
     session: DbSession,
     actor: TaskReader,
+    request: Request,
     status: TaskStatus | None = None,
     priority: Priority | None = None,
     assignee_id: uuid.UUID | None = None,
     due_from: date | None = None,
     due_to: date | None = None,
+    overdue: bool = False,
 ) -> TaskBoardOut:
     return service.list_tasks(
         session,
@@ -255,6 +257,8 @@ def list_board_tasks(
         assignee_id=assignee_id,
         due_from=due_from,
         due_to=due_to,
+        overdue=overdue,
+        now=request.app.state.clock(),
     )
 
 

@@ -23,7 +23,7 @@ function Brand({ roles }: { roles: string }) {
     <div className="flex items-center gap-3">
       <div
         aria-hidden="true"
-        className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand text-lg font-bold text-accent"
+        className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white"
       >
         S
       </div>
@@ -175,7 +175,7 @@ function PrimaryAction() {
       to={action.path}
       className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition duration-200 hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
     >
-      <Plus aria-hidden="true" className="size-4 text-accent" />
+      <Plus aria-hidden="true" className="size-4 text-white" />
       {action.label}
     </Link>
   );

@@ -8,8 +8,17 @@ type TaskSummary = NonNullable<Dashboard["task_summary"]>;
  * (spec/state_machines.yaml#task.states, cùng thứ tự `TASK_STATUS_ORDER` dùng ở Bảng đầu việc).
  * "Cần giao lại" tô `urgent` khi > 0 — cùng số với `dispatch_summary.needs_assignee_count`,
  * lặp lại có chủ đích để thấy trong bức tranh đầy đủ các trạng thái đầu việc (như order_summary
- * đã lặp `pending_dispatch_count`). */
-export function TaskSummarySection({ summary }: { summary: TaskSummary }) {
+ * đã lặp `pending_dispatch_count`). Mỗi thẻ drill-down tới `/dispatch/board?status=...` (đã đọc
+ * sẵn từ URL lúc mount, M10-07b), như `OrderSummarySection` đã làm cho đơn — chỉ khi người gọi có
+ * `task.manage` (TECH_LEAD): MANAGER cũng thấy section này nhưng không có quyền vào `/dispatch/board`,
+ * cùng gating `canViewTaskBoard` đã dùng ở `StaffSummarySection`. */
+export function TaskSummarySection({
+  summary,
+  canViewTaskBoard,
+}: {
+  summary: TaskSummary;
+  canViewTaskBoard: boolean;
+}) {
   return (
     <section className="space-y-3">
       <h2 className="text-sm font-semibold text-muted">Đầu việc theo trạng thái</h2>
@@ -20,6 +29,7 @@ export function TaskSummarySection({ summary }: { summary: TaskSummary }) {
             label={TASK_STATUS_LABEL[status]}
             value={summary.counts_by_status[status]}
             tone={status === "NEEDS_ASSIGNEE" ? "urgent" : undefined}
+            to={canViewTaskBoard ? `/dispatch/board?status=${status}` : undefined}
           />
         ))}
       </div>

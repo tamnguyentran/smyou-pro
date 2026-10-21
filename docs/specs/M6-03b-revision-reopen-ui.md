@@ -71,10 +71,10 @@ Không có.
 - Mobile/desktop: không khác biệt bố cục ngoài vị trí nút/danh sách theo khu vực đã có.
 
 ## 7. Kịch bản UAT thủ công
-1. Đăng nhập Tuấn (TECH_LEAD), mở đơn đang "Hoàn tất" hoặc "Hoàn thành, chờ KH xác nhận" → bấm "Chuyển Chỉnh sửa" → nhập lý do → xác nhận → đơn đổi "Chỉnh sửa".
+1. Đăng nhập Tuấn (TECH_LEAD), mở đơn đang "Hoàn tất" hoặc "Chờ KH xác nhận" → bấm "Chuyển Chỉnh sửa" → nhập lý do → xác nhận → đơn đổi "Chỉnh sửa".
 2. Mở tab "Đầu việc", bấm vào 1 task đã "Hoàn thành" → bấm "Mở lại" → nhập lý do + chọn mức độ lỗi → xác nhận → task đổi "Chờ tiếp nhận".
 3. Mở `/dispatch/revisions` từ menu "Đơn cần chỉnh sửa" → thấy đơn vừa chuyển, badge số đếm đúng.
-4. (Tuỳ chọn) Cho KTV chấp nhận/bắt đầu/hoàn thành lại task vừa mở lại → xác nhận đơn tự chuyển lại "Hoàn thành, chờ KH xác nhận".
+4. (Tuỳ chọn) Cho KTV chấp nhận/bắt đầu/hoàn thành lại task vừa mở lại → xác nhận đơn tự chuyển lại "Chờ KH xác nhận".
 
 ## 8. Giả định & câu hỏi
 - Không có câu hỏi mới ở item này — thừa hưởng Q75 (`severity`) và giả định "không đổi người khi mở lại" từ `M6-03a` §6.

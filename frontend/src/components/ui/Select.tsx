@@ -22,7 +22,7 @@ export function Select({ label, error, id, className, children, ...rest }: Selec
         aria-describedby={error ? `${selectId}-error` : undefined}
         className={cn(
           "h-11 w-full rounded-xl border border-line bg-card px-3 text-base text-body",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-focus focus-visible:ring-offset-2",
           error && "border-urgent-fg",
           className,
         )}

@@ -14,7 +14,7 @@ from app.core.errors import AppError
 from app.core.spec_loader import Specs, TaskCommand, Transition
 from app.modules.audit import service as audit
 from app.modules.dispatch import domain
-from app.modules.dispatch.models import Assignment, DefectRecord, Task
+from app.modules.dispatch.models import OPEN_TASK_STATUSES_EXCLUDE, Assignment, DefectRecord, Task
 from app.modules.dispatch.schemas import (
     EmployeeWorkloadItem,
     EmployeeWorkloadOut,
@@ -264,14 +264,14 @@ def create_task(
     assignees = _load_assignees(session, task.id, task.cycle)
 
     # effects order (spec/state_machines.yaml#task.commands[create]): create_pending_assignments
-    # (above), notify_assignees (below), then this task's own `audit` last. The order does NOT
-    # flip to IN_PROGRESS here (Q81, changed 2026-10-15) — only when the first assignment of the
-    # order actually starts (`assignments.service.start_assignment`'s
-    # `fire_order_start_dispatch_if_first_start`).
+    # (above), notify_assignees (below), then this task's own `audit` last. The order DOES flip
+    # PENDING_DISPATCH → IN_PROGRESS here (Q90, 2026-10-19, reverses Q81) via
+    # `reevaluate_dispatch_state`'s `fire_order_reevaluate` below.
     notifications.notify_task_assigned(session, task, order, body.assignee_ids)
 
     order.version += 1  # Order is the aggregate root (Q62) — bumped once per command.
     session.flush()
+    orders_service.reevaluate_dispatch_state(session, order, actor, now=now, request_id=request_id)
 
     audit.record(
         session,
@@ -425,6 +425,9 @@ def remove_assignee(
     )
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
+    # fire_order_reevaluate (Q90) — gỡ người có thể làm đơn hết assignment active và lùi lại
+    # PENDING_DISPATCH.
+    orders_service.reevaluate_dispatch_state(session, order, actor, now=now, request_id=request_id)
 
     notifications.notify_assignment_removed(session, task, order, assignment.employee_id)
     audit.record(
@@ -477,6 +480,9 @@ def cancel_task(
     task.status = domain.derive_task_status([], cancelled=True)
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
+    # fire_order_reevaluate (Q90) — cancelling the order's last active-assignment task falls it
+    # back to PENDING_DISPATCH.
+    orders_service.reevaluate_dispatch_state(session, order, actor, now=now, request_id=request_id)
 
     notifications.notify_task_cancelled(session, task, order, [a.employee_id for a in open_assignments])
     audit.record(
@@ -637,6 +643,8 @@ def list_tasks(
     assignee_id: uuid.UUID | None,
     due_from: date | None,
     due_to: date | None,
+    overdue: bool = False,
+    now: datetime,
 ) -> TaskBoardOut:
     """GET /api/v1/tasks (M4-03a) — every task across every order, for the dispatch board.
 
@@ -644,6 +652,9 @@ def list_tasks(
     ever had an assignment on, REJECTED/REMOVED included — same rule `get_task` already applies.
     `assignee_id` is a separate, narrower filter (active assignments only) that intersects with
     scope rather than replacing it, so it can never surface a task outside the caller's scope.
+    `overdue` mirrors the exact predicate `dispatch_summary.overdue_task_count` already counts
+    (`dashboard/service.py`) and `orders.list_orders`'s own `overdue` filter — dashboard drill-down
+    (M10-07b follow-up) needs the list to match the count it links from.
     """
     if due_from is not None and due_to is not None and due_from > due_to:
         message = "Từ ngày không được sau Đến ngày."
@@ -663,6 +674,8 @@ def list_tasks(
         query = query.where(Task.due_at >= _vn_day_start_utc(due_from))
     if due_to is not None:
         query = query.where(Task.due_at < _vn_day_start_utc(due_to) + timedelta(days=1))
+    if overdue:
+        query = query.where(Task.status.notin_(OPEN_TASK_STATUSES_EXCLUDE), Task.due_at < now)
     if assignee_id is not None:
         query = query.where(
             Task.id.in_(

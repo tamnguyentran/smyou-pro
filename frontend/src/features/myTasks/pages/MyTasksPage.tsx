@@ -74,9 +74,11 @@ export function MyTasksPage() {
   const [searchParams] = useSearchParams();
   const [focus, setFocus] = useState(() => searchParams.get("focus"));
   const [now] = useState(() => Date.now());
-  const [tab, setTab] = useState<TabId>(() =>
-    focus === "not_started" || focus === "overdue" ? "active" : "pending",
-  );
+  const [tab, setTab] = useState<TabId>(() => {
+    if (focus === "not_started" || focus === "overdue" || focus === "active") return "active";
+    if (focus === "done") return "done";
+    return "pending";
+  });
   const allowed = me.data !== undefined && "assignment.respond" in me.data.capabilities;
   const assignments = useMyAssignments({ enabled: allowed });
   const acceptAssignment = useAcceptAssignment();

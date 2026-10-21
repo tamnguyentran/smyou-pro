@@ -72,8 +72,18 @@ export function DashboardPage() {
         </button>
       </div>
       {data.order_summary ? <OrderSummarySection summary={data.order_summary} /> : null}
-      {data.dispatch_summary ? <DispatchSummarySection summary={data.dispatch_summary} /> : null}
-      {data.task_summary ? <TaskSummarySection summary={data.task_summary} /> : null}
+      {data.dispatch_summary ? (
+        <DispatchSummarySection
+          summary={data.dispatch_summary}
+          canViewTaskBoard={"task.manage" in me.data.capabilities}
+        />
+      ) : null}
+      {data.task_summary ? (
+        <TaskSummarySection
+          summary={data.task_summary}
+          canViewTaskBoard={"task.manage" in me.data.capabilities}
+        />
+      ) : null}
       {data.staff_summary ? (
         <StaffSummarySection
           summary={data.staff_summary}

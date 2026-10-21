@@ -117,6 +117,19 @@ describe("Lịch & tải việc", () => {
     ]);
   });
 
+  test("?group=IN_PROGRESS (drill-down từ thẻ 'Đang làm' ở Tổng quan): chỉ hiện nhóm đó", async () => {
+    signedInAs(tuanId, TUAN);
+    mockWorkload();
+    renderApp("/dispatch/workload?group=IN_PROGRESS");
+
+    await screen.findByText("Võ Thành Minh");
+    expect(screen.queryByText("Trần Minh Khoa")).not.toBeInTheDocument();
+    expect(screen.queryByText("Hồ Văn Dũng")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
+      "Đang làm (1)",
+    ]);
+  });
+
   test("AC-UI-028 mobile: thẻ KTV bỏ viền, p-5, shadow-card; GroupHeader giữ nguyên tô màu", async () => {
     mobile();
     signedInAs(tuanId, TUAN);

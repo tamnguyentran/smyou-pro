@@ -18,6 +18,7 @@ from app.modules.audit import service as audit
 from app.modules.audit.schemas import AuditEventPage
 from app.modules.catalog.models import Product, Service
 from app.modules.customers.models import Customer
+from app.modules.dispatch import domain as dispatch_domain
 from app.modules.dispatch.models import OPEN_TASK_STATUSES_EXCLUDE, Assignment, Task
 from app.modules.files import service as files
 from app.modules.files.models import Attachment
@@ -120,6 +121,7 @@ _GUARD_MESSAGES = {
     "confirmation_attachment_in_current_revision": (
         "Cần tải ảnh phiếu xác nhận có chữ ký khách trước khi hoàn tất đơn."
     ),
+    "confirmation_attachment_not_uploaded": "Đơn đã có ảnh khách ký xác nhận, không thể huỷ.",
     "signer_name_present": "Vui lòng nhập tên người ký.",
 }
 
@@ -722,7 +724,10 @@ def _check_guards(
             ok = GUARDS[name](task_count or 0)
         elif name == "reason_present":
             ok = GUARDS[name](reason)
-        elif name == "confirmation_attachment_in_current_revision":
+        elif (
+            name == "confirmation_attachment_in_current_revision"
+            or name == "confirmation_attachment_not_uploaded"
+        ):
             has_attachment = (
                 session.scalar(
                     select(func.count())
@@ -743,6 +748,79 @@ def _check_guards(
             raise AssertionError(f"order transitions don't use guard {name!r}")
         if not ok:
             raise AppError(409, "GUARD_FAILED", _GUARD_MESSAGES[name], extra={"guard": name})
+
+
+# Same notion of "active" as assignments/service.py/dispatch/service.py's _ACTIVE_STATUSES/
+# _INACTIVE_ASSIGNMENT_STATUSES (duplicated locally — both are private to their own module).
+_ACTIVE_ASSIGNMENT_STATUSES = ("PENDING", "ACCEPTED", "IN_PROGRESS", "DONE")
+_OPEN_ASSIGNMENT_STATUSES = ("PENDING", "ACCEPTED", "IN_PROGRESS")
+
+
+def reevaluate_dispatch_state(
+    session: Session, order: Order, actor: Actor, *, now: datetime, request_id: str | None
+) -> None:
+    """spec/state_machines.yaml#order `start_dispatch`/`undispatch` — system transitions
+    re-evaluated after every task/assignment change (Q90, 2026-10-19, reverses Q81). Only one of
+    the two can ever fire, since each requires the order to already be in the other's `to` state."""
+    if order.status not in ("PENDING_DISPATCH", "IN_PROGRESS"):
+        return
+    has_active = (
+        session.scalar(
+            select(func.count())
+            .select_from(Assignment)
+            .join(Task, Task.id == Assignment.task_id)
+            .where(Task.order_id == order.id, Assignment.status.in_(_ACTIVE_ASSIGNMENT_STATUSES))
+        )
+        or 0
+    ) > 0
+    if order.status == "PENDING_DISPATCH" and GUARDS["has_active_assignment"](has_active):
+        to_status = "IN_PROGRESS"
+        action = "start_dispatch"
+    elif order.status == "IN_PROGRESS" and GUARDS["no_active_assignment"](has_active):
+        to_status = "PENDING_DISPATCH"
+        action = "undispatch"
+    else:
+        return
+    from_status = order.status
+    order.status = to_status
+    session.flush()
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ORDER",
+        entity_id=order.id,
+        action=action,
+        from_status=from_status,
+        to_status=to_status,
+        request_id=request_id,
+    )
+
+
+def _cancel_open_assignments_and_notify(session: Session, order: Order, now: datetime) -> None:
+    """`cancel_active`'s `cancel_open_tasks` effect (docs/product/WORKFLOWS.md#L92): every task of
+    the order that isn't DONE is cancelled, and every still-open assignment is force-REMOVED (same
+    treatment as dispatch/service.py's `cancel_task`), each notified — no audit event of its own,
+    only the order's own `cancel_active` event."""
+    open_assignments = session.scalars(
+        select(Assignment)
+        .join(Task, Task.id == Assignment.task_id)
+        .where(Task.order_id == order.id, Assignment.status.in_(_OPEN_ASSIGNMENT_STATUSES))
+    ).all()
+    for assignment in open_assignments:
+        assignment.status = "REMOVED"
+        assignment.removed_at = now
+    session.flush()
+    tasks_by_id = {
+        task.id: task
+        for task in session.scalars(select(Task).where(Task.order_id == order.id, Task.status != "DONE"))
+    }
+    for task in tasks_by_id.values():
+        task.cancelled_at = now
+        task.status = dispatch_domain.derive_task_status([], cancelled=True)
+    for assignment in open_assignments:
+        notifications.notify_assignment_removed(
+            session, tasks_by_id[assignment.task_id], order, assignment.employee_id
+        )
 
 
 def _apply_transition(
@@ -768,7 +846,7 @@ def _apply_transition(
     order.status = t.to
     if command == "submit":
         order.submitted_at = now
-    elif command == "cancel":
+    elif command in ("cancel", "cancel_active"):
         order.cancelled_at = now
         order.cancel_reason = reason
     elif command == "complete":
@@ -783,6 +861,8 @@ def _apply_transition(
         )
     _bump(order)
     session.flush()
+    if command == "cancel_active":
+        _cancel_open_assignments_and_notify(session, order, now)
     if command == "submit":
         notifications.notify_order_submitted(session, order)
     elif command == "complete":
@@ -867,6 +947,30 @@ def cancel_order(
         order_id,
         body.version,
         "cancel",
+        reason=body.reason,
+        now=now,
+        specs=specs,
+        request_id=request_id,
+    )
+    return _out(order, actor, specs)
+
+
+def cancel_active_order(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    body: OrderCancel,
+    *,
+    now: datetime,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = _apply_transition(
+        session,
+        actor,
+        order_id,
+        body.version,
+        "cancel_active",
         reason=body.reason,
         now=now,
         specs=specs,

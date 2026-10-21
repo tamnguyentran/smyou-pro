@@ -90,6 +90,18 @@ def confirmation_attachment_in_current_revision(has_attachment: bool) -> bool:
     return has_attachment
 
 
+def confirmation_attachment_not_uploaded(has_attachment: bool) -> bool:
+    return not has_attachment
+
+
+def has_active_assignment(has_active: bool) -> bool:
+    return has_active
+
+
+def no_active_assignment(has_active: bool) -> bool:
+    return not has_active
+
+
 def signer_name_present(signer_name: str | None) -> bool:
     return signer_name is not None and len(signer_name.strip()) > 0
 
@@ -120,9 +132,12 @@ GUARDS: dict[str, Callable[..., bool]] = {
     "has_active_tasks": has_active_tasks,
     "all_active_tasks_done": all_active_tasks_done,
     "confirmation_attachment_in_current_revision": confirmation_attachment_in_current_revision,
+    "confirmation_attachment_not_uploaded": confirmation_attachment_not_uploaded,
     "signer_name_present": signer_name_present,
     "order_in_revision": order_in_revision,
     "revision_has_work_if_revision": revision_has_work_if_revision,
+    "has_active_assignment": has_active_assignment,
+    "no_active_assignment": no_active_assignment,
 }
 
 PENDING_GUARDS: dict[str, str] = {}

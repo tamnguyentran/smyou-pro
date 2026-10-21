@@ -27,7 +27,7 @@ export function Textarea({ label, error, hint, id, className, ...rest }: Textare
         aria-describedby={described || undefined}
         className={cn(
           "w-full rounded-xl border border-line bg-card px-3 py-2 text-base text-body placeholder:text-placeholder",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-focus focus-visible:ring-offset-2",
           error && "border-urgent-fg",
           className,
         )}

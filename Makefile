@@ -119,6 +119,9 @@ e2e: ## Dev Docker stack health + Playwright (mobile + desktop, axe)
 	$(if $(wildcard backend/scripts/seed_e2e.py),$(COMPOSE) exec -T backend python -m scripts.seed_e2e)
 	$(call fe,npx playwright test)
 
+reset-test-data: ## Xoá dữ liệu đơn/task/audit, chỉ giữ 3 KH + 6 NV test cố định (KHÔNG chạy ở production)
+	$(COMPOSE) exec -T backend python -m scripts.reset_test_data
+
 e2e-a11y: ## Only accessibility checks
 	$(call fe,npx playwright test --grep @a11y)
 

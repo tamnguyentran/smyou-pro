@@ -6,7 +6,7 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   DRAFT: "Nháp",
   PENDING_DISPATCH: "Chờ điều phối",
   IN_PROGRESS: "Đang thực hiện",
-  AWAITING_CONFIRMATION: "Hoàn thành, chờ KH xác nhận",
+  AWAITING_CONFIRMATION: "Chờ KH xác nhận",
   COMPLETED: "Hoàn tất",
   REVISION: "Chỉnh sửa",
   CANCELLED: "Đã huỷ",

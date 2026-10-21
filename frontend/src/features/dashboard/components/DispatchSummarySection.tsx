@@ -4,11 +4,18 @@ import { StatTile } from "./StatTile";
 type DispatchSummary = NonNullable<Dashboard["dispatch_summary"]>;
 
 /** AC-DASH-002/003/004/007/008/011/014: 4 thẻ điều phối (toàn công ty, không có khái niệm "của tôi").
- * AC-DASH-027/028 (M10-03): chỉ "Chờ điều phối" drill-down tới `/dispatch/queue` (đã tự giới hạn
- * đúng danh sách, không cần param); "Cần giao lại"/"Quá hạn" đếm theo đầu việc, chưa có đích lọc phù hợp
- * → không link (ngoài phạm vi, xem spec §2). AC-DASH-037/038 (M10-07b): "Đang thực hiện" drill-down
- * tới `/orders?status=IN_PROGRESS` (`order.read` scope "all" cho cả MANAGER/TECH_LEAD, không cần `mine`). */
-export function DispatchSummarySection({ summary }: { summary: DispatchSummary }) {
+ * AC-DASH-027/028 (M10-03): "Chờ điều phối" drill-down tới `/dispatch/queue` (đã tự giới hạn đúng
+ * danh sách, không cần param). AC-DASH-037/038 (M10-07b): "Đang thực hiện" drill-down tới
+ * `/orders?status=IN_PROGRESS` (`order.read` scope "all" cho cả MANAGER/TECH_LEAD, không cần
+ * `mine`). "Cần giao lại"/"Quá hạn" drill-down tới `/dispatch/board` lọc theo đúng đầu việc (status
+ * `NEEDS_ASSIGNEE` / `overdue=1`, mirror hệt `overdue_task_count` ở `dashboard/service.py`). */
+export function DispatchSummarySection({
+  summary,
+  canViewTaskBoard,
+}: {
+  summary: DispatchSummary;
+  canViewTaskBoard: boolean;
+}) {
   return (
     <section className="space-y-3">
       <h2 className="text-sm font-semibold text-muted">Điều phối</h2>
@@ -24,8 +31,18 @@ export function DispatchSummarySection({ summary }: { summary: DispatchSummary }
           tone="in_progress"
           to="/orders?status=IN_PROGRESS"
         />
-        <StatTile label="Cần giao lại" value={summary.needs_assignee_count} tone="urgent" />
-        <StatTile label="Quá hạn" value={summary.overdue_task_count} tone="urgent" />
+        <StatTile
+          label="Cần giao lại"
+          value={summary.needs_assignee_count}
+          tone="urgent"
+          to={canViewTaskBoard ? "/dispatch/board?status=NEEDS_ASSIGNEE" : undefined}
+        />
+        <StatTile
+          label="Quá hạn"
+          value={summary.overdue_task_count}
+          tone="urgent"
+          to={canViewTaskBoard ? "/dispatch/board?overdue=1" : undefined}
+        />
       </div>
     </section>
   );

@@ -362,6 +362,90 @@ def test_reject_forbidden_for_sale_manager_tech_lead(
         problem(res, 403, "FORBIDDEN")
 
 
+@pytest.mark.ac("AC-ORD-172")
+def test_reject_last_active_assignment_undispatches_order(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    """AC-ORD-172: đơn `IN_PROGRESS`, đúng 1 task 1 assignment `PENDING` — KTV từ chối, không còn
+    assignment active nào trong đơn → đơn lùi lại `PENDING_DISPATCH` (`undispatch`, Q90)."""
+    order_id = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code="DH2610-0172")
+    task_id = insert_task(
+        db,
+        order_id,
+        code="DH2610-0172-T1",
+        title="Lắp 4 camera an ninh",
+        status="PENDING_ACCEPTANCE",
+        priority="NORMAL",
+        due_at=datetime(2026, 10, 9, 9, 0, tzinfo=VIETNAM),
+        created_by=people["NV010"],
+    )
+    assignment_id = insert_assignment(db, task_id, people["NV014"], "PENDING")
+    khoa = client_as(app, KHOA)
+
+    res = khoa.post(
+        f"/api/v1/assignments/{assignment_id}/reject",
+        json={"version": 1, "reason_code": "BUSY", "reason_text": "Đang kẹt lắp đặt đơn khác"},
+    )
+
+    assert res.status_code == 200, res.text
+    assert task_row(db, task_id).status == "NEEDS_ASSIGNEE"
+    assert order_status(db, order_id) == "PENDING_DISPATCH"
+
+    undispatch_events = [e for e in audit_rows(db, order_id) if e.action == "undispatch"]
+    assert len(undispatch_events) == 1
+    assert (
+        undispatch_events[0].from_status,
+        undispatch_events[0].to_status,
+        undispatch_events[0].actor_id,
+    ) == (
+        "IN_PROGRESS",
+        "PENDING_DISPATCH",
+        people["NV014"],
+    )
+
+
+@pytest.mark.ac("AC-ORD-173")
+def test_reject_one_of_two_tasks_keeps_order_in_progress(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    """AC-ORD-173: đơn `IN_PROGRESS` có 2 task độc lập, mỗi task 1 assignment `PENDING` cho 2 KTV
+    khác nhau — 1 KTV từ chối task của mình, task B vẫn `PENDING` active → đơn **vẫn** `IN_PROGRESS`."""
+    order_id = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code="DH2610-0173")
+    task_a = insert_task(
+        db,
+        order_id,
+        code="DH2610-0173-T1",
+        title="Lắp camera tầng 1",
+        status="PENDING_ACCEPTANCE",
+        priority="NORMAL",
+        due_at=datetime(2026, 10, 9, 9, 0, tzinfo=VIETNAM),
+        created_by=people["NV010"],
+    )
+    task_b = insert_task(
+        db,
+        order_id,
+        code="DH2610-0173-T2",
+        title="Lắp camera tầng 2",
+        status="PENDING_ACCEPTANCE",
+        priority="NORMAL",
+        due_at=datetime(2026, 10, 9, 9, 0, tzinfo=VIETNAM),
+        created_by=people["NV010"],
+    )
+    assignment_a = insert_assignment(db, task_a, people["NV014"], "PENDING")
+    insert_assignment(db, task_b, people["NV015"], "PENDING")
+    khoa = client_as(app, KHOA)
+
+    res = khoa.post(
+        f"/api/v1/assignments/{assignment_a}/reject",
+        json={"version": 1, "reason_code": "BUSY", "reason_text": "Đang kẹt lắp đặt đơn khác"},
+    )
+
+    assert res.status_code == 200, res.text
+    assert task_row(db, task_a).status == "NEEDS_ASSIGNEE"
+    assert order_status(db, order_id) == "IN_PROGRESS"
+    assert [e for e in audit_rows(db, order_id) if e.action == "undispatch"] == []
+
+
 # ---------------- start ----------------
 
 
@@ -416,9 +500,10 @@ def test_start_one_of_two_moves_task_to_in_progress(
 def test_start_first_assignment_starts_dispatch(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
-    """Q81 (2026-10-15): đơn vẫn `PENDING_DISPATCH` dù đã có task+người được giao — chỉ khi người
-    đó bấm "Bắt đầu" thì đơn mới chuyển `IN_PROGRESS` (thay vì lúc tạo task như trước)."""
-    order_id = insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code="DH2610-0069")
+    """AC-ORD-175 (Q90, 2026-10-19, đảo Q81): đơn đã `IN_PROGRESS` từ lúc tạo task (không còn
+    `PENDING_DISPATCH` chờ ai bấm "Bắt đầu" như Q81 quyết định) — bấm "Bắt đầu" giờ chỉ đổi trạng
+    thái ở cấp assignment/task, không còn effect nào ở cấp đơn (không audit_event ORDER mới)."""
+    order_id = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code="DH2610-0069")
     task_id = insert_task(
         db,
         order_id,
@@ -442,22 +527,16 @@ def test_start_first_assignment_starts_dispatch(
     order_row = db.execute(text("SELECT status FROM orders WHERE id = :id"), {"id": order_id}).one()
     assert order_row.status == "IN_PROGRESS"
 
-    order_events = audit_rows(db, order_id)
-    assert len(order_events) == 1
-    assert (
-        order_events[0].entity_type,
-        order_events[0].action,
-        order_events[0].from_status,
-        order_events[0].to_status,
-        order_events[0].actor_id,
-    ) == ("ORDER", "start_dispatch", "PENDING_DISPATCH", "IN_PROGRESS", people["NV014"])
+    assert audit_rows(db, order_id) == []
 
 
 @pytest.mark.ac("AC-ASG-070")
 def test_start_second_assignment_does_not_refire_start_dispatch(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
-    order_id = insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code="DH2610-0070")
+    """Q90 (2026-10-19, đảo Q81): `assignment.start` không còn effect cấp đơn — đơn đã `IN_PROGRESS`
+    từ lúc tạo task, bấm "Bắt đầu" (1 hay nhiều lần) không sinh thêm audit_event ORDER nào."""
+    order_id = insert_order(db, created_by=people["NV005"], status="IN_PROGRESS", code="DH2610-0070")
     task_id = insert_task(
         db,
         order_id,
@@ -480,7 +559,7 @@ def test_start_second_assignment_does_not_refire_start_dispatch(
     assert second.status_code == 200, second.text
 
     order_events = audit_rows(db, order_id)
-    assert len(order_events) == 1  # only the first start fired start_dispatch
+    assert order_events == []  # assignment.start never touches the order
 
 
 @pytest.mark.ac("AC-ASG-044")

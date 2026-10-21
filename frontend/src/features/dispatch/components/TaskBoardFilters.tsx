@@ -13,6 +13,7 @@ export const EMPTY_TASK_BOARD_FILTERS: Filters = {
   assigneeId: "",
   dueFrom: "",
   dueTo: "",
+  overdue: false,
 };
 
 /** AC-DSP-082…085, AC-DSP-087: thanh lọc dùng chung 2 layout. `showStatus` (mobile, AC-DSP-087)

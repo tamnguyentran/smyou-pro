@@ -1,18 +1,35 @@
+import { ORDER_STATUS_LABEL } from "../../orders/orderStatus";
 import type { Dashboard } from "../api";
 import { StatTile } from "./StatTile";
 
 type MyTaskSummary = NonNullable<Dashboard["my_task_summary"]>;
 
 /** AC-DASH-020/021 (M7-02d): tình trạng đầu việc của chính KTV — cùng 3 nhóm "Chờ nhận"/"Đang
- * làm"/"Đã xong" đã dùng ở "Việc của tôi" (`MyTasksPage`), "Đã xong" chỉ tính trong ngày. */
+ * làm"/"Đã xong" đã dùng ở "Việc của tôi" (`MyTasksPage`), "Đã xong" chỉ tính trong ngày.
+ * Drill-down: "Chờ nhận" → `/my-tasks` (tab mặc định đã là "pending"); "Đang làm" →
+ * `/my-tasks?focus=active`; "Đã xong hôm nay" → `/my-tasks?focus=done` — tab "done" hiện toàn bộ
+ * lịch sử đã xong, `MyAssignmentOut` chưa có field thời điểm hoàn thành nên không lọc riêng được
+ * đúng "hôm nay" (giới hạn đã biết, không đổi contract trong lượt này). Thẻ cuối dùng chung
+ * `ORDER_STATUS_LABEL.AWAITING_CONFIRMATION` — không hardcode chuỗi riêng, để đổi nhãn 1 nơi
+ * (`orderStatus.ts`) là khớp mọi nơi. */
 export function MyTaskSummarySection({ summary }: { summary: MyTaskSummary }) {
   return (
     <section className="space-y-3">
       <h2 className="text-sm font-semibold text-muted">Đầu việc của tôi</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        <StatTile label="Chờ nhận" value={summary.pending_count} tone="urgent" />
-        <StatTile label="Đang làm" value={summary.active_count} tone="in_progress" />
-        <StatTile label="Đã xong hôm nay" value={summary.done_today_count} tone="completed" />
+        <StatTile label="Chờ nhận" value={summary.pending_count} tone="urgent" to="/my-tasks" />
+        <StatTile
+          label="Đang làm"
+          value={summary.active_count}
+          tone="in_progress"
+          to="/my-tasks?focus=active"
+        />
+        <StatTile
+          label="Đã xong hôm nay"
+          value={summary.done_today_count}
+          tone="completed"
+          to="/my-tasks?focus=done"
+        />
         <StatTile
           label="Chưa thực hiện"
           value={summary.not_started_count}
@@ -26,7 +43,7 @@ export function MyTaskSummarySection({ summary }: { summary: MyTaskSummary }) {
           to="/my-tasks?focus=overdue"
         />
         <StatTile
-          label="Chưa hoàn tất, cần KH xác nhận"
+          label={ORDER_STATUS_LABEL.AWAITING_CONFIRMATION}
           value={summary.awaiting_confirmation_count}
           tone="review"
           to="/orders?status=AWAITING_CONFIRMATION"

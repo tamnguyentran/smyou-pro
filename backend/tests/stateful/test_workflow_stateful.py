@@ -3,10 +3,16 @@
 command through the service layer (no HTTP, real Postgres) and checks the 8 documented invariants
 after each step.
 
-`order.cancel_active` has no rule: no router/service path can ever fire it today — `cancel_order()`
-always looks up the transition literally named `"cancel"`, and no endpoint is wired to the
-`order.cancel_active` capability either (see docs/product/OPEN_QUESTIONS.md Q76). 15 of the 16
-commands AC-SYS-093 enumerates get a rule; this is a pre-existing product gap, not fixed here.
+All 16 explicit-actor commands AC-SYS-093 enumerates get a rule, including `order.cancel_active`
+(wired to `POST /orders/{id}/cancel-active` + `orders_service.cancel_active_order` as part of
+`M-order-dispatched-state-a`; previously unreachable, see
+docs/product/OPEN_QUESTIONS_ARCHIVE.md#Q76). The 2 system transitions (`start_dispatch`,
+`all_tasks_done`) have no rule of their own — they're side effects of an explicit-actor rule, so
+each such rule compares the order's status before/after and bumps `_transition_audit_count` when
+it changed. Per Q90 (2026-10-19, reverses Q81), `start_dispatch` now fires from `task.create`/
+`task.cancel`/`assignment.reject`/`assignment.remove` (guard `has_active_assignment`, two-way with
+`undispatch`), not from `assignment.start` — the `start_assignment` rule never bumps the count for
+an order-level effect any more.
 
 Two extra rules exist purely to set up realistic preconditions and are NOT one of the YAML
 commands: `create_order` (orders start life via `order.create`, which is not a state-machine
@@ -111,8 +117,8 @@ tasks = Bundle("tasks")
 
 @settings(max_examples=50, stateful_step_count=25, deadline=None, database=None)
 class WorkflowMachine(RuleBasedStateMachine):
-    """AC-SYS-093: every explicit-actor command of order/task/assignment (minus `cancel_active`,
-    see module docstring) + AC-SYS-094's 8 invariants."""
+    """AC-SYS-093: every explicit-actor command of order/task/assignment (see module docstring) +
+    AC-SYS-094's 8 invariants."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -134,9 +140,14 @@ class WorkflowMachine(RuleBasedStateMachine):
             self.connection,
             Person("lead@stateful.test", "x", ("TECH_LEAD",), self._code(), "Lead", "TECHNICAL"),
         )
+        manager_id = seed(
+            self.connection,
+            Person("manager@stateful.test", "x", ("MANAGER",), self._code(), "Manager", "MANAGEMENT"),
+        )
         self.sale_actor = _make_actor(sale_id, "SALE", "order.create")
         self.sale_actor_submit = _make_actor(sale_id, "SALE", "order.submit")
         self.sale_actor_cancel = _make_actor(sale_id, "SALE", "order.cancel")
+        self.manager_actor_cancel_active = _make_actor(manager_id, "MANAGER", "order.cancel_active")
         self.lead_actor_task = _make_actor(lead_id, "TECH_LEAD", "task.manage")
         self.lead_actor_reopen = _make_actor(lead_id, "TECH_LEAD", "task.reopen")
         self.lead_actor_revise = _make_actor(lead_id, "TECH_LEAD", "order.revise")
@@ -302,6 +313,28 @@ class WorkflowMachine(RuleBasedStateMachine):
             except AppError as err:
                 self._expect_rejected(err)
 
+    @precondition(
+        lambda self: self._exists_order_with_status(("IN_PROGRESS", "AWAITING_CONFIRMATION", "REVISION"))
+    )
+    @rule(order_id=orders)
+    def cancel_active_order(self, order_id: uuid.UUID) -> None:
+        with self.session_factory() as session, session.begin():
+            order = session.get(Order, order_id)
+            if order is None:
+                return
+            try:
+                orders_service.cancel_active_order(
+                    session,
+                    self.manager_actor_cancel_active,
+                    order_id,
+                    OrderCancel(version=order.version, reason="Huy don dang dieu phoi test thuoc tinh"),
+                    now=self._now(),
+                    specs=SPECS,
+                )
+                self._transition_audit_count += 1
+            except AppError as err:
+                self._expect_rejected(err)
+
     @precondition(lambda self: self._exists_order_with_status(("AWAITING_CONFIRMATION",)))
     @rule(order_id=orders)
     def complete_order(self, order_id: uuid.UUID) -> None:
@@ -437,6 +470,7 @@ class WorkflowMachine(RuleBasedStateMachine):
             order = session.get(Order, task["order_id"])
             if order is None:
                 return
+            before_status = order.status
             try:
                 dispatch_service.cancel_task(
                     session,
@@ -448,6 +482,8 @@ class WorkflowMachine(RuleBasedStateMachine):
                     specs=SPECS,
                 )
                 self._transition_audit_count += 1
+                if order.status != before_status:
+                    self._transition_audit_count += 1  # system-triggered undispatch side effect (Q90)
             except AppError as err:
                 self._expect_rejected(err)
 
@@ -510,6 +546,7 @@ class WorkflowMachine(RuleBasedStateMachine):
                 return
             task_row = session.get(Task, assignment.task_id)
             order = session.get(Order, task_row.order_id)
+            before_status = order.status
             actor = _make_actor(assignment.employee_id, "TECHNICIAN", "assignment.respond")
             try:
                 assignments_service.reject_assignment(
@@ -521,6 +558,10 @@ class WorkflowMachine(RuleBasedStateMachine):
                     specs=SPECS,
                 )
                 self._transition_audit_count += 1
+                session.flush()
+                after = session.get(Order, order.id)
+                if after is not None and after.status != before_status:
+                    self._transition_audit_count += 1  # system-triggered undispatch side effect (Q90)
             except AppError as err:
                 self._expect_rejected(err)
 
@@ -533,7 +574,6 @@ class WorkflowMachine(RuleBasedStateMachine):
                 return
             task_row = session.get(Task, assignment.task_id)
             order = session.get(Order, task_row.order_id)
-            before_status = order.status
             actor = _make_actor(assignment.employee_id, "TECHNICIAN", "assignment.respond")
             try:
                 assignments_service.start_assignment(
@@ -544,9 +584,7 @@ class WorkflowMachine(RuleBasedStateMachine):
                     now=self._now(),
                     specs=SPECS,
                 )
-                self._transition_audit_count += 1
-                if order.status != before_status:
-                    self._transition_audit_count += 1  # system-triggered start_dispatch side effect (Q81)
+                self._transition_audit_count += 1  # Q90: no order-level side effect any more
             except AppError as err:
                 self._expect_rejected(err)
 
@@ -587,6 +625,7 @@ class WorkflowMachine(RuleBasedStateMachine):
                 return
             task_row = session.get(Task, assignment.task_id)
             order = session.get(Order, task_row.order_id)
+            before_status = order.status
             try:
                 dispatch_service.remove_assignee(
                     session,
@@ -599,6 +638,10 @@ class WorkflowMachine(RuleBasedStateMachine):
                     specs=SPECS,
                 )
                 self._transition_audit_count += 1
+                session.flush()
+                after = session.get(Order, order.id)
+                if after is not None and after.status != before_status:
+                    self._transition_audit_count += 1  # system-triggered undispatch side effect (Q90)
             except AppError as err:
                 self._expect_rejected(err)
 
