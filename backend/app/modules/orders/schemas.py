@@ -293,6 +293,7 @@ class OrderSummary(BaseModel):
     created_by_name: str | None
     created_at: datetime
     revision_no: int
+    csat_rating: int | None
 
 
 class OrderPage(BaseModel):

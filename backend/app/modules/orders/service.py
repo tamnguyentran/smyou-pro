@@ -400,6 +400,7 @@ def _summary(order: Order, created_by_name: str | None) -> OrderSummary:
         created_by_name=created_by_name,
         created_at=order.created_at,
         revision_no=order.revision_no,
+        csat_rating=order.csat_rating,
     )
 
 
@@ -567,6 +568,9 @@ def list_orders(
     sort: str = "created_at_desc",
     mine: bool = False,
     overdue: bool = False,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    csat_rating: int | None = None,
     now: datetime,
     limit: int,
     offset: int,
@@ -587,6 +591,12 @@ def list_orders(
         query = query.where(Order.status == status)
     if mine:
         query = query.where(Order.created_by == actor.id)
+    if date_from is not None:
+        query = query.where(Order.completed_at >= _vn_day_start_utc(date_from))
+    if date_to is not None:
+        query = query.where(Order.completed_at < _vn_day_start_utc(date_to + timedelta(days=1)))
+    if csat_rating is not None:
+        query = query.where(Order.csat_rating == csat_rating)
     if overdue:
         query = query.where(
             Order.status.notin_(("COMPLETED", "CANCELLED")),
