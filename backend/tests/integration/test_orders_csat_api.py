@@ -213,3 +213,64 @@ def test_csat_summary_defaults_to_current_month(
     res = lan.get("/api/v1/orders/csat-summary")
     assert res.status_code == 200, res.text
     assert res.json() == {"5": 1, "4": 0, "3": 0, "2": 0, "1": 0, "none": 0}
+
+
+@pytest.mark.ac("AC-CSK-011")
+def test_order_list_includes_csat_rating(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    """M15-02b: OrderSummary mang csat_rating để FE tô màu dòng/thẻ không cần gọi thêm API."""
+    rated = insert_order(
+        db, created_by=people["NV001"], status="COMPLETED", code="DH2609-0300", csat_rating=4
+    )
+    unrated = insert_order(db, created_by=people["NV001"], status="COMPLETED", code="DH2609-0301")
+    lan = client_as(app, LAN)
+
+    res = lan.get("/api/v1/orders?q=DH2609-030")
+    assert res.status_code == 200, res.text
+    by_id = {item["id"]: item["csat_rating"] for item in res.json()["items"]}
+    assert by_id[str(rated)] == 4
+    assert by_id[str(unrated)] is None
+
+
+@pytest.mark.ac("AC-CSK-010")
+@pytest.mark.ac("AC-CSK-012")
+def test_order_list_filters_by_completed_at_range_and_csat_rating(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    """M15-02b: GET /orders lọc theo `from`/`to` (Order.completed_at, khớp Q92) và `csat_rating`."""
+    in_range_5 = insert_order(
+        db,
+        created_by=people["NV001"],
+        status="COMPLETED",
+        code="DH2609-0400",
+        completed_at=datetime(2026, 9, 15, 3, 0, tzinfo=UTC),
+        csat_rating=5,
+    )
+    in_range_3 = insert_order(
+        db,
+        created_by=people["NV001"],
+        status="COMPLETED",
+        code="DH2609-0401",
+        completed_at=datetime(2026, 9, 16, 3, 0, tzinfo=UTC),
+        csat_rating=3,
+    )
+    out_of_range = insert_order(
+        db,
+        created_by=people["NV001"],
+        status="COMPLETED",
+        code="DH2608-0001",
+        completed_at=datetime(2026, 8, 15, 3, 0, tzinfo=UTC),
+        csat_rating=5,
+    )
+    not_completed = insert_order(
+        db, created_by=people["NV001"], status="PENDING_DISPATCH", code="DH2609-0402"
+    )
+    lan = client_as(app, LAN)
+
+    by_range = lan.get("/api/v1/orders?from=2026-09-01&to=2026-09-26").json()
+    ids = {item["id"] for item in by_range["items"]}
+    assert ids == {str(in_range_5), str(in_range_3)}
+    assert str(out_of_range) not in ids
+    assert str(not_completed) not in ids
+
+    by_rating = lan.get("/api/v1/orders?from=2026-09-01&to=2026-09-26&csat_rating=3").json()
+    assert [item["id"] for item in by_rating["items"]] == [str(in_range_3)]
