@@ -20,4 +20,4 @@ def test_prod_image_loads_bundled_specs() -> None:
     out = run(
         "docker", "run", "--rm", "--platform", "linux/amd64", "--entrypoint", "python", BACKEND, "-c", PROBE
     )
-    assert out.split()[-2:] == ["28", "23"]
+    assert out.split()[-2:] == ["29", "23"]
