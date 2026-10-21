@@ -1565,7 +1565,7 @@ export interface components {
       /** Phone */
       phone?: string | null;
       /** Roles */
-      roles: ("MANAGER" | "SALE" | "TECH_LEAD" | "TECHNICIAN")[];
+      roles: ("MANAGER" | "SALE" | "CUSTOMER_CARE" | "TECH_LEAD" | "TECHNICIAN")[];
       /** Title */
       title?: string | null;
     };
@@ -2481,7 +2481,7 @@ export interface components {
     /** RolesRequest */
     RolesRequest: {
       /** Roles */
-      roles: ("MANAGER" | "SALE" | "TECH_LEAD" | "TECHNICIAN")[];
+      roles: ("MANAGER" | "SALE" | "CUSTOMER_CARE" | "TECH_LEAD" | "TECHNICIAN")[];
       /** Version */
       version: number;
     };
@@ -3594,7 +3594,7 @@ export interface operations {
     parameters: {
       query?: {
         q?: string | null;
-        role?: ("MANAGER" | "SALE" | "TECH_LEAD" | "TECHNICIAN") | null;
+        role?: ("MANAGER" | "SALE" | "CUSTOMER_CARE" | "TECH_LEAD" | "TECHNICIAN") | null;
         is_active?: boolean | null;
         limit?: number;
         offset?: number;

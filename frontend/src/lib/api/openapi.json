@@ -966,7 +966,7 @@
           },
           "roles": {
             "items": {
-              "enum": ["MANAGER", "SALE", "TECH_LEAD", "TECHNICIAN"],
+              "enum": ["MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD", "TECHNICIAN"],
               "type": "string"
             },
             "minItems": 1,
@@ -3672,7 +3672,7 @@
         "properties": {
           "roles": {
             "items": {
-              "enum": ["MANAGER", "SALE", "TECH_LEAD", "TECHNICIAN"],
+              "enum": ["MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD", "TECHNICIAN"],
               "type": "string"
             },
             "minItems": 1,
@@ -5587,7 +5587,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "enum": ["MANAGER", "SALE", "TECH_LEAD", "TECHNICIAN"],
+                  "enum": ["MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD", "TECHNICIAN"],
                   "type": "string"
                 },
                 {

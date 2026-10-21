@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 from app.modules.employees.domain import normalize_phone
 from app.modules.identity.schemas import Email
 
-Role = Literal["MANAGER", "SALE", "TECH_LEAD", "TECHNICIAN"]
+Role = Literal["MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD", "TECHNICIAN"]
 Department = Literal["MANAGEMENT", "SALES", "TECHNICAL"]
 FullName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 Title = Annotated[str, StringConstraints(strip_whitespace=True, max_length=80)]

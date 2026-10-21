@@ -23,6 +23,7 @@ def test_menu_document_has_menu_bottom_nav_and_role_labels() -> None:
     assert doc["roles"] == {
         "MANAGER": "Quản lý chung",
         "SALE": "Nhân viên kinh doanh",
+        "CUSTOMER_CARE": "Chăm sóc khách hàng",
         "TECH_LEAD": "Quản lý kỹ thuật",
         "TECHNICIAN": "Nhân viên kỹ thuật",
     }

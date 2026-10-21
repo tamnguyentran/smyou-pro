@@ -21,7 +21,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
 
-ROLES = ("MANAGER", "SALE", "TECH_LEAD", "TECHNICIAN")
+ROLES = ("MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD", "TECHNICIAN")
 DEPARTMENTS = ("MANAGEMENT", "SALES", "TECHNICAL")
 
 

@@ -26,11 +26,12 @@ def test_repo_specs_load() -> None:
     assert len(sm.assignment.transitions) == 5
     assert len(sm.guards) == 23
     perm = specs.permissions
-    assert set(perm.roles) == {"MANAGER", "SALE", "TECH_LEAD", "TECHNICIAN"}
+    assert set(perm.roles) == {"MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD", "TECHNICIAN"}
     assert len(perm.capabilities) == 28
     assert perm.capabilities["order.read"] == {
         "MANAGER": "all",
         "SALE": "all",
+        "CUSTOMER_CARE": "all",
         "TECH_LEAD": "all",
         "TECHNICIAN": "assigned",
     }

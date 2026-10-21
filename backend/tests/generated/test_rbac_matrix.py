@@ -33,9 +33,9 @@ def expected_scopes(roles: frozenset[str], capability: str) -> tuple[str, ...]:
 
 
 @pytest.mark.ac("AC-AUTH-033")
-def test_there_are_15_non_empty_role_sets() -> None:
-    assert len(ROLE_SETS) == 15
-    assert len(SINGLES_AND_PAIRS) == 10
+def test_there_are_31_non_empty_role_sets() -> None:
+    assert len(ROLE_SETS) == 31
+    assert len(SINGLES_AND_PAIRS) == 15
 
 
 @pytest.mark.ac("AC-AUTH-033")

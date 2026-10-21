@@ -36,6 +36,24 @@ EMAIL_TAKEN = "Email đã được dùng cho nhân viên khác."
 # employee.read / employee.manage are `all` for every role holding them today; any narrower scope
 # added to permissions.yaml later fails closed (no rule → no rows) until a rule is written here.
 RULES: ScopeRules = {}
+# M15-01: a Manager always also holds Sale/CSKH/QLKT (so they never lose dispatch/order/customer-care
+# capabilities just because nobody separately ticked those boxes) but can never be a Technician too.
+_MANAGER_BUNDLE = frozenset({"MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD"})
+ROLE_CONFLICT = "Quản lý chung không thể đồng thời là Nhân viên kỹ thuật."
+
+
+def _resolve_roles(roles: set[str]) -> set[str]:
+    """Apply the Manager role bundle (M15-01). Raises 422 ROLE_CONFLICT for Manager+Technician."""
+    if "MANAGER" not in roles:
+        return roles
+    if "TECHNICIAN" in roles:
+        raise AppError(
+            422,
+            "ROLE_CONFLICT",
+            ROLE_CONFLICT,
+            errors=[{"field": "roles", "code": "manager_technician", "message": ROLE_CONFLICT}],
+        )
+    return roles | _MANAGER_BUNDLE
 
 
 def _out(employee: Employee, now: datetime) -> EmployeeOut:
@@ -161,6 +179,7 @@ def create_employee(
     session: Session, actor: Actor, body: EmployeeCreate, *, now: datetime, request_id: str | None = None
 ) -> EmployeeWithPassword:
     _ensure_email_free(session, body.email)
+    roles = _resolve_roles(set(body.roles))
     codes = list(session.scalars(select(Employee.code)))
     number = next_value(session, "employee", at_least_after=last_code_number(codes))
     password = temporary_password(body.email)
@@ -177,7 +196,7 @@ def create_employee(
         failed_login_count=0,
         password_changed_at=now,
         version=1,
-        roles=[EmployeeRole(role=role) for role in dict.fromkeys(body.roles)],
+        roles=[EmployeeRole(role=role) for role in ROLES if role in roles],
     )
     session.add(employee)
     _flush(session)
@@ -188,7 +207,7 @@ def create_employee(
         entity_type="EMPLOYEE",
         entity_id=employee.id,
         action="create",
-        data={"roles": list(body.roles)},
+        data={"roles": sorted(roles)},
         request_id=request_id,
     )
     return EmployeeWithPassword(employee=_out(employee, now), temporary_password=password)
@@ -240,7 +259,7 @@ def set_roles(
 ) -> EmployeeOut:
     _serialize_manager_changes(session)
     employee = _locked(session, actor, employee_id, version)
-    wanted = set(roles)
+    wanted = _resolve_roles(set(roles))
     held = {r.role for r in employee.roles}
     if "MANAGER" in held and "MANAGER" not in wanted and employee.is_active:
         _require_another_active_manager(session, employee.id)

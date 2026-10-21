@@ -17,4 +17,4 @@ export const DEPARTMENT_LABELS: Record<string, string> = {
   TECHNICAL: "Kỹ thuật",
 };
 
-export const ROLE_ORDER = ["MANAGER", "SALE", "TECH_LEAD", "TECHNICIAN"] as const;
+export const ROLE_ORDER = ["MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD", "TECHNICIAN"] as const;

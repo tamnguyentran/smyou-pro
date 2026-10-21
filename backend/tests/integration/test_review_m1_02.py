@@ -44,7 +44,7 @@ def test_real_routes_matrix_uses_yaml_roles_and_holders_reach_the_handler(
 @pytest.mark.ac("AC-AUTH-034")
 def test_matrix_size_is_derived_from_the_yaml() -> None:
     n = len(YAML_ROLES)
-    assert 2**n - 1 == 15  # the spec's example; the matrix itself is built from the YAML
+    assert 2**n - 1 == 31  # the spec's example; the matrix itself is built from the YAML
     assert len(PERMISSIONS.capabilities) > 0
 
 

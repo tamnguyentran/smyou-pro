@@ -323,6 +323,40 @@ describe("AC-EMP-014 thêm nhân viên", () => {
   });
 });
 
+describe("AC-EMP-024 khoá vai trò kèm Quản lý chung", () => {
+  test("tick Quản lý chung tự tick và khoá Sale/CSKH/QLKT, khoá bỏ-tick Kỹ thuật viên", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([AN_ROW])));
+    renderApp("/employees");
+    await openMenu();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Thêm nhân viên" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm nhân viên" });
+
+    await user.click(within(dialog).getByRole("checkbox", { name: "Nhân viên kỹ thuật" }));
+    await user.click(within(dialog).getByRole("checkbox", { name: "Quản lý chung" }));
+
+    const sale = within(dialog).getByRole("checkbox", { name: "Nhân viên kinh doanh" });
+    const cskh = within(dialog).getByRole("checkbox", { name: "Chăm sóc khách hàng" });
+    const techLead = within(dialog).getByRole("checkbox", { name: "Quản lý kỹ thuật" });
+    const technician = within(dialog).getByRole("checkbox", { name: "Nhân viên kỹ thuật" });
+    expect(sale).toBeChecked();
+    expect(sale).toBeDisabled();
+    expect(cskh).toBeChecked();
+    expect(cskh).toBeDisabled();
+    expect(techLead).toBeChecked();
+    expect(techLead).toBeDisabled();
+    expect(technician).not.toBeChecked(); // forced off — can't be Manager + Technician
+    expect(technician).toBeDisabled();
+
+    await user.click(within(dialog).getByRole("checkbox", { name: "Quản lý chung" }));
+    expect(sale).not.toBeDisabled();
+    expect(cskh).not.toBeDisabled();
+    expect(techLead).not.toBeDisabled();
+    expect(technician).not.toBeDisabled();
+    expect(sale).toBeChecked(); // unlocked, selection kept as-is
+  });
+});
+
 describe("AC-EMP-015 sửa nhân viên", () => {
   test("sửa thông tin và vai trò, Lưu → toast Đã cập nhật.", async () => {
     signedInAs(AN, () => HttpResponse.json(page([employee()])));

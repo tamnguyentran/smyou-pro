@@ -7,10 +7,11 @@
 version: 1
 
 roles:
-  MANAGER:    { label: Quản lý chung }
-  SALE:       { label: Nhân viên kinh doanh }
-  TECH_LEAD:  { label: Quản lý kỹ thuật }
-  TECHNICIAN: { label: Nhân viên kỹ thuật }
+  MANAGER:       { label: Quản lý chung }
+  SALE:          { label: Nhân viên kinh doanh }
+  CUSTOMER_CARE: { label: Chăm sóc khách hàng }
+  TECH_LEAD:     { label: Quản lý kỹ thuật }
+  TECHNICIAN:    { label: Nhân viên kỹ thuật }
 
 # scope meanings:
 #   all      — every record
@@ -21,20 +22,20 @@ scopes: [all, own, assigned, self]
 
 capabilities:
   # --- Danh mục ---
-  catalog.read:          { MANAGER: all, SALE: all, TECH_LEAD: all }
+  catalog.read:          { MANAGER: all, SALE: all, CUSTOMER_CARE: all, TECH_LEAD: all }
   catalog.manage:        { MANAGER: all }
   # --- Nhân sự ---
   employee.read:         { MANAGER: all, TECH_LEAD: all }
   employee.manage:       { MANAGER: all }            # create, edit, deactivate, set roles, reset password
-  profile.manage:        { MANAGER: self, SALE: self, TECH_LEAD: self, TECHNICIAN: self }
+  profile.manage:        { MANAGER: self, SALE: self, CUSTOMER_CARE: self, TECH_LEAD: self, TECHNICIAN: self }
   # --- Khách hàng ---
-  customer.read:         { MANAGER: all, SALE: all, TECH_LEAD: all }
-  customer.manage:       { MANAGER: all, SALE: all }
+  customer.read:         { MANAGER: all, SALE: all, CUSTOMER_CARE: all, TECH_LEAD: all }
+  customer.manage:       { MANAGER: all, SALE: all, CUSTOMER_CARE: all }
   # --- Đơn hàng ---
-  order.read:            { MANAGER: all, SALE: all, TECH_LEAD: all, TECHNICIAN: assigned }
+  order.read:            { MANAGER: all, SALE: all, CUSTOMER_CARE: all, TECH_LEAD: all, TECHNICIAN: assigned }
   order.read_prices:     { MANAGER: all, SALE: all, TECH_LEAD: all, TECHNICIAN: assigned }  # Q03: technicians see prices of their orders
-  order.create:          { MANAGER: all, SALE: all }
-  order.edit_draft:      { MANAGER: all, SALE: own }
+  order.create:          { MANAGER: all, SALE: all, CUSTOMER_CARE: all }
+  order.edit_draft:      { MANAGER: all, SALE: own, CUSTOMER_CARE: own }
   order.edit_contact:    { MANAGER: all, SALE: own }  # phone/address/notes after submit, until COMPLETED
   order.edit_lines_after_submit: { MANAGER: all, SALE: own }  # Q09: until COMPLETED/CANCELLED, audited
   order.submit:          { MANAGER: all, SALE: own }

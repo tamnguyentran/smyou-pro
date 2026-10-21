@@ -7,7 +7,7 @@ export type Employee = components["schemas"]["EmployeeOut"];
 export type EmployeeCreateBody = components["schemas"]["EmployeeCreate"];
 export type EmployeeUpdateBody = components["schemas"]["EmployeeUpdate"];
 export type EmployeeWithPassword = components["schemas"]["EmployeeWithPassword"];
-export type Role = "MANAGER" | "SALE" | "TECH_LEAD" | "TECHNICIAN";
+export type Role = "MANAGER" | "SALE" | "CUSTOMER_CARE" | "TECH_LEAD" | "TECHNICIAN";
 
 export interface EmployeeFilters {
   q: string;
