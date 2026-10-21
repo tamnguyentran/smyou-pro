@@ -3,6 +3,7 @@ import { renderHook } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { createQueryClient } from "../../app/queryClient";
+import { DASHBOARD_KEY } from "../dashboard/api";
 import { ME_KEY } from "../me/api";
 import { NOTIFICATIONS_KEY } from "./api";
 import { useNotificationsRealtime } from "./useNotificationsRealtime";
@@ -36,7 +37,7 @@ afterEach(() => {
 });
 
 describe("useNotificationsRealtime (M7-03)", () => {
-  test("AC-NTF-038: nhận message 'notification' → làm mới GET /me + danh sách thông báo", () => {
+  test("AC-NTF-038: nhận message 'notification' → làm mới GET /me + danh sách thông báo + Tổng quan", () => {
     vi.stubGlobal("WebSocket", FakeWebSocket);
     const queryClient = createQueryClient();
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
@@ -54,6 +55,7 @@ describe("useNotificationsRealtime (M7-03)", () => {
 
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ME_KEY });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: [NOTIFICATIONS_KEY] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: DASHBOARD_KEY });
   });
 
   test("AC-NTF-039: message không phải 'notification' → không làm mới gì", () => {

@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { resolveBasePath } from "../../lib/basePath";
+import { DASHBOARD_KEY } from "../dashboard/api";
 import { ME_KEY } from "../me/api";
 import { NOTIFICATIONS_KEY } from "./api";
 
@@ -45,6 +46,9 @@ export function useNotificationsRealtime(): void {
         ) {
           void queryClient.invalidateQueries({ queryKey: ME_KEY });
           void queryClient.invalidateQueries({ queryKey: [NOTIFICATIONS_KEY] });
+          // Chỉ ảnh hưởng khi đang mở màn "Tổng quan" — react-query chỉ refetch ngay query đang
+          // active (mounted); nếu không, chỉ đánh dấu stale, tự lấy lại khi quay lại trang.
+          void queryClient.invalidateQueries({ queryKey: DASHBOARD_KEY });
         }
       };
       socket.onclose = () => {
