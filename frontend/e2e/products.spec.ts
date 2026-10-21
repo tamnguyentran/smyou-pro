@@ -76,8 +76,8 @@ test("AC-CAT-013 AC-CAT-018 @a11y @screenshot thêm sản phẩm", async ({ page
 
   await form.getByRole("button", { name: "Lưu" }).click();
   await expect(page.getByText(`Đã thêm sản phẩm ${name}.`)).toBeVisible();
-  // §8 giả định: cùng Sheet chuyển sang chế độ sửa cho sản phẩm vừa tạo
-  await expect(page.getByRole("dialog", { name: "Sửa sản phẩm" })).toBeVisible();
+  // Lưu thành công → đóng Sheet (quyết định 2026-10-20, xem M2-01b §8)
+  await expect(page.getByRole("dialog", { name: "Thêm sản phẩm" })).not.toBeVisible();
 });
 
 test("AC-CAT-015 ngừng kinh doanh, badge đổi ngay không cần tải lại", async ({ page }) => {
@@ -85,13 +85,19 @@ test("AC-CAT-015 ngừng kinh doanh, badge đổi ngay không cần tải lại"
   await page.getByRole("button", { name: "Thêm sản phẩm" }).click();
   const form = page.getByRole("dialog", { name: "Thêm sản phẩm" });
   const sku = `QA-STOP-${String(Date.now())}`;
+  const name = `QA Ngừng kinh doanh ${sku}`;
   await form.getByLabel("Mã hàng").fill(sku);
-  await form.getByLabel("Tên sản phẩm").fill(`QA Ngừng kinh doanh ${sku}`);
+  await form.getByLabel("Tên sản phẩm").fill(name);
   await form.getByLabel("Danh mục").selectOption("ACCESSORY");
   await form.getByLabel("Đơn vị tính").selectOption("CAI");
   await form.getByLabel("Đơn giá").fill("100000");
   await form.getByRole("button", { name: "Lưu" }).click();
+  await expect(page.getByText(`Đã thêm sản phẩm ${name}.`)).toBeVisible();
 
+  await page.getByLabel("Tìm kiếm").fill(sku);
+  // getByRole("button", …) (chứ không phải getByText): toast "Đã thêm sản phẩm {name}." vẫn còn
+  // hiện và chứa `name` làm chuỗi con — getByText sẽ khớp nhầm vào đó thay vì dòng trong bảng.
+  await page.getByRole("button", { name }).click();
   const editDialog = page.getByRole("dialog", { name: "Sửa sản phẩm" });
   await expect(editDialog).toBeVisible();
   await editDialog.getByRole("button", { name: "Ngừng kinh doanh" }).click();

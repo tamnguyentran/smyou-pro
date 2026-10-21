@@ -122,8 +122,7 @@ export function ServiceFormSheet({
         };
         const created = await create.mutateAsync(body);
         toast(`Đã thêm dịch vụ ${created.name}.`);
-        // Cùng Sheet chuyển sang chế độ sửa cho dịch vụ vừa tạo — không mở URL riêng (như M2-01b).
-        setService(created);
+        onClose();
         return;
       }
       const updated = await update.mutateAsync({
