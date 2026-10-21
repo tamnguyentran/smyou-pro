@@ -2,6 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { defaultMonthToDateRange } from "../../lib/dateRange";
 import { markSignedIn } from "../../lib/sessionHint";
 import { server } from "../../test/msw";
 import { renderApp } from "../../test/renderApp";
@@ -32,6 +33,20 @@ const HOA: Person = {
     "profile.manage": self,
   },
 };
+const lanId = "a0000000-0000-4000-8000-000000000020";
+const LAN: Person = {
+  code: "NV020",
+  full_name: "Võ Thị Lan",
+  email: "lan.vo@smyou.vn",
+  roles: ["CUSTOMER_CARE"],
+  capabilities: {
+    "dashboard.read": all,
+    "order.read": all,
+    "order.create": all,
+    "customer_care.manage_feedback": all,
+    "profile.manage": self,
+  },
+};
 
 function summary(overrides: Partial<OrderSummary> = {}): OrderSummary {
   return {
@@ -48,6 +63,7 @@ function summary(overrides: Partial<OrderSummary> = {}): OrderSummary {
     created_by_name: "Nguyễn Thị Hoa",
     created_at: "2026-09-30T03:00:00Z",
     revision_no: 0,
+    csat_rating: null,
     ...overrides,
   };
 }
@@ -409,5 +425,91 @@ describe("AC-ORD-110 AC-ORD-111 AC-ORD-112 chip lọc trạng thái", () => {
     await screen.findByText("DH2609-0001");
     expect(screen.getByText("DH2609-0002")).toBeInTheDocument();
     expect(screen.getByText("DH2609-0003")).toBeInTheDocument();
+  });
+});
+
+describe("M15-02b — CSKH tra cứu + CSAT trên /orders", () => {
+  test("AC-CSK-010: Lan (CUSTOMER_CARE) mở /orders → bộ lọc ngày mặc định đầu tháng→hôm nay", async () => {
+    signedInAs(lanId, LAN);
+    let lastQuery = "";
+    server.use(
+      http.get("/api/v1/orders", ({ request }) => {
+        lastQuery = new URL(request.url).search;
+        return HttpResponse.json({ items: [summary()], total: 1, limit: 20, offset: 0 });
+      }),
+      http.get("/api/v1/orders/csat-summary", () =>
+        HttpResponse.json({ "5": 0, "4": 0, "3": 0, "2": 0, "1": 0, none: 0 }),
+      ),
+    );
+    renderApp("/orders");
+    await screen.findByText("DH2609-0001");
+
+    const range = defaultMonthToDateRange();
+    expect(lastQuery).toContain(`from=${range.from}`);
+    expect(lastQuery).toContain(`to=${range.to}`);
+    expect(screen.getByLabelText("Từ ngày")).toHaveValue(range.from);
+    expect(screen.getByLabelText("Đến ngày")).toHaveValue(range.to);
+  });
+
+  test("AC-CSK-011: tô nền dòng theo csat_rating (xanh/vàng/hồng/mặc định)", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({
+          items: [
+            summary({ csat_rating: 5 }),
+            summary({
+              id: "b0000000-0000-4000-8000-000000000021",
+              code: "DH2609-0002",
+              csat_rating: 3,
+            }),
+            summary({
+              id: "b0000000-0000-4000-8000-000000000022",
+              code: "DH2609-0003",
+              csat_rating: 1,
+            }),
+            summary({
+              id: "b0000000-0000-4000-8000-000000000023",
+              code: "DH2609-0004",
+              csat_rating: null,
+            }),
+          ],
+          total: 4,
+          limit: 20,
+          offset: 0,
+        }),
+      ),
+    );
+    renderApp("/orders");
+    await screen.findByText("DH2609-0001");
+
+    const row = (code: string) => screen.getByText(code).closest("tr");
+    expect(row("DH2609-0001")).toHaveClass("bg-completed-bg");
+    expect(row("DH2609-0002")).toHaveClass("bg-review-bg");
+    expect(row("DH2609-0003")).toHaveClass("bg-urgent-bg");
+    expect(row("DH2609-0004")).not.toHaveClass("bg-completed-bg");
+    expect(row("DH2609-0004")).not.toHaveClass("bg-review-bg");
+    expect(row("DH2609-0004")).not.toHaveClass("bg-urgent-bg");
+  });
+
+  test("AC-CSK-012: bấm số ở ô '3★' → lọc danh sách theo csat_rating=3", async () => {
+    signedInAs(lanId, LAN);
+    let lastQuery = "";
+    server.use(
+      http.get("/api/v1/orders", ({ request }) => {
+        lastQuery = new URL(request.url).search;
+        return HttpResponse.json({ items: [summary()], total: 1, limit: 20, offset: 0 });
+      }),
+      http.get("/api/v1/orders/csat-summary", () =>
+        HttpResponse.json({ "5": 3, "4": 2, "3": 1, "2": 1, "1": 1, none: 2 }),
+      ),
+    );
+    renderApp("/orders");
+    await screen.findByText("DH2609-0001");
+
+    await userEvent.setup().click(screen.getByRole("button", { name: /3★/ }));
+    await waitFor(() => {
+      expect(lastQuery).toContain("csat_rating=3");
+    });
   });
 });

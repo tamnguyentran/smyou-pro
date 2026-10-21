@@ -24,6 +24,7 @@ function order(overrides: Partial<OrderSummary> = {}): OrderSummary {
     created_by_name: "Nguyễn Thị Hoa",
     created_at: "2026-10-01T03:00:00Z",
     revision_no: 1,
+    csat_rating: null,
     ...overrides,
   };
 }

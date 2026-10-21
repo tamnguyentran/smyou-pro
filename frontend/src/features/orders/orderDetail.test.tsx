@@ -101,6 +101,21 @@ const TUAN: Person = {
     "profile.manage": self,
   },
 };
+const lanId = "a0000000-0000-4000-8000-000000000015";
+const LAN: Person = {
+  code: "NV020",
+  full_name: "Võ Thị Lan",
+  email: "lan.vo@smyou.vn",
+  roles: ["CUSTOMER_CARE"],
+  capabilities: {
+    "dashboard.read": all,
+    "order.read": all,
+    "customer_care.manage_feedback": all,
+    "customer.read": all,
+    "catalog.read": all,
+    "profile.manage": self,
+  },
+};
 
 function order(overrides: Partial<Order> = {}): Order {
   return {
@@ -1258,5 +1273,123 @@ describe("AC-ORD-104 nhãn lịch sử mới", () => {
     expect(within(history).getByText("Sửa dòng hàng")).toBeInTheDocument();
     expect(within(history).getByText("Xoá dòng hàng")).toBeInTheDocument();
     expect(within(history).queryByText("edit_contact")).not.toBeInTheDocument();
+  });
+});
+
+describe("M15-02b — khối Phản hồi khách hàng trên /orders/:id", () => {
+  test("AC-CSK-013: CSKH mở đơn COMPLETED chưa có phản hồi → form trống, nút disabled", async () => {
+    signedInAs(lanId, LAN);
+    server.use(
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ status: "COMPLETED" }))),
+      http.get("/api/v1/orders/:id/confirmation-attachments", () =>
+        HttpResponse.json({ items: [] }),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+
+    expect(screen.getByText("Phản hồi khách hàng")).toBeInTheDocument();
+    expect(screen.getByRole("radiogroup", { name: "Số sao" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Nội dung phản hồi")).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Lưu phản hồi" })).toBeDisabled();
+  });
+
+  test("AC-CSK-014: chọn 4 sao, nhập nội dung → Lưu phản hồi → toast, nút đổi 'Cập nhật phản hồi'", async () => {
+    signedInAs(lanId, LAN);
+    let savedBody: unknown;
+    server.use(
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ status: "COMPLETED" }))),
+      http.get("/api/v1/orders/:id/confirmation-attachments", () =>
+        HttpResponse.json({ items: [] }),
+      ),
+      http.post("/api/v1/orders/:id/csat", async ({ request }) => {
+        savedBody = await request.json();
+        return HttpResponse.json(
+          order({
+            status: "COMPLETED",
+            csat_rating: 4,
+            csat_comment: "Khách hài lòng",
+            csat_recorded_by: lanId,
+            csat_recorded_at: "2026-10-22T03:00:00Z",
+            version: 2,
+          }),
+        );
+      }),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("radio", { name: "4 sao" }));
+    await user.type(screen.getByLabelText("Nội dung phản hồi"), "Khách hài lòng");
+    await user.click(screen.getByRole("button", { name: "Lưu phản hồi" }));
+
+    await waitFor(() => {
+      expect(savedBody).toMatchObject({
+        version: 1,
+        csat_rating: 4,
+        csat_comment: "Khách hài lòng",
+      });
+    });
+    expect(await screen.findByText("Đã lưu phản hồi của khách hàng.")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Cập nhật phản hồi" })).toBeInTheDocument();
+  });
+
+  test("AC-CSK-015: đơn chưa COMPLETED → ẩn hoàn toàn khối Phản hồi khách hàng", async () => {
+    signedInAs(lanId, LAN);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ status: "PENDING_DISPATCH" })),
+      ),
+      http.get("/api/v1/orders/:id/confirmation-attachments", () =>
+        HttpResponse.json({ items: [] }),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+
+    expect(screen.queryByText("Phản hồi khách hàng")).not.toBeInTheDocument();
+  });
+
+  test("AC-CSK-016: Hoa (SALE) mở đơn COMPLETED đã có phản hồi → chỉ-đọc, không có ô nhập/nút lưu", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(
+          order({
+            status: "COMPLETED",
+            csat_rating: 4,
+            csat_comment: "Khách hài lòng",
+            csat_recorded_by: lanId,
+            csat_recorded_at: "2026-10-20T03:00:00Z",
+          }),
+        ),
+      ),
+      http.get("/api/v1/orders/:id/confirmation-attachments", () =>
+        HttpResponse.json({ items: [] }),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+
+    expect(screen.getByText("Phản hồi khách hàng")).toBeInTheDocument();
+    expect(screen.getByText("Khách hài lòng")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Nội dung phản hồi")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Lưu phản hồi" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cập nhật phản hồi" })).not.toBeInTheDocument();
+  });
+
+  test("AC-CSK-017: Hoa (SALE)/Tuấn (TECH_LEAD) mở đơn COMPLETED chưa có phản hồi → ẩn hoàn toàn", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ status: "COMPLETED" }))),
+      http.get("/api/v1/orders/:id/confirmation-attachments", () =>
+        HttpResponse.json({ items: [] }),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+
+    expect(screen.queryByText("Phản hồi khách hàng")).not.toBeInTheDocument();
   });
 });
