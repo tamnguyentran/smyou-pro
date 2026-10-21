@@ -52,6 +52,8 @@ ACCOUNTS = [
     # shared with any other test, so they stay idempotent across `make e2e` runs (reset here).
     ("mai.quenmk.mobile@smyou.vn", "E2E12", "Bùi Thị Mai", ("SALE",), "QuenMK@E2E1", False),
     ("mai.quenmk.desktop@smyou.vn", "E2E13", "Bùi Thị Mai", ("SALE",), "QuenMK@E2E1", False),
+    # M15-02b: màn tra cứu CSKH (/orders) dùng role riêng, không gộp qua _MANAGER_BUNDLE.
+    ("lan.cskh@smyou.vn", "E2E14", "Nguyễn Thị Lan", ("CUSTOMER_CARE",), "E2e@SmYou2026", False),
 ]
 
 # (sku, name, category, brand, unit, price, is_active, price_fixed) — M2-01b: stable data for the
