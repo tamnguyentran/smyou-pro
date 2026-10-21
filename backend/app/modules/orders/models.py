@@ -52,6 +52,7 @@ class Order(Base):
         CheckConstraint(_in("status", STATUSES), name="status"),
         CheckConstraint(_in("priority", PRIORITIES), name="priority"),
         CheckConstraint(_in("payment_status", PAYMENT_STATUSES), name="payment_status"),
+        CheckConstraint("csat_rating BETWEEN 1 AND 5", name="csat_rating_range"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
@@ -75,6 +76,10 @@ class Order(Base):
     payment_method: Mapped[str | None] = mapped_column(String(20))
     customer_feedback: Mapped[str | None] = mapped_column(Text)
     result_note: Mapped[str | None] = mapped_column(Text)
+    csat_rating: Mapped[int | None] = mapped_column(SmallInteger)
+    csat_comment: Mapped[str | None] = mapped_column(Text)
+    csat_recorded_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("employees.id"))
+    csat_recorded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     confirmation_signer_name: Mapped[str | None] = mapped_column(String(120))
     revision_no: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("employees.id"), index=True)

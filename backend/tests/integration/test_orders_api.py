@@ -928,6 +928,8 @@ def test_routes_declare_capability(app: FastAPI) -> None:
             "/api/v1/orders/{order_id}/lines-after-submit/{line_id}/remove",
             "order.edit_lines_after_submit",
         ),
+        ("GET", "/api/v1/orders/csat-summary", "customer_care.manage_feedback"),
+        ("POST", "/api/v1/orders/{order_id}/csat", "customer_care.manage_feedback"),
     }
 
 
