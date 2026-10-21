@@ -99,6 +99,43 @@ describe("Tổng quan", () => {
     }
   });
 
+  test("AC-DASH-053 nút Làm mới gọi lại GET /dashboard", async () => {
+    signedInAs("hoa-id", HOA);
+    let calls = 0;
+    server.use(
+      http.get("/api/v1/dashboard", () => {
+        calls += 1;
+        return HttpResponse.json({
+          order_summary: {
+            scope: "own",
+            counts_by_status: {
+              DRAFT: 0,
+              PENDING_DISPATCH: 0,
+              IN_PROGRESS: 0,
+              AWAITING_CONFIRMATION: 0,
+              COMPLETED: 0,
+              REVISION: 0,
+              CANCELLED: 0,
+            },
+            overdue_count: 0,
+          },
+        } satisfies Dashboard);
+      }),
+    );
+    renderApp("/");
+
+    expect(await screen.findByRole("heading", { name: "Tổng quan" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(calls).toBe(1);
+    });
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Làm mới" }));
+    await waitFor(() => {
+      expect(calls).toBe(2);
+    });
+  });
+
   test("AC-DASH-011 desktop 1440px: Tuấn (TECH_LEAD) thấy 3 thẻ điều phối, 'Quá hạn' tông urgent khi > 0", async () => {
     signedInAs("tuan-id", TUAN);
     mockDashboard({
@@ -141,8 +178,11 @@ describe("Tổng quan", () => {
     mockDashboard({ today_tasks: [] });
     renderApp("/");
 
-    expect(await screen.findByText("Không có việc nào đến hạn hôm nay.")).toBeInTheDocument();
-    expect(within(screen.getByRole("main")).queryByRole("button")).not.toBeInTheDocument();
+    const empty = await screen.findByText("Không có việc nào đến hạn hôm nay.");
+    expect(empty).toBeInTheDocument();
+    // "không CTA" nghĩa là card rỗng không có nút riêng — không tính nút "Làm mới" chung của trang.
+    const section = empty.closest("section") as HTMLElement;
+    expect(within(section).queryByRole("button")).not.toBeInTheDocument();
   });
 
   test("AC-DASH-013 Đức, 2 việc hôm nay (1 quá hạn): hạn chót quá hạn hiện màu đỏ", async () => {

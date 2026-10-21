@@ -1,8 +1,9 @@
-import { Inbox } from "lucide-react";
+import { Inbox, RefreshCw } from "lucide-react";
 import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
 import { Button } from "../../../components/ui/Button";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { cn } from "../../../lib/cn";
 import { useMe } from "../../me/api";
 import { useDashboard } from "../api";
 import { DashboardSkeleton } from "../components/DashboardSkeleton";
@@ -54,6 +55,22 @@ export function DashboardPage() {
   const data = dashboard.data;
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          aria-label="Làm mới"
+          disabled={dashboard.isFetching}
+          onClick={() => {
+            void dashboard.refetch();
+          }}
+          className="flex size-11 items-center justify-center rounded-xl text-heading hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          <RefreshCw
+            aria-hidden="true"
+            className={cn("size-5", dashboard.isFetching && "animate-spin")}
+          />
+        </button>
+      </div>
       {data.order_summary ? <OrderSummarySection summary={data.order_summary} /> : null}
       {data.dispatch_summary ? <DispatchSummarySection summary={data.dispatch_summary} /> : null}
       {data.task_summary ? <TaskSummarySection summary={data.task_summary} /> : null}
