@@ -786,6 +786,15 @@ describe("Tổng quan", () => {
     const oneStarTile = screen.getByText("1★").closest("div") as HTMLElement;
     expect(oneStarTile.className).toContain("urgent");
     expect(screen.queryByText(/chưa đánh giá/i)).not.toBeInTheDocument();
+
+    // AC-DASH-058: 2 khối "cạnh" nhau ở desktop — khác AC-DASH-059 (mobile xếp dọc) — cùng 1
+    // container lưới 2 cột từ `lg:` trở lên.
+    const topHeading = screen.getByText("Top 10 khách hàng (tháng này)");
+    const feedbackHeading = screen.getByText("Phản hồi – đánh giá từ khách hàng (tháng này)");
+    expect(topHeading.closest("section")?.parentElement).toBe(
+      feedbackHeading.closest("section")?.parentElement,
+    );
+    expect(topHeading.closest("section")?.parentElement?.className).toContain("lg:grid-cols-2");
   });
 
   test("AC-DASH-059 mobile 390px: Lan (CUSTOMER_CARE) thấy 2 khối xếp dọc, Top 10 là thẻ không phải bảng", async () => {

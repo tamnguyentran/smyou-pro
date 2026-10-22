@@ -95,8 +95,14 @@ export function DashboardPage() {
         />
       ) : null}
       {data.my_task_summary ? <MyTaskSummarySection summary={data.my_task_summary} /> : null}
-      {data.top_customers ? <TopCustomersSection items={data.top_customers} /> : null}
-      {data.feedback_summary ? <FeedbackSummarySection summary={data.feedback_summary} /> : null}
+      {data.top_customers || data.feedback_summary ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {data.top_customers ? <TopCustomersSection items={data.top_customers} /> : null}
+          {data.feedback_summary ? (
+            <FeedbackSummarySection summary={data.feedback_summary} />
+          ) : null}
+        </div>
+      ) : null}
       {data.today_tasks ? <TodayTasksSection items={data.today_tasks} /> : null}
     </div>
   );

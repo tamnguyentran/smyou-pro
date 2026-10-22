@@ -861,3 +861,76 @@ def test_technician_only_has_no_customer_sections(
     data = body(duc.get("/api/v1/dashboard"))
     assert "top_customers" not in data
     assert "feedback_summary" not in data
+
+
+@pytest.mark.ac("AC-DASH-054")
+def test_top_customers_excludes_other_month_and_non_completed(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    """Review finding (test-auditor): §8 spec yêu cầu chỉ tính đơn COMPLETED trong tháng hiện
+    tại — thêm 1 đơn tháng trước (completed_at tháng 8) và 1 đơn DRAFT (chưa completed_at), cả 2
+    có `total` rất lớn, để lộ nếu bộ lọc ngày/`status` bị gỡ bỏ."""
+    customer_id = insert_customer_for_dashboard(
+        db, code="KH99", name="Khách tháng trước", created_by=people["NV001"]
+    )
+    insert_completed_order_for_customer(
+        db,
+        created_by=people["NV001"],
+        customer_id=customer_id,
+        total=99_000_000,
+        code="DH2608-LASTMONTH",
+        completed_at=datetime(2026, 8, 20, 3, 0, tzinfo=UTC),
+    )
+    draft_customer_id = insert_customer_for_dashboard(
+        db, code="KH98", name="Khách đơn nháp", created_by=people["NV001"]
+    )
+    draft_order_id = uuid.uuid4()
+    db.execute(
+        text(
+            "INSERT INTO orders (id, code, status, created_by, customer_id, service_address,"
+            " work_description, priority, version, total)"
+            " VALUES (:id, 'DH2609-DRAFT', 'DRAFT', :created_by, :customer_id, '12 Lê Lợi, Q1',"
+            " 'Lắp đặt', 'NORMAL', 1, :total)"
+        ),
+        {
+            "id": draft_order_id,
+            "created_by": people["NV001"],
+            "customer_id": draft_customer_id,
+            "total": 98_000_000,
+        },
+    )
+    insert_completed_order_for_customer(
+        db, created_by=people["NV001"], customer_id=customer_id, total=1_000_000, code="DH2609-REAL"
+    )
+
+    an = client_as(app, AN)
+    data = body(an.get("/api/v1/dashboard"))
+
+    rows_by_code = {row["customer_code"]: row for row in data["top_customers"]}
+    assert "KH98" not in rows_by_code  # đơn DRAFT không tính
+    assert rows_by_code["KH99"]["total_revenue"] == 1_000_000  # chỉ đơn tháng này, bỏ đơn tháng 8
+
+
+@pytest.mark.ac("AC-DASH-054")
+def test_top_customers_excludes_guest_orders_without_customer(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    """Review finding (test-auditor): §8 spec — đơn không có customer_id (khách lẻ) không tính
+    vào top_customers; chưa có test nào xác nhận việc loại trừ cho top_customers (AC-DASH-056
+    chỉ kiểm feedback_summary)."""
+    insert_completed_order_for_customer(
+        db, created_by=people["NV001"], customer_id=None, total=999_000_000, code="DH2609-GUEST"
+    )
+    customer_id = insert_customer_for_dashboard(
+        db, code="KH97", name="Khách có mã", created_by=people["NV001"]
+    )
+    insert_completed_order_for_customer(
+        db, created_by=people["NV001"], customer_id=customer_id, total=1_000_000, code="DH2609-NAMED"
+    )
+
+    an = client_as(app, AN)
+    data = body(an.get("/api/v1/dashboard"))
+
+    assert len(data["top_customers"]) == 1
+    assert data["top_customers"][0]["customer_code"] == "KH97"
+    assert sum(row["total_revenue"] for row in data["top_customers"]) < 999_000_000
