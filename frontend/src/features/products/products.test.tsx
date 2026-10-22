@@ -698,11 +698,25 @@ describe("AC-CAT-087 lịch sử giá", () => {
     expect(await within(dialog).findByText("Nguyễn Văn An")).toBeInTheDocument();
     expect(within(dialog).getByText("20/10/2026 10:00")).toBeInTheDocument();
     expect(within(dialog).getByText("Giá bán: 2.800.000 ₫ → 2.900.000 ₫")).toBeInTheDocument();
-    expect(
-      within(dialog).getByText(
-        (text) => text.startsWith("Giá vốn:") && text.includes("2.100.000 ₫"),
+    expect(within(dialog).getByText("Giá vốn: 2.100.000 ₫ → 2.100.000 ₫")).toBeInTheDocument();
+  });
+
+  test("API lịch sử giá lỗi → hiện thông báo lỗi, không hiện 'Chưa có lần sửa giá nào.'", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([LCD])));
+    server.use(
+      http.get("/api/v1/products/:id/price-history", () =>
+        HttpResponse.json(null, { status: 500 }),
       ),
-    ).toBeInTheDocument();
+    );
+    renderApp("/catalog/products");
+    await openMenu();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("Màn hình Dell 22 inch"));
+    const dialog = await screen.findByRole("dialog", { name: "Sửa sản phẩm" });
+
+    await user.click(within(dialog).getByRole("button", { name: "Lịch sử giá" }));
+    expect(await within(dialog).findByText(/không tải được lịch sử giá/i)).toBeInTheDocument();
+    expect(within(dialog).queryByText("Chưa có lần sửa giá nào.")).not.toBeInTheDocument();
   });
 
   test("Sale chỉ xem (không có nút Lịch sử giá)", async () => {
