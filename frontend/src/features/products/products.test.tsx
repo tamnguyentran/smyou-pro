@@ -65,6 +65,7 @@ function product(overrides: Partial<Product> = {}): Product {
     brand: "Dell",
     unit: "CAI",
     price: 2_800_000,
+    cost_price: 2_100_000,
     vat_rate: "10.00",
     price_fixed: false,
     warranty_months: 24,
@@ -311,6 +312,7 @@ describe("AC-CAT-013 thêm sản phẩm", () => {
     await user.selectOptions(within(dialog).getByLabelText("Danh mục"), "PC");
     await user.selectOptions(within(dialog).getByLabelText("Đơn vị tính"), "BO");
     await user.type(within(dialog).getByLabelText("Đơn giá"), "12500000");
+    await user.type(within(dialog).getByLabelText("Giá vốn"), "10000000");
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
     expect(
       await within(dialog).findByText("Mã hàng đã được dùng cho sản phẩm khác."),
@@ -354,6 +356,7 @@ describe("AC-CAT-013 thêm sản phẩm", () => {
     await user.selectOptions(within(dialog).getByLabelText("Danh mục"), "MONITOR");
     await user.selectOptions(within(dialog).getByLabelText("Đơn vị tính"), "CAI");
     await user.type(within(dialog).getByLabelText("Đơn giá"), "2800000");
+    await user.type(within(dialog).getByLabelText("Giá vốn"), "2100000");
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
     expect(
       await within(dialog).findByText(
@@ -387,6 +390,7 @@ describe("AC-CAT-013 thêm sản phẩm", () => {
     await user.selectOptions(within(dialog).getByLabelText("Danh mục"), "PC");
     await user.selectOptions(within(dialog).getByLabelText("Đơn vị tính"), "CAI");
     await user.type(within(dialog).getByLabelText("Đơn giá"), "1000");
+    await user.type(within(dialog).getByLabelText("Giá vốn"), "800");
     await user.type(within(dialog).getByLabelText("Hãng"), "Một hãng nào đó");
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
     const brandField = within(dialog).getByLabelText("Hãng");
@@ -629,5 +633,40 @@ describe("AC-CAT-017 phân quyền trang", () => {
     signedInAs(KHOA);
     renderApp("/catalog/products");
     expect(await screen.findByText("Bạn không có quyền truy cập trang này.")).toBeInTheDocument();
+  });
+});
+
+describe("AC-CAT-078 badge Thiếu giá vốn", () => {
+  test("sản phẩm chưa có giá vốn hiện badge; đã có thì không", async () => {
+    mockViewport(true);
+    const noCostPrice = product({ id: "no-cost", sku: "HOPMUC3053", cost_price: null });
+    signedInAs(AN, () => HttpResponse.json(page([LCD, noCostPrice])));
+    renderApp("/catalog/products");
+    await openMenu();
+
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("Thiếu giá vốn")).toBeInTheDocument();
+    expect(within(table).getAllByText("Thiếu giá vốn")).toHaveLength(1);
+  });
+});
+
+describe("AC-CAT-079 vô hiệu hoá Lưu khi thiếu giá vốn", () => {
+  test("sửa sản phẩm cũ chưa có giá vốn: Lưu disabled tới khi điền", async () => {
+    signedInAs(AN, () =>
+      HttpResponse.json(page([product({ id, sku: "LCD1137", cost_price: null })])),
+    );
+    renderApp("/catalog/products");
+    await openMenu();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("Màn hình Dell 22 inch"));
+    const dialog = await screen.findByRole("dialog", { name: "Sửa sản phẩm" });
+
+    const saveBtn = within(dialog).getByRole("button", { name: "Lưu" });
+    expect(saveBtn).toBeDisabled();
+    expect(saveBtn).toHaveAttribute("aria-disabled", "true");
+    expect(within(dialog).getByText("Cần nhập giá vốn.")).toBeInTheDocument();
+
+    await user.type(within(dialog).getByLabelText("Giá vốn"), "2000000");
+    expect(saveBtn).toBeEnabled();
   });
 });

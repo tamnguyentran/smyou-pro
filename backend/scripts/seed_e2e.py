@@ -195,6 +195,7 @@ def main() -> int:
             product.name = name
             product.brand = brand
             product.price = price
+            product.cost_price = round(price * 0.8)
             product.is_active = is_active
             product.price_fixed = price_fixed
         for code, name, category, unit, price, is_active in SERVICES:
@@ -204,6 +205,7 @@ def main() -> int:
                 session.add(service)
             service.name = name
             service.price = price
+            service.cost_price = round(price * 0.8)
             service.is_active = is_active
         creator_id = session.scalars(select(Employee.id).where(Employee.email == "an.e2e@smyou.vn")).one()
         for code, customer_type, name, phone, tax_code in CUSTOMERS:

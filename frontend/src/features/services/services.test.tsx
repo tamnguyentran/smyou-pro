@@ -53,6 +53,7 @@ function service(overrides: Partial<Service> = {}): Service {
     category: "NETWORK_CABLING",
     unit: "DIEM",
     price: 300_000,
+    cost_price: 150_000,
     vat_rate: "10.00",
     price_fixed: false,
     default_estimated_hours: "2.00",
@@ -285,6 +286,7 @@ describe("AC-CAT-028 thêm dịch vụ", () => {
     await user.selectOptions(within(dialog).getByLabelText("Nhóm dịch vụ"), "SOFTWARE");
     await user.selectOptions(within(dialog).getByLabelText("Đơn vị tính"), "LAN");
     await user.type(within(dialog).getByLabelText("Đơn giá (chưa VAT)"), "150000");
+    await user.type(within(dialog).getByLabelText("Giá vốn (chưa VAT)"), "100000");
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
     expect(
       await within(dialog).findByText("Mã dịch vụ đã được dùng cho dịch vụ khác."),
@@ -328,6 +330,7 @@ describe("AC-CAT-028 thêm dịch vụ", () => {
     await user.selectOptions(within(dialog).getByLabelText("Nhóm dịch vụ"), "REPAIR");
     await user.selectOptions(within(dialog).getByLabelText("Đơn vị tính"), "LAN");
     await user.type(within(dialog).getByLabelText("Đơn giá (chưa VAT)"), "100000");
+    await user.type(within(dialog).getByLabelText("Giá vốn (chưa VAT)"), "70000");
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
     expect(
       await within(dialog).findByText("Tên dịch vụ đã được dùng cho dịch vụ khác đang kinh doanh."),
@@ -359,6 +362,7 @@ describe("AC-CAT-028 thêm dịch vụ", () => {
     await user.selectOptions(within(dialog).getByLabelText("Nhóm dịch vụ"), "OTHER");
     await user.selectOptions(within(dialog).getByLabelText("Đơn vị tính"), "LAN");
     await user.type(within(dialog).getByLabelText("Đơn giá (chưa VAT)"), "1000");
+    await user.type(within(dialog).getByLabelText("Giá vốn (chưa VAT)"), "800");
     await user.type(within(dialog).getByLabelText("Mô tả"), "Một mô tả nào đó");
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
     const descField = within(dialog).getByLabelText("Mô tả");

@@ -192,6 +192,7 @@ function pcProduct(overrides: Partial<Product> = {}): Product {
     category: "PC",
     brand: null,
     price: 11_980_000,
+    cost_price: 9_500_000,
     price_fixed: false,
     unit: "CAI",
     vat_rate: "0",

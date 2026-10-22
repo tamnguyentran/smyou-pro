@@ -76,6 +76,7 @@ test("AC-CAT-028 AC-CAT-032 @a11y @screenshot thêm dịch vụ", async ({ page 
   await form.getByLabel("Nhóm dịch vụ").selectOption("OTHER");
   await form.getByLabel("Đơn vị tính").selectOption("LAN");
   await form.getByLabel("Đơn giá (chưa VAT)").fill("150000");
+  await form.getByLabel("Giá vốn (chưa VAT)").fill("100000");
   await evidence(page, info, "service-form.png");
 
   await form.getByRole("button", { name: "Lưu" }).click();
@@ -95,6 +96,7 @@ test("AC-CAT-030 ngừng kinh doanh, badge đổi ngay không cần tải lại"
   await form.getByLabel("Nhóm dịch vụ").selectOption("OTHER");
   await form.getByLabel("Đơn vị tính").selectOption("LAN");
   await form.getByLabel("Đơn giá (chưa VAT)").fill("100000");
+  await form.getByLabel("Giá vốn (chưa VAT)").fill("70000");
   await form.getByRole("button", { name: "Lưu" }).click();
   await expect(page.getByText(`Đã thêm dịch vụ ${name}.`)).toBeVisible();
 
@@ -153,5 +155,6 @@ test("AC-CAT-032 không cuộn ngang ở 360px (danh sách, form thêm)", async 
   await form.getByLabel("Nhóm dịch vụ").selectOption("OTHER");
   await form.getByLabel("Đơn vị tính").selectOption("LAN");
   await form.getByLabel("Đơn giá (chưa VAT)").fill("1000");
+  await form.getByLabel("Giá vốn (chưa VAT)").fill("800");
   await noHorizontalScroll(); // form thêm dịch vụ
 });

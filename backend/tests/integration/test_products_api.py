@@ -30,6 +30,7 @@ ITEM_KEYS = {
     "brand",
     "unit",
     "price",
+    "cost_price",
     "vat_rate",
     "price_fixed",
     "warranty_months",
@@ -46,6 +47,7 @@ MAYBO = {
     "brand": "SMYOU",
     "unit": "BO",
     "price": 11_500_000,
+    "cost_price": 9_500_000,
     "vat_rate": 8,
     "price_fixed": True,
     "warranty_months": 36,
@@ -58,6 +60,7 @@ LCD = {
     "brand": "Dell",
     "unit": "CAI",
     "price": 2_800_000,
+    "cost_price": 2_100_000,
     "vat_rate": 10,
     "price_fixed": False,
     "warranty_months": 24,
@@ -70,6 +73,7 @@ HOPMUC = {
     "brand": "Brother",
     "unit": "HOP",
     "price": 950_000,
+    "cost_price": 700_000,
     "vat_rate": 8,
     "price_fixed": True,
     "warranty_months": 0,
@@ -80,16 +84,29 @@ HOPMUC = {
 JPEG_BYTES = b"\xff\xd8\xff\xe0\x00\x10JFIF" + b"\x00" * 200 + b"\xff\xd9"
 
 
-def insert_product(db: Connection, product: dict[str, object], *, is_active: bool = True) -> uuid.UUID:
+_UNSET = object()
+
+
+def insert_product(
+    db: Connection, product: dict[str, object], *, is_active: bool = True, cost_price: object = _UNSET
+) -> uuid.UUID:
+    """`cost_price` is a separate kwarg (not read from `product`) so callers can seed a legacy row
+    with `cost_price=None` (AC-CAT-076/077) without mutating the shared MAYBO/LCD/HOPMUC dicts."""
     product_id = uuid.uuid4()
+    row = {k: v for k, v in product.items() if k != "cost_price"}
     db.execute(
         text(
-            "INSERT INTO products (id, sku, name, category, brand, unit, price, vat_rate, price_fixed,"
-            " warranty_months, specs, is_active, version)"
-            " VALUES (:id, :sku, :name, :category, :brand, :unit, :price, :vat_rate, :price_fixed,"
-            " :warranty_months, :specs, :is_active, 1)"
+            "INSERT INTO products (id, sku, name, category, brand, unit, price, cost_price, vat_rate,"
+            " price_fixed, warranty_months, specs, is_active, version)"
+            " VALUES (:id, :sku, :name, :category, :brand, :unit, :price, :cost_price, :vat_rate,"
+            " :price_fixed, :warranty_months, :specs, :is_active, 1)"
         ),
-        {"id": product_id, "is_active": is_active, **product},
+        {
+            "id": product_id,
+            "is_active": is_active,
+            "cost_price": product.get("cost_price") if cost_price is _UNSET else cost_price,
+            **row,
+        },
     )
     return product_id
 
@@ -199,6 +216,65 @@ def test_create_validation_and_conflict(app: FastAPI, db: Connection, people: di
     ):
         body = problem(an.post("/api/v1/products", json=bad), 422, "VALIDATION_ERROR")
         assert body["errors"][0]["field"] == field, (bad, body)
+
+
+@pytest.mark.ac("AC-CAT-073")
+def test_create_missing_cost_price_is_validation_error(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    body = {k: v for k, v in MAYBO.items() if k != "cost_price"}
+    res = problem(an.post("/api/v1/products", json=body), 422, "VALIDATION_ERROR")
+    assert res["errors"][0]["field"] == "cost_price"
+
+
+@pytest.mark.ac("AC-CAT-074")
+def test_create_with_cost_price(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    an = client_as(app, AN)
+    res = an.post("/api/v1/products", json=MAYBO)
+    assert res.status_code == 201, res.text
+    assert res.json()["cost_price"] == MAYBO["cost_price"]
+
+
+@pytest.mark.ac("AC-CAT-075")
+def test_create_negative_cost_price_is_validation_error(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    res = problem(an.post("/api/v1/products", json={**MAYBO, "cost_price": -100}), 422, "VALIDATION_ERROR")
+    assert res["errors"][0]["field"] == "cost_price"
+
+
+@pytest.mark.ac("AC-CAT-076")
+def test_update_missing_cost_price_when_null_is_validation_error(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    product_id = insert_product(db, LCD, cost_price=None)
+    res = problem(
+        an.patch(f"/api/v1/products/{product_id}", json={"version": 1, "name": "Đổi tên"}),
+        422,
+        "VALIDATION_ERROR",
+    )
+    assert res["errors"][0]["field"] == "cost_price"
+
+
+@pytest.mark.ac("AC-CAT-077")
+def test_update_fills_cost_price_then_later_edits_dont_need_it(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    product_id = insert_product(db, LCD, cost_price=None)
+    res = an.patch(
+        f"/api/v1/products/{product_id}",
+        json={"version": 1, "name": "Màn hình Dell 22in", "cost_price": 3_000_000},
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["cost_price"] == 3_000_000
+
+    res = an.patch(f"/api/v1/products/{product_id}", json={"version": 2, "name": "Màn hình Dell 22in FHD"})
+    assert res.status_code == 200, res.text
+    assert res.json()["cost_price"] == 3_000_000
 
 
 @pytest.mark.ac("AC-CAT-005")

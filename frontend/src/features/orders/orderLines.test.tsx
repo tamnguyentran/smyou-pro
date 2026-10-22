@@ -77,6 +77,7 @@ function dellProduct(overrides: Partial<Product> = {}): Product {
     category: "MONITOR",
     brand: "Dell",
     price: 2_500_000,
+    cost_price: 2_000_000,
     price_fixed: true,
     unit: "CAI",
     vat_rate: "8",

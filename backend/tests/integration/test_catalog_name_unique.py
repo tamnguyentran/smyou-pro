@@ -172,6 +172,7 @@ def test_product_and_service_may_share_name(
             "category": "OTHER",
             "unit": "LAN",
             "price": 0,
+            "cost_price": 0,
             "vat_rate": 8,
             "price_fixed": False,
         },

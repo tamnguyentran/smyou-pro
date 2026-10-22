@@ -48,15 +48,15 @@ async function evidence(
 function productsCsv(sku: string) {
   // name must vary per run too, like sku — it's unique while active among products (M10-01)
   return [
-    "sku,name,category,brand,unit,price,vat_rate,price_fixed,warranty_months,specs",
-    `${sku},PC SMYOU QA IMPORT ${sku},PC,SMYOU,BO,8500000,8,true,24,I3-12100/8GB`,
+    "sku,name,category,brand,unit,price,cost_price,vat_rate,price_fixed,warranty_months,specs",
+    `${sku},PC SMYOU QA IMPORT ${sku},PC,SMYOU,BO,8500000,7000000,8,true,24,I3-12100/8GB`,
   ].join("\n");
 }
 
 function servicesCsv(code: string) {
   return [
-    "code,name,category,unit,price,vat_rate,price_fixed,default_estimated_hours,description",
-    `${code},Vệ sinh QA import ${code},MAINTENANCE,LAN,150000,8,true,1,`,
+    "code,name,category,unit,price,cost_price,vat_rate,price_fixed,default_estimated_hours,description",
+    `${code},Vệ sinh QA import ${code},MAINTENANCE,LAN,150000,50000,8,true,1,`,
   ].join("\n");
 }
 
@@ -99,8 +99,8 @@ test("AC-CAT-048 @a11y @screenshot xem trước có dòng lỗi: nút Xác nhậ
   await page.getByRole("button", { name: "Nhập từ CSV" }).click();
   const dialog = page.getByRole("dialog", { name: "Nhập sản phẩm từ CSV" });
   const csv = [
-    "sku,name,category,brand,unit,price,vat_rate,price_fixed,warranty_months,specs",
-    `QAERR${String(Date.now())},Sản phẩm lỗi,TIVI,SMYOU,BO,1000000,8,false,,`,
+    "sku,name,category,brand,unit,price,cost_price,vat_rate,price_fixed,warranty_months,specs",
+    `QAERR${String(Date.now())},Sản phẩm lỗi,TIVI,SMYOU,BO,1000000,800000,8,false,,`,
   ].join("\n");
   await dialog
     .getByLabel("Chọn file")

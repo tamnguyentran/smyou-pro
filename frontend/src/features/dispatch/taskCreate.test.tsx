@@ -132,6 +132,7 @@ function service(id: string, code: string, hours: string | null): ServiceOut {
     category: "SECURITY",
     unit: "cái",
     price: 1000000,
+    cost_price: 700000,
     price_fixed: false,
     vat_rate: "10",
     default_estimated_hours: hours,
