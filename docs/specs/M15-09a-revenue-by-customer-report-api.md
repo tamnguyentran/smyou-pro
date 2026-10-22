@@ -11,7 +11,7 @@ Là Manager/Sale/QLKT/CSKH, tôi muốn xem báo cáo doanh thu nhóm theo từn
 - Trong phạm vi:
   - Capability mới `report.revenue.read` — `MANAGER: all, SALE: own, TECH_LEAD: all, CUSTOMER_CARE: own` (quyết định chủ dự án Q88, 2026-10-23 — `docs/product/OPEN_QUESTIONS_ARCHIVE.md`).
     - `own` cho **SALE** = chỉ đơn có `orders.created_by = tôi` (và khách hàng của các đơn đó).
-    - `own` cho **CUSTOMER_CARE**: chưa có trường "CSKH phụ trách" trên `orders`/`customers` — xem giả định §8 (Q96, câu hỏi mới) đề xuất mặc định `customers.created_by = tôi`.
+    - `own` cho **CUSTOMER_CARE** = cùng logic với SALE: chỉ đơn có `orders.created_by = tôi` (CSKH cũng tạo được đơn hàng mới — quyết định chủ dự án Q96, 2026-10-23). Đơn do Sale/CSKH khác tạo cho cùng khách hàng đó **không** tính vào scope của tôi, kể cả khi tôi là người tạo hồ sơ khách hàng (`customers.created_by` không dùng để xác định scope).
   - `GET /api/v1/reports/revenue-by-customer?from=&to=&customer_id=&status=` —
     - `from`/`to`: mặc định `from` = ngày 1 tháng hiện tại, `to` = hôm nay (giờ VN).
     - `customer_id`: mặc định "Tất cả" (bỏ trống = tất cả khách hàng có đơn trong khoảng, trong phạm vi scope của người gọi).
@@ -37,7 +37,8 @@ Là Manager/Sale/QLKT/CSKH, tôi muốn xem báo cáo doanh thu nhóm theo từn
 | AC-RPT-007 | Dữ liệu như AC-RPT-001 | An (MANAGER) `GET /reports/revenue-by-customer/<KH00001-id>/orders?seller_id=<Hoa-id>` | 200; 2 đơn (chỉ của Hoa), mỗi đơn `{code, created_at, completed_at, total, profit}` | integration |
 | AC-RPT-008 | — | `GET /reports/revenue-by-customer/export?from=&to=` | 200; `Content-Type: text/csv; charset=utf-8`, BOM đầu file, `Content-Disposition` có tên file `doanh-thu-theo-khach-hang-{from}_{to}.csv`, cột khớp 1:1 với JSON | integration |
 | AC-RPT-043 | Hoa (SALE), KH `KH00004` chỉ có đơn do Minh tạo (không có đơn nào của Hoa) | Hoa `GET /reports/revenue-by-customer/<KH00004-id>/orders` | 404 (khách hàng ngoài scope `own` của Hoa — không lộ tồn tại) | integration |
-| AC-RPT-044 | Lan (CUSTOMER_CARE) tạo hồ sơ khách hàng `KH00005` (`customers.created_by = Lan`), `KH00005` có 1 đơn `COMPLETED` do Hoa (SALE) tạo | Lan `GET /reports/revenue-by-customer` | 200 — thấy dòng `KH00005` (vì `customers.created_by = Lan`, theo giả định §8/Q96), dù người bán là Hoa; không thấy khách hàng do người khác tạo | integration |
+| AC-RPT-044 | Lan (CUSTOMER_CARE) tạo hồ sơ khách hàng `KH00005` (`customers.created_by = Lan`), `KH00005` có 1 đơn `COMPLETED` do Hoa (SALE) tạo (không có đơn nào do Lan tạo) | Lan `GET /reports/revenue-by-customer` | 200 — **không** thấy dòng `KH00005` (Q96: scope `own` của CSKH dựa trên `orders.created_by`, không dựa trên `customers.created_by`) | integration |
+| AC-RPT-045 | Lan (CUSTOMER_CARE) tự tạo đơn `COMPLETED` cho `KH00006` (`orders.created_by = Lan`) | Lan `GET /reports/revenue-by-customer` | 200 — thấy dòng `KH00006` (vì `orders.created_by = Lan`, theo Q96) | integration |
 
 ## 4. API
 | Method | Path | Capability | Response |
@@ -60,6 +61,6 @@ Không có ở item này — xem M15-09b.
 
 ## 8. Giả định & câu hỏi
 - **Đã chốt (Q88, 2026-10-23):** scope `own` cho SALE/CUSTOMER_CARE, `all` cho MANAGER/TECH_LEAD; khách hàng nhiều người bán → tách nhiều dòng; `CANCELLED` loại khỏi cả 2 nhóm trạng thái. Áp dụng trong spec này — xem `docs/product/OPEN_QUESTIONS_ARCHIVE.md#Q88`.
-- **Q96 (mới — cần chủ dự án xác nhận):** `own` cho CUSTOMER_CARE là gì? `orders` không có cột "CSKH phụ trách"; `customers.created_by` thì có (CSKH được tạo/sửa khách hàng qua `customer.manage`). Giả định mặc định: `own` của CUSTOMER_CARE = khách hàng có `customers.created_by = tôi` (bất kể Sale nào tạo đơn cho khách đó) — đã đăng ký vào `docs/product/OPEN_QUESTIONS.md`.
+- **Đã chốt (Q96, 2026-10-23):** `own` cho CUSTOMER_CARE = `orders.created_by = tôi`, cùng logic với SALE (CSKH cũng tạo được đơn hàng mới). `customers.created_by` **không** dùng để xác định scope.
 - Giả định: "lợi nhuận" = Σ(`line_total` − `cost_price_snapshot` × `quantity`) của mọi dòng hàng thuộc các đơn trong kết quả — chưa trừ chi phí vận hành khác (lương, vận chuyển…), chỉ là lợi nhuận gộp trên giá vốn hàng/dịch vụ.
 - M15-10a (báo cáo theo nhân viên) cần áp lại quyết định Q88 tương tự khi viết spec của nó — chưa làm ở item này.
