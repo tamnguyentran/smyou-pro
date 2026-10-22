@@ -11,7 +11,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - `[R]` M15-03 — CSKH tạo yêu cầu chỉnh sửa gửi QLKT (chỉ thông báo, QLKT tự quyết revise). `docs/specs/M15-03-csk-revision-request.md`
 - `[R]` M15-04 — Dashboard: Top 10 KH doanh thu cao nhất + tổng hợp đánh giá KH (Manager/QLKT/Sale/CSKH). `docs/specs/M15-04-dashboard-top-customers-feedback.md`
 - `[x]` M15-05 — Khách hàng: thêm trường tổ chức (ngày thành lập, giám đốc, phụ trách IT + SĐT/email riêng) / cá nhân (ngày sinh, giới tính, nghề nghiệp); `type` bất biến sau khi tạo. `docs/specs/M15-05-customer-extended-fields.md`
-- `[A]` M15-06 — Bỏ dòng hàng "Tự do" khi tạo đơn (chỉ chọn danh mục). `docs/specs/M15-06-remove-custom-order-line.md`
+- `[x]` M15-06 — Bỏ dòng hàng "Tự do" khi tạo đơn (chỉ chọn danh mục). `docs/specs/M15-06-remove-custom-order-line.md`
 - `[S]` M15-07 — Giá vốn bắt buộc trên Sản phẩm/Dịch vụ. `docs/specs/M15-07-catalog-cost-price.md` (PR #133 chờ merge)
 - `[S]` M15-08 — Lịch sử giá bán/giá vốn + `cost_price_snapshot` trên dòng hàng đơn. `docs/specs/M15-08-catalog-price-history.md`
 - `[S]` M15-09a/b — Báo cáo "Doanh thu theo khách hàng" (API + UI, drilldown, xuất Excel). `docs/specs/M15-09a-revenue-by-customer-report-api.md`, `M15-09b-revenue-by-customer-report-ui.md`
