@@ -435,7 +435,9 @@ describe("AC-CUS-020/021 trường mở rộng theo loại khách hàng", () => 
     await user.type(within(dialog).getByLabelText("Số điện thoại"), "0987654321");
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
 
-    await waitFor(() => expect(body.type).toBe("INDIVIDUAL"));
+    await waitFor(() => {
+      expect(body.type).toBe("INDIVIDUAL");
+    });
     expect(body.director_name).toBeFalsy();
   });
 });
