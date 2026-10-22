@@ -61,7 +61,7 @@ ORDER_LOCKED = "Đơn đã hoàn tất hoặc đã huỷ, không thể sửa."
 PRICE_FIXED = "Đơn giá của dòng này cố định theo danh mục."
 DISCOUNT_EXCEEDS_GROSS = "Giảm giá không được lớn hơn tiền hàng của dòng."
 ITEM_INACTIVE = "Sản phẩm/dịch vụ này đã ngừng kinh doanh."
-VAT_REQUIRED_FOR_CUSTOM = "VAT bắt buộc cho dòng tự do."
+CUSTOM_LINE_DISABLED = "Chỉ được chọn Sản phẩm hoặc Dịch vụ."
 
 CUSTOMER_FIELDS = ("customer_id", "customer_name", "customer_phone", "customer_email", "customer_tax_code")
 HEADER_FIELDS = (
@@ -1237,8 +1237,10 @@ def _find_line(order: Order, line_id: uuid.UUID) -> OrderLine:
 
 
 def _build_line(session: Session, order: Order, body: OrderLineCreate) -> OrderLine:
-    if body.item_type == "CUSTOM" and body.vat_rate is None:
-        raise _field_error("vat_rate", VAT_REQUIRED_FOR_CUSTOM, code="required")
+    # M15-06: dòng hàng mới chỉ được chọn từ danh mục; dòng CUSTOM lịch sử vẫn đọc/sửa được
+    # qua `_apply_line_changes`, chỉ `_build_line` (tạo mới) chặn ở đây.
+    if body.item_type == "CUSTOM":
+        raise _field_error("item_type", CUSTOM_LINE_DISABLED, code="invalid")
     snapshot = _snapshot_item(session, body)
     unit_price, vat_rate, totals = _resolve_pricing(
         quantity=body.quantity,

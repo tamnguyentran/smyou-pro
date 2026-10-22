@@ -575,8 +575,11 @@ def test_add_line_discount_and_zero_vat_matches_real_invoice(
     )
 
 
-@pytest.mark.ac("AC-ORD-013")
-def test_add_line_custom_item(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+@pytest.mark.ac("AC-ORD-181")
+def test_add_line_rejects_custom_item_type(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    """M15-06: dòng hàng "Tự do" bị bỏ — chỉ còn Sản phẩm/Dịch vụ cho dòng MỚI."""
     hoa = client_as(app, HOA)
     order = hoa.post("/api/v1/orders", json={}).json()
 
@@ -593,25 +596,89 @@ def test_add_line_custom_item(app: FastAPI, db: Connection, people: dict[str, uu
         },
     )
 
-    assert res.status_code == 201, res.text
-    line = res.json()["lines"][0]
-    assert (line["product_id"], line["service_id"], line["sku_snapshot"]) == (None, None, None)
-    assert line["price_fixed"] is False
-    assert line["name_snapshot"] == "Công tháo dỡ tủ mạng cũ"
+    body = problem(res, 422, "VALIDATION_ERROR")
+    assert "item_type" in error_fields(body)
 
-    missing_vat = hoa.post(
+
+@pytest.mark.ac("AC-ORD-182")
+def test_add_line_product_still_allowed(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], catalog: dict[str, uuid.UUID]
+) -> None:
+    """M15-06: PRODUCT/SERVICE không đổi so với trước."""
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+
+    res = hoa.post(
         f"/api/v1/orders/{order['id']}/lines",
         json={
-            "version": res.json()["version"],
-            "item_type": "CUSTOM",
-            "name": "Việc khác",
-            "unit": "LAN",
+            "version": order["version"],
+            "item_type": "PRODUCT",
+            "product_id": str(catalog["LCD-DELL22"]),
             "quantity": "1",
-            "unit_price": 100_000,
+            "unit_price": 2_500_000,
+            "vat_rate": "8",
         },
     )
-    body = problem(missing_vat, 422, "VALIDATION_ERROR")
-    assert "vat_rate" in error_fields(body)
+
+    assert res.status_code == 201, res.text
+
+
+def insert_custom_line(db: Connection, order_id: uuid.UUID, *, position: int = 1) -> uuid.UUID:
+    """Seed a historical `CUSTOM` line directly (M15-06 blocks creating these via the API now, but
+    orders created before this item can still have them)."""
+    line_id = uuid.uuid4()
+    db.execute(
+        text(
+            """
+            INSERT INTO order_lines (
+                id, order_id, position, item_type, name_snapshot, unit_snapshot,
+                price_fixed, vat_rate, quantity, unit_price, line_discount,
+                line_gross, line_vat, line_total
+            ) VALUES (
+                :id, :order_id, :position, 'CUSTOM', 'Công tháo dỡ tủ mạng cũ', 'LAN',
+                false, 10, 1, 500000, 0,
+                500000, 50000, 550000
+            )
+            """
+        ),
+        {"id": line_id, "order_id": order_id, "position": position},
+    )
+    return line_id
+
+
+@pytest.mark.ac("AC-ORD-183")
+def test_get_order_still_returns_historical_custom_line(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+    insert_custom_line(db, uuid.UUID(order["id"]))
+
+    res = hoa.get(f"/api/v1/orders/{order['id']}")
+
+    assert res.status_code == 200, res.text
+    line = res.json()["lines"][0]
+    assert line["item_type"] == "CUSTOM"
+    assert line["name_snapshot"] == "Công tháo dỡ tủ mạng cũ"
+
+
+@pytest.mark.ac("AC-ORD-185")
+def test_update_historical_custom_line_still_allowed(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+    line_id = insert_custom_line(db, uuid.UUID(order["id"]))
+    current = hoa.get(f"/api/v1/orders/{order['id']}").json()
+
+    res = hoa.patch(
+        f"/api/v1/orders/{order['id']}/lines/{line_id}",
+        json={"version": current["version"], "quantity": "2"},
+    )
+
+    assert res.status_code == 200, res.text
+    line = next(line for line in res.json()["lines"] if line["id"] == str(line_id))
+    assert line["quantity"] == "2"
 
 
 @pytest.mark.ac("AC-ORD-014")
@@ -946,7 +1013,9 @@ def test_attachments_get_is_dynamic_not_undeclared(app: FastAPI) -> None:
     assert not any(r[1] == "/api/v1/attachments/{attachment_id}" for r in declared_routes(app))
 
 
-def test_mutations_write_audit_events(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+def test_mutations_write_audit_events(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], catalog: dict[str, uuid.UUID]
+) -> None:
     """CLAUDE.md rule 8: every state-changing command appends to audit_events."""
     hoa = client_as(app, HOA)
     order = hoa.post("/api/v1/orders", json={}).json()
@@ -955,11 +1024,10 @@ def test_mutations_write_audit_events(app: FastAPI, db: Connection, people: dict
         f"/api/v1/orders/{order['id']}/lines",
         json={
             "version": 2,
-            "item_type": "CUSTOM",
-            "name": "Việc",
-            "unit": "LAN",
+            "item_type": "PRODUCT",
+            "product_id": str(catalog["LCD-DELL22"]),
             "quantity": "1",
-            "unit_price": 100_000,
+            "unit_price": 2_500_000,
             "vat_rate": "8",
         },
     ).json()

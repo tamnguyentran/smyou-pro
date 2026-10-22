@@ -412,55 +412,19 @@ describe("AC-ORD-029 Tặng kèm", () => {
   });
 });
 
-describe("AC-ORD-030 thêm dòng tự do", () => {
-  test("thêm dòng CUSTOM không có badge Giá cố định, đơn giá sửa tự do", async () => {
+describe("AC-ORD-184 bỏ tab Tự do khi thêm dòng hàng", () => {
+  test("Sheet 'Thêm dòng hàng' chỉ còn 2 tab Sản phẩm/Dịch vụ", async () => {
     signedInAsHoa();
-    server.use(
-      http.post("/api/v1/orders/:id/lines", async ({ request }) => {
-        const body = (await request.json()) as { item_type: string; name: string };
-        expect(body.item_type).toBe("CUSTOM");
-        return HttpResponse.json(
-          order({
-            lines: [
-              orderLine({
-                id: "custom-1",
-                item_type: "CUSTOM",
-                product_id: null,
-                sku_snapshot: null,
-                name_snapshot: body.name,
-                unit_snapshot: "LAN",
-                price_fixed: false,
-                catalog_price_snapshot: null,
-                vat_rate: "10",
-                quantity: "1",
-                unit_price: 500_000,
-                line_gross: 500_000,
-                line_vat: 50_000,
-                line_total: 550_000,
-              }),
-            ],
-          }),
-          { status: 201 },
-        );
-      }),
-    );
     await openExisting(order({ lines: [] }));
     const user = userEvent.setup();
 
     await user.click(screen.getByRole("button", { name: "Thêm dòng hàng" }));
     const sheet = await screen.findByRole("dialog", { name: "Thêm dòng hàng" });
-    await user.click(within(sheet).getByRole("tab", { name: "Tự do" }));
-    await user.type(within(sheet).getByLabelText("Tên"), "Công tháo dỡ tủ mạng cũ");
-    await user.selectOptions(within(sheet).getByLabelText("Đơn vị"), "LAN");
-    await user.clear(within(sheet).getByLabelText("Số lượng"));
-    await user.type(within(sheet).getByLabelText("Số lượng"), "1");
-    await user.type(within(sheet).getByLabelText("Đơn giá"), "500000");
-    await user.click(within(sheet).getByRole("radio", { name: "10%" }));
-    await user.click(within(sheet).getByRole("button", { name: "Thêm" }));
 
-    const row = await screen.findByTestId("order-line-custom-1");
-    expect(within(row).queryByText("Giá cố định")).not.toBeInTheDocument();
-    expect(within(row).getByLabelText("Đơn giá")).not.toHaveAttribute("readonly");
+    expect(within(sheet).getAllByRole("tab")).toHaveLength(2);
+    expect(within(sheet).getByRole("tab", { name: "Sản phẩm" })).toBeInTheDocument();
+    expect(within(sheet).getByRole("tab", { name: "Dịch vụ" })).toBeInTheDocument();
+    expect(within(sheet).queryByRole("tab", { name: "Tự do" })).not.toBeInTheDocument();
   });
 });
 
@@ -581,37 +545,13 @@ describe("AC-ORD-027/028 lỗi sửa dòng không bị nuốt thầm", () => {
   });
 });
 
-describe("AC-ORD-033 zod chặn trước, lỗi 422 hiện đúng ô", () => {
-  test("số lượng 0 bị chặn ở client, không gọi API", async () => {
-    signedInAsHoa();
-    let called = false;
-    server.use(
-      http.post("/api/v1/orders/:id/lines", () => {
-        called = true;
-        return HttpResponse.json(order(), { status: 201 });
-      }),
-    );
-    await openExisting(order({ lines: [] }));
-    const user = userEvent.setup();
-
-    await user.click(screen.getByRole("button", { name: "Thêm dòng hàng" }));
-    const sheet = await screen.findByRole("dialog", { name: "Thêm dòng hàng" });
-    await user.click(within(sheet).getByRole("tab", { name: "Tự do" }));
-    await user.type(within(sheet).getByLabelText("Tên"), "Công lắp đặt");
-    await user.clear(within(sheet).getByLabelText("Số lượng"));
-    await user.type(within(sheet).getByLabelText("Số lượng"), "0");
-    await user.type(within(sheet).getByLabelText("Đơn giá"), "100000");
-    await user.click(within(sheet).getByRole("radio", { name: "8%" }));
-    await user.click(within(sheet).getByRole("button", { name: "Thêm" }));
-
-    expect(await within(sheet).findByText("Số lượng phải lớn hơn 0.")).toBeInTheDocument();
-    expect(called).toBe(false);
-    expect(within(sheet).getByLabelText("Tên")).toHaveValue("Công lắp đặt");
-  });
-
-  test("lỗi 422 PRICE_FIXED từ server hiện dưới ô Đơn giá, không mất dữ liệu đã nhập", async () => {
+describe("AC-ORD-033 lỗi 422/409 khi thêm dòng hiện đúng chỗ", () => {
+  test("lỗi 422 PRICE_FIXED từ server hiện ở đầu Sheet", async () => {
     signedInAsHoa();
     server.use(
+      http.get("/api/v1/products", () =>
+        HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 }),
+      ),
       http.post("/api/v1/orders/:id/lines", () =>
         HttpResponse.json(
           {
@@ -635,24 +575,19 @@ describe("AC-ORD-033 zod chặn trước, lỗi 422 hiện đúng ô", () => {
 
     await user.click(screen.getByRole("button", { name: "Thêm dòng hàng" }));
     const sheet = await screen.findByRole("dialog", { name: "Thêm dòng hàng" });
-    await user.click(within(sheet).getByRole("tab", { name: "Tự do" }));
-    await user.type(within(sheet).getByLabelText("Tên"), "Công lắp đặt");
-    await user.clear(within(sheet).getByLabelText("Số lượng"));
-    await user.type(within(sheet).getByLabelText("Số lượng"), "1");
-    await user.type(within(sheet).getByLabelText("Đơn giá"), "999000");
-    await user.click(within(sheet).getByRole("radio", { name: "8%" }));
-    await user.click(within(sheet).getByRole("button", { name: "Thêm" }));
+    await user.click(await within(sheet).findByRole("button", { name: /Màn hình Dell 22 inch/ }));
 
     expect(
       await within(sheet).findByText("Đơn giá của dòng này cố định theo danh mục."),
     ).toBeInTheDocument();
-    expect(within(sheet).getByLabelText("Tên")).toHaveValue("Công lắp đặt");
-    expect(within(sheet).getByLabelText("Đơn giá")).toHaveValue(999000);
   });
 
-  test("lỗi 409 không gắn với ô nào (STALE_VERSION) vẫn hiện ở đầu Sheet, không bị nuốt thầm", async () => {
+  test("lỗi 409 STALE_VERSION vẫn hiện ở đầu Sheet, không bị nuốt thầm", async () => {
     signedInAsHoa();
     server.use(
+      http.get("/api/v1/products", () =>
+        HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 }),
+      ),
       http.post("/api/v1/orders/:id/lines", () =>
         HttpResponse.json(
           {
@@ -669,17 +604,10 @@ describe("AC-ORD-033 zod chặn trước, lỗi 422 hiện đúng ô", () => {
 
     await user.click(screen.getByRole("button", { name: "Thêm dòng hàng" }));
     const sheet = await screen.findByRole("dialog", { name: "Thêm dòng hàng" });
-    await user.click(within(sheet).getByRole("tab", { name: "Tự do" }));
-    await user.type(within(sheet).getByLabelText("Tên"), "Công lắp đặt");
-    await user.clear(within(sheet).getByLabelText("Số lượng"));
-    await user.type(within(sheet).getByLabelText("Số lượng"), "1");
-    await user.type(within(sheet).getByLabelText("Đơn giá"), "999000");
-    await user.click(within(sheet).getByRole("radio", { name: "8%" }));
-    await user.click(within(sheet).getByRole("button", { name: "Thêm" }));
+    await user.click(await within(sheet).findByRole("button", { name: /Màn hình Dell 22 inch/ }));
 
     expect(
       await within(sheet).findByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại."),
     ).toBeInTheDocument();
-    expect(within(sheet).getByLabelText("Tên")).toHaveValue("Công lắp đặt");
   });
 });
