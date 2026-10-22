@@ -1077,41 +1077,9 @@ describe("AC-ORD-101 tab dòng hàng chỉ đọc khi không đủ quyền/trạ
   });
 });
 
-describe("AC-ORD-102 422 VAT_REQUIRED_FOR_CUSTOM khi thêm dòng tự do sau khi gửi", () => {
-  test("lỗi hiện ở đầu Sheet, sheet vẫn mở, dữ liệu không mất", async () => {
-    signedInAs(anId, AN);
-    server.use(
-      http.get("/api/v1/orders/:id", () =>
-        HttpResponse.json(order({ can_edit_lines_after_submit: true, lines: [] })),
-      ),
-      http.get("/api/v1/orders/:id/history", () =>
-        HttpResponse.json({ items: [], total: 0, limit: 50, offset: 0 }),
-      ),
-      http.post("/api/v1/orders/:id/lines-after-submit", () =>
-        HttpResponse.json(
-          { status: 422, code: "VAT_REQUIRED_FOR_CUSTOM", detail: "VAT bắt buộc cho dòng tự do." },
-          { status: 422 },
-        ),
-      ),
-    );
-    renderApp(`/orders/${orderId}`);
-    await screen.findByText("DH2609-0001");
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("tab", { name: "Dòng hàng" }));
-    await user.click(screen.getByRole("button", { name: "Thêm dòng hàng" }));
-    const sheet = await screen.findByRole("dialog", { name: "Thêm dòng hàng" });
-    await user.click(within(sheet).getByRole("tab", { name: "Tự do" }));
-    await user.type(within(sheet).getByLabelText("Tên"), "Công lắp đặt thêm");
-    await user.clear(within(sheet).getByLabelText("Số lượng"));
-    await user.type(within(sheet).getByLabelText("Số lượng"), "1");
-    await user.type(within(sheet).getByLabelText("Đơn giá"), "200000");
-    await user.click(within(sheet).getByRole("radio", { name: "8%" }));
-    await user.click(within(sheet).getByRole("button", { name: "Thêm" }));
-
-    expect(await within(sheet).findByText("VAT bắt buộc cho dòng tự do.")).toBeInTheDocument();
-    expect(within(sheet).getByLabelText("Tên")).toHaveValue("Công lắp đặt thêm");
-  });
-});
+// AC-ORD-102 (M3-04a: 422 VAT_REQUIRED_FOR_CUSTOM khi thêm dòng tự do sau khi gửi) is removed —
+// M15-06 dropped the "Tự do" tab entirely, so a CUSTOM line can no longer be submitted from this
+// Sheet and that server error is unreachable from the UI.
 
 describe("AC-ORD-103 stale version khi sửa dòng sau khi gửi", () => {
   test("banner đỏ + nút Tải lại trên tab Dòng hàng (không phải lỗi trong dòng)", async () => {

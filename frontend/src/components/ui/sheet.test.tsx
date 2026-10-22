@@ -221,7 +221,6 @@ describe("Sheet: mọi màn dùng chung (M4-01d)", () => {
     "features/services/components/ServiceFormSheet.tsx",
     "features/employees/components/EmployeeFormSheet.tsx",
     "features/dispatch/components/TaskCreateSheet.tsx",
-    "features/orders/components/AddLineSheet.tsx",
     "features/orders/components/EditContactSheet.tsx",
     "features/orders/components/CancelOrderSheet.tsx",
     "features/employees/components/TemporaryPasswordDialog.tsx",
