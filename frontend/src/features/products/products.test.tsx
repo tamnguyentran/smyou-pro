@@ -670,3 +670,43 @@ describe("AC-CAT-079 vô hiệu hoá Lưu khi thiếu giá vốn", () => {
     expect(saveBtn).toBeEnabled();
   });
 });
+
+describe("AC-CAT-087 lịch sử giá", () => {
+  test("mở khối Lịch sử giá trong sheet sửa sản phẩm → hiện đúng các lần sửa", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([LCD])));
+    server.use(
+      http.get("/api/v1/products/:id/price-history", () =>
+        HttpResponse.json([
+          {
+            changed_at: "2026-10-20T03:00:00Z",
+            changed_by: { id, code: "NV001", full_name: "Nguyễn Văn An" },
+            old_price: 2_800_000,
+            new_price: 2_900_000,
+            old_cost_price: 2_100_000,
+            new_cost_price: 2_100_000,
+          },
+        ]),
+      ),
+    );
+    renderApp("/catalog/products");
+    await openMenu();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("Màn hình Dell 22 inch"));
+    const dialog = await screen.findByRole("dialog", { name: "Sửa sản phẩm" });
+
+    await user.click(within(dialog).getByRole("button", { name: "Lịch sử giá" }));
+    expect(await within(dialog).findByText("Nguyễn Văn An")).toBeInTheDocument();
+    expect(within(dialog).getByText("20/10/2026 10:00")).toBeInTheDocument();
+    expect(within(dialog).getByText("2.800.000 ₫ → 2.900.000 ₫")).toBeInTheDocument();
+    expect(within(dialog).getByText("2.100.000 ₫ → 2.100.000 ₫")).toBeInTheDocument();
+  });
+
+  test("Sale chỉ xem (không có nút Lịch sử giá)", async () => {
+    signedInAs(HOA, () => HttpResponse.json(page([LCD])));
+    renderApp("/catalog/products");
+    await openMenu();
+    await userEvent.setup().click(await screen.findByText("Màn hình Dell 22 inch"));
+    const dialog = await screen.findByRole("dialog", { name: "Chi tiết sản phẩm" });
+    expect(within(dialog).queryByRole("button", { name: "Lịch sử giá" })).not.toBeInTheDocument();
+  });
+});
