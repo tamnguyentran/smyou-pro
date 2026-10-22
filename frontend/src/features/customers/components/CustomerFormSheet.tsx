@@ -134,6 +134,10 @@ export function CustomerFormSheet({
     setFormMessage(null);
     setShowReload(false);
     // `type` chỉ gửi lúc tạo — bất biến sau đó, PATCH không nhận trường này (spec §4).
+    // Chỉ gửi bộ field khớp `values.type` — RHF không tự xoá value của field đã ẩn khi đổi `type`
+    // (không có shouldUnregister), nên field của loại cũ vẫn còn trong `values` nếu người dùng đổi
+    // `type` trước khi lưu lúc tạo mới.
+    const isCompany = values.type === "COMPANY";
     const shared = {
       name: values.name,
       contact_person: values.contact_person || null,
@@ -142,14 +146,14 @@ export function CustomerFormSheet({
       tax_code: values.tax_code || null,
       address: values.address || null,
       note: values.note || null,
-      founded_date: values.founded_date || null,
-      director_name: values.director_name || null,
-      it_contact_name: values.it_contact_name || null,
-      it_contact_phone: values.it_contact_phone || null,
-      it_contact_email: values.it_contact_email || null,
-      date_of_birth: values.date_of_birth || null,
-      gender: values.gender || null,
-      occupation: values.occupation || null,
+      founded_date: isCompany ? values.founded_date || null : null,
+      director_name: isCompany ? values.director_name || null : null,
+      it_contact_name: isCompany ? values.it_contact_name || null : null,
+      it_contact_phone: isCompany ? values.it_contact_phone || null : null,
+      it_contact_email: isCompany ? values.it_contact_email || null : null,
+      date_of_birth: isCompany ? null : values.date_of_birth || null,
+      gender: isCompany ? null : values.gender || null,
+      occupation: isCompany ? null : values.occupation || null,
     };
     try {
       if (!customer) {

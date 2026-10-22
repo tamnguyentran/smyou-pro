@@ -59,7 +59,15 @@ export const customerSchema = z.object({
     .refine((value) => value === "" || z.email().safeParse(value).success, "Email không hợp lệ.")
     .optional(),
   date_of_birth: z.string().trim().optional(),
-  gender: z.enum(GENDER_ORDER as [Gender, ...Gender[]]).optional(),
+  // "" = chưa chọn ("— Chọn —") — select không có placeholder riêng như input nên phải chấp nhận
+  // chuỗi rỗng là hợp lệ (tương đương null), khác enum thường chỉ nhận đúng 1 trong các giá trị.
+  gender: z
+    .string()
+    .refine(
+      (value) => value === "" || (GENDER_ORDER as string[]).includes(value),
+      "Giới tính không hợp lệ.",
+    )
+    .optional() as z.ZodType<Gender | "" | undefined>,
   occupation: z.string().trim().optional(),
 });
 export type CustomerFormValues = z.infer<typeof customerSchema>;
