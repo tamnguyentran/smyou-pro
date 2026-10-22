@@ -1013,7 +1013,9 @@ def test_attachments_get_is_dynamic_not_undeclared(app: FastAPI) -> None:
     assert not any(r[1] == "/api/v1/attachments/{attachment_id}" for r in declared_routes(app))
 
 
-def test_mutations_write_audit_events(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+def test_mutations_write_audit_events(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], catalog: dict[str, uuid.UUID]
+) -> None:
     """CLAUDE.md rule 8: every state-changing command appends to audit_events."""
     hoa = client_as(app, HOA)
     order = hoa.post("/api/v1/orders", json={}).json()
@@ -1022,11 +1024,10 @@ def test_mutations_write_audit_events(app: FastAPI, db: Connection, people: dict
         f"/api/v1/orders/{order['id']}/lines",
         json={
             "version": 2,
-            "item_type": "CUSTOM",
-            "name": "Việc",
-            "unit": "LAN",
+            "item_type": "PRODUCT",
+            "product_id": str(catalog["LCD-DELL22"]),
             "quantity": "1",
-            "unit_price": 100_000,
+            "unit_price": 2_500_000,
             "vat_rate": "8",
         },
     ).json()
