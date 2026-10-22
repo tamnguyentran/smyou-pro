@@ -146,6 +146,7 @@ describe("Hàng đợi điều phối", () => {
           can_upload_confirmation: false,
           can_complete: false,
           can_revise: false,
+          has_pending_revision_request: false,
           lines: [],
         } satisfies OrderDetail),
       ),

@@ -152,6 +152,7 @@ function order(overrides: Partial<Order> = {}): Order {
     can_upload_confirmation: false,
     can_complete: false,
     can_revise: false,
+    has_pending_revision_request: false,
     ...overrides,
   };
 }
@@ -1391,5 +1392,101 @@ describe("M15-02b — khối Phản hồi khách hàng trên /orders/:id", () =>
     await screen.findByText("DH2609-0001");
 
     expect(screen.queryByText("Phản hồi khách hàng")).not.toBeInTheDocument();
+  });
+});
+
+describe("M15-03 — CSKH gửi yêu cầu chỉnh sửa đơn", () => {
+  test("AC-CSK-020: mở form 'Tạo yêu cầu chỉnh sửa' → ô mô tả điền sẵn csat_comment", async () => {
+    signedInAs(lanId, LAN);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ status: "COMPLETED", csat_comment: "Máy vẫn còn kêu to" })),
+      ),
+      http.get("/api/v1/orders/:id/confirmation-attachments", () =>
+        HttpResponse.json({ items: [] }),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Tạo yêu cầu chỉnh sửa" }));
+
+    expect(await screen.findByLabelText("Mô tả")).toHaveValue("Máy vẫn còn kêu to");
+  });
+
+  test("AC-CSK-021: thêm chú thích, gửi → POST revision-requests, toast", async () => {
+    signedInAs(lanId, LAN);
+    let sentBody: unknown;
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ status: "COMPLETED", csat_comment: "Máy vẫn còn kêu to" })),
+      ),
+      http.get("/api/v1/orders/:id/confirmation-attachments", () =>
+        HttpResponse.json({ items: [] }),
+      ),
+      http.post("/api/v1/orders/:id/revision-requests", async ({ request }) => {
+        sentBody = await request.json();
+        return HttpResponse.json(
+          {
+            id: "a0000000-0000-4000-8000-000000000099",
+            order_id: orderId,
+            note: "Khách muốn kỹ thuật quay lại kiểm tra lần nữa",
+            requested_by: lanId,
+            requested_at: "2026-10-22T03:00:00Z",
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Tạo yêu cầu chỉnh sửa" }));
+    const textarea = await screen.findByLabelText("Mô tả");
+    await user.type(textarea, " Khách muốn kỹ thuật quay lại kiểm tra lần nữa");
+    await user.click(screen.getByRole("button", { name: "Gửi yêu cầu" }));
+
+    await waitFor(() => {
+      expect(sentBody).toMatchObject({
+        note: "Máy vẫn còn kêu to Khách muốn kỹ thuật quay lại kiểm tra lần nữa",
+      });
+    });
+    expect(
+      await screen.findByText("Đã gửi yêu cầu chỉnh sửa tới Quản lý kỹ thuật."),
+    ).toBeInTheDocument();
+  });
+
+  test("AC-CSK-024: has_pending_revision_request=true → hiện badge 'Đã gửi yêu cầu chỉnh sửa (chưa xử lý)'", async () => {
+    signedInAs(tuanId, TUAN);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ status: "COMPLETED", has_pending_revision_request: true })),
+      ),
+      http.get("/api/v1/orders/:id/confirmation-attachments", () =>
+        HttpResponse.json({ items: [] }),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+
+    expect(screen.getByText("Đã gửi yêu cầu chỉnh sửa (chưa xử lý)")).toBeInTheDocument();
+  });
+
+  test("AC-CSK-025: has_pending_revision_request=false → không hiện badge", async () => {
+    signedInAs(tuanId, TUAN);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ status: "COMPLETED", has_pending_revision_request: false })),
+      ),
+      http.get("/api/v1/orders/:id/confirmation-attachments", () =>
+        HttpResponse.json({ items: [] }),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+
+    expect(screen.queryByText("Đã gửi yêu cầu chỉnh sửa (chưa xử lý)")).not.toBeInTheDocument();
   });
 });

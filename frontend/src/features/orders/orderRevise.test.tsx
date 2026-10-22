@@ -46,6 +46,7 @@ function detail(overrides: Partial<OrderDetail> = {}): OrderDetail {
     can_upload_confirmation: false,
     can_complete: false,
     can_revise: true,
+    has_pending_revision_request: false,
     lines: [],
     ...overrides,
   };
@@ -119,6 +120,7 @@ describe("Chuyển Chỉnh sửa (M6-03b)", () => {
             version: 7,
             allowed_commands: [],
             can_revise: false,
+            has_pending_revision_request: false,
           }),
         );
       }),
@@ -162,6 +164,7 @@ describe("Chuyển Chỉnh sửa (M6-03b)", () => {
             version: 7,
             allowed_commands: [],
             can_revise: false,
+            has_pending_revision_request: false,
           }),
         ),
       ),
