@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { MessageSquareWarning, Star } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../components/ui/Button";
 import { Textarea } from "../../../components/ui/Textarea";
@@ -6,7 +6,8 @@ import { useToast } from "../../../components/ui/Toast";
 import { cn } from "../../../lib/cn";
 import { ApiError } from "../../auth/errors";
 import { useMe } from "../../me/api";
-import { useRecordCsat, type Order } from "../api";
+import { useRecordCsat, useRequestRevisionFromCustomerCare, type Order } from "../api";
+import { RevisionRequestSheet } from "./RevisionRequestSheet";
 
 function describeError(err: unknown): string {
   return err instanceof ApiError && err.problem.detail
@@ -55,9 +56,12 @@ export function CustomerFeedbackBlock({ order }: { order: Order }) {
   const me = useMe();
   const toast = useToast();
   const recordCsat = useRecordCsat();
+  const requestRevision = useRequestRevisionFromCustomerCare();
   const [rating, setRating] = useState(order.csat_rating ?? 0);
   const [comment, setComment] = useState(order.csat_comment ?? "");
   const [error, setError] = useState<string | null>(null);
+  const [revisionOpen, setRevisionOpen] = useState(false);
+  const [revisionError, setRevisionError] = useState<string | null>(null);
 
   if (order.status !== "COMPLETED") return null;
   const canManage = me.data ? "customer_care.manage_feedback" in me.data.capabilities : false;
@@ -110,6 +114,46 @@ export function CustomerFeedbackBlock({ order }: { order: Order }) {
       <Button type="button" disabled={!canSave} loading={recordCsat.isPending} onClick={submit}>
         {hasExisting ? "Cập nhật phản hồi" : "Lưu phản hồi"}
       </Button>
+      {order.csat_comment !== null && order.csat_comment.trim().length > 0 ? (
+        <>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setRevisionError(null);
+              setRevisionOpen(true);
+            }}
+          >
+            <MessageSquareWarning aria-hidden="true" className="size-4" />
+            Tạo yêu cầu chỉnh sửa
+          </Button>
+          <RevisionRequestSheet
+            open={revisionOpen}
+            onClose={() => {
+              setRevisionOpen(false);
+            }}
+            orderCode={order.code}
+            defaultNote={order.csat_comment}
+            loading={requestRevision.isPending}
+            error={revisionError}
+            onConfirm={(note) => {
+              setRevisionError(null);
+              requestRevision.mutate(
+                { id: order.id, body: { note } },
+                {
+                  onSuccess: () => {
+                    setRevisionOpen(false);
+                    toast("Đã gửi yêu cầu chỉnh sửa tới Quản lý kỹ thuật.");
+                  },
+                  onError: (err: unknown) => {
+                    setRevisionError(describeError(err));
+                  },
+                },
+              );
+            }}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

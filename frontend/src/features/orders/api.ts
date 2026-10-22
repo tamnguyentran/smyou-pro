@@ -103,6 +103,30 @@ export function useRecordCsat() {
   });
 }
 
+export type RevisionRequestBody = components["schemas"]["OrderRevisionRequestCreate"];
+
+/** AC-CSK-021 (M15-03): CSKH gửi yêu cầu chỉnh sửa đơn — không trả về OrderDetail (không đổi
+ * trạng thái đơn), nên invalidate để refetch `has_pending_revision_request` thay vì set cache. */
+export function useRequestRevisionFromCustomerCare() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: RevisionRequestBody }) => {
+      const { data, error, response } = await api.POST(
+        "/api/v1/orders/{order_id}/revision-requests",
+        {
+          params: { path: { order_id: id } },
+          body,
+        },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: (_data, { id }) => {
+      void queryClient.invalidateQueries({ queryKey: [ORDER_KEY, id] });
+    },
+  });
+}
+
 /** AC-ORD-067: lịch sử thay đổi trạng thái của đơn (timeline, mới nhất trước). */
 export function useOrderHistory(orderId: string | undefined) {
   return useQuery({

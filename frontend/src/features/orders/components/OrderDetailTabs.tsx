@@ -222,6 +222,9 @@ export function OrderDetailTabs({
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-lg font-semibold text-heading">{order.code}</p>
             <Badge tone={ORDER_STATUS_TONE[status]}>{ORDER_STATUS_LABEL[status]}</Badge>
+            {order.has_pending_revision_request ? (
+              <Badge tone="review">Đã gửi yêu cầu chỉnh sửa (chưa xử lý)</Badge>
+            ) : null}
           </div>
           <p className="text-sm text-body">{order.customer_name ?? "Khách lẻ"}</p>
         </div>
