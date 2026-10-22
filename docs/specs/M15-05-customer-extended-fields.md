@@ -27,6 +27,9 @@ Là Sale/CSKH/Manager, tôi muốn lưu thêm thông tin phù hợp với từng
 | AC-CUS-019 | Khách hàng `COMPANY` có `version=1` | `PATCH /customers/{id} {version:1, director_name:"Lê Văn C"}` | 200; chỉ `director_name` đổi, các trường khác giữ nguyên | integration |
 | AC-CUS-020 | Form tạo khách hàng, chọn "Tổ chức" | render | Hiện 5 ô: "Ngày thành lập", "Giám đốc", "Phụ trách IT", "SĐT phụ trách IT", "Email phụ trách IT"; không hiện ô cá nhân | component |
 | AC-CUS-021 | Form tạo khách hàng, chọn "Cá nhân" | render | Hiện 3 ô: "Ngày sinh", "Giới tính" (dropdown Nam/Nữ/Khác), "Nghề nghiệp"; không hiện ô tổ chức | component |
+| AC-CUS-022 | Khách hàng `COMPANY` có `version=1` | `PATCH /customers/{id} {version:1, type:"INDIVIDUAL"}` | 422 field `type` — `type` bất biến, không sửa qua PATCH (giống `code`) | integration |
+| AC-CUS-023 | Khách hàng `INDIVIDUAL` có `version=1` | `PATCH /customers/{id} {version:1, director_name:"Lê Văn C"}` (trường thuộc nhóm `COMPANY`) | 422 field `director_name` — không hợp lệ với `type` hiện tại của khách hàng (`INDIVIDUAL`) | integration |
+| AC-CUS-024 | Form sửa khách hàng đã có (`type="COMPANY"`) | render | Ô "Loại khách hàng" bị khoá (disabled), không đổi được sau khi tạo | component |
 
 ## 4. API
 | Method | Path | Capability | Thay đổi |
