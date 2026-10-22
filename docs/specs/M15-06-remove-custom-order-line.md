@@ -1,6 +1,6 @@
 # M15-06 — Bỏ dòng hàng "Tự do" khi tạo đơn
 
-- **Status:** Draft
+- **Status:** Approved
 - **Backlog:** M15-06 · **Milestone:** M15
 - **Liên quan:** `docs/product/DOMAIN_MODEL.md` §6 (`order_lines.item_type`); `docs/specs/M3-02a-draft-orders-api.md` / `M3-02b-draft-orders-ui.md` (thêm dòng hàng, tab "Tự do")
 
