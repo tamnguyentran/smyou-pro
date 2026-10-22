@@ -7,6 +7,7 @@ const PASSWORD = "E2e@SmYou2026";
 const SALE = "hoa.e2e@smyou.vn";
 const TECH_LEAD = "tuan.lead@smyou.vn";
 const TECHNICIAN = "duc.ktv3@smyou.vn";
+const MANAGER = "an.e2e@smyou.vn";
 
 async function signIn(page: Page, email: string, path: string) {
   await page.goto(`./dang-nhap?next=${encodeURIComponent(path)}`);
@@ -151,4 +152,18 @@ test("AC-DASH-047 (M10-07c) @screenshot Đức (TECHNICIAN) bấm 'Chưa thực 
     "true",
   );
   await evidence(page, info, "dashboard-drilldown-my-tasks-not-started.png");
+});
+
+test("AC-DASH-054 AC-DASH-056 AC-DASH-058 AC-DASH-059 @a11y @screenshot An (MANAGER) thấy Top 10 khách hàng + tổng hợp đánh giá trên Tổng quan", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+
+  await expect(page.getByText("Top 10 khách hàng (tháng này)")).toBeVisible();
+  await expect(page.getByText("E2E-KH-001")).toBeVisible();
+  await expect(page.getByText("Phản hồi – đánh giá từ khách hàng (tháng này)")).toBeVisible();
+  await expect(page.getByText("5★")).toBeVisible();
+
+  await evidence(page, info, "dashboard-top-customers-feedback-summary.png");
 });
