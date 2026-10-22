@@ -161,6 +161,21 @@ def notify_order_revision_requested(session: Session, order: Order, reason: str)
     )
 
 
+def notify_order_csk_revision_requested(session: Session, order: Order, note: str) -> None:
+    """M15-03: CSKH gửi yêu cầu chỉnh sửa (chưa đổi trạng thái đơn) — báo mọi TECH_LEAD đang
+    hoạt động, khác với notify_order_revision_requested (báo người tạo đơn khi QLKT đã thực sự
+    chuyển đơn sang REVISION)."""
+    _notify_many(
+        session,
+        _active_tech_lead_ids(session),
+        type="ORDER_CSK_REVISION_REQUESTED",
+        title="CSKH yêu cầu chỉnh sửa đơn",
+        body=f"Đơn {order.code}: {note}",
+        entity_type="ORDER",
+        entity_id=order.id,
+    )
+
+
 # ---------------- task effects ----------------
 
 

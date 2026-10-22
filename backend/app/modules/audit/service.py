@@ -39,25 +39,46 @@ def record(
     to_status: str | None = None,
     data: dict[str, Any] | None = None,
     request_id: str | None = None,
-) -> None:
+) -> AuditEvent:
     if entity_type not in _ENTITY_TYPES:
         raise ValueError(f"unknown audit entity_type: {entity_type!r}")
-    session.add(
-        AuditEvent(
-            actor_id=actor_id,
-            entity_type=entity_type,
-            entity_id=entity_id,
-            action=action,
-            from_status=from_status,
-            to_status=to_status,
-            data=data,
-            request_id=request_id,
-        )
+    event = AuditEvent(
+        actor_id=actor_id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        action=action,
+        from_status=from_status,
+        to_status=to_status,
+        data=data,
+        request_id=request_id,
     )
+    session.add(event)
+    # M15-03: caller needs event.id/occurred_at (server defaults) back in the same request —
+    # flush is cheap here, the row is only ever read again after the outer commit.
+    session.flush()
+    return event
 
 
 def _vn_day_start_utc(day: date) -> datetime:
     return datetime.combine(day, time.min, tzinfo=VIETNAM)
+
+
+def latest_action(
+    session: Session, *, entity_type: str, entity_id: uuid.UUID, actions: tuple[str, ...]
+) -> str | None:
+    """M15-03: most recent action among `actions` for 1 entity — used to tell whether a
+    `revision_requested` (CSKH) is still unprocessed (latest) or already handled (a later
+    `request_revision` by QLKT overtook it)."""
+    return session.scalar(
+        select(AuditEvent.action)
+        .where(
+            AuditEvent.entity_type == entity_type,
+            AuditEvent.entity_id == entity_id,
+            AuditEvent.action.in_(actions),
+        )
+        .order_by(AuditEvent.seq.desc())
+        .limit(1)
+    )
 
 
 def _out(event: AuditEvent, employee: Employee | None) -> AuditEventOut:

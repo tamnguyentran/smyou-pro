@@ -26,6 +26,8 @@ from app.modules.orders.schemas import (
     OrderLineUpdate,
     OrderPage,
     OrderRevise,
+    OrderRevisionRequestCreate,
+    OrderRevisionRequestOut,
     OrderSort,
     OrderStatus,
     OrderUpdate,
@@ -54,6 +56,7 @@ NOT_FOUND = (404, "NOT_FOUND")
 CONFLICTS = (409, "STALE_VERSION | ORDER_NOT_DRAFT")
 TRANSITION_CONFLICTS = (409, "STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED")
 AFTER_SUBMIT_CONFLICTS = (409, "STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED")
+GUARD_CONFLICTS = (409, "GUARD_FAILED")
 
 
 @router.post(
@@ -148,6 +151,26 @@ def record_csat(
         now=request.app.state.clock(),
         specs=request.app.state.specs,
         request_id=get_request_id(request),
+    )
+
+
+@router.post(
+    "/{order_id}/revision-requests",
+    operation_id="orders_request_revision_from_customer_care",
+    summary="CSKH gửi yêu cầu chỉnh sửa đơn tới QLKT",
+    status_code=201,
+    response_model=OrderRevisionRequestOut,
+    responses=_docs(NOT_FOUND, GUARD_CONFLICTS),
+)
+def request_revision_from_customer_care(
+    order_id: uuid.UUID,
+    body: OrderRevisionRequestCreate,
+    request: Request,
+    session: DbSession,
+    actor: CsatRecorder,
+) -> OrderRevisionRequestOut:
+    return service.request_revision_from_customer_care(
+        session, actor, order_id, body, request_id=get_request_id(request)
     )
 
 

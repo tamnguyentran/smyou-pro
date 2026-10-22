@@ -129,6 +129,15 @@ REOPEN_ORDERS = [
     ("E2E-DH-M603D", "E2E-DH-M603D-T1"),  # desktop
 ]
 
+# M15-03: CSKH gửi yêu cầu chỉnh sửa e2e (orders-revise.spec.ts) — same one-order-per-project
+# idiom. COMPLETED with a csat_comment already recorded (by lan.cskh@smyou.vn) so the "Tạo yêu
+# cầu chỉnh sửa" button (requires csat_comment non-empty) is visible without driving the CSAT
+# form first.
+CSK_REVISION_ORDERS = [
+    ("E2E-DH-M1503A", "E2E-DH-M1503A-T1", "Máy vẫn còn kêu to sau khi lắp"),  # mobile
+    ("E2E-DH-M1503B", "E2E-DH-M1503B-T1", "Camera bị mờ góc trái"),  # desktop
+]
+
 
 def main() -> int:
     settings = Settings()
@@ -206,6 +215,7 @@ def main() -> int:
             customer.phone = phone
             customer.tax_code = tax_code
         khoa_id = session.scalars(select(Employee.id).where(Employee.email == "khoa.shell@smyou.vn")).one()
+        lan_id = session.scalars(select(Employee.id).where(Employee.email == "lan.cskh@smyou.vn")).one()
 
         def upsert_order(
             code: str,
@@ -358,6 +368,22 @@ def main() -> int:
             revise_order.status = "AWAITING_CONFIRMATION"
             revise_order.revision_no = 0
             upsert_task_assignment(revise_order, task_code, "DONE", "DONE", "1.0", -1)
+
+        for order_code, task_code, csat_comment in CSK_REVISION_ORDERS:
+            csk_order = upsert_order(
+                order_code,
+                customer_name="Cty TNHH Yêu Cầu CSKH E2E",
+                customer_phone="0918666777",
+                service_address="50 Nam Kỳ Khởi Nghĩa, P. Bến Nghé, Q.1, TP.HCM",
+            )
+            csk_order.status = "COMPLETED"
+            csk_order.revision_no = 0
+            csk_order.completed_at = now
+            csk_order.csat_rating = 2
+            csk_order.csat_comment = csat_comment
+            csk_order.csat_recorded_by = lan_id
+            csk_order.csat_recorded_at = now
+            upsert_task_assignment(csk_order, task_code, "DONE", "DONE", "1.0", -1)
 
         for order_code, task_code in REOPEN_ORDERS:
             reopen_order = upsert_order(

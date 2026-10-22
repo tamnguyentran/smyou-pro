@@ -1,6 +1,6 @@
 # M15-03 — CSKH tạo yêu cầu chỉnh sửa đơn gửi Quản lý kỹ thuật
 
-- **Status:** Draft
+- **Status:** Approved (2026-10-22, chốt Q93 — xem mục 8)
 - **Backlog:** M15-03 · **Milestone:** M15
 - **Liên quan:** M15-02a/b (khối "Phản hồi khách hàng" trên trang chi tiết đơn); `spec/state_machines.yaml#order` (`request_revision`, capability `order.revise`, chỉ `TECH_LEAD`); `docs/product/DOMAIN_MODEL.md` §12 (`audit_events`), §13 (`notification`)
 
@@ -46,5 +46,4 @@ Không có bảng mới — chỉ dùng `audit_events` (đã có) + `notificatio
 
 ## 8. Giả định & câu hỏi
 - Giả định thiết kế tối giản: không có bảng/entity `revision_requests` riêng, không có màn "hộp thư" liệt kê các yêu cầu đang chờ cho QLKT — dựa vào chuông thông báo (đã có, M7-01) + badge trên từng đơn là đủ.
-- Câu hỏi mới (→ `OPEN_QUESTIONS.md`): nếu CSKH gửi **nhiều lần** yêu cầu cho cùng 1 đơn trước khi QLKT xử lý, có cần gộp/ghi đè hay giữ nguyên nhiều `audit_event` riêng (mỗi lần gửi = 1 thông báo mới, badge chỉ hiện 1 lần "chưa xử lý" không đếm số lượng)? Mặc định: cho gửi nhiều lần, mỗi lần là 1 audit event + 1 thông báo riêng, badge chỉ phản ánh có/không có yêu cầu *chưa được xử lý* (không đếm số lần).
-- Câu hỏi mới: có cần chặn CSKH gửi yêu cầu khi đơn đã `REVISION` (đang chờ QLKT xử lý lại) để tránh gửi trùng? Mặc định theo AC-CSK-022: chỉ cho gửi khi `COMPLETED` — đơn `REVISION` tự động không gửi được (không nằm trong guard `order_completed`), không cần thêm luật riêng.
+- Q93 (đã chốt 2026-10-22, `docs/product/OPEN_QUESTIONS_ARCHIVE.md`): giữ đúng 2 giả định mặc định — cho CSKH gửi nhiều lần (mỗi lần 1 audit event + 1 thông báo riêng, badge không đếm số lần); không cần luật chặn riêng cho đơn `REVISION` (guard `order_completed` đã tự loại).

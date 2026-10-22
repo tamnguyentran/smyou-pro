@@ -204,6 +204,28 @@ class OrderCsatUpdate(BaseModel):
     _check_csat_comment = field_validator("csat_comment")(_check_csat_comment)
 
 
+def _check_note_not_blank(value: str) -> str:
+    if not value.strip():
+        raise ValueError("Vui lòng nhập mô tả.")
+    return value
+
+
+class OrderRevisionRequestCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    note: str = Field(min_length=1, max_length=2000)
+
+    _check_note_not_blank = field_validator("note")(_check_note_not_blank)
+
+
+class OrderRevisionRequestOut(BaseModel):
+    id: uuid.UUID
+    order_id: uuid.UUID
+    note: str
+    requested_by: uuid.UUID
+    requested_at: datetime
+
+
 class OrderLineOut(BaseModel):
     id: uuid.UUID
     position: int
@@ -262,6 +284,7 @@ class OrderDetail(BaseModel):
     can_upload_confirmation: bool
     can_complete: bool
     can_revise: bool
+    has_pending_revision_request: bool
 
 
 class ConfirmationAttachment(BaseModel):

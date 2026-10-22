@@ -64,6 +64,7 @@ function detail(priority: string = DON_I.priority): OrderDetail {
     can_upload_confirmation: false,
     can_complete: false,
     can_revise: false,
+    has_pending_revision_request: false,
     lines: [],
   };
 }
