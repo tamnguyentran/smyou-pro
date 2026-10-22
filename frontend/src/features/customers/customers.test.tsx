@@ -58,6 +58,14 @@ function customer(overrides: Partial<Customer> = {}): Customer {
     tax_code: "0311122233",
     address: "12 Lê Lợi, Q1, TP.HCM",
     note: null,
+    founded_date: null,
+    director_name: null,
+    it_contact_name: null,
+    it_contact_phone: null,
+    it_contact_email: null,
+    date_of_birth: null,
+    gender: null,
+    occupation: null,
     created_by: "a0000000-0000-4000-8000-000000000001",
     version: 1,
     ...overrides,
@@ -365,6 +373,86 @@ describe("AC-CUS-010 thêm khách hàng", () => {
     expect(
       await within(dialog).findByText("Mã khách hàng đã được dùng cho khách hàng khác."),
     ).toBeInTheDocument();
+  });
+});
+
+describe("AC-CUS-020/021 trường mở rộng theo loại khách hàng", () => {
+  test("AC-CUS-020 chọn Công ty → hiện 5 ô tổ chức, không hiện ô cá nhân", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([])));
+    renderApp("/customers");
+    await openMenu();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Thêm khách hàng" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm khách hàng" });
+
+    expect(within(dialog).getByLabelText("Ngày thành lập")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Giám đốc")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Phụ trách IT")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("SĐT phụ trách IT")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Email phụ trách IT")).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Ngày sinh")).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Giới tính")).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Nghề nghiệp")).not.toBeInTheDocument();
+  });
+
+  test("AC-CUS-021 chọn Cá nhân → hiện 3 ô cá nhân, không hiện ô tổ chức", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([])));
+    renderApp("/customers");
+    await openMenu();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Thêm khách hàng" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm khách hàng" });
+    await user.selectOptions(within(dialog).getByLabelText("Loại khách hàng"), "Cá nhân");
+
+    expect(within(dialog).getByLabelText("Ngày sinh")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Giới tính")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Nghề nghiệp")).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Ngày thành lập")).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Giám đốc")).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Phụ trách IT")).not.toBeInTheDocument();
+  });
+
+  test("AC-CUS-020b đổi từ Công ty sang Cá nhân trước khi lưu → không gửi field tổ chức đã ẩn", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([])));
+    let body: Record<string, unknown> = {};
+    server.use(
+      http.post("/api/v1/customers", async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...customer(), duplicate_phone_matches: [] }, { status: 201 });
+      }),
+    );
+    renderApp("/customers");
+    await openMenu();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Thêm khách hàng" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm khách hàng" });
+    await user.type(within(dialog).getByLabelText("Giám đốc"), "Ông Long");
+    await user.selectOptions(within(dialog).getByLabelText("Loại khách hàng"), "Cá nhân");
+    await user.type(within(dialog).getByLabelText("Tên khách hàng"), "Chị Lan");
+    await user.type(within(dialog).getByLabelText("Số điện thoại"), "0987654321");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+
+    await waitFor(() => {
+      expect(body.type).toBe("INDIVIDUAL");
+    });
+    expect(body.director_name).toBeFalsy();
+  });
+});
+
+describe("AC-CUS-024 loại khách hàng bất biến khi sửa", () => {
+  test("Sheet sửa khách hàng: ô Loại khách hàng bị khoá", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([KIM_LONG])));
+    renderApp("/customers");
+    await openMenu();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByText("Cty Kim Long"));
+    const dialog = await screen.findByRole("dialog", { name: "Sửa khách hàng" });
+
+    expect(within(dialog).getByLabelText("Loại khách hàng")).toBeDisabled();
   });
 });
 

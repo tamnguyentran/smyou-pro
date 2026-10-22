@@ -37,9 +37,9 @@ Dữ liệu mẫu: **An** NV001 [MANAGER]; **Hoa** NV005 [SALE]; **Tuấn** NV01
 | GET | /api/v1/customers | customer.read | `q, type, limit≤100, offset` | `{items, total, limit, offset}` | 422 |
 | GET | /api/v1/customers/{id} | customer.read | — | `CustomerDetail` | 404 |
 | POST | /api/v1/customers | customer.manage | `CustomerCreate` | 201 `CustomerDetail` (+ `duplicate_phone_matches[]`) | 422 |
-| PATCH | /api/v1/customers/{id} | customer.manage | `{version, type?, name?, contact_person?, phone?, email?, tax_code?, address?, note?}` | `CustomerDetail` (+ `duplicate_phone_matches[]`) | 404, 409, 422 |
+| PATCH | /api/v1/customers/{id} | customer.manage | `{version, name?, contact_person?, phone?, email?, tax_code?, address?, note?}` (+ trường mở rộng theo `type`, xem M15-05) | `CustomerDetail` (+ `duplicate_phone_matches[]`) | 404, 409, 422 |
 
-`code` **không** đổi được qua PATCH (tự sinh lúc tạo, bất biến — tránh lệch snapshot đơn hàng ở M3-02). `duplicate_phone_matches` là **cảnh báo**, không phải lỗi: HTTP vẫn 201/200, không có mã lỗi; liệt kê khách hàng khác (loại trừ chính mình khi sửa) có SĐT đã chuẩn hoá trùng khớp.
+`code` và `type` **không** đổi được qua PATCH (tự sinh/cố định lúc tạo, bất biến — tránh lệch snapshot đơn hàng ở M3-02; `type` bất biến quyết định ở M15-05). `duplicate_phone_matches` là **cảnh báo**, không phải lỗi: HTTP vẫn 201/200, không có mã lỗi; liệt kê khách hàng khác (loại trừ chính mình khi sửa) có SĐT đã chuẩn hoá trùng khớp.
 
 ## 5. Dữ liệu / Migration
 - Bảng `customers` theo DOMAIN_MODEL §4: `code varchar(20) unique`, `type` enum (`COMPANY`, `INDIVIDUAL`), `name varchar(255)`, `contact_person varchar(120) null`, `phone varchar(20)` (chuẩn hoá chỉ chữ số, 10 số bắt đầu 0 — Q51), `email varchar(255) null`, `tax_code varchar(20) null`, `address text`, `note text`, `created_by uuid → employees`, `version int default 1`, `created_at/updated_at timestamptz`.

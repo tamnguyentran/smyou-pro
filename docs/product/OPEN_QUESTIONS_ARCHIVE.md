@@ -4,6 +4,7 @@ Các câu hỏi đã có quyết định (✅), chuyển từ `OPEN_QUESTIONS.md
 
 | # | Câu hỏi | Giả định mặc định ban đầu | Quyết định | TT |
 |---|---|---|---|---|
+| Q87 | (`M15-05`, spec Draft 2026-10-21) Trường "Phụ trách IT" của khách hàng tổ chức — chỉ cần tên, hay cần thêm sđt/email riêng (khác `contact_person`/`phone` của khách hàng)? | Chỉ lưu tên (`it_contact_name`), không có sđt/email riêng — dùng chung thông tin liên hệ chính của khách hàng nếu cần gọi | Chủ dự án chốt 2026-10-22: thêm `it_contact_phone`, `it_contact_email` riêng cho người phụ trách IT (khác `contact_person`/`phone` của khách hàng) | ✅ |
 | Q01 | Giá trong danh mục lưu **đã** hay **chưa** VAT? | Lưu chưa VAT; VAT cấp đơn | Tách **giá (chưa VAT)** và **% VAT** trên từng sản phẩm/dịch vụ; mỗi dòng đơn snapshot % VAT; VAT đơn = Σ VAT dòng. Cờ **Giá cố định Y/N**: Y ⇒ không sửa đơn giá khi tạo đơn | ✅ |
 | Q02 | Sale có thấy/sửa đơn của Sale khác không? | Thấy tất cả; chỉ sửa/gửi/huỷ đơn **của mình**; Manager sửa được mọi đơn | Giữ như mặc định | ✅ |
 | Q03 | Kỹ thuật viên có được xem giá tiền trên đơn không? | Không | **Có** — KTV xem được giá của đơn mình được giao | ✅ |

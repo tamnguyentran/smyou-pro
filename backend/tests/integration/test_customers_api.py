@@ -27,6 +27,14 @@ ITEM_KEYS = {
     "note",
     "created_by",
     "version",
+    "founded_date",
+    "director_name",
+    "it_contact_name",
+    "it_contact_phone",
+    "it_contact_email",
+    "date_of_birth",
+    "gender",
+    "occupation",
 }
 
 CTY_SANG_TAO: dict[str, object] = {
@@ -268,6 +276,157 @@ def test_routes_declare_capability(app: FastAPI) -> None:
         ("POST", "/api/v1/customers", "customer.manage"),
         ("PATCH", "/api/v1/customers/{customer_id}", "customer.manage"),
     }
+
+
+@pytest.mark.ac("AC-CUS-016")
+def test_create_company_extended_fields(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    hoa = client_as(app, HOA)
+
+    res = hoa.post(
+        "/api/v1/customers",
+        json={
+            **NEW_CUSTOMER,
+            "founded_date": "2015-03-01",
+            "director_name": "Nguyễn Văn A",
+            "it_contact_name": "Trần Thị B",
+            "it_contact_phone": "0988123456",
+            "it_contact_email": "it@congty.vn",
+        },
+    )
+
+    assert res.status_code == 201, res.text
+    body = res.json()
+    assert (
+        body["founded_date"],
+        body["director_name"],
+        body["it_contact_name"],
+        body["it_contact_phone"],
+        body["it_contact_email"],
+    ) == ("2015-03-01", "Nguyễn Văn A", "Trần Thị B", "0988123456", "it@congty.vn")
+
+
+@pytest.mark.ac("AC-CUS-016b")
+def test_create_company_extended_fields_invalid_it_contact_phone(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+
+    body = problem(
+        hoa.post("/api/v1/customers", json={**NEW_CUSTOMER, "it_contact_phone": "098812"}),
+        422,
+        "VALIDATION_ERROR",
+    )
+    assert "it_contact_phone" in [e["field"] for e in body["errors"]]
+
+
+@pytest.mark.ac("AC-CUS-017")
+@pytest.mark.parametrize(
+    ("change", "field"),
+    [
+        ({"date_of_birth": "1990-01-01"}, "date_of_birth"),
+        ({"gender": "FEMALE"}, "gender"),
+        ({"occupation": "Giáo viên"}, "occupation"),
+    ],
+)
+def test_create_company_rejects_individual_fields(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], change: dict[str, object], field: str
+) -> None:
+    hoa = client_as(app, HOA)
+    body = problem(hoa.post("/api/v1/customers", json={**NEW_CUSTOMER, **change}), 422, "VALIDATION_ERROR")
+    assert field in [e["field"] for e in body["errors"]]
+
+
+@pytest.mark.ac("AC-CUS-018")
+def test_create_individual_extended_fields(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+
+    res = hoa.post(
+        "/api/v1/customers",
+        json={
+            **NEW_CUSTOMER,
+            "type": "INDIVIDUAL",
+            "date_of_birth": "1990-05-20",
+            "gender": "FEMALE",
+            "occupation": "Giáo viên",
+        },
+    )
+
+    assert res.status_code == 201, res.text
+    body = res.json()
+    assert (body["date_of_birth"], body["gender"], body["occupation"]) == (
+        "1990-05-20",
+        "FEMALE",
+        "Giáo viên",
+    )
+
+
+@pytest.mark.ac("AC-CUS-017")
+def test_create_individual_rejects_company_fields(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    body = problem(
+        hoa.post(
+            "/api/v1/customers",
+            json={**NEW_CUSTOMER, "type": "INDIVIDUAL", "founded_date": "2015-03-01"},
+        ),
+        422,
+        "VALIDATION_ERROR",
+    )
+    assert "founded_date" in [e["field"] for e in body["errors"]]
+
+
+@pytest.mark.ac("AC-CUS-019")
+def test_update_extended_field_partial(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    hoa = client_as(app, HOA)
+    created = hoa.post("/api/v1/customers", json={**NEW_CUSTOMER, "director_name": "Nguyễn Văn A"}).json()
+
+    res = hoa.patch(
+        f"/api/v1/customers/{created['id']}",
+        json={"version": 1, "director_name": "Lê Văn C"},
+    )
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["director_name"] == "Lê Văn C"
+    assert body["founded_date"] is None
+    assert body["it_contact_name"] is None
+
+
+@pytest.mark.ac("AC-CUS-022")
+def test_update_type_is_immutable(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    hoa = client_as(app, HOA)
+    created = hoa.post("/api/v1/customers", json=NEW_CUSTOMER).json()
+
+    body = problem(
+        hoa.patch(
+            f"/api/v1/customers/{created['id']}",
+            json={"version": 1, "type": "INDIVIDUAL"},
+        ),
+        422,
+        "VALIDATION_ERROR",
+    )
+    assert "type" in [e["field"] for e in body["errors"]]
+
+
+@pytest.mark.ac("AC-CUS-023")
+def test_update_rejects_mismatched_group_field(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    created = hoa.post("/api/v1/customers", json={**NEW_CUSTOMER, "type": "INDIVIDUAL"}).json()
+
+    body = problem(
+        hoa.patch(
+            f"/api/v1/customers/{created['id']}",
+            json={"version": 1, "director_name": "Lê Văn C"},
+        ),
+        422,
+        "VALIDATION_ERROR",
+    )
+    assert "director_name" in [e["field"] for e in body["errors"]]
 
 
 def test_mutations_write_audit_events(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:

@@ -81,7 +81,17 @@ erDiagram
 | tax_code | varchar(20) null | MST |
 | address | text | địa chỉ chính |
 | note | text | |
+| founded_date | date null | chỉ `COMPANY` (M15-05) |
+| director_name | varchar(120) null | "Giám đốc", chỉ `COMPANY` (M15-05) |
+| it_contact_name | varchar(120) null | "Phụ trách IT", chỉ `COMPANY` (M15-05) |
+| it_contact_phone | varchar(20) null | chuẩn hoá như `phone`, chỉ `COMPANY` (M15-05) |
+| it_contact_email | varchar(255) null | chỉ `COMPANY` (M15-05) |
+| date_of_birth | date null | chỉ `INDIVIDUAL` (M15-05) |
+| gender | enum `MALE`, `FEMALE`, `OTHER` null | chỉ `INDIVIDUAL` (M15-05) |
+| occupation | varchar(120) null | "Nghề nghiệp", chỉ `INDIVIDUAL` (M15-05) |
 | created_by | uuid → employees | |
+
+`type` bất biến sau khi tạo (không đổi qua PATCH, như `code`); server từ chối (422) nếu gửi trường ở nhóm không khớp `type` của khách hàng (M15-05).
 
 Khách lẻ ("KHÁCH LẺ - BP MÁY IN"): đơn có thể không liên kết customer, khi đó bắt buộc nhập `customer_name` + `customer_phone` trong snapshot của đơn.
 
