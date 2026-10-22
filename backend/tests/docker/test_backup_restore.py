@@ -173,11 +173,11 @@ def test_backup_creates_valid_db_and_uploads_archives(
 
 
 @pytest.mark.ac("AC-SYS-109")
-def test_backup_keeps_14_newest_per_type(
+def test_backup_keeps_2_newest_per_type(
     seeded_employee: tuple[str, str, str], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    old_db_names = [f"db-20260101T{i:02d}0000Z.dump" for i in range(14)]
-    old_upload_names = [f"uploads-20260101T{i:02d}0000Z.tar.gz" for i in range(14)]
+    old_db_names = [f"db-20260101T{i:02d}0000Z.dump" for i in range(3)]
+    old_upload_names = [f"uploads-20260101T{i:02d}0000Z.tar.gz" for i in range(3)]
     for name in old_db_names + old_upload_names:
         (tmp_path / name).write_bytes(b"fake")
 
@@ -186,12 +186,14 @@ def test_backup_keeps_14_newest_per_type(
 
     remaining_dumps = sorted(p.name for p in tmp_path.glob("db-*.dump"))
     remaining_archives = sorted(p.name for p in tmp_path.glob("uploads-*.tar.gz"))
-    assert len(remaining_dumps) == 14, remaining_dumps
-    assert len(remaining_archives) == 14, remaining_archives
+    assert len(remaining_dumps) == 2, remaining_dumps
+    assert len(remaining_archives) == 2, remaining_archives
     assert old_db_names[0] not in remaining_dumps
+    assert old_db_names[1] not in remaining_dumps
     assert old_upload_names[0] not in remaining_archives
-    assert set(old_db_names[1:]).issubset(remaining_dumps)
-    assert set(old_upload_names[1:]).issubset(remaining_archives)
+    assert old_upload_names[1] not in remaining_archives
+    assert old_db_names[2] in remaining_dumps
+    assert old_upload_names[2] in remaining_archives
 
 
 @pytest.mark.ac("AC-SYS-110")
