@@ -2,6 +2,7 @@
 
 import re
 import uuid
+from datetime import date
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, StringConstraints, field_validator
@@ -10,9 +11,11 @@ from app.modules.employees.domain import normalize_phone
 from app.modules.identity.schemas import Email
 
 CustomerType = Literal["COMPANY", "INDIVIDUAL"]
+Gender = Literal["MALE", "FEMALE", "OTHER"]
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
 ContactPerson = Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)]
 TaxCode = Annotated[str, StringConstraints(strip_whitespace=True, max_length=20)]
+PersonName = Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)]
 PHONE = re.compile(r"0\d{9}")
 
 
@@ -38,16 +41,25 @@ class CustomerCreate(BaseModel):
     tax_code: TaxCode | None = None
     address: str | None = None
     note: str | None = None
+    # M15-05: chỉ hợp lệ với đúng `type` — service kiểm tra, xem domain.mismatched_fields.
+    founded_date: date | None = None
+    director_name: PersonName | None = None
+    it_contact_name: PersonName | None = None
+    it_contact_phone: str | None = None
+    it_contact_email: Email | None = None
+    date_of_birth: date | None = None
+    gender: Gender | None = None
+    occupation: PersonName | None = None
 
     _check_phone = field_validator("phone")(_phone_required)
+    _check_it_contact_phone = field_validator("it_contact_phone")(_phone_optional)
 
 
 class CustomerUpdate(BaseModel):
-    # code is not editable here: auto-generated at creation, immutable (spec §4).
+    # code and type are not editable here: fixed at creation, immutable (spec §4).
     model_config = ConfigDict(extra="forbid")
 
     version: int
-    type: CustomerType | None = None
     name: Name | None = None
     contact_person: ContactPerson | None = None
     phone: str | None = None
@@ -55,8 +67,17 @@ class CustomerUpdate(BaseModel):
     tax_code: TaxCode | None = None
     address: str | None = None
     note: str | None = None
+    founded_date: date | None = None
+    director_name: PersonName | None = None
+    it_contact_name: PersonName | None = None
+    it_contact_phone: str | None = None
+    it_contact_email: Email | None = None
+    date_of_birth: date | None = None
+    gender: Gender | None = None
+    occupation: PersonName | None = None
 
     _check_phone = field_validator("phone")(_phone_optional)
+    _check_it_contact_phone = field_validator("it_contact_phone")(_phone_optional)
 
 
 class CustomerOut(BaseModel):
@@ -70,6 +91,14 @@ class CustomerOut(BaseModel):
     tax_code: str | None
     address: str | None
     note: str | None
+    founded_date: date | None
+    director_name: str | None
+    it_contact_name: str | None
+    it_contact_phone: str | None
+    it_contact_email: str | None
+    date_of_birth: date | None
+    gender: str | None
+    occupation: str | None
     created_by: uuid.UUID
     version: int
 

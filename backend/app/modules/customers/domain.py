@@ -1,9 +1,21 @@
 """Pure customer rules (DOMAIN_MODEL §4, Q51). No framework imports."""
 
 import re
+from collections.abc import Mapping
+from typing import Any
 
 CODE_PREFIX = "KH"
 _CODE = re.compile(rf"{CODE_PREFIX}(\d+)")
+
+# M15-05: trường mở rộng chỉ hợp lệ với đúng `type` của khách hàng.
+COMPANY_FIELDS = ("founded_date", "director_name", "it_contact_name", "it_contact_phone", "it_contact_email")
+INDIVIDUAL_FIELDS = ("date_of_birth", "gender", "occupation")
+
+
+def mismatched_fields(customer_type: str, body: Mapping[str, Any]) -> list[str]:
+    """Trường thuộc nhóm khác `customer_type`, có mặt (không None) trong `body` (§2)."""
+    other_group = INDIVIDUAL_FIELDS if customer_type == "COMPANY" else COMPANY_FIELDS
+    return [field for field in other_group if body.get(field) is not None]
 
 
 def last_code_number(codes: list[str]) -> int:

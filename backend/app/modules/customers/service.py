@@ -11,7 +11,7 @@ from app.core.authz import Actor, ScopeRules, apply_scope, get_in_scope_or_404
 from app.core.errors import AppError
 from app.core.sequences import next_value
 from app.modules.audit import service as audit
-from app.modules.customers.domain import customer_code, last_code_number
+from app.modules.customers.domain import customer_code, last_code_number, mismatched_fields
 from app.modules.customers.models import Customer
 from app.modules.customers.schemas import (
     CustomerCreate,
@@ -43,6 +43,14 @@ def _out(customer: Customer) -> CustomerOut:
         tax_code=customer.tax_code,
         address=customer.address,
         note=customer.note,
+        founded_date=customer.founded_date,
+        director_name=customer.director_name,
+        it_contact_name=customer.it_contact_name,
+        it_contact_phone=customer.it_contact_phone,
+        it_contact_email=customer.it_contact_email,
+        date_of_birth=customer.date_of_birth,
+        gender=customer.gender,
+        occupation=customer.occupation,
         created_by=customer.created_by,
         version=customer.version,
     )
@@ -60,6 +68,21 @@ def _code_taken() -> AppError:
     return AppError(
         409, "CONFLICT", CODE_TAKEN, errors=[{"field": "code", "code": "taken", "message": CODE_TAKEN}]
     )
+
+
+MISMATCH_MESSAGE = "Trường không hợp lệ với loại khách hàng này."
+
+
+def _reject_mismatched_fields(customer_type: str, body: dict[str, object]) -> None:
+    """§2: 422 nếu gửi trường mở rộng thuộc nhóm khác `customer_type` (COMPANY/INDIVIDUAL)."""
+    fields = mismatched_fields(customer_type, body)
+    if fields:
+        raise AppError(
+            422,
+            "VALIDATION_ERROR",
+            "Dữ liệu không hợp lệ.",
+            errors=[{"field": f, "code": "type_mismatch", "message": MISMATCH_MESSAGE} for f in fields],
+        )
 
 
 def _flush(session: Session) -> None:
@@ -136,6 +159,7 @@ def get_customer(session: Session, actor: Actor, customer_id: uuid.UUID) -> Cust
 def create_customer(
     session: Session, actor: Actor, body: CustomerCreate, *, request_id: str | None = None
 ) -> CustomerWritten:
+    _reject_mismatched_fields(body.type, body.model_dump())
     codes = list(session.scalars(select(Customer.code)))
     number = next_value(session, "customer", at_least_after=last_code_number(codes))
     customer = Customer(
@@ -148,6 +172,14 @@ def create_customer(
         tax_code=body.tax_code,
         address=body.address,
         note=body.note,
+        founded_date=body.founded_date,
+        director_name=body.director_name,
+        it_contact_name=body.it_contact_name,
+        it_contact_phone=body.it_contact_phone,
+        it_contact_email=body.it_contact_email,
+        date_of_birth=body.date_of_birth,
+        gender=body.gender,
+        occupation=body.occupation,
         created_by=actor.id,
         version=1,
     )
@@ -176,10 +208,27 @@ def update_customer(
 ) -> CustomerWritten:
     customer = _locked(session, actor, customer_id, body.version)
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
+    _reject_mismatched_fields(customer.type, changes)
     # Required fields sent as null are ignored; optional ones sent empty are cleared (like employees).
-    wanted = {f: changes[f] for f in ("type", "name", "phone") if changes.get(f) is not None}
+    wanted = {f: changes[f] for f in ("name", "phone") if changes.get(f) is not None}
     wanted |= {
-        f: changes[f] for f in ("contact_person", "email", "tax_code", "address", "note") if f in changes
+        f: changes[f]
+        for f in (
+            "contact_person",
+            "email",
+            "tax_code",
+            "address",
+            "note",
+            "founded_date",
+            "director_name",
+            "it_contact_name",
+            "it_contact_phone",
+            "it_contact_email",
+            "date_of_birth",
+            "gender",
+            "occupation",
+        )
+        if f in changes
     }
     changed_fields = sorted(f for f, value in wanted.items() if getattr(customer, f) != value)
     for field in changed_fields:
