@@ -134,6 +134,7 @@ Tổng tiền **luôn tính ở server** từ dòng hàng; client gửi lên ch�
 | product_id / service_id | uuid null | theo item_type |
 | sku_snapshot, name_snapshot, unit_snapshot, specs_snapshot, warranty_months_snapshot | | **snapshot** lúc thêm dòng |
 | catalog_price_snapshot | bigint | giá danh mục lúc thêm dòng |
+| cost_price_snapshot | bigint null | giá vốn danh mục lúc thêm dòng (M15-08); không đổi theo giá vốn danh mục về sau, dùng tính lời/lỗ; `null` cho dòng `CUSTOM` |
 | price_fixed | bool | snapshot từ danh mục; dòng `CUSTOM` luôn `false` |
 | vat_rate | numeric(5,2) | snapshot từ danh mục; người tạo đơn chọn/nhập lại như ở danh mục (dòng `CUSTOM` bắt buộc nhập) |
 | quantity | numeric(12,2) | > 0 |
@@ -144,6 +145,20 @@ Tổng tiền **luôn tính ở server** từ dòng hàng; client gửi lên ch�
 | line_vat | bigint | round_half_up((line_gross − line_discount) × vat_rate / 100) |
 | line_total | bigint | line_gross − line_discount + line_vat |
 | note | text | |
+
+## 6b. CatalogPriceHistory — `catalog_price_history` (M15-08)
+Ghi mỗi lần `price`/`cost_price` của Product/Service thực sự đổi khi sửa (`catalog.manage`); không ghi nếu giá không đổi.
+
+| Trường | Kiểu | Ghi chú |
+|---|---|---|
+| item_type | enum `PRODUCT`, `SERVICE` | |
+| product_id / service_id | uuid null | theo item_type |
+| changed_by | uuid → employees | |
+| changed_at | timestamptz | |
+| old_price, new_price | bigint | giá bán trước/sau |
+| old_cost_price, new_cost_price | bigint null | giá vốn trước/sau |
+
+Xem qua `GET /products/{id}/price-history`, `GET /services/{id}/price-history` (chỉ `catalog.manage`, sắp mới nhất trước).
 
 ## 7. OrderRevision — `order_revisions`
 `order_id, revision_no, reason, requested_by, requested_at` — mỗi lần chuyển "Chỉnh sửa".
