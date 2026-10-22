@@ -13,13 +13,15 @@ from tests.integration.test_services_api import BOMMUC
 from tests.integration.test_services_api import insert_service as insert_service_row
 
 PRODUCTS_OK_CSV = (
-    "sku,name,category,brand,unit,price,vat_rate,price_fixed,warranty_months,specs\n"
-    "MAYBO9101,PC SMYOU CORE I3-12100,PC,SMYOU,BO,8500000,8,true,24,I3-12100/8GB/SSD 256GB\n"
-    "LCD9102,Màn hình Dell 24 inch,MONITOR,Dell,CAI,3200000,8,false,12,\n"
-    "HOPMUC9103,Hộp mực Canon 325,PRINTER_SUPPLY,Canon,HOP,650000,8,true,,\n"
+    "sku,name,category,brand,unit,price,cost_price,vat_rate,price_fixed,warranty_months,specs\n"
+    "MAYBO9101,PC SMYOU CORE I3-12100,PC,SMYOU,BO,8500000,7000000,8,true,24,I3-12100/8GB/SSD 256GB\n"
+    "LCD9102,Màn hình Dell 24 inch,MONITOR,Dell,CAI,3200000,2500000,8,false,12,\n"
+    "HOPMUC9103,Hộp mực Canon 325,PRINTER_SUPPLY,Canon,HOP,650000,500000,8,true,,\n"
 )
 
-SERVICES_HEADER = "code,name,category,unit,price,vat_rate,price_fixed,default_estimated_hours,description\n"
+SERVICES_HEADER = (
+    "code,name,category,unit,price,cost_price,vat_rate,price_fixed,default_estimated_hours,description\n"
+)
 
 
 @pytest.fixture
@@ -126,9 +128,9 @@ def test_commit_all_valid_creates_all_with_audit(
 @pytest.mark.ac("AC-CAT-037")
 def test_preview_duplicate_sku_in_file(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
     content = (
-        "sku,name,category,brand,unit,price,vat_rate,price_fixed,warranty_months,specs\n"
-        "MAYBO9101,PC A,PC,SMYOU,BO,8500000,8,true,24,\n"
-        "MAYBO9101,PC B,PC,SMYOU,BO,8600000,8,true,24,\n"
+        "sku,name,category,brand,unit,price,cost_price,vat_rate,price_fixed,warranty_months,specs\n"
+        "MAYBO9101,PC A,PC,SMYOU,BO,8500000,7000000,8,true,24,\n"
+        "MAYBO9101,PC B,PC,SMYOU,BO,8600000,7100000,8,true,24,\n"
     )
     an = client_as(app, AN)
     res = an.post("/api/v1/products/import/preview", files=csv_file(content))
@@ -149,8 +151,8 @@ def test_preview_and_commit_sku_taken_in_db(
 ) -> None:
     insert_product(db, MAYBO)  # sku MAYBO3551 already exists
     content = (
-        "sku,name,category,brand,unit,price,vat_rate,price_fixed,warranty_months,specs\n"
-        "MAYBO3551,PC A,PC,SMYOU,BO,8500000,8,true,24,\n"
+        "sku,name,category,brand,unit,price,cost_price,vat_rate,price_fixed,warranty_months,specs\n"
+        "MAYBO3551,PC A,PC,SMYOU,BO,8500000,7000000,8,true,24,\n"
     )
     an = client_as(app, AN)
     preview = an.post("/api/v1/products/import/preview", files=csv_file(content)).json()
@@ -167,7 +169,7 @@ def test_preview_and_commit_sku_taken_in_db(
 @pytest.mark.ac("AC-CAT-039")
 def test_preview_empty_file(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
     an = client_as(app, AN)
-    header_only = "sku,name,category,brand,unit,price,vat_rate,price_fixed,warranty_months,specs\n"
+    header_only = "sku,name,category,brand,unit,price,cost_price,vat_rate,price_fixed,warranty_months,specs\n"
     problem(an.post("/api/v1/products/import/preview", files=csv_file(header_only)), 422, "EMPTY_FILE")
 
 
@@ -175,8 +177,8 @@ def test_preview_empty_file(app: FastAPI, db: Connection, people: dict[str, uuid
 def test_preview_missing_required_column(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
     an = client_as(app, AN)
     missing_price = (
-        "sku,name,category,brand,unit,vat_rate,price_fixed,warranty_months,specs\n"
-        "MAYBO9101,PC A,PC,SMYOU,BO,8,true,24,\n"
+        "sku,name,category,brand,unit,cost_price,vat_rate,price_fixed,warranty_months,specs\n"
+        "MAYBO9101,PC A,PC,SMYOU,BO,7000000,8,true,24,\n"
     )
     body = problem(
         an.post("/api/v1/products/import/preview", files=csv_file(missing_price)), 422, "MISSING_COLUMNS"
@@ -187,8 +189,8 @@ def test_preview_missing_required_column(app: FastAPI, db: Connection, people: d
 @pytest.mark.ac("AC-CAT-041")
 def test_preview_too_many_rows(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
     an = client_as(app, AN)
-    header = "sku,name,category,brand,unit,price,vat_rate,price_fixed,warranty_months,specs\n"
-    rows = "\n".join(f"SKU{i},Sản phẩm {i},PC,SMYOU,BO,100000,8,true,12," for i in range(501))
+    header = "sku,name,category,brand,unit,price,cost_price,vat_rate,price_fixed,warranty_months,specs\n"
+    rows = "\n".join(f"SKU{i},Sản phẩm {i},PC,SMYOU,BO,100000,80000,8,true,12," for i in range(501))
     problem(
         an.post("/api/v1/products/import/preview", files=csv_file(header + rows + "\n")),
         422,
@@ -201,8 +203,8 @@ def test_preview_exactly_max_rows_succeeds(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
     an = client_as(app, AN)
-    header = "sku,name,category,brand,unit,price,vat_rate,price_fixed,warranty_months,specs\n"
-    rows = "\n".join(f"SKU{i},Sản phẩm {i},PC,SMYOU,BO,100000,8,true,12," for i in range(500))
+    header = "sku,name,category,brand,unit,price,cost_price,vat_rate,price_fixed,warranty_months,specs\n"
+    rows = "\n".join(f"SKU{i},Sản phẩm {i},PC,SMYOU,BO,100000,80000,8,true,12," for i in range(500))
     res = an.post("/api/v1/products/import/preview", files=csv_file(header + rows + "\n"))
     assert res.status_code == 200, res.text
     body = res.json()
@@ -239,8 +241,8 @@ def test_services_preview_file_level_errors(
     problem(an.post("/api/v1/services/import/preview", files=csv_file(SERVICES_HEADER)), 422, "EMPTY_FILE")
 
     missing_price = (
-        "code,name,category,unit,vat_rate,price_fixed,default_estimated_hours,description\n"
-        "DV-CAIDAT,Cài đặt máy in,INSTALLATION,LAN,8,true,1,\n"
+        "code,name,category,unit,cost_price,vat_rate,price_fixed,default_estimated_hours,description\n"
+        "DV-CAIDAT,Cài đặt máy in,INSTALLATION,LAN,100000,8,true,1,\n"
     )
     body = problem(
         an.post("/api/v1/services/import/preview", files=csv_file(missing_price)), 422, "MISSING_COLUMNS"
@@ -302,9 +304,9 @@ def test_services_import_preview_and_commit(
     an = client_as(app, AN)
     with_taken = (
         SERVICES_HEADER
-        + "DV-CAIDAT,Cài đặt máy in,INSTALLATION,LAN,150000,8,true,1,\n"
-        + "DV-VESINH,Vệ sinh máy tính,MAINTENANCE,LAN,80000,8,true,0.5,\n"
-        + "DV-BOMMUC,Bơm mực (trùng),REFILL,LAN,50000,8,true,0.5,\n"
+        + "DV-CAIDAT,Cài đặt máy in,INSTALLATION,LAN,150000,100000,8,true,1,\n"
+        + "DV-VESINH,Vệ sinh máy tính,MAINTENANCE,LAN,80000,50000,8,true,0.5,\n"
+        + "DV-BOMMUC,Bơm mực (trùng),REFILL,LAN,50000,20000,8,true,0.5,\n"
     )
     preview = an.post("/api/v1/services/import/preview", files=csv_file(with_taken)).json()
     assert preview["rows"][2]["errors"] == [
@@ -313,8 +315,8 @@ def test_services_import_preview_and_commit(
 
     ok_only = (
         SERVICES_HEADER
-        + "DV-CAIDAT,Cài đặt máy in,INSTALLATION,LAN,150000,8,true,1,\n"
-        + "DV-VESINH,Vệ sinh máy tính,MAINTENANCE,LAN,80000,8,true,0.5,\n"
+        + "DV-CAIDAT,Cài đặt máy in,INSTALLATION,LAN,150000,100000,8,true,1,\n"
+        + "DV-VESINH,Vệ sinh máy tính,MAINTENANCE,LAN,80000,50000,8,true,0.5,\n"
     )
     commit = an.post("/api/v1/services/import/commit", files=csv_file(ok_only))
     assert commit.status_code == 201, commit.text

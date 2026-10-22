@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
@@ -44,6 +44,7 @@ const SHOWN_FIELDS = [
   "category",
   "unit",
   "price",
+  "cost_price",
   "vat_rate",
   "default_estimated_hours",
   "description",
@@ -79,7 +80,7 @@ export function ServiceFormSheet({
   const [confirming, setConfirming] = useState<ConfirmKind>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState } = useForm<ServiceFormValues>({
+  const { register, handleSubmit, formState, control } = useForm<ServiceFormValues>({
     resolver: zodResolver(
       service ? serviceEditSchema : serviceCreateSchema,
     ) as Resolver<ServiceFormValues>,
@@ -89,12 +90,17 @@ export function ServiceFormSheet({
       unit: (service?.unit as Unit | undefined) ?? UNIT_ORDER[0],
       name: service?.name ?? "",
       price: service?.price ?? 0,
+      cost_price: service?.cost_price != null ? String(service.cost_price) : "",
       vat_rate: service ? Number(service.vat_rate) : 8,
       price_fixed: service?.price_fixed ?? false,
       default_estimated_hours: service?.default_estimated_hours ?? "",
       description: service?.description ?? "",
     },
   });
+  // Same disable/helper-text pattern as ProductFormSheet (AC-CAT-079, applied here for parity) —
+  // edit mode only, see the comment there.
+  const costPriceValue = useWatch({ control, name: "cost_price" });
+  const costPriceMissing = service !== undefined && costPriceValue.trim() === "";
 
   const title = service ? (readOnly ? "Chi tiết dịch vụ" : "Sửa dịch vụ") : "Thêm dịch vụ";
   const invalidateList = () => {
@@ -113,6 +119,7 @@ export function ServiceFormSheet({
           unit: values.unit,
           name: values.name,
           price: values.price,
+          cost_price: Number(values.cost_price),
           vat_rate: values.vat_rate,
           price_fixed: values.price_fixed,
           default_estimated_hours: values.default_estimated_hours
@@ -131,6 +138,7 @@ export function ServiceFormSheet({
           version: service.version,
           name: values.name,
           price: values.price,
+          cost_price: Number(values.cost_price),
           vat_rate: values.vat_rate,
           price_fixed: values.price_fixed,
           default_estimated_hours: values.default_estimated_hours
@@ -193,9 +201,18 @@ export function ServiceFormSheet({
               Tải lại
             </Button>
           ) : (
-            <Button type="submit" form={FORM_ID} loading={create.isPending || update.isPending}>
-              Lưu
-            </Button>
+            <div className="flex flex-col gap-2">
+              {costPriceMissing ? <p className="text-xs text-muted">Cần nhập giá vốn.</p> : null}
+              <Button
+                type="submit"
+                form={FORM_ID}
+                loading={create.isPending || update.isPending}
+                disabled={costPriceMissing}
+                aria-disabled={costPriceMissing}
+              >
+                Lưu
+              </Button>
+            </div>
           )
         }
       >
@@ -208,6 +225,10 @@ export function ServiceFormSheet({
                   ["Danh mục", CATEGORY_LABELS[service.category as Category]],
                   ["Đơn vị tính", UNIT_LABELS[service.unit as Unit]],
                   ["Đơn giá", formatServicePrice(service.price)],
+                  [
+                    "Giá vốn",
+                    service.cost_price != null ? formatServicePrice(service.cost_price) : "—",
+                  ],
                   ["VAT", `${service.vat_rate}%`],
                   [
                     "Số giờ ước tính",
@@ -288,6 +309,12 @@ export function ServiceFormSheet({
               inputMode="numeric"
               error={formState.errors.price?.message ?? serverErrors.price}
               {...register("price")}
+            />
+            <TextField
+              label="Giá vốn (chưa VAT)"
+              inputMode="numeric"
+              error={formState.errors.cost_price?.message ?? serverErrors.cost_price}
+              {...register("cost_price")}
             />
             <TextField
               label="VAT (%)"

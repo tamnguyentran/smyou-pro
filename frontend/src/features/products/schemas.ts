@@ -58,6 +58,15 @@ const warrantyMonthsSchema = z
   )
   .optional();
 
+// AC-CAT-073/079: kept as a raw (required) string, not `priceSchema` — "" must stay distinguishable
+// from a real 0 so the Lưu button can tell "chưa điền" (disabled) from "giá vốn = 0" (valid, service
+// "tính thực tế khi thi công", AC-CAT-080) apart, same idiom as `warrantyMonthsSchema` above.
+const costPriceSchema = z
+  .string()
+  .trim()
+  .min(1, "Vui lòng nhập giá vốn.")
+  .refine((value) => /^\d+$/.test(value), "Giá vốn phải là số nguyên ≥ 0.");
+
 /** Client-side checks before the server's (AC-CAT-013/AC-CAT-004); `sku`/`category`/`unit` are only
  * required on create — locked after that (AC-CAT-014, §4). */
 export const productCreateSchema = z.object({
@@ -67,6 +76,7 @@ export const productCreateSchema = z.object({
   name: z.string().trim().min(1, "Vui lòng nhập tên sản phẩm."),
   brand: z.string().trim().optional(),
   price: priceSchema,
+  cost_price: costPriceSchema,
   vat_rate: vatRateSchema,
   price_fixed: z.boolean(),
   warranty_months: warrantyMonthsSchema,

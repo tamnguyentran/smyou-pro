@@ -1,6 +1,6 @@
 # M15-07 — Giá vốn bắt buộc trên Sản phẩm/Dịch vụ
 
-- **Status:** Draft
+- **Status:** Done
 - **Backlog:** M15-07 · **Milestone:** M15
 - **Liên quan:** `docs/product/DOMAIN_MODEL.md` §2–3 (Product/Service); `docs/specs/M2-01a-products-api.md`, `M2-02-services.md` (API catalog hiện có); `docs/specs/M10-02-disable-save-submit-missing-info.md` (mẫu "vô hiệu hoá nút khi thiếu thông tin" — tái dùng cho item cũ thiếu giá vốn)
 
@@ -28,6 +28,8 @@ Là Manager, tôi muốn giá vốn là thông tin bắt buộc của mọi sả
 | AC-CAT-078 | Danh sách Sản phẩm có 2 item: 1 đã có `cost_price`, 1 chưa (`null`) | render trang Sản phẩm | Item chưa có giá vốn hiện badge "Thiếu giá vốn" (tông `urgent`) | component |
 | AC-CAT-079 | Form sửa sản phẩm, `cost_price` còn trống | xem nút "Lưu" | disabled; helper text "Cần nhập giá vốn." (mẫu theo M10-02) | component |
 | AC-CAT-080 | `POST /services {..., cost_price:0}` dịch vụ "tính thực tế khi thi công" (`price=0`) | gọi | 201 — `cost_price = 0` hợp lệ (≥ 0, không bắt phải > 0) | integration |
+| AC-CAT-088 | An (MANAGER) | `POST /services {code, name, category, unit, price:150000, vat_rate:8, price_fixed:true}` (thiếu `cost_price`) | 422 field `cost_price` bắt buộc (khớp AC-CAT-073 áp cho Service — §4 cũng liệt kê `POST /services`) | integration |
+| AC-CAT-089 | Dịch vụ seed trước item này, `cost_price=null` | `PATCH /services/{id} {version, name:"..."}` (không gửi `cost_price`) | 422 field `cost_price` bắt buộc; gửi lại kèm `cost_price:50000` → 200, điền được (khớp AC-CAT-076/077 áp cho Service) | integration |
 
 ## 4. API
 | Method | Path | Capability | Thay đổi |
@@ -50,4 +52,5 @@ Là Manager, tôi muốn giá vốn là thông tin bắt buộc của mọi sả
 3. Mở 1 sản phẩm demo cũ (chưa có giá vốn) → thấy badge, điền giá vốn → lưu được.
 
 ## 8. Giả định & câu hỏi
+- Bổ sung lúc `/implement` (không phải quyết định nghiệp vụ mới): AC-CAT-088/089 lấp khoảng trống — bảng AC gốc chỉ có 1 case cho Service (AC-CAT-080) dù §2/§4 đã liệt kê `POST/PATCH /services` đổi giống Product; 2 AC mới áp lại đúng quy tắc AC-CAT-073/076 cho Service. Import CSV (M2-03a) cũng thêm cột `cost_price` bắt buộc vào `PRODUCT_COLUMNS`/`SERVICE_COLUMNS` để không vỡ khi `ProductCreate`/`ServiceCreate` bắt buộc field này — không có AC riêng, chỉ cập nhật fixture của AC-CAT-033..045 hiện có.
 - Giả định: `cost_price` **không** hiển thị kèm VAT riêng (không có `cost_vat_rate`) — giá vốn là giá nhập/giá thành, không tách VAT như giá bán, vì mục đích chỉ để tính lợi nhuận nội bộ. → ghi vào `OPEN_QUESTIONS.md`: giá vốn có cần tách VAT đầu vào (khi nhập hàng có hoá đơn VAT) để tính lợi nhuận chính xác hơn, hay dùng 1 số giá vốn gộp là đủ? Mặc định: 1 số gộp, đơn giản.

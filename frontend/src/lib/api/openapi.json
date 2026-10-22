@@ -3826,6 +3826,11 @@
             "title": "Category",
             "type": "string"
           },
+          "cost_price": {
+            "minimum": 0.0,
+            "title": "Cost Price",
+            "type": "integer"
+          },
           "name": {
             "maxLength": 255,
             "minLength": 1,
@@ -3890,7 +3895,7 @@
             "title": "Warranty Months"
           }
         },
-        "required": ["sku", "name", "category", "unit", "price"],
+        "required": ["sku", "name", "category", "unit", "price", "cost_price"],
         "title": "ProductCreate",
         "type": "object"
       },
@@ -3910,6 +3915,17 @@
           "category": {
             "title": "Category",
             "type": "string"
+          },
+          "cost_price": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Price"
           },
           "id": {
             "format": "uuid",
@@ -3992,6 +4008,7 @@
           "brand",
           "unit",
           "price",
+          "cost_price",
           "vat_rate",
           "price_fixed",
           "warranty_months",
@@ -4043,6 +4060,18 @@
               }
             ],
             "title": "Brand"
+          },
+          "cost_price": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Price"
           },
           "name": {
             "anyOf": [
@@ -4255,6 +4284,11 @@
             "title": "Code",
             "type": "string"
           },
+          "cost_price": {
+            "minimum": 0.0,
+            "title": "Cost Price",
+            "type": "integer"
+          },
           "default_estimated_hours": {
             "anyOf": [
               {
@@ -4317,7 +4351,7 @@
             "title": "Vat Rate"
           }
         },
-        "required": ["code", "name", "category", "unit", "price"],
+        "required": ["code", "name", "category", "unit", "price", "cost_price"],
         "title": "ServiceCreate",
         "type": "object"
       },
@@ -4330,6 +4364,17 @@
           "code": {
             "title": "Code",
             "type": "string"
+          },
+          "cost_price": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Price"
           },
           "default_estimated_hours": {
             "anyOf": [
@@ -4396,6 +4441,7 @@
           "category",
           "unit",
           "price",
+          "cost_price",
           "vat_rate",
           "price_fixed",
           "default_estimated_hours",
@@ -4435,6 +4481,18 @@
       "ServiceUpdate": {
         "additionalProperties": false,
         "properties": {
+          "cost_price": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Price"
+          },
           "default_estimated_hours": {
             "anyOf": [
               {

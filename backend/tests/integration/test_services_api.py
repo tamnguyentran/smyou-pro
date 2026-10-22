@@ -29,6 +29,7 @@ ITEM_KEYS = {
     "category",
     "unit",
     "price",
+    "cost_price",
     "vat_rate",
     "price_fixed",
     "default_estimated_hours",
@@ -43,6 +44,7 @@ BOMMUC = {
     "category": "REFILL",
     "unit": "LAN",
     "price": 50_000,
+    "cost_price": 20_000,
     "vat_rate": 8,
     "price_fixed": True,
     "default_estimated_hours": 0.5,
@@ -54,6 +56,7 @@ LAPCAM = {
     "category": "NETWORK_CABLING",
     "unit": "DIEM",
     "price": 300_000,
+    "cost_price": 150_000,
     "vat_rate": 10,
     "price_fixed": False,
     "default_estimated_hours": 2,
@@ -65,23 +68,36 @@ SUAPC = {
     "category": "REPAIR",
     "unit": "LAN",
     "price": 100_000,
+    "cost_price": 30_000,
     "vat_rate": 8,
     "price_fixed": False,
     "default_estimated_hours": 1,
     "description": None,
 }
 
+_UNSET = object()
 
-def insert_service(db: Connection, service: dict[str, object], *, is_active: bool = True) -> uuid.UUID:
+
+def insert_service(
+    db: Connection, service: dict[str, object], *, is_active: bool = True, cost_price: object = _UNSET
+) -> uuid.UUID:
+    """`cost_price` is a separate kwarg (not read from `service`) so callers can seed a legacy row
+    with `cost_price=None` (AC-CAT-089) without mutating the shared BOMMUC/LAPCAM/SUAPC dicts."""
     service_id = uuid.uuid4()
+    row = {k: v for k, v in service.items() if k != "cost_price"}
     db.execute(
         text(
-            "INSERT INTO services (id, code, name, category, unit, price, vat_rate, price_fixed,"
-            " default_estimated_hours, description, is_active, version)"
-            " VALUES (:id, :code, :name, :category, :unit, :price, :vat_rate, :price_fixed,"
-            " :default_estimated_hours, :description, :is_active, 1)"
+            "INSERT INTO services (id, code, name, category, unit, price, cost_price, vat_rate,"
+            " price_fixed, default_estimated_hours, description, is_active, version)"
+            " VALUES (:id, :code, :name, :category, :unit, :price, :cost_price, :vat_rate,"
+            " :price_fixed, :default_estimated_hours, :description, :is_active, 1)"
         ),
-        {"id": service_id, "is_active": is_active, **service},
+        {
+            "id": service_id,
+            "is_active": is_active,
+            "cost_price": service.get("cost_price") if cost_price is _UNSET else cost_price,
+            **row,
+        },
     )
     return service_id
 
@@ -161,6 +177,7 @@ def test_create_service(app: FastAPI, db: Connection, people: dict[str, uuid.UUI
         "category": "SOFTWARE",
         "unit": "LAN",
         "price": 150_000,
+        "cost_price": 50_000,
         "vat_rate": 8,
         "price_fixed": True,
         "default_estimated_hours": 1,
@@ -175,6 +192,34 @@ def test_create_service(app: FastAPI, db: Connection, people: dict[str, uuid.UUI
     for person in (HOA, TUAN):
         forbidden = client_as(app, person).post("/api/v1/services", json={**body, "code": "DV-CAIDAT2"})
         problem(forbidden, 403, "FORBIDDEN")
+
+
+@pytest.mark.ac("AC-CAT-088")
+def test_create_missing_cost_price_is_validation_error(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    body = {k: v for k, v in BOMMUC.items() if k != "cost_price"}
+    res = problem(an.post("/api/v1/services", json=body), 422, "VALIDATION_ERROR")
+    assert res["errors"][0]["field"] == "cost_price"
+
+
+@pytest.mark.ac("AC-CAT-089")
+def test_update_missing_cost_price_when_null_then_fillable(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    service_id = insert_service(db, LAPCAM, cost_price=None)
+    res = problem(
+        an.patch(f"/api/v1/services/{service_id}", json={"version": 1, "name": "Đổi tên"}),
+        422,
+        "VALIDATION_ERROR",
+    )
+    assert res["errors"][0]["field"] == "cost_price"
+
+    res = an.patch(f"/api/v1/services/{service_id}", json={"version": 1, "cost_price": 50_000})
+    assert res.status_code == 200, res.text
+    assert res.json()["cost_price"] == 50_000
 
 
 @pytest.mark.ac("AC-CAT-022")
@@ -198,6 +243,7 @@ def test_create_validation_and_conflict(app: FastAPI, db: Connection, people: di
 
 
 @pytest.mark.ac("AC-CAT-023")
+@pytest.mark.ac("AC-CAT-080")
 def test_create_service_price_zero_and_no_estimated_hours(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
@@ -208,6 +254,7 @@ def test_create_service_price_zero_and_no_estimated_hours(
         "category": "OTHER",
         "unit": "LAN",
         "price": 0,
+        "cost_price": 0,
         "vat_rate": 0,
         "price_fixed": False,
         "description": "Tính thực tế khi thi công",
@@ -217,6 +264,7 @@ def test_create_service_price_zero_and_no_estimated_hours(
     created = res.json()
     assert created["default_estimated_hours"] is None
     assert created["price"] == 0
+    assert created["cost_price"] == 0
 
 
 @pytest.mark.ac("AC-CAT-024")

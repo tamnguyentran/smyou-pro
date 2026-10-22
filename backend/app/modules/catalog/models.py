@@ -64,6 +64,7 @@ class Product(Base):
         CheckConstraint(_in("category", CATEGORIES), name="category"),
         CheckConstraint(_in("unit", UNITS), name="unit"),
         CheckConstraint("price >= 0", name="price_non_negative"),
+        CheckConstraint("cost_price IS NULL OR cost_price >= 0", name="cost_price_non_negative"),
         CheckConstraint("vat_rate >= 0 AND vat_rate <= 100", name="vat_rate_range"),
         Index(
             "uq_products_name_active",
@@ -80,6 +81,7 @@ class Product(Base):
     brand: Mapped[str | None] = mapped_column(String(60))
     unit: Mapped[str] = mapped_column(String(20))
     price: Mapped[int] = mapped_column(BigInteger)
+    cost_price: Mapped[int | None] = mapped_column(BigInteger)
     vat_rate: Mapped[Decimal] = mapped_column(Numeric(5, 2), server_default=text("8"))
     price_fixed: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     warranty_months: Mapped[int | None] = mapped_column(SmallInteger)
@@ -101,6 +103,7 @@ class Service(Base):
         CheckConstraint(_in("category", SERVICE_CATEGORIES), name="category"),
         CheckConstraint(_in("unit", SERVICE_UNITS), name="unit"),
         CheckConstraint("price >= 0", name="price_non_negative"),
+        CheckConstraint("cost_price IS NULL OR cost_price >= 0", name="cost_price_non_negative"),
         CheckConstraint("vat_rate >= 0 AND vat_rate <= 100", name="vat_rate_range"),
         CheckConstraint(
             "default_estimated_hours IS NULL OR default_estimated_hours >= 0",
@@ -120,6 +123,7 @@ class Service(Base):
     category: Mapped[str] = mapped_column(String(20), index=True)
     unit: Mapped[str] = mapped_column(String(20))
     price: Mapped[int] = mapped_column(BigInteger)
+    cost_price: Mapped[int | None] = mapped_column(BigInteger)
     vat_rate: Mapped[Decimal] = mapped_column(Numeric(5, 2), server_default=text("8"))
     price_fixed: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     default_estimated_hours: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))

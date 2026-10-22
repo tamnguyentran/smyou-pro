@@ -50,6 +50,7 @@ def _out(product: Product) -> ProductOut:
         brand=product.brand,
         unit=product.unit,
         price=product.price,
+        cost_price=product.cost_price,
         vat_rate=product.vat_rate,
         price_fixed=product.price_fixed,
         warranty_months=product.warranty_months,
@@ -72,6 +73,18 @@ def _sku_taken() -> AppError:
 
 def _name_taken(message: str) -> AppError:
     return AppError(409, "CONFLICT", message, errors=[{"field": "name", "code": "taken", "message": message}])
+
+
+COST_PRICE_REQUIRED = "Cần nhập giá vốn."
+
+
+def _cost_price_required() -> AppError:
+    return AppError(
+        422,
+        "VALIDATION_ERROR",
+        COST_PRICE_REQUIRED,
+        errors=[{"field": "cost_price", "code": "required", "message": COST_PRICE_REQUIRED}],
+    )
 
 
 def _flush(session: Session) -> None:
@@ -148,6 +161,7 @@ def create_product(
         brand=body.brand,
         unit=body.unit,
         price=body.price,
+        cost_price=body.cost_price,
         vat_rate=body.vat_rate,
         price_fixed=body.price_fixed,
         warranty_months=body.warranty_months,
@@ -179,6 +193,8 @@ def update_product(
 ) -> ProductOut:
     product = _locked(session, actor, product_id, body.version)
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
+    if product.cost_price is None and changes.get("cost_price") is None:
+        raise _cost_price_required()
     changed_fields = sorted(f for f, value in changes.items() if getattr(product, f) != value)
     for field in changed_fields:
         setattr(product, field, changes[field])
@@ -294,6 +310,7 @@ def _out_service(service: Service) -> ServiceOut:
         category=service.category,
         unit=service.unit,
         price=service.price,
+        cost_price=service.cost_price,
         vat_rate=service.vat_rate,
         price_fixed=service.price_fixed,
         default_estimated_hours=hours if hours is None else hours.quantize(Decimal("0.01")),
@@ -381,6 +398,7 @@ def create_service(
         category=body.category,
         unit=body.unit,
         price=body.price,
+        cost_price=body.cost_price,
         vat_rate=body.vat_rate,
         price_fixed=body.price_fixed,
         default_estimated_hours=body.default_estimated_hours,
@@ -412,6 +430,8 @@ def update_service(
 ) -> ServiceOut:
     service = _service_locked(session, actor, service_id, body.version)
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
+    if service.cost_price is None and changes.get("cost_price") is None:
+        raise _cost_price_required()
     changed_fields = sorted(f for f, value in changes.items() if getattr(service, f) != value)
     for field in changed_fields:
         setattr(service, field, changes[field])

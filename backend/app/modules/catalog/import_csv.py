@@ -28,12 +28,13 @@ PRODUCT_COLUMNS = (
     "brand",
     "unit",
     "price",
+    "cost_price",
     "vat_rate",
     "price_fixed",
     "warranty_months",
     "specs",
 )
-PRODUCT_REQUIRED = ("sku", "name", "category", "unit", "price")
+PRODUCT_REQUIRED = ("sku", "name", "category", "unit", "price", "cost_price")
 PRODUCT_DEFAULTABLE = ("vat_rate", "price_fixed")
 
 SERVICE_COLUMNS = (
@@ -42,12 +43,13 @@ SERVICE_COLUMNS = (
     "category",
     "unit",
     "price",
+    "cost_price",
     "vat_rate",
     "price_fixed",
     "default_estimated_hours",
     "description",
 )
-SERVICE_REQUIRED = ("code", "name", "category", "unit", "price")
+SERVICE_REQUIRED = ("code", "name", "category", "unit", "price", "cost_price")
 SERVICE_DEFAULTABLE = ("vat_rate", "price_fixed")
 
 Kind = Literal["product", "service"]

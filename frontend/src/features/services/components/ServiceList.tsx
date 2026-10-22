@@ -13,6 +13,12 @@ export function StatusBadge({ service }: { service: Service }) {
   );
 }
 
+/** AC-CAT-078 áp tương tự cho dịch vụ: dịch vụ cũ (tạo trước M15-07) chưa điền giá vốn. */
+export function CostPriceBadge({ service }: { service: Service }) {
+  if (service.cost_price != null) return null;
+  return <Badge tone="urgent">Thiếu giá vốn</Badge>;
+}
+
 /** AC-CAT-023/§6: giá 0 nghĩa là "tính thực tế khi thi công" — hiện "Liên hệ báo giá" thay vì "0 ₫". */
 export function formatServicePrice(price: number): string {
   return price === 0 ? "Liên hệ báo giá" : formatCurrency(price);
@@ -63,7 +69,10 @@ export function ServiceList({
               </td>
               <td className="px-4 py-3 text-body">{formatServicePrice(service.price)}</td>
               <td className="px-4 py-3">
-                <StatusBadge service={service} />
+                <div className="flex flex-wrap gap-2">
+                  <StatusBadge service={service} />
+                  <CostPriceBadge service={service} />
+                </div>
               </td>
             </tr>
           ))}
@@ -88,8 +97,9 @@ export function ServiceList({
               <span className="shrink-0 text-xs font-medium text-muted">{service.code}</span>
             </div>
             <p className="text-sm text-body">{formatServicePrice(service.price)}</p>
-            <div className="mt-1">
+            <div className="mt-1 flex flex-wrap gap-2">
               <StatusBadge service={service} />
+              <CostPriceBadge service={service} />
             </div>
           </button>
         </li>

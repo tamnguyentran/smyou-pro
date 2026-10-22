@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
@@ -48,6 +48,7 @@ const SHOWN_FIELDS = [
   "unit",
   "brand",
   "price",
+  "cost_price",
   "vat_rate",
   "warranty_months",
   "specs",
@@ -84,7 +85,7 @@ export function ProductFormSheet({
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
 
-  const { register, handleSubmit, formState } = useForm<ProductFormValues>({
+  const { register, handleSubmit, formState, control } = useForm<ProductFormValues>({
     resolver: zodResolver(
       product ? productEditSchema : productCreateSchema,
     ) as Resolver<ProductFormValues>,
@@ -95,12 +96,21 @@ export function ProductFormSheet({
       name: product?.name ?? "",
       brand: product?.brand ?? "",
       price: product?.price ?? 0,
+      cost_price: product?.cost_price != null ? String(product.cost_price) : "",
       vat_rate: product ? Number(product.vat_rate) : 8,
       price_fixed: product?.price_fixed ?? false,
       warranty_months: product?.warranty_months != null ? String(product.warranty_months) : "",
       specs: product?.specs ?? "",
     },
   });
+  // AC-CAT-079: disable "Lưu" pre-emptively (not just after submit) while editing a legacy item
+  // whose giá vốn is still empty — scoped to edit mode only, like the AC's own wording ("Form sửa
+  // sản phẩm"); on create, cost_price behaves like every other required field (inline error on
+  // submit, same as sku/name) rather than pre-blocking the button.
+  // useWatch (not useForm's `watch()`) — the latter returns a function the React Compiler can't
+  // memoize safely (DraftOrderForm hit the same lint warning, resolved the same way).
+  const costPriceValue = useWatch({ control, name: "cost_price" });
+  const costPriceMissing = product !== undefined && costPriceValue.trim() === "";
 
   const title = product ? (readOnly ? "Chi tiết sản phẩm" : "Sửa sản phẩm") : "Thêm sản phẩm";
   const invalidateList = () => {
@@ -120,6 +130,7 @@ export function ProductFormSheet({
           name: values.name,
           brand: values.brand || null,
           price: values.price,
+          cost_price: Number(values.cost_price),
           vat_rate: values.vat_rate,
           price_fixed: values.price_fixed,
           warranty_months: values.warranty_months ? Number(values.warranty_months) : null,
@@ -137,6 +148,7 @@ export function ProductFormSheet({
           name: values.name,
           brand: values.brand || null,
           price: values.price,
+          cost_price: Number(values.cost_price),
           vat_rate: values.vat_rate,
           price_fixed: values.price_fixed,
           warranty_months: values.warranty_months ? Number(values.warranty_months) : null,
@@ -199,9 +211,18 @@ export function ProductFormSheet({
               Tải lại
             </Button>
           ) : (
-            <Button type="submit" form={FORM_ID} loading={create.isPending || update.isPending}>
-              Lưu
-            </Button>
+            <div className="flex flex-col gap-2">
+              {costPriceMissing ? <p className="text-xs text-muted">Cần nhập giá vốn.</p> : null}
+              <Button
+                type="submit"
+                form={FORM_ID}
+                loading={create.isPending || update.isPending}
+                disabled={costPriceMissing}
+                aria-disabled={costPriceMissing}
+              >
+                Lưu
+              </Button>
+            </div>
           )
         }
       >
@@ -222,6 +243,10 @@ export function ProductFormSheet({
                   ["Hãng", product.brand ?? "—"],
                   ["Đơn vị tính", UNIT_LABELS[product.unit as Unit]],
                   ["Đơn giá", formatCurrency(product.price)],
+                  [
+                    "Giá vốn",
+                    product.cost_price != null ? formatCurrency(product.cost_price) : "—",
+                  ],
                   ["VAT", `${product.vat_rate}%`],
                   [
                     "Bảo hành",
@@ -313,6 +338,12 @@ export function ProductFormSheet({
               inputMode="numeric"
               error={formState.errors.price?.message ?? serverErrors.price}
               {...register("price")}
+            />
+            <TextField
+              label="Giá vốn"
+              inputMode="numeric"
+              error={formState.errors.cost_price?.message ?? serverErrors.cost_price}
+              {...register("cost_price")}
             />
             <TextField
               label="VAT (%)"

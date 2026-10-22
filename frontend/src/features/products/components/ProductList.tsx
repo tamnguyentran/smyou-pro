@@ -15,6 +15,12 @@ export function StatusBadge({ product }: { product: Product }) {
   );
 }
 
+/** AC-CAT-078: sản phẩm cũ (tạo trước M15-07) chưa điền giá vốn. */
+export function CostPriceBadge({ product }: { product: Product }) {
+  if (product.cost_price != null) return null;
+  return <Badge tone="urgent">Thiếu giá vốn</Badge>;
+}
+
 /** Image or a placeholder icon — shared by the list thumbnail, the read-only detail view, and
  * ImageUploadField's preview (which needs a local blob URL too, hence `src` rather than `product`). */
 export function ProductImage({
@@ -100,7 +106,10 @@ export function ProductList({
               </td>
               <td className="px-4 py-3 text-body">{formatCurrency(product.price)}</td>
               <td className="px-4 py-3">
-                <StatusBadge product={product} />
+                <div className="flex flex-wrap gap-2">
+                  <StatusBadge product={product} />
+                  <CostPriceBadge product={product} />
+                </div>
               </td>
             </tr>
           ))}
@@ -127,8 +136,9 @@ export function ProductList({
                 <span className="shrink-0 text-xs font-medium text-muted">{product.sku}</span>
               </div>
               <p className="mt-1 text-sm text-body">{formatCurrency(product.price)}</p>
-              <div className="mt-2">
+              <div className="mt-2 flex flex-wrap gap-2">
                 <StatusBadge product={product} />
+                <CostPriceBadge product={product} />
               </div>
             </div>
           </button>

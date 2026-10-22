@@ -72,6 +72,7 @@ test("AC-CAT-013 AC-CAT-018 @a11y @screenshot thêm sản phẩm", async ({ page
   await form.getByLabel("Danh mục").selectOption("PC");
   await form.getByLabel("Đơn vị tính").selectOption("BO");
   await form.getByLabel("Đơn giá").fill("12500000");
+  await form.getByLabel("Giá vốn").fill("10000000");
   await evidence(page, info, "product-form.png");
 
   await form.getByRole("button", { name: "Lưu" }).click();
@@ -91,6 +92,7 @@ test("AC-CAT-015 ngừng kinh doanh, badge đổi ngay không cần tải lại"
   await form.getByLabel("Danh mục").selectOption("ACCESSORY");
   await form.getByLabel("Đơn vị tính").selectOption("CAI");
   await form.getByLabel("Đơn giá").fill("100000");
+  await form.getByLabel("Giá vốn").fill("80000");
   await form.getByRole("button", { name: "Lưu" }).click();
   await expect(page.getByText(`Đã thêm sản phẩm ${name}.`)).toBeVisible();
 
@@ -167,5 +169,6 @@ test("AC-CAT-018 không cuộn ngang ở 360px (danh sách, form thêm)", async 
   await form.getByLabel("Danh mục").selectOption("OTHER");
   await form.getByLabel("Đơn vị tính").selectOption("CAI");
   await form.getByLabel("Đơn giá").fill("1000");
+  await form.getByLabel("Giá vốn").fill("800");
   await noHorizontalScroll(); // form thêm sản phẩm
 });
