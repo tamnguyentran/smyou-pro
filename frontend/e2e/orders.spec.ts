@@ -7,6 +7,7 @@ const PASSWORD = "E2e@SmYou2026";
 const MANAGER = "an.e2e@smyou.vn";
 const SALE = "hoa.e2e@smyou.vn";
 const OTHER_SALE = "ha.e2e@smyou.vn";
+const CUSTOMER_CARE = "lan.cskh@smyou.vn";
 
 async function signIn(page: Page, email: string, path = "/orders/new") {
   await page.goto(`./dang-nhap?next=${encodeURIComponent(path)}`);
@@ -337,4 +338,21 @@ test("AC-ORD-069 AC-ORD-110 AC-ORD-113 AC-ORD-114 AC-UI-014 @a11y @screenshot da
   await expect(page.getByText(code)).toBeVisible();
   await page.getByText(code).click();
   await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
+});
+
+test("AC-CSK-010 AC-CSK-012 @a11y @screenshot danh sách đơn: bộ lọc ngày + ô thống kê sao (CSKH)", async ({
+  page,
+}, info) => {
+  await signIn(page, CUSTOMER_CARE, "/orders");
+  await expect(page.getByRole("heading", { level: 1, name: "Danh sách đơn" })).toBeVisible();
+
+  // AC-CSK-010: mặc định bộ lọc ngày = đầu tháng hiện tại → hôm nay.
+  await expect(page.getByLabel("Từ ngày")).not.toHaveValue("");
+  await expect(page.getByLabel("Đến ngày")).not.toHaveValue("");
+
+  // AC-CSK-012: ô thống kê 6 số (5★..1★ + "chưa đánh giá") bấm được để lọc.
+  await expect(page.getByRole("button", { name: /^5★/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /chưa đánh giá/i })).toBeVisible();
+
+  await evidence(page, info, "order-list-csat.png", { checkOverflow: true });
 });

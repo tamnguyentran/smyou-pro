@@ -2072,7 +2072,7 @@ export interface components {
       /** Csat Comment */
       csat_comment?: string | null;
       /** Csat Rating */
-      csat_rating?: number | null;
+      csat_rating: number;
       /** Version */
       version: number;
     };
