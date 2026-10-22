@@ -1,6 +1,6 @@
 # M15-07 — Giá vốn bắt buộc trên Sản phẩm/Dịch vụ
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M15-07 · **Milestone:** M15
 - **Liên quan:** `docs/product/DOMAIN_MODEL.md` §2–3 (Product/Service); `docs/specs/M2-01a-products-api.md`, `M2-02-services.md` (API catalog hiện có); `docs/specs/M10-02-disable-save-submit-missing-info.md` (mẫu "vô hiệu hoá nút khi thiếu thông tin" — tái dùng cho item cũ thiếu giá vốn)
 

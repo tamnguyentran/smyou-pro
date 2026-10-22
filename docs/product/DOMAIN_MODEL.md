@@ -48,6 +48,7 @@ erDiagram
 | brand | varchar(60) | IMOU, HP, Brother, Philips… |
 | unit | enum | `CAI` (Cái), `MAY` (Máy), `BO` (Bộ), `MET` (Mét), `CUON` (Cuộn), `HOP` (Hộp), `LICENSE` |
 | price | bigint | đơn giá bán **chưa VAT** (Q01 ✅) |
+| cost_price | bigint null | giá vốn, chưa VAT, không tách VAT riêng (M15-07); `null` = item cũ chưa điền; bắt buộc khi tạo mới, bắt buộc điền khi sửa item còn `null` |
 | vat_rate | numeric(5,2) | % VAT tách riêng khỏi giá. UI cho chọn nhanh `0`, `8`, `10` hoặc nhập giá trị khác trong `[0, 100]`, tối đa 2 chữ số thập phân (Q18 ✅); mặc định 8 |
 | price_fixed | bool | **Giá cố định (Y/N)**: `true` ⇒ khi tạo đơn không được sửa đơn giá dòng; `false` ⇒ người tạo đơn được sửa đơn giá (≥ 0) |
 | warranty_months | smallint | 0, 12, 24, 36 |
@@ -63,6 +64,7 @@ erDiagram
 | category | enum | `INSTALLATION`, `REPAIR`, `MAINTENANCE`, `REFILL`, `SOFTWARE`, `NETWORK_CABLING`, `OTHER` |
 | unit | enum | như Product + `LAN` (Lần), `DIEM` (Điểm/camera), `GIO` (Giờ) |
 | price | bigint | **chưa VAT**; có thể 0 = "tính thực tế khi thi công" (khi đó nên `price_fixed = false`) |
+| cost_price | bigint null | giá vốn — như Product (M15-07); có thể 0 (≥ 0, không bắt phải > 0) |
 | vat_rate | numeric(5,2) | như Product |
 | price_fixed | bool | như Product |
 | default_estimated_hours | numeric(5,2) null | gợi ý số giờ khi Quản lý kỹ thuật tạo task |
