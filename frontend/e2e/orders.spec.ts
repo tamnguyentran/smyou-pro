@@ -55,7 +55,7 @@ async function evidence(
   if (size) await page.setViewportSize(size);
 }
 
-test("AC-ORD-024 AC-ORD-025 AC-ORD-026 AC-ORD-030 AC-ORD-032 AC-ORD-034 AC-ORD-039 AC-ORD-166 @a11y @screenshot tạo đơn nháp đầy đủ, lưu, mở lại", async ({
+test("AC-ORD-024 AC-ORD-025 AC-ORD-026 AC-ORD-032 AC-ORD-034 AC-ORD-039 AC-ORD-166 @a11y @screenshot tạo đơn nháp đầy đủ, lưu, mở lại", async ({
   page,
 }, info) => {
   await signIn(page, SALE);
@@ -87,20 +87,16 @@ test("AC-ORD-024 AC-ORD-025 AC-ORD-026 AC-ORD-030 AC-ORD-032 AC-ORD-034 AC-ORD-0
   await expect(page.getByText("Màn hình Dell 22 inch E2E")).toBeVisible();
   expect(page.url()).toContain("/orders/");
 
-  // AC-ORD-030: dòng tự do có giảm giá
+  // Dòng dịch vụ (không khoá giá) có giảm giá — AC-ORD-182: chỉ còn Sản phẩm/Dịch vụ, không còn "Tự do".
   await page.getByRole("button", { name: "Thêm dòng hàng" }).click();
   const sheet2 = page.getByRole("dialog", { name: "Thêm dòng hàng" });
-  await sheet2.getByRole("tab", { name: "Tự do" }).click();
-  await sheet2.getByLabel("Tên").fill("Công tháo dỡ tủ mạng cũ");
-  await sheet2.getByLabel("Đơn vị").selectOption("LAN");
-  await sheet2.getByLabel("Số lượng").fill("1");
-  await sheet2.getByLabel("Đơn giá").fill("500000");
-  await sheet2.getByRole("radio", { name: "10%" }).click();
-  await sheet2.getByRole("button", { name: "Thêm" }).click();
-  await expect(page.getByText("Công tháo dỡ tủ mạng cũ")).toBeVisible();
+  await sheet2.getByRole("tab", { name: "Dịch vụ" }).click();
+  await sheet2.getByLabel("Tìm dịch vụ").fill("camera");
+  await sheet2.getByRole("button", { name: /Lắp đặt camera E2E/ }).click();
+  await expect(page.getByText("Lắp đặt camera E2E")).toBeVisible();
 
-  const customRow = page.getByTestId(/order-line-/).filter({ hasText: "Công tháo dỡ tủ mạng cũ" });
-  await customRow.getByLabel("Giảm giá").fill("50000");
+  const serviceRow = page.getByTestId(/order-line-/).filter({ hasText: "Lắp đặt camera E2E" });
+  await serviceRow.getByLabel("Giảm giá").fill("50000");
   await page.getByRole("button", { name: "Lưu nháp" }).click();
   await expect(page.getByText(/^Đã lưu nháp DH\d{4}-\d{4}\.$/)).toBeVisible();
   await evidence(page, info, "order-lines.png");
@@ -108,17 +104,17 @@ test("AC-ORD-024 AC-ORD-025 AC-ORD-026 AC-ORD-030 AC-ORD-032 AC-ORD-034 AC-ORD-0
   const url = page.url();
   await page.reload();
   await expect(page.getByText("Màn hình Dell 22 inch E2E")).toBeVisible();
-  await expect(page.getByText("Công tháo dỡ tủ mạng cũ")).toBeVisible();
+  await expect(page.getByText("Lắp đặt camera E2E")).toBeVisible();
   expect(page.url()).toBe(url);
 
-  // AC-ORD-032: xoá dòng tự do
-  await customRow.getByRole("button", { name: /Xoá dòng/ }).click();
+  // AC-ORD-032: xoá dòng
+  await serviceRow.getByRole("button", { name: /Xoá dòng/ }).click();
   await page
     .getByRole("dialog", { name: "Xoá dòng hàng" })
     .getByRole("button", { name: "Xoá" })
     .click();
   await expect(page.getByText("Đã xoá dòng hàng.")).toBeVisible();
-  await expect(page.getByText("Công tháo dỡ tủ mạng cũ")).toHaveCount(0);
+  await expect(page.getByText("Lắp đặt camera E2E")).toHaveCount(0);
 });
 
 test("AC-ORD-037 Hà (SALE khác) chỉ xem đơn của Hoa; An (MANAGER) sửa được", async ({
