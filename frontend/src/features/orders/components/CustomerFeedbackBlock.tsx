@@ -31,7 +31,7 @@ function StarPicker({
           key={n}
           type="button"
           role="radio"
-          aria-checked={value >= n}
+          aria-checked={value === n}
           aria-label={`${String(n)} sao`}
           disabled={readOnly}
           onClick={() => {

@@ -189,8 +189,7 @@ class OrderRevise(BaseModel):
 
 
 def _check_csat_comment(value: str | None, info: ValidationInfo) -> str | None:
-    rating = info.data.get("csat_rating")
-    if rating is not None and not (value or "").strip():
+    if not (value or "").strip():
         raise ValueError(CSAT_COMMENT_REQUIRED)
     return value
 
@@ -199,7 +198,7 @@ class OrderCsatUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     version: int
-    csat_rating: Annotated[int, Field(ge=1, le=5)] | None = None
+    csat_rating: Annotated[int, Field(ge=1, le=5)]
     csat_comment: str | None = None
 
     _check_csat_comment = field_validator("csat_comment")(_check_csat_comment)
