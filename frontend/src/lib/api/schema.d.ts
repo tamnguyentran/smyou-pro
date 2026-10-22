@@ -878,6 +878,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/orders/{order_id}/revision-requests": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** CSKH gửi yêu cầu chỉnh sửa đơn tới QLKT */
+    post: operations["orders_request_revision_from_customer_care"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/orders/{order_id}/submit": {
     parameters: {
       query?: never;
@@ -2119,6 +2136,8 @@ export interface components {
       discount_amount: number;
       /** Division */
       division: string | null;
+      /** Has Pending Revision Request */
+      has_pending_revision_request: boolean;
       /**
        * Id
        * Format: uuid
@@ -2279,6 +2298,36 @@ export interface components {
       reason?: string | null;
       /** Version */
       version: number;
+    };
+    /** OrderRevisionRequestCreate */
+    OrderRevisionRequestCreate: {
+      /** Note */
+      note: string;
+    };
+    /** OrderRevisionRequestOut */
+    OrderRevisionRequestOut: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Note */
+      note: string;
+      /**
+       * Order Id
+       * Format: uuid
+       */
+      order_id: string;
+      /**
+       * Requested At
+       * Format: date-time
+       */
+      requested_at: string;
+      /**
+       * Requested By
+       * Format: uuid
+       */
+      requested_by: string;
     };
     /** OrderStatusCounts */
     OrderStatusCounts: {
@@ -5249,6 +5298,55 @@ export interface operations {
         content?: never;
       };
       /** @description problem+json — STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_request_revision_from_customer_care: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderRevisionRequestCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderRevisionRequestOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — GUARD_FAILED */
       409: {
         headers: {
           [name: string]: unknown;

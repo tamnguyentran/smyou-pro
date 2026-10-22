@@ -42,6 +42,8 @@ from app.modules.orders.schemas import (
     OrderLineUpdate,
     OrderPage,
     OrderRevise,
+    OrderRevisionRequestCreate,
+    OrderRevisionRequestOut,
     OrderSummary,
     OrderUpdate,
 )
@@ -344,7 +346,14 @@ def _can_revise(order: Order, actor: Actor, specs: Specs) -> bool:
     return "all" in scopes
 
 
-def _out(order: Order, actor: Actor, specs: Specs) -> OrderDetail:
+def _has_pending_revision_request(session: Session, order: Order) -> bool:
+    latest = audit.latest_action(
+        session, entity_type="ORDER", entity_id=order.id, actions=("revision_requested", "request_revision")
+    )
+    return latest == "revision_requested"
+
+
+def _out(session: Session, order: Order, actor: Actor, specs: Specs) -> OrderDetail:
     lines = sorted(order.lines, key=lambda line: line.position)
     return OrderDetail(
         id=order.id,
@@ -382,6 +391,7 @@ def _out(order: Order, actor: Actor, specs: Specs) -> OrderDetail:
         can_upload_confirmation=_can_upload_confirmation(order, actor, specs),
         can_complete=_can_complete(order, actor, specs),
         can_revise=_can_revise(order, actor, specs),
+        has_pending_revision_request=_has_pending_revision_request(session, order),
     )
 
 
@@ -550,13 +560,13 @@ def create_order(
         action="create",
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 def get_order(session: Session, actor: Actor, order_id: uuid.UUID, *, specs: Specs) -> OrderDetail:
     stmt = select(Order).where(Order.id == order_id).options(selectinload(Order.lines))
     order = get_in_scope_or_404(session, stmt, actor, RULES)
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 def list_orders(
@@ -933,7 +943,7 @@ def submit_order(
         specs=specs,
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 def recall_order(
@@ -957,7 +967,7 @@ def recall_order(
         specs=specs,
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 def cancel_order(
@@ -981,7 +991,7 @@ def cancel_order(
         specs=specs,
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 def cancel_active_order(
@@ -1005,7 +1015,7 @@ def cancel_active_order(
         specs=specs,
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 def complete_order(
@@ -1030,7 +1040,7 @@ def complete_order(
         request_id=request_id,
         signer_name=body.confirmation_signer_name,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 def request_revision(
@@ -1054,7 +1064,7 @@ def request_revision(
         specs=specs,
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 def count_revision_orders(session: Session, actor: Actor) -> int:  # CounterProvider shape
@@ -1090,7 +1100,36 @@ def record_csat(
         data={"csat_rating": body.csat_rating, "csat_comment": body.csat_comment},
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
+
+
+def request_revision_from_customer_care(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    body: OrderRevisionRequestCreate,
+    *,
+    request_id: str | None = None,
+) -> OrderRevisionRequestOut:
+    """M15-03 (AC-CSK-020...023): CSKH báo QLKT cần xem lại đơn — chỉ ghi audit_event +
+    notification, không tự đổi trạng thái đơn (Q93: cho gửi nhiều lần, không chặn trùng).
+    Không có `version` trong request body vì thao tác này không sửa chính hàng `orders`."""
+    stmt = select(Order).where(Order.id == order_id)
+    order = get_in_scope_or_404(session, stmt, actor, RULES)
+    _require_completed(order)
+    event = audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ORDER",
+        entity_id=order.id,
+        action="revision_requested",
+        data={"note": body.note},
+        request_id=request_id,
+    )
+    notifications.notify_order_csk_revision_requested(session, order, body.note)
+    return OrderRevisionRequestOut(
+        id=event.id, order_id=order.id, note=body.note, requested_by=actor.id, requested_at=event.occurred_at
+    )
 
 
 def _vn_day_start_utc(day: date) -> datetime:
@@ -1180,7 +1219,7 @@ def update_order(
         data={"changed_fields": sorted(changed_fields)},
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 def _find_line(order: Order, line_id: uuid.UUID) -> OrderLine:
@@ -1298,7 +1337,7 @@ def add_line(
         action="add_line",
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 def update_line(
@@ -1327,7 +1366,7 @@ def update_line(
         action="update_line",
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 def remove_line(
@@ -1356,7 +1395,7 @@ def remove_line(
         action="remove_line",
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 # ---------------- M3-04a: sửa liên hệ / dòng hàng sau khi gửi ----------------
@@ -1396,7 +1435,7 @@ def update_contact(
         data={"changes": diff},
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 def add_line_after_submit(
@@ -1424,7 +1463,7 @@ def add_line_after_submit(
         data={"line_id": str(line.id), "item": line.name_snapshot, "line_total": line.line_total},
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 def update_line_after_submit(
@@ -1454,7 +1493,7 @@ def update_line_after_submit(
         data={"line_id": str(line.id), "item": line.name_snapshot, "changes": diff},
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
 
 
 def remove_line_after_submit(
@@ -1485,4 +1524,4 @@ def remove_line_after_submit(
         data={"line_id": str(line_id), "item": removed_item, "line_total": removed_total},
         request_id=request_id,
     )
-    return _out(order, actor, specs)
+    return _out(session, order, actor, specs)
