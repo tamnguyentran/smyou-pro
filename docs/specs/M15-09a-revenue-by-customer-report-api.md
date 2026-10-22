@@ -1,6 +1,6 @@
 # M15-09a — Báo cáo Doanh thu theo khách hàng — API
 
-- **Status:** Draft
+- **Status:** Approved
 - **Backlog:** M15-09a · **Milestone:** M15
 - **Liên quan:** M15-07/08 (`cost_price`, `cost_price_snapshot` dùng tính lợi nhuận); `docs/specs/M8-01a-kpi-report-api.md` (mẫu báo cáo + export CSV UTF-8 BOM, tái dùng cách làm); `spec/state_machines.yaml#order.states`; `spec/permissions.yaml`
 
@@ -9,30 +9,35 @@ Là Manager/Sale/QLKT/CSKH, tôi muốn xem báo cáo doanh thu nhóm theo từn
 
 ## 2. Phạm vi
 - Trong phạm vi:
-  - Capability mới `report.revenue.read` — `MANAGER: all, SALE: all, TECH_LEAD: all, CUSTOMER_CARE: all` (xem §8 — giả định cả 4 vai trò thấy dữ liệu **toàn công ty**, không giới hạn theo người tạo đơn).
+  - Capability mới `report.revenue.read` — `MANAGER: all, SALE: own, TECH_LEAD: all, CUSTOMER_CARE: own` (quyết định chủ dự án Q88, 2026-10-23 — `docs/product/OPEN_QUESTIONS_ARCHIVE.md`).
+    - `own` cho **SALE** = chỉ đơn có `orders.created_by = tôi` (và khách hàng của các đơn đó).
+    - `own` cho **CUSTOMER_CARE**: chưa có trường "CSKH phụ trách" trên `orders`/`customers` — xem giả định §8 (Q96, câu hỏi mới) đề xuất mặc định `customers.created_by = tôi`.
   - `GET /api/v1/reports/revenue-by-customer?from=&to=&customer_id=&status=` —
     - `from`/`to`: mặc định `from` = ngày 1 tháng hiện tại, `to` = hôm nay (giờ VN).
-    - `customer_id`: mặc định "Tất cả" (bỏ trống = tất cả khách hàng có đơn trong khoảng).
-    - `status`: `COMPLETED` (mặc định) hoặc `NOT_COMPLETED` (= mọi trạng thái khác `DRAFT`/`COMPLETED`, tức `PENDING_DISPATCH, IN_PROGRESS, AWAITING_CONFIRMATION, REVISION, CANCELLED` — xem giả định §8).
-    - Mỗi dòng: `{customer_code, customer_name, contact_person, contact_phone, seller:{id,code,full_name}, order_count, subtotal_revenue (Σ total), profit (Σ (line_total − cost_price_snapshot×quantity) các dòng, null nếu có dòng thiếu `cost_price_snapshot`)}`, sắp theo `customer_code` tăng.
-    - `seller` trong context báo cáo gộp theo khách hàng có thể có nhiều Sale tạo đơn khác nhau — mỗi khách hàng có thể xuất hiện ở báo cáo với **người bán của đơn gần nhất** (xem giả định §8) hoặc 1 dòng/khách hàng không phân biệt theo người bán — quyết định ở §8.
-  - `GET /api/v1/reports/revenue-by-customer/{customer_id}/orders?from=&to=&status=` — danh sách đơn của 1 khách hàng trong cùng điều kiện (dùng cho drilldown cấp 1).
+    - `customer_id`: mặc định "Tất cả" (bỏ trống = tất cả khách hàng có đơn trong khoảng, trong phạm vi scope của người gọi).
+    - `status`: `COMPLETED` (mặc định) hoặc `NOT_COMPLETED` (= `PENDING_DISPATCH, IN_PROGRESS, AWAITING_CONFIRMATION, REVISION` — **không gồm `DRAFT` và không gồm `CANCELLED`**, theo Q88: đơn đã huỷ loại khỏi cả 2 nhóm trạng thái của báo cáo này).
+    - Mỗi dòng là 1 cặp **(khách hàng × người bán)**: `{customer_code, customer_name, contact_person, contact_phone, seller:{id,code,full_name}, order_count, subtotal_revenue (Σ total), profit (Σ (line_total − cost_price_snapshot×quantity) các dòng, null nếu có dòng thiếu `cost_price_snapshot`)}`, sắp theo `customer_code` tăng rồi `seller.full_name` tăng.
+    - Khách hàng có nhiều Sale tạo đơn trong khoảng lọc → **tách thành nhiều dòng**, mỗi dòng 1 người bán (Q88 — không gộp "người bán gần nhất").
+  - `GET /api/v1/reports/revenue-by-customer/{customer_id}/orders?from=&to=&status=&seller_id=` — danh sách đơn của 1 khách hàng trong cùng điều kiện (dùng cho drilldown cấp 1); `seller_id` tuỳ chọn để khớp đúng 1 dòng (khách hàng × người bán) đã bấm vào.
   - `GET /api/v1/orders/{id}/lines` (đã có, M3-02a) — dùng cho drilldown cấp 2 (dòng hàng của 1 đơn), không cần route mới.
   - `GET /api/v1/reports/revenue-by-customer/export?...` — CSV UTF-8 BOM, cùng cột, theo mẫu `kpi/report/export` (M8-01a).
-- Ngoài phạm vi: UI (M15-09b); báo cáo theo nhân viên (M15-10a).
+  - Mọi route trên áp dụng scope `own`/`all` theo capability — SALE/CUSTOMER_CARE gọi `customer_id` ngoài phạm vi `own` của mình → 404 (không lộ tồn tại khách hàng ngoài scope).
+- Ngoài phạm vi: UI (M15-09b); báo cáo theo nhân viên (M15-10a, cũng cần áp lại Q88 — chưa làm ở item này).
 
 ## 3. Acceptance Criteria
 
 | ID | Given | When | Then | Lớp test |
 |---|---|---|---|---|
-| AC-RPT-001 | KH `KH00001` có 3 đơn `COMPLETED` trong tháng (tổng `total` = 50.000.000, lợi nhuận tính được = 12.000.000); KH `KH00002` có 1 đơn `COMPLETED` | An (MANAGER) `GET /reports/revenue-by-customer` (không truyền filter) | 200; áp mặc định `from`=đầu tháng, `to`=hôm nay, `status=COMPLETED`; 2 dòng, sắp theo `customer_code`; dòng `KH00001` có `order_count=3, subtotal_revenue=50000000, profit=12000000` | integration |
-| AC-RPT-002 | Đơn có dòng hàng `cost_price_snapshot = null` (tạo trước M15-08) | gọi báo cáo | Dòng khách hàng tương ứng có `profit = null` (không tính được, không coi bằng 0) | integration |
-| AC-RPT-003 | KH `KH00003` có đơn `PENDING_DISPATCH`, `CANCELLED`, không có đơn `COMPLETED` | gọi `?status=NOT_COMPLETED` | `KH00003` xuất hiện, `order_count` gồm cả đơn `CANCELLED` (theo giả định §8); không gồm đơn `DRAFT` | integration |
-| AC-RPT-004 | — | gọi `?customer_id=<KH00001>` | Chỉ 1 dòng của `KH00001` | integration |
-| AC-RPT-005 | Hoa (SALE) | `GET /reports/revenue-by-customer` | 200 — thấy **toàn bộ** khách hàng, không chỉ khách của đơn do Hoa tạo (scope `all`) | integration |
+| AC-RPT-001 | KH `KH00001` có 2 đơn `COMPLETED` do Hoa (SALE) tạo (tổng `total` = 30.000.000, lợi nhuận = 8.000.000) + 1 đơn `COMPLETED` do Minh (SALE) tạo (`total` = 20.000.000, lợi nhuận = 4.000.000); KH `KH00002` có 1 đơn `COMPLETED` do Hoa tạo | An (MANAGER) `GET /reports/revenue-by-customer` (không truyền filter) | 200; áp mặc định `from`=đầu tháng, `to`=hôm nay, `status=COMPLETED`; 3 dòng (scope `all`, tách theo người bán): `KH00001`+Hoa (`order_count=2, subtotal_revenue=30000000, profit=8000000`), `KH00001`+Minh (`order_count=1, subtotal_revenue=20000000, profit=4000000`), `KH00002`+Hoa — sắp theo `customer_code` rồi `seller.full_name` | integration |
+| AC-RPT-002 | Đơn có dòng hàng `cost_price_snapshot = null` (tạo trước M15-08) | gọi báo cáo | Dòng khách hàng×người bán tương ứng có `profit = null` (không tính được, không coi bằng 0) | integration |
+| AC-RPT-003 | KH `KH00003` có đơn `PENDING_DISPATCH` và đơn `CANCELLED`, không có đơn `COMPLETED` | gọi `?status=NOT_COMPLETED` | `KH00003` xuất hiện với `order_count=1` (chỉ đơn `PENDING_DISPATCH`); đơn `CANCELLED` **không** được tính (Q88); không gồm đơn `DRAFT` | integration |
+| AC-RPT-004 | — | gọi `?customer_id=<KH00001>` | Chỉ (các) dòng của `KH00001` (1 dòng/người bán) | integration |
+| AC-RPT-005 | Hoa (SALE), dữ liệu như AC-RPT-001 | `GET /reports/revenue-by-customer` | 200 — chỉ 2 dòng do Hoa tạo (`KH00001`+Hoa, `KH00002`+Hoa); **không** thấy dòng `KH00001`+Minh (scope `own` theo Q88) | integration |
 | AC-RPT-006 | Đức (TECHNICIAN, không có `report.revenue.read`) | `GET /reports/revenue-by-customer` | 403 | integration |
-| AC-RPT-007 | Dữ liệu như AC-RPT-001 | `GET /reports/revenue-by-customer/<KH00001-id>/orders` | 200; 3 đơn, mỗi đơn `{code, created_at, completed_at, total, profit}` | integration |
+| AC-RPT-007 | Dữ liệu như AC-RPT-001 | An (MANAGER) `GET /reports/revenue-by-customer/<KH00001-id>/orders?seller_id=<Hoa-id>` | 200; 2 đơn (chỉ của Hoa), mỗi đơn `{code, created_at, completed_at, total, profit}` | integration |
 | AC-RPT-008 | — | `GET /reports/revenue-by-customer/export?from=&to=` | 200; `Content-Type: text/csv; charset=utf-8`, BOM đầu file, `Content-Disposition` có tên file `doanh-thu-theo-khach-hang-{from}_{to}.csv`, cột khớp 1:1 với JSON | integration |
+| AC-RPT-043 | Hoa (SALE), KH `KH00004` chỉ có đơn do Minh tạo (không có đơn nào của Hoa) | Hoa `GET /reports/revenue-by-customer/<KH00004-id>/orders` | 404 (khách hàng ngoài scope `own` của Hoa — không lộ tồn tại) | integration |
+| AC-RPT-044 | Lan (CUSTOMER_CARE) tạo hồ sơ khách hàng `KH00005` (`customers.created_by = Lan`), `KH00005` có 1 đơn `COMPLETED` do Hoa (SALE) tạo | Lan `GET /reports/revenue-by-customer` | 200 — thấy dòng `KH00005` (vì `customers.created_by = Lan`, theo giả định §8/Q96), dù người bán là Hoa; không thấy khách hàng do người khác tạo | integration |
 
 ## 4. API
 | Method | Path | Capability | Response |
@@ -48,12 +53,13 @@ Không có migration — truy vấn tổng hợp từ `orders`/`order_lines`/`cu
 Không có ở item này — xem M15-09b.
 
 ## 7. Kịch bản UAT thủ công
-1. Gọi báo cáo không filter → thấy mặc định đầu tháng→hôm nay, trạng thái Hoàn tất.
-2. Đổi `status=NOT_COMPLETED` → thấy đơn các trạng thái khác (trừ DRAFT), kể cả đã huỷ.
-3. Drilldown 1 khách hàng → thấy danh sách đơn → export CSV mở bằng Excel đọc đúng dấu.
+1. Gọi báo cáo không filter (MANAGER) → thấy mặc định đầu tháng→hôm nay, trạng thái Hoàn tất, khách hàng nhiều Sale tách nhiều dòng.
+2. Đổi `status=NOT_COMPLETED` → thấy đơn các trạng thái khác (trừ `DRAFT`, trừ `CANCELLED`).
+3. Đăng nhập Sale → chỉ thấy khách hàng/đơn do chính mình tạo.
+4. Drilldown 1 dòng (khách hàng × người bán) → thấy danh sách đơn đúng người bán đó → export CSV mở bằng Excel đọc đúng dấu.
 
-## 8. Giả định & câu hỏi (cần chủ dự án xác nhận — mức ảnh hưởng cao)
-- **Phạm vi xem (scope):** mặc định cho SALE/CUSTOMER_CARE xem **toàn công ty** (không giới hạn `own`) vì yêu cầu gốc liệt kê đúng 4 vai trò này cùng nhìn 1 báo cáo có cột "Người bán" — nếu SALE chỉ thấy đơn của mình thì cột "Người bán" luôn là chính họ, vô nghĩa. Nếu chủ dự án muốn giới hạn SALE chỉ thấy khách hàng/đơn của mình → cần sửa lại capability thành `SALE: own` và bỏ cột "Người bán" khỏi góc nhìn của SALE.
-- **"Người bán" khi 1 khách hàng có nhiều đơn do nhiều Sale khác nhau tạo:** giả định báo cáo này nhóm theo khách hàng nên cột "Người bán" lấy theo **đơn gần nhất** (`created_at` lớn nhất) của khách đó trong khoảng lọc; nếu chủ dự án muốn hiểu khác (vd liệt kê nhiều người bán, hoặc đây thực ra là 1 dòng/khách-hàng-×-người-bán) cần chốt lại trước khi code.
-- **`CANCELLED` có tính vào "chưa xong":** mặc định **có** (bám sát câu chữ "các trạng thái còn lại trừ đơn nháp"). Nếu chủ dự án muốn báo cáo doanh thu loại trừ đơn đã huỷ khỏi cả 2 nhóm trạng thái → cần sửa lại enum `status` filter.
+## 8. Giả định & câu hỏi
+- **Đã chốt (Q88, 2026-10-23):** scope `own` cho SALE/CUSTOMER_CARE, `all` cho MANAGER/TECH_LEAD; khách hàng nhiều người bán → tách nhiều dòng; `CANCELLED` loại khỏi cả 2 nhóm trạng thái. Áp dụng trong spec này — xem `docs/product/OPEN_QUESTIONS_ARCHIVE.md#Q88`.
+- **Q96 (mới — cần chủ dự án xác nhận):** `own` cho CUSTOMER_CARE là gì? `orders` không có cột "CSKH phụ trách"; `customers.created_by` thì có (CSKH được tạo/sửa khách hàng qua `customer.manage`). Giả định mặc định: `own` của CUSTOMER_CARE = khách hàng có `customers.created_by = tôi` (bất kể Sale nào tạo đơn cho khách đó) — đã đăng ký vào `docs/product/OPEN_QUESTIONS.md`.
 - Giả định: "lợi nhuận" = Σ(`line_total` − `cost_price_snapshot` × `quantity`) của mọi dòng hàng thuộc các đơn trong kết quả — chưa trừ chi phí vận hành khác (lương, vận chuyển…), chỉ là lợi nhuận gộp trên giá vốn hàng/dịch vụ.
+- M15-10a (báo cáo theo nhân viên) cần áp lại quyết định Q88 tương tự khi viết spec của nó — chưa làm ở item này.
