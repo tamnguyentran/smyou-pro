@@ -413,6 +413,31 @@ describe("AC-CUS-020/021 trường mở rộng theo loại khách hàng", () => 
     expect(within(dialog).queryByLabelText("Giám đốc")).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Phụ trách IT")).not.toBeInTheDocument();
   });
+
+  test("AC-CUS-020b đổi từ Công ty sang Cá nhân trước khi lưu → không gửi field tổ chức đã ẩn", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([])));
+    let body: Record<string, unknown> = {};
+    server.use(
+      http.post("/api/v1/customers", async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...customer(), duplicate_phone_matches: [] }, { status: 201 });
+      }),
+    );
+    renderApp("/customers");
+    await openMenu();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Thêm khách hàng" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm khách hàng" });
+    await user.type(within(dialog).getByLabelText("Giám đốc"), "Ông Long");
+    await user.selectOptions(within(dialog).getByLabelText("Loại khách hàng"), "Cá nhân");
+    await user.type(within(dialog).getByLabelText("Tên khách hàng"), "Chị Lan");
+    await user.type(within(dialog).getByLabelText("Số điện thoại"), "0987654321");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+
+    await waitFor(() => expect(body.type).toBe("INDIVIDUAL"));
+    expect(body.director_name).toBeFalsy();
+  });
 });
 
 describe("AC-CUS-024 loại khách hàng bất biến khi sửa", () => {
