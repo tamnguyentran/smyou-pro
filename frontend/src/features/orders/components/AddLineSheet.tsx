@@ -1,36 +1,23 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Hammer, Lock, Package, PenLine } from "lucide-react";
+import { Hammer, Lock, Package } from "lucide-react";
 import { useState } from "react";
-import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { Alert } from "../../../components/ui/Alert";
-import { Button } from "../../../components/ui/Button";
-import { Select } from "../../../components/ui/Select";
 import { Sheet } from "../../../components/ui/Sheet";
 import { TextField } from "../../../components/ui/TextField";
 import { cn } from "../../../lib/cn";
 import { formatCurrency } from "../../../lib/format";
 import { useDebouncedValue } from "../../../lib/useDebouncedValue";
-import { ApiError, formError } from "../../auth/errors";
+import { ApiError } from "../../auth/errors";
 import { productImageUrl, useProducts, type Product } from "../../products/api";
 import { ProductImage } from "../../products/components/ProductList";
 import { useServices, type Service } from "../../services/api";
-import { UNIT_LABELS, UNIT_ORDER } from "../../services/schemas";
 import { useAddLine, useAddLineAfterSubmit, type OrderLineCreateBody } from "../api";
-import { fieldErrors } from "../errors";
-import { customLineSchema, type CustomLineFormValues } from "../schemas";
 import type { LineEndpoint } from "./OrderLinesSection";
 import { isStaleAfterSubmit, type RunOrderWrite } from "./writeQueue";
-import { VatChipField } from "./VatChipField";
 
-// Fields CustomLineForm actually renders a server error under — anything else (or a fieldless error
-// like 409 STALE_VERSION) must fall back to the Sheet's top-level Alert, not be dropped silently.
-const CUSTOM_SHOWN_FIELDS = ["name", "unit_price"] as const;
-
-type Tab = "PRODUCT" | "SERVICE" | "CUSTOM";
+type Tab = "PRODUCT" | "SERVICE";
 const TABS: { id: Tab; label: string; icon: typeof Package }[] = [
   { id: "PRODUCT", label: "Sản phẩm", icon: Package },
   { id: "SERVICE", label: "Dịch vụ", icon: Hammer },
-  { id: "CUSTOM", label: "Tự do", icon: PenLine },
 ];
 
 function CatalogResultRow({
@@ -146,66 +133,9 @@ function ServicePicker({ onPick }: { onPick: (service: Service) => void }) {
   );
 }
 
-const CUSTOM_FORM_ID = "custom-line-form";
-
-function CustomLineForm({
-  serverErrors,
-  onSubmit,
-}: {
-  serverErrors: Record<string, string>;
-  onSubmit: (values: CustomLineFormValues) => void;
-}) {
-  const { register, handleSubmit, formState, control, setValue } = useForm<CustomLineFormValues>({
-    resolver: zodResolver(customLineSchema) as Resolver<CustomLineFormValues>,
-    defaultValues: { name: "", unit: UNIT_ORDER[0], quantity: 1, unit_price: 0, vat_rate: 8 },
-  });
-  const vatRate = useWatch({ control, name: "vat_rate" });
-
-  return (
-    <form
-      id={CUSTOM_FORM_ID}
-      noValidate
-      onSubmit={(event) => void handleSubmit(onSubmit)(event)}
-      className="space-y-4"
-    >
-      <TextField
-        label="Tên"
-        error={formState.errors.name?.message ?? serverErrors.name}
-        {...register("name")}
-      />
-      <Select label="Đơn vị" error={formState.errors.unit?.message} {...register("unit")}>
-        {UNIT_ORDER.map((unit) => (
-          <option key={unit} value={unit}>
-            {UNIT_LABELS[unit]}
-          </option>
-        ))}
-      </Select>
-      <TextField
-        label="Số lượng"
-        type="number"
-        step="any"
-        error={formState.errors.quantity?.message}
-        {...register("quantity")}
-      />
-      <TextField
-        label="Đơn giá"
-        type="number"
-        error={formState.errors.unit_price?.message ?? serverErrors.unit_price}
-        {...register("unit_price")}
-      />
-      <VatChipField
-        value={vatRate}
-        onChange={(value) => {
-          setValue("vat_rate", value, { shouldValidate: true });
-        }}
-      />
-    </form>
-  );
-}
-
-/** AC-ORD-026/030/033: 3-tab Sheet to add a line — products/services add on click, "Tự do" needs the
- * form below submitted. `runOrderWrite` silently creates the draft on the very first line (spec §8)
- * and queues this add behind any other in-flight order write (see writeQueue.ts). */
+/** AC-ORD-026/182: 2-tab Sheet to add a line — products/services add on click. `runOrderWrite`
+ * silently creates the draft on the very first line (spec §8) and queues this add behind any other
+ * in-flight order write (see writeQueue.ts). M15-06 removed the "Tự do" (CUSTOM) tab. */
 export function AddLineSheet({
   onClose,
   runOrderWrite,
@@ -221,7 +151,6 @@ export function AddLineSheet({
 }) {
   const [tab, setTab] = useState<Tab>("PRODUCT");
   const [error, setError] = useState<string | null>(null);
-  const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
   const addLineDraft = useAddLine();
   const addLineAfterSubmit = useAddLineAfterSubmit();
   const addLine = lineEndpoint === "after-submit" ? addLineAfterSubmit : addLineDraft;
@@ -244,52 +173,8 @@ export function AddLineSheet({
     }
   }
 
-  async function addCustomLine(values: CustomLineFormValues) {
-    setError(null);
-    setServerErrors({});
-    try {
-      await runOrderWrite((order) =>
-        addLine.mutateAsync({
-          id: order.id,
-          body: {
-            version: order.version,
-            item_type: "CUSTOM",
-            name: values.name,
-            unit: values.unit as OrderLineCreateBody["unit"],
-            quantity: values.quantity,
-            unit_price: values.unit_price,
-            vat_rate: values.vat_rate,
-            is_gift: false,
-            line_discount: 0,
-          },
-        }),
-      );
-      onClose();
-    } catch (err) {
-      if (isStaleAfterSubmit(err, lineEndpoint, onStaleVersion)) {
-        onStaleVersion?.();
-        onClose();
-        return;
-      }
-      if (err instanceof ApiError) setServerErrors(fieldErrors(err));
-      setError(formError(err, CUSTOM_SHOWN_FIELDS));
-    }
-  }
-
   return (
-    <Sheet
-      open
-      onClose={onClose}
-      title="Thêm dòng hàng"
-      dismissible={!addLine.isPending}
-      footer={
-        tab === "CUSTOM" ? (
-          <Button type="submit" form={CUSTOM_FORM_ID} loading={addLine.isPending}>
-            Thêm
-          </Button>
-        ) : undefined
-      }
-    >
+    <Sheet open onClose={onClose} title="Thêm dòng hàng" dismissible={!addLine.isPending}>
       {error ? <Alert>{error}</Alert> : null}
       <div
         role="tablist"
@@ -346,12 +231,6 @@ export function AddLineSheet({
               line_discount: 0,
             });
           }}
-        />
-      ) : null}
-      {tab === "CUSTOM" ? (
-        <CustomLineForm
-          serverErrors={serverErrors}
-          onSubmit={(values) => void addCustomLine(values)}
         />
       ) : null}
     </Sheet>

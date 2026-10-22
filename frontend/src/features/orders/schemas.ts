@@ -116,17 +116,3 @@ export const orderContactSchema = z.object({
   work_description: z.string().trim().optional(),
 });
 export type OrderContactFormValues = z.infer<typeof orderContactSchema>;
-
-/** "Tự do" tab of the add-line Sheet (AC-ORD-030/033): CUSTOM lines always need their own VAT
- * (service.py's VAT_REQUIRED_FOR_CUSTOM), so unlike a catalog pick there is no default to fall back to. */
-export const customLineSchema = z.object({
-  name: z.string().trim().min(1, "Vui lòng nhập tên dòng hàng."),
-  unit: z.string().trim().min(1, "Vui lòng chọn đơn vị."),
-  quantity: quantityFieldSchema,
-  unit_price: unitPriceFieldSchema,
-  vat_rate: z
-    .number("Vui lòng chọn VAT.")
-    .min(0, "VAT phải trong khoảng 0-100.")
-    .max(100, "VAT phải trong khoảng 0-100."),
-});
-export type CustomLineFormValues = z.infer<typeof customLineSchema>;
