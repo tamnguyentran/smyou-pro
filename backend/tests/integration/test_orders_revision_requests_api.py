@@ -155,3 +155,42 @@ def test_multiple_requests_allowed_each_notifies(
     assert len(rows) == 2
     notifs = notifications_for(db, people["NV007"])
     assert len(notifs) == 2
+
+
+@pytest.mark.ac("AC-CSK-024")
+def test_badge_pending_after_request(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    order_id = insert_order(db, created_by=people["NV001"], status="COMPLETED", code="DH2609-0024")
+    lan = client_as(app, LAN)
+    assert (
+        lan.post(
+            f"/api/v1/orders/{order_id}/revision-requests", json={"note": "Khách chưa hài lòng"}
+        ).status_code
+        == 201
+    )
+
+    tuan = client_as(app, TUAN)
+    res = tuan.get(f"/api/v1/orders/{order_id}")
+    assert res.status_code == 200, res.text
+    assert res.json()["has_pending_revision_request"] is True
+
+
+@pytest.mark.ac("AC-CSK-025")
+def test_badge_clears_once_tech_lead_revises(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    order_id = insert_order(db, created_by=people["NV001"], status="COMPLETED", code="DH2609-0025")
+    lan = client_as(app, LAN)
+    assert (
+        lan.post(
+            f"/api/v1/orders/{order_id}/revision-requests", json={"note": "Khách chưa hài lòng"}
+        ).status_code
+        == 201
+    )
+
+    tuan = client_as(app, TUAN)
+    res = tuan.post(f"/api/v1/orders/{order_id}/revise", json={"version": 1, "reason": "Kiểm tra lại máy"})
+    assert res.status_code == 200, res.text
+    assert res.json()["has_pending_revision_request"] is False
+
+    res = tuan.get(f"/api/v1/orders/{order_id}")
+    assert res.json()["has_pending_revision_request"] is False
