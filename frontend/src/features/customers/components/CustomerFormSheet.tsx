@@ -22,10 +22,13 @@ import {
 import { fieldErrors } from "../errors";
 import {
   customerSchema,
+  GENDER_LABELS,
+  GENDER_ORDER,
   TYPE_LABELS,
   TYPE_ORDER,
   type CustomerFormValues,
   type CustomerType,
+  type Gender,
 } from "../schemas";
 
 const SHOWN_FIELDS = [
@@ -37,6 +40,14 @@ const SHOWN_FIELDS = [
   "tax_code",
   "address",
   "note",
+  "founded_date",
+  "director_name",
+  "it_contact_name",
+  "it_contact_phone",
+  "it_contact_email",
+  "date_of_birth",
+  "gender",
+  "occupation",
 ];
 
 function DuplicatePhoneWarning({
@@ -85,7 +96,7 @@ export function CustomerFormSheet({
     CustomerWritten["duplicate_phone_matches"]
   >([]);
 
-  const { register, handleSubmit, formState } = useForm<CustomerFormValues>({
+  const { register, handleSubmit, formState, watch } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema) as Resolver<CustomerFormValues>,
     defaultValues: {
       type: (customer?.type as CustomerType | undefined) ?? TYPE_ORDER[0],
@@ -96,8 +107,18 @@ export function CustomerFormSheet({
       tax_code: customer?.tax_code ?? "",
       address: customer?.address ?? "",
       note: customer?.note ?? "",
+      founded_date: customer?.founded_date ?? "",
+      director_name: customer?.director_name ?? "",
+      it_contact_name: customer?.it_contact_name ?? "",
+      it_contact_phone: customer?.it_contact_phone ?? "",
+      it_contact_email: customer?.it_contact_email ?? "",
+      date_of_birth: customer?.date_of_birth ?? "",
+      gender: (customer?.gender as CustomerFormValues["gender"] | undefined) ?? undefined,
+      occupation: customer?.occupation ?? "",
     },
   });
+  // Type bất biến sau khi tạo (§4) — form chỉ hiện đúng bộ field theo type đã chọn lúc tạo.
+  const selectedType = watch("type");
 
   const title = customer
     ? readOnly
@@ -112,8 +133,8 @@ export function CustomerFormSheet({
     setServerErrors({});
     setFormMessage(null);
     setShowReload(false);
+    // `type` chỉ gửi lúc tạo — bất biến sau đó, PATCH không nhận trường này (spec §4).
     const shared = {
-      type: values.type,
       name: values.name,
       contact_person: values.contact_person || null,
       phone: values.phone,
@@ -121,10 +142,18 @@ export function CustomerFormSheet({
       tax_code: values.tax_code || null,
       address: values.address || null,
       note: values.note || null,
+      founded_date: values.founded_date || null,
+      director_name: values.director_name || null,
+      it_contact_name: values.it_contact_name || null,
+      it_contact_phone: values.it_contact_phone || null,
+      it_contact_email: values.it_contact_email || null,
+      date_of_birth: values.date_of_birth || null,
+      gender: values.gender || null,
+      occupation: values.occupation || null,
     };
     try {
       if (!customer) {
-        const body: CustomerCreateBody = shared;
+        const body: CustomerCreateBody = { type: values.type, ...shared };
         const created = await create.mutateAsync(body);
         toast(`Đã thêm khách hàng ${created.name}.`);
         // Trùng SĐT là cảnh báo không chặn (AC-CUS-010) nhưng cần ở lại để người dùng đọc được —
@@ -197,6 +226,23 @@ export function CustomerFormSheet({
                 ["MST", customer.tax_code ?? "—"],
                 ["Địa chỉ", customer.address ?? "—"],
                 ["Ghi chú", customer.note ?? "—"],
+                ...((customer.type === "COMPANY"
+                  ? [
+                      ["Ngày thành lập", customer.founded_date],
+                      ["Giám đốc", customer.director_name],
+                      ["Phụ trách IT", customer.it_contact_name],
+                      ["SĐT phụ trách IT", customer.it_contact_phone],
+                      ["Email phụ trách IT", customer.it_contact_email],
+                    ]
+                  : [
+                      ["Ngày sinh", customer.date_of_birth],
+                      [
+                        "Giới tính",
+                        customer.gender ? GENDER_LABELS[customer.gender as Gender] : null,
+                      ],
+                      ["Nghề nghiệp", customer.occupation],
+                    ]
+                ).filter(([, value]) => value != null) as [string, ReactNode][]),
               ] as [string, ReactNode][]
             ).map(([label, value]) => (
               <div key={label} className="flex justify-between gap-4 py-2 text-sm">
@@ -218,6 +264,7 @@ export function CustomerFormSheet({
           <Select
             label="Loại khách hàng"
             error={formState.errors.type?.message ?? serverErrors.type}
+            disabled={customer !== undefined}
             {...register("type")}
           >
             {TYPE_ORDER.map((value) => (
@@ -259,6 +306,64 @@ export function CustomerFormSheet({
             {...register("address")}
           />
           <Textarea label="Ghi chú" error={serverErrors.note} {...register("note")} />
+          {selectedType === "COMPANY" ? (
+            <>
+              <TextField
+                label="Ngày thành lập"
+                type="date"
+                error={formState.errors.founded_date?.message ?? serverErrors.founded_date}
+                {...register("founded_date")}
+              />
+              <TextField
+                label="Giám đốc"
+                error={formState.errors.director_name?.message ?? serverErrors.director_name}
+                {...register("director_name")}
+              />
+              <TextField
+                label="Phụ trách IT"
+                error={formState.errors.it_contact_name?.message ?? serverErrors.it_contact_name}
+                {...register("it_contact_name")}
+              />
+              <TextField
+                label="SĐT phụ trách IT"
+                inputMode="tel"
+                error={formState.errors.it_contact_phone?.message ?? serverErrors.it_contact_phone}
+                {...register("it_contact_phone")}
+              />
+              <TextField
+                label="Email phụ trách IT"
+                inputMode="email"
+                error={formState.errors.it_contact_email?.message ?? serverErrors.it_contact_email}
+                {...register("it_contact_email")}
+              />
+            </>
+          ) : (
+            <>
+              <TextField
+                label="Ngày sinh"
+                type="date"
+                error={formState.errors.date_of_birth?.message ?? serverErrors.date_of_birth}
+                {...register("date_of_birth")}
+              />
+              <Select
+                label="Giới tính"
+                error={formState.errors.gender?.message ?? serverErrors.gender}
+                {...register("gender")}
+              >
+                <option value="">— Chọn —</option>
+                {GENDER_ORDER.map((value) => (
+                  <option key={value} value={value}>
+                    {GENDER_LABELS[value]}
+                  </option>
+                ))}
+              </Select>
+              <TextField
+                label="Nghề nghiệp"
+                error={formState.errors.occupation?.message ?? serverErrors.occupation}
+                {...register("occupation")}
+              />
+            </>
+          )}
         </form>
       )}
     </Sheet>
