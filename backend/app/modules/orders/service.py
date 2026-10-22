@@ -347,6 +347,10 @@ def _can_revise(order: Order, actor: Actor, specs: Specs) -> bool:
 
 
 def _has_pending_revision_request(session: Session, order: Order) -> bool:
+    # Review: skip the extra audit_events query on the hot write paths of every other status —
+    # a pending request only exists once an order has reached COMPLETED at least once.
+    if order.status not in ("COMPLETED", "REVISION"):
+        return False
     latest = audit.latest_action(
         session, entity_type="ORDER", entity_id=order.id, actions=("revision_requested", "request_revision")
     )
@@ -1113,8 +1117,11 @@ def request_revision_from_customer_care(
 ) -> OrderRevisionRequestOut:
     """M15-03 (AC-CSK-020...023): CSKH báo QLKT cần xem lại đơn — chỉ ghi audit_event +
     notification, không tự đổi trạng thái đơn (Q93: cho gửi nhiều lần, không chặn trùng).
-    Không có `version` trong request body vì thao tác này không sửa chính hàng `orders`."""
-    stmt = select(Order).where(Order.id == order_id)
+    Không có `version` trong request body vì thao tác này không sửa chính hàng `orders`, nhưng
+    vẫn `with_for_update()` — review: khoá hàng để chờ transaction `request_revision` (QLKT,
+    dùng `lock_order`) đang chạy cùng lúc commit trước, tránh ghi `revision_requested` "trễ" (seq
+    cao hơn) đè lên trạng thái đã được QLKT xử lý, khiến badge báo sai "chưa xử lý"."""
+    stmt = select(Order).where(Order.id == order_id).with_for_update()
     order = get_in_scope_or_404(session, stmt, actor, RULES)
     _require_completed(order)
     event = audit.record(

@@ -205,10 +205,18 @@ class OrderCsatUpdate(BaseModel):
     _check_csat_comment = field_validator("csat_comment")(_check_csat_comment)
 
 
+def _check_note_not_blank(value: str) -> str:
+    if not value.strip():
+        raise ValueError("Vui lòng nhập mô tả.")
+    return value
+
+
 class OrderRevisionRequestCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     note: str = Field(min_length=1, max_length=2000)
+
+    _check_note_not_blank = field_validator("note")(_check_note_not_blank)
 
 
 class OrderRevisionRequestOut(BaseModel):

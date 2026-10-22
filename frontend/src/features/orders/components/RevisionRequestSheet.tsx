@@ -25,14 +25,19 @@ export function RevisionRequestSheet({
   onConfirm: (note: string) => void;
 }) {
   const [note, setNote] = useState(defaultNote);
+  // "Adjusting state when a prop changes" (react.dev) trong lúc render, không phải useEffect —
+  // re-sync từ `defaultNote` mỗi lần mở lại, bất kể lần trước đóng qua nút "Huỷ", Esc, backdrop,
+  // hay sau khi gửi thành công (review: đóng bằng những đường khác nhau không được bỏ qua reset).
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setNote(defaultNote);
+  }
 
   return (
     <Sheet
       open={open}
-      onClose={() => {
-        setNote(defaultNote);
-        onClose();
-      }}
+      onClose={onClose}
       title={`Tạo yêu cầu chỉnh sửa đơn ${orderCode}`}
       dismissible={!loading}
       footer={

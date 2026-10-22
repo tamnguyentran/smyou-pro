@@ -1415,6 +1415,28 @@ describe("M15-03 — CSKH gửi yêu cầu chỉnh sửa đơn", () => {
     expect(await screen.findByLabelText("Mô tả")).toHaveValue("Máy vẫn còn kêu to");
   });
 
+  test("Review: bấm 'Huỷ' sau khi sửa mô tả → mở lại không giữ text đã sửa", async () => {
+    signedInAs(lanId, LAN);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ status: "COMPLETED", csat_comment: "Máy vẫn còn kêu to" })),
+      ),
+      http.get("/api/v1/orders/:id/confirmation-attachments", () =>
+        HttpResponse.json({ items: [] }),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Tạo yêu cầu chỉnh sửa" }));
+    await user.type(await screen.findByLabelText("Mô tả"), " thêm chữ tuỳ ý");
+    await user.click(screen.getByRole("button", { name: "Huỷ" }));
+    await user.click(screen.getByRole("button", { name: "Tạo yêu cầu chỉnh sửa" }));
+
+    expect(await screen.findByLabelText("Mô tả")).toHaveValue("Máy vẫn còn kêu to");
+  });
+
   test("AC-CSK-021: thêm chú thích, gửi → POST revision-requests, toast", async () => {
     signedInAs(lanId, LAN);
     let sentBody: unknown;

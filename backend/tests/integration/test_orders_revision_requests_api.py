@@ -130,6 +130,16 @@ def test_guard_order_not_completed(app: FastAPI, db: Connection, people: dict[st
     )
 
 
+def test_blank_note_rejected(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    """Review finding: `min_length=1` alone accepts whitespace-only note (empty-looking
+    notification to every active TECH_LEAD)."""
+    order_id = insert_order(db, created_by=people["NV001"], status="COMPLETED", code="DH2609-0026")
+    lan = client_as(app, LAN)
+
+    res = lan.post(f"/api/v1/orders/{order_id}/revision-requests", json={"note": "   "})
+    assert res.status_code == 422, res.text
+
+
 @pytest.mark.ac("AC-CSK-023")
 def test_sale_forbidden(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
     order_id = insert_order(db, created_by=people["NV001"], status="COMPLETED", code="DH2609-0022")
