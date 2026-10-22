@@ -52,7 +52,7 @@ capabilities:
   assignment.respond:    { TECHNICIAN: self }        # accept/reject/start/complete OWN assignment only
   task.upload_photo:     { TECH_LEAD: all, TECHNICIAN: assigned }
   # --- Báo cáo ---
-  dashboard.read:        { MANAGER: all, SALE: own, TECH_LEAD: all, TECHNICIAN: self }
+  dashboard.read:        { MANAGER: all, SALE: own, TECH_LEAD: all, TECHNICIAN: self, CUSTOMER_CARE: all }
   kpi.read:              { MANAGER: all, TECH_LEAD: all, TECHNICIAN: self }
   audit.read:            { MANAGER: all }
   notification.read:     { MANAGER: self, SALE: self, TECH_LEAD: self, TECHNICIAN: self }

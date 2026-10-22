@@ -1,5 +1,6 @@
 """Response body for `GET /api/v1/dashboard` (M7-02)."""
 
+import uuid
 from typing import Literal
 
 from pydantic import BaseModel
@@ -64,6 +65,14 @@ class MyTaskSummaryOut(BaseModel):
     awaiting_confirmation_count: int
 
 
+class TopCustomerOut(BaseModel):
+    customer_id: uuid.UUID
+    customer_code: str
+    customer_name: str
+    order_count: int
+    total_revenue: int
+
+
 class DashboardOut(BaseModel):
     # Mọi khoá tuỳ chọn: `None` khi vai trò không phù hợp (router trả về với
     # response_model_exclude_none=True nên khoá vắng mặt hẳn trong JSON, không phải null).
@@ -73,3 +82,6 @@ class DashboardOut(BaseModel):
     staff_summary: StaffSummaryOut | None = None
     my_task_summary: MyTaskSummaryOut | None = None
     today_tasks: list[MyAssignmentOut] | None = None
+    # M15-04: company-wide, không scope theo actor — xem decision log trong dashboard/service.py.
+    top_customers: list[TopCustomerOut] | None = None
+    feedback_summary: dict[str, int] | None = None

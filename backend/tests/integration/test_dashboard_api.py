@@ -1,7 +1,7 @@
 """M7-02: `GET /api/v1/dashboard` (AC-DASH-001…009)."""
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -13,6 +13,8 @@ from app.core.authz import declared_routes
 from tests.integration.conftest import AN, KHOA, Person, seed
 from tests.integration.test_dispatch_api import DUC, HOA, MINH, TUAN, client_as, insert_order, problem
 from tests.integration.test_dispatch_board_api import insert_assignment, insert_task
+
+LAN_CSK = Person("lan.csk@smyou.vn", "Lan@SmYou26", ("CUSTOMER_CARE",), "NV021", "Đỗ Thị Lan CSKH", "SALES")
 
 
 def insert_done_assignment(
@@ -41,7 +43,7 @@ LAN = Person("lan2.do@smyou.vn", "Lan2@SmYou26", ("SALE", "TECH_LEAD"), "NV020",
 
 @pytest.fixture
 def people(db: Connection) -> dict[str, uuid.UUID]:
-    return {p.code: seed(db, p) for p in (AN, HOA, TUAN, DUC, MINH, KHOA, LAN)}
+    return {p.code: seed(db, p) for p in (AN, HOA, TUAN, DUC, MINH, KHOA, LAN, LAN_CSK)}
 
 
 def body(res: Any) -> dict[str, Any]:
@@ -732,3 +734,203 @@ def test_staff_summary_pending_acceptance_counts_by_task(
     tuan = client_as(app, TUAN)
     data = body(tuan.get("/api/v1/dashboard"))
     assert data["staff_summary"]["pending_acceptance_count"] == 4
+
+
+# M15-04: "tháng hiện tại" giờ VN = tháng 9/2026 (khớp FakeClock mặc định 2026-09-26T02:00:00Z).
+COMPLETED_THIS_MONTH_UTC = datetime(2026, 9, 10, 3, 0, tzinfo=UTC)
+
+
+def insert_customer_for_dashboard(
+    db: Connection, *, code: str, name: str, created_by: uuid.UUID
+) -> uuid.UUID:
+    customer_id = uuid.uuid4()
+    db.execute(
+        text(
+            "INSERT INTO customers (id, code, type, name, phone, created_by, version)"
+            " VALUES (:id, :code, 'COMPANY', :name, '0918000000', :created_by, 1)"
+        ),
+        {"id": customer_id, "code": code, "name": name, "created_by": created_by},
+    )
+    return customer_id
+
+
+def insert_completed_order_for_customer(
+    db: Connection,
+    *,
+    created_by: uuid.UUID,
+    customer_id: uuid.UUID | None,
+    total: int,
+    code: str,
+    csat_rating: int | None = None,
+    completed_at: datetime = COMPLETED_THIS_MONTH_UTC,
+) -> uuid.UUID:
+    order_id = uuid.uuid4()
+    db.execute(
+        text(
+            "INSERT INTO orders (id, code, status, created_by, customer_id, service_address,"
+            " work_description, priority, version, total, completed_at, csat_rating)"
+            " VALUES (:id, :code, 'COMPLETED', :created_by, :customer_id, '12 Lê Lợi, Q1', 'Lắp đặt',"
+            " 'NORMAL', 1, :total, :completed_at, :csat_rating)"
+        ),
+        {
+            "id": order_id,
+            "code": code,
+            "created_by": created_by,
+            "customer_id": customer_id,
+            "total": total,
+            "completed_at": completed_at,
+            "csat_rating": csat_rating,
+        },
+    )
+    return order_id
+
+
+@pytest.mark.ac("AC-DASH-054")
+def test_top_customers_top_10_sorted_by_revenue_desc(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    for i in range(15):
+        customer_id = insert_customer_for_dashboard(
+            db, code=f"KH{i:02d}", name=f"Khách {i:02d}", created_by=people["NV001"]
+        )
+        insert_completed_order_for_customer(
+            db,
+            created_by=people["NV001"],
+            customer_id=customer_id,
+            total=(i + 1) * 1_000_000,
+            code=f"DH2609-TOP{i:02d}",
+        )
+
+    an = client_as(app, AN)
+    data = body(an.get("/api/v1/dashboard"))
+
+    assert len(data["top_customers"]) == 10
+    revenues = [row["total_revenue"] for row in data["top_customers"]]
+    assert revenues == sorted(revenues, reverse=True)
+    assert data["top_customers"][0]["total_revenue"] == 15_000_000
+    assert data["top_customers"][0]["customer_code"] == "KH14"
+    assert data["top_customers"][0]["order_count"] == 1
+
+
+@pytest.mark.ac("AC-DASH-055")
+def test_top_customers_no_padding_when_fewer_than_10(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    for i in range(3):
+        customer_id = insert_customer_for_dashboard(
+            db, code=f"KH3{i}", name=f"Khách ba {i}", created_by=people["NV001"]
+        )
+        insert_completed_order_for_customer(
+            db,
+            created_by=people["NV001"],
+            customer_id=customer_id,
+            total=(i + 1) * 500_000,
+            code=f"DH2609-THREE{i}",
+        )
+
+    tuan = client_as(app, TUAN)
+    data = body(tuan.get("/api/v1/dashboard"))
+    assert len(data["top_customers"]) == 3
+
+
+@pytest.mark.ac("AC-DASH-056")
+def test_feedback_summary_counts_by_rating_this_month(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    ratings = [5, 5, 5, 4, 4, 3, 2, 1, None, None]
+    for i, rating in enumerate(ratings):
+        insert_completed_order_for_customer(
+            db,
+            created_by=people["NV001"],
+            customer_id=None,
+            total=100_000,
+            code=f"DH2609-FB{i:02d}",
+            csat_rating=rating,
+        )
+
+    lan = client_as(app, LAN_CSK)
+    data = body(lan.get("/api/v1/dashboard"))
+    assert data["feedback_summary"] == {"5": 3, "4": 2, "3": 1, "2": 1, "1": 1, "none": 2}
+
+
+@pytest.mark.ac("AC-DASH-057")
+def test_technician_only_has_no_customer_sections(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    duc = client_as(app, DUC)
+    data = body(duc.get("/api/v1/dashboard"))
+    assert "top_customers" not in data
+    assert "feedback_summary" not in data
+
+
+@pytest.mark.ac("AC-DASH-054")
+def test_top_customers_excludes_other_month_and_non_completed(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    """Review finding (test-auditor): §8 spec yêu cầu chỉ tính đơn COMPLETED trong tháng hiện
+    tại — thêm 1 đơn tháng trước (completed_at tháng 8) và 1 đơn DRAFT (chưa completed_at), cả 2
+    có `total` rất lớn, để lộ nếu bộ lọc ngày/`status` bị gỡ bỏ."""
+    customer_id = insert_customer_for_dashboard(
+        db, code="KH99", name="Khách tháng trước", created_by=people["NV001"]
+    )
+    insert_completed_order_for_customer(
+        db,
+        created_by=people["NV001"],
+        customer_id=customer_id,
+        total=99_000_000,
+        code="DH2608-LASTMONTH",
+        completed_at=datetime(2026, 8, 20, 3, 0, tzinfo=UTC),
+    )
+    draft_customer_id = insert_customer_for_dashboard(
+        db, code="KH98", name="Khách đơn nháp", created_by=people["NV001"]
+    )
+    draft_order_id = uuid.uuid4()
+    db.execute(
+        text(
+            "INSERT INTO orders (id, code, status, created_by, customer_id, service_address,"
+            " work_description, priority, version, total)"
+            " VALUES (:id, 'DH2609-DRAFT', 'DRAFT', :created_by, :customer_id, '12 Lê Lợi, Q1',"
+            " 'Lắp đặt', 'NORMAL', 1, :total)"
+        ),
+        {
+            "id": draft_order_id,
+            "created_by": people["NV001"],
+            "customer_id": draft_customer_id,
+            "total": 98_000_000,
+        },
+    )
+    insert_completed_order_for_customer(
+        db, created_by=people["NV001"], customer_id=customer_id, total=1_000_000, code="DH2609-REAL"
+    )
+
+    an = client_as(app, AN)
+    data = body(an.get("/api/v1/dashboard"))
+
+    rows_by_code = {row["customer_code"]: row for row in data["top_customers"]}
+    assert "KH98" not in rows_by_code  # đơn DRAFT không tính
+    assert rows_by_code["KH99"]["total_revenue"] == 1_000_000  # chỉ đơn tháng này, bỏ đơn tháng 8
+
+
+@pytest.mark.ac("AC-DASH-054")
+def test_top_customers_excludes_guest_orders_without_customer(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    """Review finding (test-auditor): §8 spec — đơn không có customer_id (khách lẻ) không tính
+    vào top_customers; chưa có test nào xác nhận việc loại trừ cho top_customers (AC-DASH-056
+    chỉ kiểm feedback_summary)."""
+    insert_completed_order_for_customer(
+        db, created_by=people["NV001"], customer_id=None, total=999_000_000, code="DH2609-GUEST"
+    )
+    customer_id = insert_customer_for_dashboard(
+        db, code="KH97", name="Khách có mã", created_by=people["NV001"]
+    )
+    insert_completed_order_for_customer(
+        db, created_by=people["NV001"], customer_id=customer_id, total=1_000_000, code="DH2609-NAMED"
+    )
+
+    an = client_as(app, AN)
+    data = body(an.get("/api/v1/dashboard"))
+
+    assert len(data["top_customers"]) == 1
+    assert data["top_customers"][0]["customer_code"] == "KH97"
+    assert sum(row["total_revenue"] for row in data["top_customers"]) < 999_000_000

@@ -8,11 +8,13 @@ import { useMe } from "../../me/api";
 import { useDashboard } from "../api";
 import { DashboardSkeleton } from "../components/DashboardSkeleton";
 import { DispatchSummarySection } from "../components/DispatchSummarySection";
+import { FeedbackSummarySection } from "../components/FeedbackSummarySection";
 import { MyTaskSummarySection } from "../components/MyTaskSummarySection";
 import { OrderSummarySection } from "../components/OrderSummarySection";
 import { StaffSummarySection } from "../components/StaffSummarySection";
 import { TaskSummarySection } from "../components/TaskSummarySection";
 import { TodayTasksSection } from "../components/TodayTasksSection";
+import { TopCustomersSection } from "../components/TopCustomersSection";
 
 /** AC-DASH-001…015 (M7-02): trang "/" — dashboard thật theo (các) vai trò, thay `HomePage` cũ. */
 export function DashboardPage() {
@@ -93,6 +95,14 @@ export function DashboardPage() {
         />
       ) : null}
       {data.my_task_summary ? <MyTaskSummarySection summary={data.my_task_summary} /> : null}
+      {data.top_customers || data.feedback_summary ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {data.top_customers ? <TopCustomersSection items={data.top_customers} /> : null}
+          {data.feedback_summary ? (
+            <FeedbackSummarySection summary={data.feedback_summary} />
+          ) : null}
+        </div>
+      ) : null}
       {data.today_tasks ? <TodayTasksSection items={data.today_tasks} /> : null}
     </div>
   );

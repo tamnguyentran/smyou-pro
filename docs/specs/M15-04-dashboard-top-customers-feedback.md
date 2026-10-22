@@ -1,6 +1,6 @@
 # M15-04 — Dashboard: Top 10 khách hàng & tổng hợp đánh giá KH
 
-- **Status:** Draft
+- **Status:** Approved (2026-10-22, chốt Q94 — xem mục 8)
 - **Backlog:** M15-04 · **Milestone:** M15
 - **Liên quan:** `docs/specs/M7-02-role-dashboard.md` (`GET /api/v1/dashboard`, cấu trúc section theo vai trò); M15-01 (role `CUSTOMER_CARE`); M15-02a (`csat_rating`); `spec/permissions.yaml#dashboard.read`
 
@@ -45,5 +45,5 @@ Không có (dùng lại `orders.total`, `orders.csat_rating` đã có từ M15-0
 3. Đăng nhập Kỹ thuật viên thuần → không thấy 2 khối này.
 
 ## 8. Giả định & câu hỏi
-- Giả định: "doanh thu" dùng cho Top 10 = tổng `total` (đã gồm VAT) của đơn `COMPLETED` trong **tháng hiện tại** theo giờ Việt Nam — không gộp đơn tháng trước, không trừ giá vốn (khác "lợi nhuận" ở báo cáo M15-09/10). → ghi vào `OPEN_QUESTIONS.md`: Top 10 nên tính theo tháng hiện tại (khớp cách nói "Tổng quan" luôn phản ánh hiện tại, giống `order_summary`), theo khoảng ngày tuỳ chọn (cần thêm bộ lọc), hay lũy kế toàn thời gian? Mặc định chọn "tháng hiện tại" cho nhất quán với cách Dashboard hiện tại không có bộ lọc ngày.
+- Q94 (đã chốt 2026-10-22, `docs/product/OPEN_QUESTIONS_ARCHIVE.md`): giữ đúng mặc định — "doanh thu" dùng cho Top 10 = tổng `total` (đã gồm VAT) của đơn `COMPLETED` trong **tháng hiện tại** theo giờ Việt Nam, không có bộ lọc ngày ở Tổng quan, không trừ giá vốn.
 - Giả định: khách lẻ (đơn không có `customer_id`) không được tính vào `top_customers` (không có "khách hàng" để nhóm theo).

@@ -19,6 +19,15 @@ const DUC: Person = {
   capabilities: { "dashboard.read": ["self"] },
 };
 
+const lanCskId = "a0000000-0000-4000-8000-000000000090";
+const LAN_CSK: Person = {
+  code: "NV021",
+  full_name: "Đỗ Thị Lan CSKH",
+  email: "lan.csk@smyou.vn",
+  roles: ["CUSTOMER_CARE"],
+  capabilities: { "dashboard.read": ["all"] },
+};
+
 function mobile() {
   vi.stubGlobal(
     "matchMedia",
@@ -738,5 +747,67 @@ describe("Tổng quan", () => {
       "/dispatch/board?status=PENDING_ACCEPTANCE",
     );
     expect(within(pendingAcceptanceLink).getByText("0")).toBeInTheDocument();
+  });
+
+  const TOP_CUSTOMERS = [
+    {
+      customer_id: "e0000000-0000-4000-8000-000000000001",
+      customer_code: "KH001",
+      customer_name: "Cty TNHH Phát Đạt",
+      order_count: 3,
+      total_revenue: 15_000_000,
+    },
+    {
+      customer_id: "e0000000-0000-4000-8000-000000000002",
+      customer_code: "KH002",
+      customer_name: "Cty Sáng Tạo Mới",
+      order_count: 1,
+      total_revenue: 5_000_000,
+    },
+  ];
+  const FEEDBACK_SUMMARY = { "5": 3, "4": 2, "3": 1, "2": 1, "1": 1, none: 2 };
+
+  test("AC-DASH-058 desktop 1440px: An (MANAGER) thấy bảng Top 10 khách hàng + 5 thẻ sao có màu đúng mức", async () => {
+    signedInAs("an-id", AN);
+    mockDashboard({ top_customers: TOP_CUSTOMERS, feedback_summary: FEEDBACK_SUMMARY });
+    renderApp("/");
+
+    await screen.findByText("Top 10 khách hàng (tháng này)");
+    const table = screen.getByRole("table");
+    expect(within(table).getByText("KH001")).toBeInTheDocument();
+    expect(within(table).getByText("Cty TNHH Phát Đạt")).toBeInTheDocument();
+    expect(within(table).getByText("15.000.000 ₫")).toBeInTheDocument();
+
+    await screen.findByText("Phản hồi – đánh giá từ khách hàng (tháng này)");
+    const fiveStarTile = screen.getByText("5★").closest("div") as HTMLElement;
+    expect(fiveStarTile.className).toContain("completed");
+    const threeStarTile = screen.getByText("3★").closest("div") as HTMLElement;
+    expect(threeStarTile.className).toContain("review");
+    const oneStarTile = screen.getByText("1★").closest("div") as HTMLElement;
+    expect(oneStarTile.className).toContain("urgent");
+    expect(screen.queryByText(/chưa đánh giá/i)).not.toBeInTheDocument();
+
+    // AC-DASH-058: 2 khối "cạnh" nhau ở desktop — khác AC-DASH-059 (mobile xếp dọc) — cùng 1
+    // container lưới 2 cột từ `lg:` trở lên.
+    const topHeading = screen.getByText("Top 10 khách hàng (tháng này)");
+    const feedbackHeading = screen.getByText("Phản hồi – đánh giá từ khách hàng (tháng này)");
+    expect(topHeading.closest("section")?.parentElement).toBe(
+      feedbackHeading.closest("section")?.parentElement,
+    );
+    expect(topHeading.closest("section")?.parentElement?.className).toContain("lg:grid-cols-2");
+  });
+
+  test("AC-DASH-059 mobile 390px: Lan (CUSTOMER_CARE) thấy 2 khối xếp dọc, Top 10 là thẻ không phải bảng", async () => {
+    mobile();
+    signedInAs(lanCskId, LAN_CSK);
+    mockDashboard({ top_customers: TOP_CUSTOMERS, feedback_summary: FEEDBACK_SUMMARY });
+    renderApp("/");
+
+    await screen.findByText("Top 10 khách hàng (tháng này)");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByText("KH001")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Phản hồi – đánh giá từ khách hàng (tháng này)"),
+    ).toBeInTheDocument();
   });
 });

@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.core.authz import Actor
 from app.modules.assignments.schemas import MyAssignmentOut
+from app.modules.customers.models import Customer
 from app.modules.dashboard.schemas import (
     DashboardOut,
     DispatchSummaryOut,
@@ -26,11 +27,14 @@ from app.modules.dashboard.schemas import (
     StaffSummaryOut,
     TaskStatusCounts,
     TaskSummaryOut,
+    TopCustomerOut,
 )
 from app.modules.dispatch.models import OPEN_TASK_STATUSES_EXCLUDE, TASK_STATUSES, Assignment, Task
 from app.modules.identity.models import Employee, EmployeeRole
 from app.modules.orders.models import STATUSES as ORDER_STATUSES
 from app.modules.orders.models import Order
+
+_DASHBOARD_ROLES_FOR_CUSTOMER_SECTIONS = {"MANAGER", "TECH_LEAD", "SALE", "CUSTOMER_CARE"}
 
 VIETNAM = ZoneInfo("Asia/Ho_Chi_Minh")
 
@@ -287,6 +291,68 @@ def _my_task_summary(session: Session, actor: Actor, *, now: datetime) -> MyTask
     )
 
 
+def _current_month_vn_bounds(now: datetime) -> tuple[datetime, datetime]:
+    today_vn = now.astimezone(VIETNAM).date()
+    month_start = today_vn.replace(day=1)
+    return _vn_day_start_utc(month_start), _vn_day_start_utc(today_vn + timedelta(days=1))
+
+
+def _top_customers(session: Session, *, now: datetime) -> list[TopCustomerOut]:
+    """M15-04 (AC-DASH-054/055, Q94): company-wide — không áp `apply_scope`/scope riêng cho
+    actor, khác mọi section khác của dashboard. Đơn không có `customer_id` (khách lẻ) bị loại
+    vì không có khách hàng ổn định để nhóm theo (spec §8)."""
+    month_start, month_end = _current_month_vn_bounds(now)
+    rows = session.execute(
+        select(
+            Customer.id,
+            Customer.code,
+            Customer.name,
+            func.count(Order.id),
+            func.sum(Order.total),
+        )
+        .join(Customer, Customer.id == Order.customer_id)
+        .where(
+            Order.status == "COMPLETED",
+            Order.completed_at >= month_start,
+            Order.completed_at < month_end,
+        )
+        .group_by(Customer.id, Customer.code, Customer.name)
+        .order_by(func.sum(Order.total).desc())
+        .limit(10)
+    ).all()
+    return [
+        TopCustomerOut(
+            customer_id=customer_id,
+            customer_code=code,
+            customer_name=name,
+            order_count=order_count,
+            total_revenue=total_revenue,
+        )
+        for customer_id, code, name, order_count, total_revenue in rows
+    ]
+
+
+def _feedback_summary(session: Session, *, now: datetime) -> dict[str, int]:
+    """M15-04 (AC-DASH-056): cùng logic tháng hiện tại/`completed_at` của
+    `orders.service.get_csat_summary` (M15-02a), nhưng company-wide — không gọi lại hàm đó vì
+    nó áp `apply_scope` theo capability `customer_care.manage_feedback` của actor gọi, không
+    đúng với actor bất kỳ có `dashboard.read` (spec §8: không trừ giá vốn, không scope)."""
+    month_start, month_end = _current_month_vn_bounds(now)
+    query = (
+        select(Order.csat_rating, func.count())
+        .where(
+            Order.status == "COMPLETED",
+            Order.completed_at >= month_start,
+            Order.completed_at < month_end,
+        )
+        .group_by(Order.csat_rating)
+    )
+    counts = {"5": 0, "4": 0, "3": 0, "2": 0, "1": 0, "none": 0}
+    for rating, count in session.execute(query).all():
+        counts[str(rating) if rating is not None else "none"] = count
+    return counts
+
+
 def get_dashboard(session: Session, actor: Actor, *, now: datetime) -> DashboardOut:
     roles = actor.roles
     out = DashboardOut()
@@ -300,4 +366,7 @@ def get_dashboard(session: Session, actor: Actor, *, now: datetime) -> Dashboard
     if "TECHNICIAN" in roles:
         out.my_task_summary = _my_task_summary(session, actor, now=now)
         out.today_tasks = _today_tasks(session, actor, now=now)
+    if roles & _DASHBOARD_ROLES_FOR_CUSTOMER_SECTIONS:
+        out.top_customers = _top_customers(session, now=now)
+        out.feedback_summary = _feedback_summary(session, now=now)
     return out

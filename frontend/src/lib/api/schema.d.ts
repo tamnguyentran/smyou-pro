@@ -1574,12 +1574,18 @@ export interface components {
     /** DashboardOut */
     DashboardOut: {
       dispatch_summary?: components["schemas"]["DispatchSummaryOut"] | null;
+      /** Feedback Summary */
+      feedback_summary?: {
+        [key: string]: number;
+      } | null;
       my_task_summary?: components["schemas"]["MyTaskSummaryOut"] | null;
       order_summary?: components["schemas"]["OrderSummaryOut"] | null;
       staff_summary?: components["schemas"]["StaffSummaryOut"] | null;
       task_summary?: components["schemas"]["TaskSummaryOut"] | null;
       /** Today Tasks */
       today_tasks?: components["schemas"]["MyAssignmentOut"][] | null;
+      /** Top Customers */
+      top_customers?: components["schemas"]["TopCustomerOut"][] | null;
     };
     /** DispatchSummaryOut */
     DispatchSummaryOut: {
@@ -2943,6 +2949,22 @@ export interface components {
       title?: string | null;
       /** Version */
       version: number;
+    };
+    /** TopCustomerOut */
+    TopCustomerOut: {
+      /** Customer Code */
+      customer_code: string;
+      /**
+       * Customer Id
+       * Format: uuid
+       */
+      customer_id: string;
+      /** Customer Name */
+      customer_name: string;
+      /** Order Count */
+      order_count: number;
+      /** Total Revenue */
+      total_revenue: number;
     };
     /** UnreadCount */
     UnreadCount: {

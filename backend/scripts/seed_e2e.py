@@ -395,6 +395,28 @@ def main() -> int:
             reopen_order.status = "REVISION"
             reopen_order.revision_no = 1
             upsert_task_assignment(reopen_order, task_code, "DONE", "DONE", "1.0", -1)
+
+        # M15-04: Tổng quan — Top 10 khách hàng + tổng hợp đánh giá cần ≥1 đơn COMPLETED có
+        # customer_id + csat_rating trong tháng hiện tại (giờ thật lúc `make e2e` chạy, không
+        # phải FakeClock — khác integration test). Gắn vào khách hàng E2E-KH-001 đã seed sẵn.
+        e2e_kh_001_id = session.scalars(select(Customer.id).where(Customer.code == "E2E-KH-001")).one()
+        dashboard_order = session.scalars(select(Order).where(Order.code == "E2E-DH-M1504A")).one_or_none()
+        if dashboard_order is None:
+            dashboard_order = Order(
+                code="E2E-DH-M1504A",
+                status="COMPLETED",
+                customer_id=e2e_kh_001_id,
+                customer_name="Cty Sáng Tạo Mới E2E",
+                customer_phone="0909123456",
+                service_address="10 Nguyễn Huệ, P. Bến Nghé, Q.1, TP.HCM",
+                created_by=creator_id,
+            )
+            session.add(dashboard_order)
+        dashboard_order.status = "COMPLETED"
+        dashboard_order.customer_id = e2e_kh_001_id
+        dashboard_order.total = 12_000_000
+        dashboard_order.completed_at = now
+        dashboard_order.csat_rating = 5
     sys.stdout.write(
         f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products, {len(SERVICES)} E2E services,"
         f" {len(CUSTOMERS)} E2E customers, {len(MY_TASKS)} E2E my-tasks assignments\n"
