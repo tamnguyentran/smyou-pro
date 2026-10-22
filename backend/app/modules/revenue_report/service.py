@@ -1,6 +1,6 @@
 """`GET /api/v1/reports/revenue-by-customer`, `/{customer_id}/orders`, `/export` (M15-09a).
 
-Doanh thu nhóm theo (khách hàng × người bán) trong khoảng ngày; `own` = `orders.created_by`
+Doanh thu nhóm theo (khách hàng x người bán) trong khoảng ngày; `own` = `orders.created_by`
 (Q88/Q96, `docs/product/OPEN_QUESTIONS_ARCHIVE.md`). Biên ngày quy đổi theo giờ Việt Nam, cùng
 mẫu `_vn_day_start_utc` ở `kpi/service.py` (M8-01a)/`dashboard/service.py` (M7-02).
 """
@@ -8,6 +8,7 @@ mẫu `_vn_day_start_utc` ở `kpi/service.py` (M8-01a)/`dashboard/service.py` (
 import csv
 import io
 import uuid
+from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from zoneinfo import ZoneInfo
@@ -27,6 +28,15 @@ VIETNAM = ZoneInfo("Asia/Ho_Chi_Minh")
 NOT_COMPLETED_STATUSES = ("PENDING_DISPATCH", "IN_PROGRESS", "AWAITING_CONFIRMATION", "REVISION")
 
 RULES: ScopeRules = {"own": lambda actor: Order.created_by == actor.id}
+
+
+@dataclass
+class _Group:
+    order_count: int = 0
+    subtotal_revenue: int = 0
+    profit: int = 0
+    has_null: bool = False
+
 
 _CSV_HEADER = [
     "Mã khách hàng",
@@ -67,14 +77,12 @@ def _validate_range(date_from: date, date_to: date) -> None:
         )
 
 
-def _status_filter(status: str) -> tuple[tuple[str, ...], object]:
-    if status == "NOT_COMPLETED":
-        return NOT_COMPLETED_STATUSES, Order.created_at
-    return ("COMPLETED",), Order.completed_at
+def _statuses(status: str) -> tuple[str, ...]:
+    return NOT_COMPLETED_STATUSES if status == "NOT_COMPLETED" else ("COMPLETED",)
 
 
 def _order_profits(session: Session, order_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
-    """Per-order profit = Σ(line_total − cost_price_snapshot×quantity); an order with any line
+    """Per-order profit = sum(line_total - cost_price_snapshot * quantity); an order with any line
     missing `cost_price_snapshot` (pre-M15-08) is left out of the result (AC-RPT-002: null, not 0)."""
     if not order_ids:
         return {}
@@ -110,16 +118,17 @@ def get_report(
     status: str,
 ) -> RevenueReportOut:
     _validate_range(date_from, date_to)
-    statuses, date_column = _status_filter(status)
+    statuses = _statuses(status)
     from_utc = _vn_day_start_utc(date_from)
     to_utc_exclusive = _vn_day_start_utc(date_to + timedelta(days=1))
 
     stmt = select(Order.id, Order.customer_id, Order.created_by, Order.total).where(
-        Order.status.in_(statuses),
-        Order.customer_id.isnot(None),
-        date_column >= from_utc,
-        date_column < to_utc_exclusive,
+        Order.status.in_(statuses), Order.customer_id.isnot(None)
     )
+    if status == "NOT_COMPLETED":
+        stmt = stmt.where(Order.created_at >= from_utc, Order.created_at < to_utc_exclusive)
+    else:
+        stmt = stmt.where(Order.completed_at >= from_utc, Order.completed_at < to_utc_exclusive)
     if customer_id is not None:
         stmt = stmt.where(Order.customer_id == customer_id)
     stmt = apply_scope(stmt, actor, RULES)
@@ -130,19 +139,17 @@ def get_report(
 
     order_profits = _order_profits(session, [row.id for row in orders])
 
-    groups: dict[tuple[uuid.UUID, uuid.UUID], dict[str, object]] = {}
+    groups: dict[tuple[uuid.UUID, uuid.UUID], _Group] = {}
     for row in orders:
         key = (row.customer_id, row.created_by)
-        group = groups.setdefault(
-            key, {"order_count": 0, "subtotal_revenue": 0, "profit": 0, "has_null": False}
-        )
-        group["order_count"] = group["order_count"] + 1
-        group["subtotal_revenue"] = group["subtotal_revenue"] + row.total
+        group = groups.setdefault(key, _Group())
+        group.order_count += 1
+        group.subtotal_revenue += row.total
         profit = order_profits.get(row.id)
         if profit is None:
-            group["has_null"] = True
+            group.has_null = True
         else:
-            group["profit"] = group["profit"] + profit
+            group.profit += profit
 
     customer_ids = {key[0] for key in groups}
     seller_ids = {key[1] for key in groups}
@@ -161,9 +168,9 @@ def get_report(
                 contact_person=customer.contact_person,
                 contact_phone=customer.phone,
                 seller=SellerOut(id=seller.id, code=seller.code, full_name=seller.full_name),
-                order_count=group["order_count"],
-                subtotal_revenue=group["subtotal_revenue"],
-                profit=None if group["has_null"] else group["profit"],
+                order_count=group.order_count,
+                subtotal_revenue=group.subtotal_revenue,
+                profit=None if group.has_null else group.profit,
             )
         )
     rows.sort(key=lambda r: (r.customer_code, r.seller.full_name))
@@ -187,16 +194,15 @@ def get_customer_orders(
         raise AppError(404, "NOT_FOUND", "Không tìm thấy tài nguyên.")
 
     _validate_range(date_from, date_to)
-    statuses, date_column = _status_filter(status)
+    statuses = _statuses(status)
     from_utc = _vn_day_start_utc(date_from)
     to_utc_exclusive = _vn_day_start_utc(date_to + timedelta(days=1))
 
-    stmt = select(Order).where(
-        Order.customer_id == customer_id,
-        Order.status.in_(statuses),
-        date_column >= from_utc,
-        date_column < to_utc_exclusive,
-    )
+    stmt = select(Order).where(Order.customer_id == customer_id, Order.status.in_(statuses))
+    if status == "NOT_COMPLETED":
+        stmt = stmt.where(Order.created_at >= from_utc, Order.created_at < to_utc_exclusive)
+    else:
+        stmt = stmt.where(Order.completed_at >= from_utc, Order.completed_at < to_utc_exclusive)
     if seller_id is not None:
         stmt = stmt.where(Order.created_by == seller_id)
     stmt = apply_scope(stmt, actor, RULES)

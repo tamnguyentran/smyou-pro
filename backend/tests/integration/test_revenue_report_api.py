@@ -117,7 +117,7 @@ def test_revenue_report_capability_declared() -> None:
     from app.main import create_app
 
     app = create_app()
-    routes = dict(((method, path), capability) for method, path, capability in declared_routes(app))
+    routes = {(method, path): capability for method, path, capability in declared_routes(app)}
     assert routes[("GET", "/api/v1/reports/revenue-by-customer")] == "report.revenue.read"
     assert (
         routes[("GET", "/api/v1/reports/revenue-by-customer/{customer_id}/orders")] == "report.revenue.read"
