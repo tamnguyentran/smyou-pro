@@ -1438,12 +1438,28 @@ export interface components {
       address?: string | null;
       /** Contact Person */
       contact_person?: string | null;
+      /** Date Of Birth */
+      date_of_birth?: string | null;
+      /** Director Name */
+      director_name?: string | null;
       /** Email */
       email?: string | null;
+      /** Founded Date */
+      founded_date?: string | null;
+      /** Gender */
+      gender?: ("MALE" | "FEMALE" | "OTHER") | null;
+      /** It Contact Email */
+      it_contact_email?: string | null;
+      /** It Contact Name */
+      it_contact_name?: string | null;
+      /** It Contact Phone */
+      it_contact_phone?: string | null;
       /** Name */
       name: string;
       /** Note */
       note?: string | null;
+      /** Occupation */
+      occupation?: string | null;
       /** Phone */
       phone: string;
       /** Tax Code */
@@ -1484,17 +1500,33 @@ export interface components {
        * Format: uuid
        */
       created_by: string;
+      /** Date Of Birth */
+      date_of_birth: string | null;
+      /** Director Name */
+      director_name: string | null;
       /** Email */
       email: string | null;
+      /** Founded Date */
+      founded_date: string | null;
+      /** Gender */
+      gender: string | null;
       /**
        * Id
        * Format: uuid
        */
       id: string;
+      /** It Contact Email */
+      it_contact_email: string | null;
+      /** It Contact Name */
+      it_contact_name: string | null;
+      /** It Contact Phone */
+      it_contact_phone: string | null;
       /** Name */
       name: string;
       /** Note */
       note: string | null;
+      /** Occupation */
+      occupation: string | null;
       /** Phone */
       phone: string;
       /** Tax Code */
@@ -1521,18 +1553,32 @@ export interface components {
       address?: string | null;
       /** Contact Person */
       contact_person?: string | null;
+      /** Date Of Birth */
+      date_of_birth?: string | null;
+      /** Director Name */
+      director_name?: string | null;
       /** Email */
       email?: string | null;
+      /** Founded Date */
+      founded_date?: string | null;
+      /** Gender */
+      gender?: ("MALE" | "FEMALE" | "OTHER") | null;
+      /** It Contact Email */
+      it_contact_email?: string | null;
+      /** It Contact Name */
+      it_contact_name?: string | null;
+      /** It Contact Phone */
+      it_contact_phone?: string | null;
       /** Name */
       name?: string | null;
       /** Note */
       note?: string | null;
+      /** Occupation */
+      occupation?: string | null;
       /** Phone */
       phone?: string | null;
       /** Tax Code */
       tax_code?: string | null;
-      /** Type */
-      type?: ("COMPANY" | "INDIVIDUAL") | null;
       /** Version */
       version: number;
     };
@@ -1549,19 +1595,35 @@ export interface components {
        * Format: uuid
        */
       created_by: string;
+      /** Date Of Birth */
+      date_of_birth: string | null;
+      /** Director Name */
+      director_name: string | null;
       /** Duplicate Phone Matches */
       duplicate_phone_matches: components["schemas"]["CustomerMatchOut"][];
       /** Email */
       email: string | null;
+      /** Founded Date */
+      founded_date: string | null;
+      /** Gender */
+      gender: string | null;
       /**
        * Id
        * Format: uuid
        */
       id: string;
+      /** It Contact Email */
+      it_contact_email: string | null;
+      /** It Contact Name */
+      it_contact_name: string | null;
+      /** It Contact Phone */
+      it_contact_phone: string | null;
       /** Name */
       name: string;
       /** Note */
       note: string | null;
+      /** Occupation */
+      occupation: string | null;
       /** Phone */
       phone: string;
       /** Tax Code */

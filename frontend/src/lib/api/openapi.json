@@ -387,6 +387,30 @@
             ],
             "title": "Contact Person"
           },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
+          "director_name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Director Name"
+          },
           "email": {
             "anyOf": [
               {
@@ -399,6 +423,66 @@
               }
             ],
             "title": "Email"
+          },
+          "founded_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Founded Date"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "enum": ["MALE", "FEMALE", "OTHER"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "it_contact_email": {
+            "anyOf": [
+              {
+                "maxLength": 254,
+                "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "It Contact Email"
+          },
+          "it_contact_name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "It Contact Name"
+          },
+          "it_contact_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "It Contact Phone"
           },
           "name": {
             "maxLength": 255,
@@ -416,6 +500,18 @@
               }
             ],
             "title": "Note"
+          },
+          "occupation": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occupation"
           },
           "phone": {
             "title": "Phone",
@@ -501,6 +597,29 @@
             "title": "Created By",
             "type": "string"
           },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
+          "director_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Director Name"
+          },
           "email": {
             "anyOf": [
               {
@@ -512,10 +631,66 @@
             ],
             "title": "Email"
           },
+          "founded_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Founded Date"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "it_contact_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "It Contact Email"
+          },
+          "it_contact_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "It Contact Name"
+          },
+          "it_contact_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "It Contact Phone"
           },
           "name": {
             "title": "Name",
@@ -531,6 +706,17 @@
               }
             ],
             "title": "Note"
+          },
+          "occupation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occupation"
           },
           "phone": {
             "title": "Phone",
@@ -567,6 +753,14 @@
           "tax_code",
           "address",
           "note",
+          "founded_date",
+          "director_name",
+          "it_contact_name",
+          "it_contact_phone",
+          "it_contact_email",
+          "date_of_birth",
+          "gender",
+          "occupation",
           "created_by",
           "version"
         ],
@@ -625,6 +819,30 @@
             ],
             "title": "Contact Person"
           },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
+          "director_name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Director Name"
+          },
           "email": {
             "anyOf": [
               {
@@ -637,6 +855,66 @@
               }
             ],
             "title": "Email"
+          },
+          "founded_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Founded Date"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "enum": ["MALE", "FEMALE", "OTHER"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "it_contact_email": {
+            "anyOf": [
+              {
+                "maxLength": 254,
+                "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "It Contact Email"
+          },
+          "it_contact_name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "It Contact Name"
+          },
+          "it_contact_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "It Contact Phone"
           },
           "name": {
             "anyOf": [
@@ -662,6 +940,18 @@
             ],
             "title": "Note"
           },
+          "occupation": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occupation"
+          },
           "phone": {
             "anyOf": [
               {
@@ -684,18 +974,6 @@
               }
             ],
             "title": "Tax Code"
-          },
-          "type": {
-            "anyOf": [
-              {
-                "enum": ["COMPANY", "INDIVIDUAL"],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Type"
           },
           "version": {
             "title": "Version",
@@ -739,6 +1017,29 @@
             "title": "Created By",
             "type": "string"
           },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
+          "director_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Director Name"
+          },
           "duplicate_phone_matches": {
             "items": {
               "$ref": "#/components/schemas/CustomerMatchOut"
@@ -757,10 +1058,66 @@
             ],
             "title": "Email"
           },
+          "founded_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Founded Date"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "it_contact_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "It Contact Email"
+          },
+          "it_contact_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "It Contact Name"
+          },
+          "it_contact_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "It Contact Phone"
           },
           "name": {
             "title": "Name",
@@ -776,6 +1133,17 @@
               }
             ],
             "title": "Note"
+          },
+          "occupation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occupation"
           },
           "phone": {
             "title": "Phone",
@@ -812,6 +1180,14 @@
           "tax_code",
           "address",
           "note",
+          "founded_date",
+          "director_name",
+          "it_contact_name",
+          "it_contact_phone",
+          "it_contact_email",
+          "date_of_birth",
+          "gender",
+          "occupation",
           "created_by",
           "version",
           "duplicate_phone_matches"
