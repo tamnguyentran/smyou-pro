@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Daily backup, run by cron ON THE SERVER (no SSH): pg_dump + tar the uploads volume,
-# keep the 14 newest of each, optionally copy out via rclone (DEPLOYMENT.md §7).
+# keep the 2 newest of each, optionally copy out via rclone (DEPLOYMENT.md §7).
 # Env: BACKUP_DIR (default /opt/smyou/backups), COMPOSE_PROJECT (default smyou), RCLONE_REMOTE (optional).
 set -euo pipefail
 
 BACKUP_DIR="${BACKUP_DIR:-/opt/smyou/backups}"
 COMPOSE_PROJECT="${COMPOSE_PROJECT:-smyou}"
-KEEP=14
+KEEP=2
 
 mkdir -p "$BACKUP_DIR"
 

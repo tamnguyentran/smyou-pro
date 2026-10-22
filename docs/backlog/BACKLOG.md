@@ -21,7 +21,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 Mỗi spec đang **Draft**, có mục "8. Giả định & câu hỏi" ghi rõ giả định mặc định — vài điểm ảnh hưởng lớn (phạm vi xem báo cáo doanh thu của Sale/CSKH, cấu trúc "Phụ trách IT") đã đẩy sang `docs/product/OPEN_QUESTIONS.md` (Q86–Q89), cần chủ dự án chốt trước khi duyệt Approved.
 
 ## M14 — Vận hành / sửa đổi nhỏ (chưa bắt đầu)
-- `[ ]` M14-01 — Giảm số bản backup giữ lại từ 14 xuống **2 bản gần nhất** cho `db-*.dump`/`uploads-*.tar.gz` (`scripts/backup.sh`, `KEEP`) và cho image tag giữ trên Mac/server (xem `docs/architecture/DEPLOYMENT.md` §7.1). Quyết định của chủ dự án (2026-10-21). Phải sửa test `backend/tests/docker/test_backup_restore.py::test_backup_keeps_14_newest_per_type` trước (TDD), cập nhật spec `M9-02`, rồi mới đổi script.
+- `[R]` M14-01 — Giảm số bản backup giữ lại từ 14 xuống **2 bản gần nhất** cho `db-*.dump`/`uploads-*.tar.gz` (`scripts/backup.sh`, `KEEP`); image tag trên Mac/server giữ 2 bản đã là hướng dẫn thủ công có sẵn ở `docs/architecture/DEPLOYMENT.md` §7.1. Quyết định của chủ dự án (2026-10-21). Spec `M9-02` đã cập nhật.
 - `[x]` M14-02 — Mở rộng 3 điểm `notify_*` còn thiếu (quyết định chủ dự án 2026-10-21, `AC-NTF-003` sửa + `AC-NTF-049/050` mới): `order.start_dispatch` và `order.undispatch` (hệ thống) giờ báo cho **người tạo đơn + mọi TECH_LEAD active** (trước đó không báo ai); `order.complete` báo thêm **TECH_LEAD** (trước đó chỉ người tạo đơn). Sửa `spec/state_machines.yaml`, `backend/app/modules/notifications/service.py`, `backend/app/modules/orders/service.py#reevaluate_dispatch_state`; cập nhật `docs/specs/M7-01a-notifications-api.md` + `docs/product/WORKFLOWS.md` §5.1.
 
 ## Đã xong (tự động lưu trữ)
