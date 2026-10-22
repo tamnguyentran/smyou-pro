@@ -401,6 +401,8 @@ export function ProductFormSheet({
                 <Button
                   type="button"
                   variant="secondary"
+                  aria-expanded={showHistory}
+                  aria-controls="product-price-history"
                   onClick={() => {
                     setShowHistory((open) => !open);
                   }}
@@ -408,32 +410,43 @@ export function ProductFormSheet({
                   Lịch sử giá
                 </Button>
                 {showHistory ? (
-                  history.isLoading ? (
-                    <p className="text-sm text-muted">Đang tải…</p>
-                  ) : history.data && history.data.length > 0 ? (
-                    <ul className="space-y-3">
-                      {history.data.map((row, index) => (
-                        <li key={index} className="space-y-1 rounded-xl bg-sidebar-sub p-3 text-sm">
-                          <div className="flex justify-between gap-2 text-muted">
-                            <span>{row.changed_by?.full_name ?? "—"}</span>
-                            <span>{formatDateTime(row.changed_at)}</span>
-                          </div>
-                          <p className="text-body">
-                            Giá bán: {formatCurrency(row.old_price)} →{" "}
-                            {formatCurrency(row.new_price)}
-                          </p>
-                          <p className="text-body">
-                            Giá vốn:{" "}
-                            {row.old_cost_price != null ? formatCurrency(row.old_cost_price) : "—"}{" "}
-                            →{" "}
-                            {row.new_cost_price != null ? formatCurrency(row.new_cost_price) : "—"}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-muted">Chưa có lần sửa giá nào.</p>
-                  )
+                  <div id="product-price-history">
+                    {history.isLoading ? (
+                      <p className="text-sm text-muted">Đang tải…</p>
+                    ) : history.isError ? (
+                      <Alert>Không tải được lịch sử giá.</Alert>
+                    ) : history.data && history.data.length > 0 ? (
+                      <ul className="space-y-3">
+                        {history.data.map((row, index) => (
+                          <li
+                            key={index}
+                            className="space-y-1 rounded-xl bg-sidebar-sub p-3 text-sm"
+                          >
+                            <div className="flex justify-between gap-2 text-muted">
+                              <span>{row.changed_by?.full_name ?? "—"}</span>
+                              <span>{formatDateTime(row.changed_at)}</span>
+                            </div>
+                            <p className="text-body">
+                              Giá bán: {formatCurrency(row.old_price)} →{" "}
+                              {formatCurrency(row.new_price)}
+                            </p>
+                            <p className="text-body">
+                              Giá vốn:{" "}
+                              {row.old_cost_price != null
+                                ? formatCurrency(row.old_cost_price)
+                                : "—"}{" "}
+                              →{" "}
+                              {row.new_cost_price != null
+                                ? formatCurrency(row.new_cost_price)
+                                : "—"}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted">Chưa có lần sửa giá nào.</p>
+                    )}
+                  </div>
                 ) : null}
               </div>
             ) : null}
