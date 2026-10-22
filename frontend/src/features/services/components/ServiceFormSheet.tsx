@@ -10,12 +10,14 @@ import { Sheet } from "../../../components/ui/Sheet";
 import { Textarea } from "../../../components/ui/Textarea";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
+import { formatDateTime } from "../../../lib/format";
 import { ApiError, formError } from "../../auth/errors";
 import {
   SERVICES_KEY,
   useActivateService,
   useCreateService,
   useDeactivateService,
+  useServicePriceHistory,
   useUpdateService,
   type Service,
   type ServiceCreateBody,
@@ -79,6 +81,8 @@ export function ServiceFormSheet({
   const [showReload, setShowReload] = useState(false);
   const [confirming, setConfirming] = useState<ConfirmKind>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const history = useServicePriceHistory(service?.id ?? "", showHistory && service !== undefined);
 
   const { register, handleSubmit, formState, control } = useForm<ServiceFormValues>({
     resolver: zodResolver(
@@ -364,6 +368,61 @@ export function ServiceFormSheet({
                     Mở lại kinh doanh
                   </Button>
                 )}
+              </div>
+            ) : null}
+
+            {service && canManage ? (
+              <div className="space-y-3 border-t border-line pt-4">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  aria-expanded={showHistory}
+                  aria-controls="service-price-history"
+                  onClick={() => {
+                    setShowHistory((open) => !open);
+                  }}
+                >
+                  Lịch sử giá
+                </Button>
+                {showHistory ? (
+                  <div id="service-price-history">
+                    {history.isLoading ? (
+                      <p className="text-sm text-muted">Đang tải…</p>
+                    ) : history.isError ? (
+                      <Alert>Không tải được lịch sử giá.</Alert>
+                    ) : history.data && history.data.length > 0 ? (
+                      <ul className="space-y-3">
+                        {history.data.map((row, index) => (
+                          <li
+                            key={index}
+                            className="space-y-1 rounded-xl bg-sidebar-sub p-3 text-sm"
+                          >
+                            <div className="flex justify-between gap-2 text-muted">
+                              <span>{row.changed_by?.full_name ?? "—"}</span>
+                              <span>{formatDateTime(row.changed_at)}</span>
+                            </div>
+                            <p className="text-body">
+                              Giá bán: {formatServicePrice(row.old_price)} →{" "}
+                              {formatServicePrice(row.new_price)}
+                            </p>
+                            <p className="text-body">
+                              Giá vốn:{" "}
+                              {row.old_cost_price != null
+                                ? formatServicePrice(row.old_cost_price)
+                                : "—"}{" "}
+                              →{" "}
+                              {row.new_cost_price != null
+                                ? formatServicePrice(row.new_cost_price)
+                                : "—"}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted">Chưa có lần sửa giá nào.</p>
+                    )}
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </form>

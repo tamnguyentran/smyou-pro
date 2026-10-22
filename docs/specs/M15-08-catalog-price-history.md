@@ -1,6 +1,6 @@
 # M15-08 — Lịch sử thay đổi giá bán/giá vốn + snapshot giá vốn trên dòng hàng
 
-- **Status:** Draft
+- **Status:** Done
 - **Backlog:** M15-08 · **Milestone:** M15
 - **Liên quan:** M15-07 (`cost_price`); `docs/product/DOMAIN_MODEL.md` §2–3 (Product/Service), §6 (`order_lines`, các cột `*_snapshot` hiện có)
 

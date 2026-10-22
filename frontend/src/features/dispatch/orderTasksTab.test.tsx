@@ -41,6 +41,7 @@ const PRODUCT_LINE: OrderLineOut = {
   quantity: "1",
   unit_price: 3000000,
   catalog_price_snapshot: 3000000,
+  cost_price_snapshot: null,
   price_fixed: false,
   vat_rate: "10",
   line_discount: 0,

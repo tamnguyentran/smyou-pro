@@ -3101,6 +3101,17 @@
             ],
             "title": "Catalog Price Snapshot"
           },
+          "cost_price_snapshot": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Price Snapshot"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -3241,6 +3252,7 @@
           "specs_snapshot",
           "warranty_months_snapshot",
           "catalog_price_snapshot",
+          "cost_price_snapshot",
           "price_fixed",
           "vat_rate",
           "quantity",
@@ -3789,6 +3801,65 @@
         },
         "required": ["version"],
         "title": "OrderUpdate",
+        "type": "object"
+      },
+      "PriceHistoryOut": {
+        "properties": {
+          "changed_at": {
+            "format": "date-time",
+            "title": "Changed At",
+            "type": "string"
+          },
+          "changed_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActorSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "new_cost_price": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Cost Price"
+          },
+          "new_price": {
+            "title": "New Price",
+            "type": "integer"
+          },
+          "old_cost_price": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old Cost Price"
+          },
+          "old_price": {
+            "title": "Old Price",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "changed_at",
+          "changed_by",
+          "old_price",
+          "new_price",
+          "old_cost_price",
+          "new_cost_price"
+        ],
+        "title": "PriceHistoryOut",
         "type": "object"
       },
       "ProductCreate": {
@@ -9513,6 +9584,54 @@
         "tags": ["products"]
       }
     },
+    "/api/v1/products/{product_id}/price-history": {
+      "get": {
+        "operationId": "products_price_history",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Product Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PriceHistoryOut"
+                  },
+                  "title": "Response Products Price History",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lịch sử giá bán/giá vốn",
+        "tags": ["products"]
+      }
+    },
     "/api/v1/services": {
       "get": {
         "operationId": "services_list",
@@ -9967,6 +10086,54 @@
           }
         },
         "summary": "Ngừng kinh doanh",
+        "tags": ["services"]
+      }
+    },
+    "/api/v1/services/{service_id}/price-history": {
+      "get": {
+        "operationId": "services_price_history",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PriceHistoryOut"
+                  },
+                  "title": "Response Services Price History",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lịch sử giá bán/giá vốn",
         "tags": ["services"]
       }
     },

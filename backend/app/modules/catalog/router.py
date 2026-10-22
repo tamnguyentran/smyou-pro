@@ -19,6 +19,7 @@ from app.modules.catalog.schemas import (
     ImageUploaded,
     ImportCommitResult,
     ImportPreview,
+    PriceHistoryOut,
     ProductCreate,
     ProductOut,
     ProductPage,
@@ -81,6 +82,19 @@ def list_products(
 )
 def get_product(product_id: uuid.UUID, session: DbSession, actor: Reader) -> ProductOut:
     return service.get_product(session, actor, product_id)
+
+
+@router.get(
+    "/{product_id}/price-history",
+    operation_id="products_price_history",
+    summary="Lịch sử giá bán/giá vốn",
+    response_model=list[PriceHistoryOut],
+    responses=_docs(NOT_FOUND),
+)
+def get_product_price_history(
+    product_id: uuid.UUID, session: DbSession, actor: Manager
+) -> list[PriceHistoryOut]:
+    return service.list_product_price_history(session, actor, product_id)
 
 
 @router.post(
@@ -230,6 +244,19 @@ def list_services(
 )
 def get_service(service_id: uuid.UUID, session: DbSession, actor: Reader) -> ServiceOut:
     return service.get_service(session, actor, service_id)
+
+
+@services_router.get(
+    "/{service_id}/price-history",
+    operation_id="services_price_history",
+    summary="Lịch sử giá bán/giá vốn",
+    response_model=list[PriceHistoryOut],
+    responses=_docs(NOT_FOUND),
+)
+def get_service_price_history(
+    service_id: uuid.UUID, session: DbSession, actor: Manager
+) -> list[PriceHistoryOut]:
+    return service.list_service_price_history(session, actor, service_id)
 
 
 @services_router.post(

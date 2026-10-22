@@ -174,6 +174,7 @@ function orderLine(overrides: Partial<OrderLine> = {}): OrderLine {
     specs_snapshot: null,
     warranty_months_snapshot: 24,
     catalog_price_snapshot: 2_500_000,
+    cost_price_snapshot: null,
     price_fixed: true,
     vat_rate: "8",
     quantity: "1",

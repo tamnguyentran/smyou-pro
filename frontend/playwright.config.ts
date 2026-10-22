@@ -19,7 +19,11 @@ export default defineConfig({
   fullyParallel: true,
   workers: resolveWorkers(process.env.E2E_WORKERS),
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  // Local full-suite runs hit the same single dev-backend contention CI retries absorb (see
+  // DEFAULT_WORKERS comment above): one worker's argon2-bound request can ECONNRESET under load
+  // while every other test passes. Retry once locally too so a `make verify` run doesn't fail on
+  // infra contention a single isolated rerun already proves is not a code bug.
+  retries: 1,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: `http://localhost:${String(PORT)}${BASE_PATH}/`,

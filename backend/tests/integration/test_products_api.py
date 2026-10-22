@@ -474,6 +474,7 @@ def test_routes_declare_capability(app: FastAPI) -> None:
     assert routes == {
         ("GET", "/api/v1/products", "catalog.read"),
         ("GET", "/api/v1/products/{product_id}", "catalog.read"),
+        ("GET", "/api/v1/products/{product_id}/price-history", "catalog.manage"),
         ("POST", "/api/v1/products", "catalog.manage"),
         ("PATCH", "/api/v1/products/{product_id}", "catalog.manage"),
         ("POST", "/api/v1/products/{product_id}/deactivate", "catalog.manage"),

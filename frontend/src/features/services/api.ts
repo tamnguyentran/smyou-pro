@@ -7,6 +7,7 @@ import type { Category, Unit } from "./schemas";
 export type Service = components["schemas"]["ServiceOut"];
 export type ServiceCreateBody = components["schemas"]["ServiceCreate"];
 export type ServiceUpdateBody = components["schemas"]["ServiceUpdate"];
+export type PriceHistoryEntry = components["schemas"]["PriceHistoryOut"];
 
 export interface ServiceFilters {
   q: string;
@@ -101,6 +102,24 @@ export function useActivateService() {
   return useMutation({
     mutationFn: versionCommand("/api/v1/services/{service_id}/activate"),
     onSuccess: invalidate,
+  });
+}
+
+/** AC-CAT-087 (tương đương cho dịch vụ): lazy — chỉ gọi khi khối "Lịch sử giá" được mở. */
+export function useServicePriceHistory(serviceId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [SERVICES_KEY, serviceId, "price-history"],
+    queryFn: async () => {
+      const { data, error, response } = await api.GET(
+        "/api/v1/services/{service_id}/price-history",
+        {
+          params: { path: { service_id: serviceId } },
+        },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    enabled,
   });
 }
 

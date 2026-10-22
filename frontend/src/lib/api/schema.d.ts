@@ -1137,6 +1137,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/products/{product_id}/price-history": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Lịch sử giá bán/giá vốn */
+    get: operations["products_price_history"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/services": {
     parameters: {
       query?: never;
@@ -1235,6 +1252,23 @@ export interface paths {
     put?: never;
     /** Ngừng kinh doanh */
     post: operations["services_deactivate"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/services/{service_id}/price-history": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Lịch sử giá bán/giá vốn */
+    get: operations["services_price_history"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -2283,6 +2317,8 @@ export interface components {
     OrderLineOut: {
       /** Catalog Price Snapshot */
       catalog_price_snapshot: number | null;
+      /** Cost Price Snapshot */
+      cost_price_snapshot: number | null;
       /**
        * Id
        * Format: uuid
@@ -2493,6 +2529,23 @@ export interface components {
       version: number;
       /** Work Description */
       work_description?: string | null;
+    };
+    /** PriceHistoryOut */
+    PriceHistoryOut: {
+      /**
+       * Changed At
+       * Format: date-time
+       */
+      changed_at: string;
+      changed_by: components["schemas"]["ActorSummary"] | null;
+      /** New Cost Price */
+      new_cost_price: number | null;
+      /** New Price */
+      new_price: number;
+      /** Old Cost Price */
+      old_cost_price: number | null;
+      /** Old Price */
+      old_price: number;
     };
     /** ProductCreate */
     ProductCreate: {
@@ -6266,6 +6319,44 @@ export interface operations {
       };
     };
   };
+  products_price_history: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        product_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PriceHistoryOut"][];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   services_list: {
     parameters: {
       query?: {
@@ -6585,6 +6676,44 @@ export interface operations {
       };
       /** @description problem+json — STALE_VERSION | CONFLICT (sku/code/name) | INVALID_TRANSITION */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  services_price_history: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        service_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PriceHistoryOut"][];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
         headers: {
           [name: string]: unknown;
         };
