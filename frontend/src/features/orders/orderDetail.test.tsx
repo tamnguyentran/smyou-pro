@@ -1077,7 +1077,7 @@ describe("AC-ORD-101 tab dòng hàng chỉ đọc khi không đủ quyền/trạ
   });
 });
 
-// AC-ORD-102 (M3-04a: 422 VAT_REQUIRED_FOR_CUSTOM khi thêm dòng tự do sau khi gửi) is removed —
+// The old "422 VAT_REQUIRED_FOR_CUSTOM khi thêm dòng tự do sau khi gửi" test (M3-04a) is removed —
 // M15-06 dropped the "Tự do" tab entirely, so a CUSTOM line can no longer be submitted from this
 // Sheet and that server error is unreachable from the UI.
 
