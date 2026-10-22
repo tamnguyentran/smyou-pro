@@ -14,11 +14,13 @@ from app.core.authz import Actor, ScopeRules, apply_scope, get_in_scope_or_404
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.modules.audit import service as audit
+from app.modules.audit.schemas import ActorSummary
 from app.modules.catalog import import_csv
-from app.modules.catalog.models import Product, Service
+from app.modules.catalog.models import CatalogPriceHistory, Product, Service
 from app.modules.catalog.schemas import (
     ImportCommitResult,
     ImportPreview,
+    PriceHistoryOut,
     ProductCreate,
     ProductOut,
     ProductPage,
@@ -29,6 +31,7 @@ from app.modules.catalog.schemas import (
     ServiceUpdate,
 )
 from app.modules.files import service as files
+from app.modules.identity.models import Employee
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +88,55 @@ def _cost_price_required() -> AppError:
         COST_PRICE_REQUIRED,
         errors=[{"field": "cost_price", "code": "required", "message": COST_PRICE_REQUIRED}],
     )
+
+
+def _record_price_history(
+    session: Session,
+    *,
+    item_type: str,
+    item_id: uuid.UUID,
+    old_price: int,
+    new_price: int,
+    old_cost_price: int | None,
+    new_cost_price: int | None,
+    actor_id: uuid.UUID,
+) -> None:
+    session.add(
+        CatalogPriceHistory(
+            item_type=item_type,
+            item_id=item_id,
+            old_price=old_price,
+            new_price=new_price,
+            old_cost_price=old_cost_price,
+            new_cost_price=new_cost_price,
+            changed_by=actor_id,
+        )
+    )
+
+
+def _price_history_out(row: CatalogPriceHistory, employee: Employee | None) -> PriceHistoryOut:
+    return PriceHistoryOut(
+        changed_at=row.changed_at,
+        changed_by=(
+            ActorSummary(id=employee.id, code=employee.code, full_name=employee.full_name)
+            if employee is not None
+            else None
+        ),
+        old_price=row.old_price,
+        new_price=row.new_price,
+        old_cost_price=row.old_cost_price,
+        new_cost_price=row.new_cost_price,
+    )
+
+
+def _list_price_history(session: Session, *, item_type: str, item_id: uuid.UUID) -> list[PriceHistoryOut]:
+    query = (
+        select(CatalogPriceHistory, Employee)
+        .outerjoin(Employee, Employee.id == CatalogPriceHistory.changed_by)
+        .where(CatalogPriceHistory.item_type == item_type, CatalogPriceHistory.item_id == item_id)
+        .order_by(CatalogPriceHistory.changed_at.desc())
+    )
+    return [_price_history_out(row, employee) for row, employee in session.execute(query).all()]
 
 
 def _flush(session: Session) -> None:
@@ -151,6 +203,13 @@ def get_product(session: Session, actor: Actor, product_id: uuid.UUID) -> Produc
     return _out(product)
 
 
+def list_product_price_history(
+    session: Session, actor: Actor, product_id: uuid.UUID
+) -> list[PriceHistoryOut]:
+    get_in_scope_or_404(session, select(Product).where(Product.id == product_id), actor, RULES)
+    return _list_price_history(session, item_type="PRODUCT", item_id=product_id)
+
+
 def create_product(
     session: Session, actor: Actor, body: ProductCreate, *, request_id: str | None = None
 ) -> ProductOut:
@@ -195,11 +254,23 @@ def update_product(
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
     if product.cost_price is None and changes.get("cost_price") is None:
         raise _cost_price_required()
+    old_price, old_cost_price = product.price, product.cost_price
     changed_fields = sorted(f for f, value in changes.items() if getattr(product, f) != value)
     for field in changed_fields:
         setattr(product, field, changes[field])
     product.version += 1
     _flush(session)
+    if "price" in changed_fields or "cost_price" in changed_fields:
+        _record_price_history(
+            session,
+            item_type="PRODUCT",
+            item_id=product.id,
+            old_price=old_price,
+            new_price=changes.get("price", old_price),
+            old_cost_price=old_cost_price,
+            new_cost_price=changes.get("cost_price", old_cost_price),
+            actor_id=actor.id,
+        )
     _log("update", product, actor)
     audit.record(
         session,
@@ -389,6 +460,13 @@ def get_service(session: Session, actor: Actor, service_id: uuid.UUID) -> Servic
     return _out_service(service)
 
 
+def list_service_price_history(
+    session: Session, actor: Actor, service_id: uuid.UUID
+) -> list[PriceHistoryOut]:
+    get_in_scope_or_404(session, select(Service).where(Service.id == service_id), actor, RULES)
+    return _list_price_history(session, item_type="SERVICE", item_id=service_id)
+
+
 def create_service(
     session: Session, actor: Actor, body: ServiceCreate, *, request_id: str | None = None
 ) -> ServiceOut:
@@ -432,11 +510,23 @@ def update_service(
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
     if service.cost_price is None and changes.get("cost_price") is None:
         raise _cost_price_required()
+    old_price, old_cost_price = service.price, service.cost_price
     changed_fields = sorted(f for f, value in changes.items() if getattr(service, f) != value)
     for field in changed_fields:
         setattr(service, field, changes[field])
     service.version += 1
     _flush_service(session)
+    if "price" in changed_fields or "cost_price" in changed_fields:
+        _record_price_history(
+            session,
+            item_type="SERVICE",
+            item_id=service.id,
+            old_price=old_price,
+            new_price=changes.get("price", old_price),
+            old_cost_price=old_cost_price,
+            new_cost_price=changes.get("cost_price", old_cost_price),
+            actor_id=actor.id,
+        )
     _log_service("update", service, actor)
     audit.record(
         session,

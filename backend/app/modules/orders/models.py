@@ -133,6 +133,7 @@ class OrderLine(Base):
     specs_snapshot: Mapped[str | None] = mapped_column(Text)
     warranty_months_snapshot: Mapped[int | None] = mapped_column(SmallInteger)
     catalog_price_snapshot: Mapped[int | None] = mapped_column(BigInteger)
+    cost_price_snapshot: Mapped[int | None] = mapped_column(BigInteger)
     price_fixed: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     vat_rate: Mapped[Decimal] = mapped_column(Numeric(5, 2))
     quantity: Mapped[Decimal] = mapped_column(Numeric(12, 2))

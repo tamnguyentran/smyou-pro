@@ -1,11 +1,13 @@
 """Request/response bodies for /api/v1/products and /api/v1/services."""
 
 import uuid
+from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
+from app.modules.audit.schemas import ActorSummary
 from app.modules.catalog.domain import vat_rate_problem
 
 Category = Literal[
@@ -188,3 +190,12 @@ class ImportPreview(BaseModel):
 
 class ImportCommitResult(BaseModel):
     created: int
+
+
+class PriceHistoryOut(BaseModel):
+    changed_at: datetime
+    changed_by: ActorSummary | None
+    old_price: int
+    new_price: int
+    old_cost_price: int | None
+    new_cost_price: int | None

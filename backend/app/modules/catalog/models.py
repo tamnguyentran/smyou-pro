@@ -95,6 +95,31 @@ class Product(Base):
     )
 
 
+class CatalogPriceHistory(Base):
+    """One row per `price`/`cost_price` change on a Product or Service (M15-08, AC-CAT-081/082)."""
+
+    __tablename__ = "catalog_price_history"
+    __table_args__ = (
+        CheckConstraint(_in("item_type", ("PRODUCT", "SERVICE")), name="item_type"),
+        Index("ix_catalog_price_history_item", "item_type", "item_id", "changed_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
+    item_type: Mapped[str] = mapped_column(String(20))
+    item_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    old_price: Mapped[int] = mapped_column(BigInteger)
+    new_price: Mapped[int] = mapped_column(BigInteger)
+    old_cost_price: Mapped[int | None] = mapped_column(BigInteger)
+    new_cost_price: Mapped[int | None] = mapped_column(BigInteger)
+    # SET NULL, not RESTRICT: same rationale as AuditEvent.actor_id (audit/models.py).
+    changed_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("employees.id", ondelete="SET NULL"), index=True
+    )
+    changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("clock_timestamp()")
+    )
+
+
 class Service(Base):
     """Service catalog (DOMAIN_MODEL §3, M2-02). Unlike Product, no image field."""
 

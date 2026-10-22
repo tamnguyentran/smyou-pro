@@ -238,6 +238,7 @@ class OrderLineOut(BaseModel):
     specs_snapshot: str | None
     warranty_months_snapshot: int | None
     catalog_price_snapshot: int | None
+    cost_price_snapshot: int | None
     price_fixed: bool
     vat_rate: Decimal
     quantity: Decimal

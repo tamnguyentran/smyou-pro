@@ -140,6 +140,7 @@ class _ItemSnapshot:
     specs_snapshot: str | None
     warranty_months_snapshot: int | None
     catalog_price_snapshot: int | None
+    cost_price_snapshot: int | None
     price_fixed: bool
     default_vat_rate: Decimal | None
 
@@ -272,6 +273,7 @@ def _line_out(line: OrderLine) -> OrderLineOut:
         specs_snapshot=line.specs_snapshot,
         warranty_months_snapshot=line.warranty_months_snapshot,
         catalog_price_snapshot=line.catalog_price_snapshot,
+        cost_price_snapshot=line.cost_price_snapshot,
         price_fixed=line.price_fixed,
         vat_rate=line.vat_rate,
         quantity=line.quantity,
@@ -455,6 +457,7 @@ def _snapshot_item(session: Session, body: OrderLineCreate) -> _ItemSnapshot:
             specs_snapshot=product.specs,
             warranty_months_snapshot=product.warranty_months,
             catalog_price_snapshot=product.price,
+            cost_price_snapshot=product.cost_price,
             price_fixed=product.price_fixed,
             default_vat_rate=product.vat_rate,
         )
@@ -473,6 +476,7 @@ def _snapshot_item(session: Session, body: OrderLineCreate) -> _ItemSnapshot:
             specs_snapshot=None,
             warranty_months_snapshot=None,
             catalog_price_snapshot=service_row.price,
+            cost_price_snapshot=service_row.cost_price,
             price_fixed=service_row.price_fixed,
             default_vat_rate=service_row.vat_rate,
         )
@@ -488,6 +492,7 @@ def _snapshot_item(session: Session, body: OrderLineCreate) -> _ItemSnapshot:
         specs_snapshot=body.specs,
         warranty_months_snapshot=body.warranty_months,
         catalog_price_snapshot=None,
+        cost_price_snapshot=None,
         price_fixed=False,
         default_vat_rate=None,
     )
@@ -1264,6 +1269,7 @@ def _build_line(session: Session, order: Order, body: OrderLineCreate) -> OrderL
         specs_snapshot=snapshot.specs_snapshot,
         warranty_months_snapshot=snapshot.warranty_months_snapshot,
         catalog_price_snapshot=snapshot.catalog_price_snapshot,
+        cost_price_snapshot=snapshot.cost_price_snapshot,
         price_fixed=snapshot.price_fixed,
         vat_rate=vat_rate,
         quantity=body.quantity,
