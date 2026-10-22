@@ -20,6 +20,9 @@ class _FakeSession:
     def add(self, obj: object) -> None:
         self.added.append(obj)
 
+    def flush(self) -> None:
+        pass
+
 
 @pytest.mark.ac("AC-SYS-052")
 def test_record_builds_the_row_with_the_given_fields() -> None:

@@ -75,3 +75,56 @@ test("AC-ORD-156 AC-ORD-157 @a11y @screenshot Chuyển Chỉnh sửa: nhập lý
 
   await evidence(page, info, isMobile(info) ? "order-revise-390.png" : "order-revise-1440.png");
 });
+
+// M15-03: CSKH gửi yêu cầu chỉnh sửa — seed_e2e.py CSK_REVISION_ORDERS (COMPLETED, csat_comment
+// đã có), cùng idiom 1 đơn/project để tránh đua `orders.version` giữa mobile/desktop.
+const CUSTOMER_CARE = "lan.cskh@smyou.vn";
+
+function cskRevisionOrderCode(info: TestInfo) {
+  return info.project.name === "mobile" ? "E2E-DH-M1503A" : "E2E-DH-M1503B";
+}
+
+async function signInAsCustomerCareAndOpenOrder(page: Page, info: TestInfo): Promise<string> {
+  const code = cskRevisionOrderCode(info);
+  await page.goto("./dang-nhap");
+  await page.getByLabel("Email").fill(CUSTOMER_CARE);
+  await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Đăng nhập" }).click();
+  await expect(page).not.toHaveURL(/dang-nhap/);
+
+  const listRes = await page.request.get("api/v1/orders", { params: { q: code } });
+  const { items } = (await listRes.json()) as { items: { id: string; code: string }[] };
+  const order = items.find((o) => o.code === code);
+  if (!order) throw new Error(`seed_e2e.py order ${code} not found for ${CUSTOMER_CARE}`);
+  await page.goto(`./orders/${order.id}`);
+  return code;
+}
+
+test("AC-CSK-020 AC-CSK-021 AC-CSK-024 @a11y @screenshot CSKH gửi yêu cầu chỉnh sửa, badge chưa xử lý", async ({
+  page,
+}, info) => {
+  const code = await signInAsCustomerCareAndOpenOrder(page, info);
+  await expect(page.getByRole("main").getByText(code)).toBeVisible();
+
+  await page.getByRole("button", { name: "Tạo yêu cầu chỉnh sửa" }).click();
+  const dialog = page.getByRole("dialog", { name: `Tạo yêu cầu chỉnh sửa đơn ${code}` });
+  // AC-CSK-020: ô mô tả điền sẵn = csat_comment hiện tại.
+  await expect(dialog.getByLabel("Mô tả")).not.toHaveValue("");
+  await dialog.getByLabel("Mô tả").press("End");
+  await dialog
+    .getByLabel("Mô tả")
+    .pressSequentially(" — khách muốn kỹ thuật quay lại kiểm tra lần nữa");
+  await dialog.getByRole("button", { name: "Gửi yêu cầu" }).click();
+
+  // AC-CSK-021: toast xác nhận đã gửi.
+  await expect(page.getByText("Đã gửi yêu cầu chỉnh sửa tới Quản lý kỹ thuật.")).toBeVisible();
+  // AC-CSK-024: badge "chưa xử lý" hiện ngay trên header (reload để chắc chắn đọc lại từ server).
+  await page.reload();
+  await expect(page.getByText("Đã gửi yêu cầu chỉnh sửa (chưa xử lý)")).toBeVisible();
+
+  await evidence(
+    page,
+    info,
+    isMobile(info) ? "order-csk-revision-request-390.png" : "order-csk-revision-request-1440.png",
+  );
+});

@@ -930,6 +930,7 @@ def test_routes_declare_capability(app: FastAPI) -> None:
         ),
         ("GET", "/api/v1/orders/csat-summary", "customer_care.manage_feedback"),
         ("POST", "/api/v1/orders/{order_id}/csat", "customer_care.manage_feedback"),
+        ("POST", "/api/v1/orders/{order_id}/revision-requests", "customer_care.manage_feedback"),
     }
 
 

@@ -2421,6 +2421,10 @@
             ],
             "title": "Division"
           },
+          "has_pending_revision_request": {
+            "title": "Has Pending Revision Request",
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -2530,7 +2534,8 @@
           "can_edit_lines_after_submit",
           "can_upload_confirmation",
           "can_complete",
-          "can_revise"
+          "can_revise",
+          "has_pending_revision_request"
         ],
         "title": "OrderDetail",
         "type": "object"
@@ -2994,6 +2999,51 @@
         },
         "required": ["version"],
         "title": "OrderRevise",
+        "type": "object"
+      },
+      "OrderRevisionRequestCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": ["note"],
+        "title": "OrderRevisionRequestCreate",
+        "type": "object"
+      },
+      "OrderRevisionRequestOut": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "requested_at": {
+            "format": "date-time",
+            "title": "Requested At",
+            "type": "string"
+          },
+          "requested_by": {
+            "format": "uuid",
+            "title": "Requested By",
+            "type": "string"
+          }
+        },
+        "required": ["id", "order_id", "note", "requested_by", "requested_at"],
+        "title": "OrderRevisionRequestOut",
         "type": "object"
       },
       "OrderStatusCounts": {
@@ -7854,6 +7904,63 @@
           }
         },
         "summary": "Chuyển đơn sang Chỉnh sửa",
+        "tags": ["orders"]
+      }
+    },
+    "/api/v1/orders/{order_id}/revision-requests": {
+      "post": {
+        "operationId": "orders_request_revision_from_customer_care",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderRevisionRequestCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderRevisionRequestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "CSKH gửi yêu cầu chỉnh sửa đơn tới QLKT",
         "tags": ["orders"]
       }
     },
