@@ -831,6 +831,20 @@
               }
             ]
           },
+          "feedback_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback Summary"
+          },
           "my_task_summary": {
             "anyOf": [
               {
@@ -884,6 +898,20 @@
               }
             ],
             "title": "Today Tasks"
+          },
+          "top_customers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/TopCustomerOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top Customers"
           }
         },
         "title": "DashboardOut",
@@ -4717,6 +4745,40 @@
         },
         "required": ["version"],
         "title": "TaskUpdate",
+        "type": "object"
+      },
+      "TopCustomerOut": {
+        "properties": {
+          "customer_code": {
+            "title": "Customer Code",
+            "type": "string"
+          },
+          "customer_id": {
+            "format": "uuid",
+            "title": "Customer Id",
+            "type": "string"
+          },
+          "customer_name": {
+            "title": "Customer Name",
+            "type": "string"
+          },
+          "order_count": {
+            "title": "Order Count",
+            "type": "integer"
+          },
+          "total_revenue": {
+            "title": "Total Revenue",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "customer_id",
+          "customer_code",
+          "customer_name",
+          "order_count",
+          "total_revenue"
+        ],
+        "title": "TopCustomerOut",
         "type": "object"
       },
       "UnreadCount": {
