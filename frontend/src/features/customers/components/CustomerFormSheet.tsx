@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { TriangleAlert } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { Select } from "../../../components/ui/Select";
@@ -96,7 +96,7 @@ export function CustomerFormSheet({
     CustomerWritten["duplicate_phone_matches"]
   >([]);
 
-  const { register, handleSubmit, formState, watch } = useForm<CustomerFormValues>({
+  const { register, handleSubmit, formState, control } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema) as Resolver<CustomerFormValues>,
     defaultValues: {
       type: (customer?.type as CustomerType | undefined) ?? TYPE_ORDER[0],
@@ -118,7 +118,7 @@ export function CustomerFormSheet({
     },
   });
   // Type bất biến sau khi tạo (§4) — form chỉ hiện đúng bộ field theo type đã chọn lúc tạo.
-  const selectedType = watch("type");
+  const selectedType = useWatch({ control, name: "type" });
 
   const title = customer
     ? readOnly
