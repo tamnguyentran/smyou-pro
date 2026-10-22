@@ -2517,6 +2517,8 @@ export interface components {
         | "MATERIAL"
         | "SOFTWARE"
         | "OTHER";
+      /** Cost Price */
+      cost_price: number;
       /** Name */
       name: string;
       /** Price */
@@ -2549,6 +2551,8 @@ export interface components {
       brand: string | null;
       /** Category */
       category: string;
+      /** Cost Price */
+      cost_price: number | null;
       /**
        * Id
        * Format: uuid
@@ -2592,6 +2596,8 @@ export interface components {
     ProductUpdate: {
       /** Brand */
       brand?: string | null;
+      /** Cost Price */
+      cost_price?: number | null;
       /** Name */
       name?: string | null;
       /** Price */
@@ -2671,6 +2677,8 @@ export interface components {
         | "OTHER";
       /** Code */
       code: string;
+      /** Cost Price */
+      cost_price: number;
       /** Default Estimated Hours */
       default_estimated_hours?: number | string | null;
       /** Description */
@@ -2701,6 +2709,8 @@ export interface components {
       category: string;
       /** Code */
       code: string;
+      /** Cost Price */
+      cost_price: number | null;
       /** Default Estimated Hours */
       default_estimated_hours: string | null;
       /** Description */
@@ -2738,6 +2748,8 @@ export interface components {
     };
     /** ServiceUpdate */
     ServiceUpdate: {
+      /** Cost Price */
+      cost_price?: number | null;
       /** Default Estimated Hours */
       default_estimated_hours?: number | string | null;
       /** Description */

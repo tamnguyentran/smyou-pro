@@ -54,6 +54,15 @@ const defaultEstimatedHoursSchema = z
   )
   .optional();
 
+// AC-CAT-088/AC-CAT-089: same idiom as products/schemas.ts's `costPriceSchema` — required raw
+// string so "" (chưa điền) stays distinguishable from a real 0 (AC-CAT-080, "tính thực tế khi thi
+// công").
+const costPriceSchema = z
+  .string()
+  .trim()
+  .min(1, "Vui lòng nhập giá vốn.")
+  .refine((value) => /^\d+$/.test(value), "Giá vốn phải là số nguyên ≥ 0.");
+
 /** Client-side checks before the server's (AC-CAT-028/AC-CAT-022); `code`/`category`/`unit` are only
  * required on create — locked after that (AC-CAT-029, §4). */
 export const serviceCreateSchema = z.object({
@@ -62,6 +71,7 @@ export const serviceCreateSchema = z.object({
   unit: z.enum(UNIT_ORDER as [Unit, ...Unit[]], "Vui lòng chọn đơn vị."),
   name: z.string().trim().min(1, "Vui lòng nhập tên dịch vụ."),
   price: priceSchema,
+  cost_price: costPriceSchema,
   vat_rate: vatRateSchema,
   price_fixed: z.boolean(),
   default_estimated_hours: defaultEstimatedHoursSchema,

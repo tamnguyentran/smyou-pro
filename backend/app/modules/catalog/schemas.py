@@ -52,6 +52,7 @@ class ProductCreate(BaseModel):
     brand: Brand | None = None
     unit: Unit
     price: Annotated[int, Field(ge=0)]
+    cost_price: Annotated[int, Field(ge=0)]
     vat_rate: Decimal = Decimal("8")
     price_fixed: bool = False
     warranty_months: Annotated[int, Field(ge=0)] | None = None
@@ -68,6 +69,7 @@ class ProductUpdate(BaseModel):
     name: Name | None = None
     brand: Brand | None = None
     price: Annotated[int, Field(ge=0)] | None = None
+    cost_price: Annotated[int, Field(ge=0)] | None = None
     vat_rate: Decimal | None = None
     price_fixed: bool | None = None
     warranty_months: Annotated[int, Field(ge=0)] | None = None
@@ -88,6 +90,7 @@ class ProductOut(BaseModel):
     brand: str | None
     unit: str
     price: int
+    cost_price: int | None
     vat_rate: Decimal
     price_fixed: bool
     warranty_months: int | None
@@ -116,6 +119,7 @@ class ServiceCreate(BaseModel):
     category: ServiceCategory
     unit: ServiceUnit
     price: Annotated[int, Field(ge=0)]
+    cost_price: Annotated[int, Field(ge=0)]
     vat_rate: Decimal = Decimal("8")
     price_fixed: bool = False
     default_estimated_hours: Annotated[Decimal, Field(ge=0)] | None = None
@@ -131,6 +135,7 @@ class ServiceUpdate(BaseModel):
     version: int
     name: Name | None = None
     price: Annotated[int, Field(ge=0)] | None = None
+    cost_price: Annotated[int, Field(ge=0)] | None = None
     vat_rate: Decimal | None = None
     price_fixed: bool | None = None
     default_estimated_hours: Annotated[Decimal, Field(ge=0)] | None = None
@@ -146,6 +151,7 @@ class ServiceOut(BaseModel):
     category: str
     unit: str
     price: int
+    cost_price: int | None
     vat_rate: Decimal
     price_fixed: bool
     default_estimated_hours: Decimal | None
