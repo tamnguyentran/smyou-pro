@@ -1,6 +1,6 @@
 # M15-05 — Thông tin mở rộng khách hàng (tổ chức / cá nhân)
 
-- **Status:** Approved (2026-10-22)
+- **Status:** Done (2026-10-22)
 - **Backlog:** M15-05 · **Milestone:** M15
 - **Liên quan:** `docs/product/DOMAIN_MODEL.md` §4 (Customer); `docs/specs/M3-01-customers.md` (API/UI khách hàng hiện có)
 

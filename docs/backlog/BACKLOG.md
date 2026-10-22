@@ -10,7 +10,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - `[R]` M15-02b — UI: màn tra cứu CSKH + tô màu theo sao + ô thống kê. `docs/specs/M15-02b-customer-feedback-ui.md` (gộp chung PR #127 với M15-02a theo quyết định chủ dự án 2026-10-22)
 - `[R]` M15-03 — CSKH tạo yêu cầu chỉnh sửa gửi QLKT (chỉ thông báo, QLKT tự quyết revise). `docs/specs/M15-03-csk-revision-request.md`
 - `[R]` M15-04 — Dashboard: Top 10 KH doanh thu cao nhất + tổng hợp đánh giá KH (Manager/QLKT/Sale/CSKH). `docs/specs/M15-04-dashboard-top-customers-feedback.md`
-- `[R]` M15-05 — Khách hàng: thêm trường tổ chức (ngày thành lập, giám đốc, phụ trách IT + SĐT/email riêng) / cá nhân (ngày sinh, giới tính, nghề nghiệp); `type` bất biến sau khi tạo. `docs/specs/M15-05-customer-extended-fields.md`
+- `[x]` M15-05 — Khách hàng: thêm trường tổ chức (ngày thành lập, giám đốc, phụ trách IT + SĐT/email riêng) / cá nhân (ngày sinh, giới tính, nghề nghiệp); `type` bất biến sau khi tạo. `docs/specs/M15-05-customer-extended-fields.md`
 - `[S]` M15-06 — Bỏ dòng hàng "Tự do" khi tạo đơn (chỉ chọn danh mục). `docs/specs/M15-06-remove-custom-order-line.md`
 - `[S]` M15-07 — Giá vốn bắt buộc trên Sản phẩm/Dịch vụ. `docs/specs/M15-07-catalog-cost-price.md`
 - `[S]` M15-08 — Lịch sử giá bán/giá vốn + `cost_price_snapshot` trên dòng hàng đơn. `docs/specs/M15-08-catalog-price-history.md`
