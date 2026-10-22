@@ -697,8 +697,12 @@ describe("AC-CAT-087 lịch sử giá", () => {
     await user.click(within(dialog).getByRole("button", { name: "Lịch sử giá" }));
     expect(await within(dialog).findByText("Nguyễn Văn An")).toBeInTheDocument();
     expect(within(dialog).getByText("20/10/2026 10:00")).toBeInTheDocument();
-    expect(within(dialog).getByText("2.800.000 ₫ → 2.900.000 ₫")).toBeInTheDocument();
-    expect(within(dialog).getByText("2.100.000 ₫ → 2.100.000 ₫")).toBeInTheDocument();
+    expect(within(dialog).getByText("Giá bán: 2.800.000 ₫ → 2.900.000 ₫")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        (text) => text.startsWith("Giá vốn:") && text.includes("2.100.000 ₫"),
+      ),
+    ).toBeInTheDocument();
   });
 
   test("Sale chỉ xem (không có nút Lịch sử giá)", async () => {

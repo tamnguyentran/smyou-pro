@@ -8,6 +8,7 @@ import type { Category, Unit } from "./schemas";
 export type Product = components["schemas"]["ProductOut"];
 export type ProductCreateBody = components["schemas"]["ProductCreate"];
 export type ProductUpdateBody = components["schemas"]["ProductUpdate"];
+export type PriceHistoryEntry = components["schemas"]["PriceHistoryOut"];
 
 export interface ProductFilters {
   q: string;
@@ -107,6 +108,24 @@ export function useActivateProduct() {
   return useMutation({
     mutationFn: versionCommand("/api/v1/products/{product_id}/activate"),
     onSuccess: invalidate,
+  });
+}
+
+/** AC-CAT-087: lazy — chỉ gọi khi khối "Lịch sử giá" được mở (không cần khi tạo mới). */
+export function useProductPriceHistory(productId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [PRODUCTS_KEY, productId, "price-history"],
+    queryFn: async () => {
+      const { data, error, response } = await api.GET(
+        "/api/v1/products/{product_id}/price-history",
+        {
+          params: { path: { product_id: productId } },
+        },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    enabled,
   });
 }
 

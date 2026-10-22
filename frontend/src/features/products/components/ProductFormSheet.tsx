@@ -10,7 +10,7 @@ import { Sheet } from "../../../components/ui/Sheet";
 import { Textarea } from "../../../components/ui/Textarea";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
-import { formatCurrency } from "../../../lib/format";
+import { formatCurrency, formatDateTime } from "../../../lib/format";
 import { ApiError, formError } from "../../auth/errors";
 import {
   PRODUCTS_KEY,
@@ -18,6 +18,7 @@ import {
   useActivateProduct,
   useCreateProduct,
   useDeactivateProduct,
+  useProductPriceHistory,
   useUpdateProduct,
   type Product,
   type ProductCreateBody,
@@ -84,6 +85,8 @@ export function ProductFormSheet({
   const [confirming, setConfirming] = useState<ConfirmKind>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const history = useProductPriceHistory(product?.id ?? "", showHistory && product !== undefined);
 
   const { register, handleSubmit, formState, control } = useForm<ProductFormValues>({
     resolver: zodResolver(
@@ -390,6 +393,48 @@ export function ProductFormSheet({
                     Mở lại kinh doanh
                   </Button>
                 )}
+              </div>
+            ) : null}
+
+            {product && canManage ? (
+              <div className="space-y-3 border-t border-line pt-4">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowHistory((open) => !open);
+                  }}
+                >
+                  Lịch sử giá
+                </Button>
+                {showHistory ? (
+                  history.isLoading ? (
+                    <p className="text-sm text-muted">Đang tải…</p>
+                  ) : history.data && history.data.length > 0 ? (
+                    <ul className="space-y-3">
+                      {history.data.map((row, index) => (
+                        <li key={index} className="space-y-1 rounded-xl bg-sidebar-sub p-3 text-sm">
+                          <div className="flex justify-between gap-2 text-muted">
+                            <span>{row.changed_by?.full_name ?? "—"}</span>
+                            <span>{formatDateTime(row.changed_at)}</span>
+                          </div>
+                          <p className="text-body">
+                            Giá bán: {formatCurrency(row.old_price)} →{" "}
+                            {formatCurrency(row.new_price)}
+                          </p>
+                          <p className="text-body">
+                            Giá vốn:{" "}
+                            {row.old_cost_price != null ? formatCurrency(row.old_cost_price) : "—"}{" "}
+                            →{" "}
+                            {row.new_cost_price != null ? formatCurrency(row.new_cost_price) : "—"}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted">Chưa có lần sửa giá nào.</p>
+                  )
+                ) : null}
               </div>
             ) : null}
           </form>
