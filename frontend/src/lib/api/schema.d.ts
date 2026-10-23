@@ -1154,6 +1154,57 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/reports/revenue-by-customer": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Báo cáo doanh thu theo khách hàng */
+    get: operations["get_revenue_by_customer_report"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/reports/revenue-by-customer/export": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Xuất CSV báo cáo doanh thu */
+    get: operations["export_revenue_by_customer_report"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/reports/revenue-by-customer/{customer_id}/orders": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách đơn của 1 khách hàng (drilldown) */
+    get: operations["get_revenue_by_customer_orders"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/services": {
     parameters: {
       query?: never;
@@ -2707,12 +2758,85 @@ export interface components {
       /** Token */
       token: string;
     };
+    /** RevenueOrderOut */
+    RevenueOrderOut: {
+      /** Code */
+      code: string;
+      /** Completed At */
+      completed_at: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Profit */
+      profit: number | null;
+      /** Total */
+      total: number;
+    };
+    /** RevenueReportOut */
+    RevenueReportOut: {
+      /**
+       * From
+       * Format: date
+       */
+      from: string;
+      /** Items */
+      items: components["schemas"]["RevenueRowOut"][];
+      /**
+       * To
+       * Format: date
+       */
+      to: string;
+      /** Total */
+      total: number;
+    };
+    /** RevenueRowOut */
+    RevenueRowOut: {
+      /** Contact Person */
+      contact_person: string | null;
+      /** Contact Phone */
+      contact_phone: string;
+      /** Customer Code */
+      customer_code: string;
+      /**
+       * Customer Id
+       * Format: uuid
+       */
+      customer_id: string;
+      /** Customer Name */
+      customer_name: string;
+      /** Order Count */
+      order_count: number;
+      /** Profit */
+      profit: number | null;
+      seller: components["schemas"]["SellerOut"];
+      /** Subtotal Revenue */
+      subtotal_revenue: number;
+    };
     /** RolesRequest */
     RolesRequest: {
       /** Roles */
       roles: ("MANAGER" | "SALE" | "CUSTOMER_CARE" | "TECH_LEAD" | "TECHNICIAN")[];
       /** Version */
       version: number;
+    };
+    /** SellerOut */
+    SellerOut: {
+      /** Code */
+      code: string;
+      /** Full Name */
+      full_name: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
     };
     /** ServiceCreate */
     ServiceCreate: {
@@ -6345,6 +6469,110 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_revenue_by_customer_report: {
+    parameters: {
+      query?: {
+        from?: string | null;
+        to?: string | null;
+        customer_id?: string | null;
+        status?: "COMPLETED" | "NOT_COMPLETED";
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RevenueReportOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  export_revenue_by_customer_report: {
+    parameters: {
+      query?: {
+        from?: string | null;
+        to?: string | null;
+        customer_id?: string | null;
+        status?: "COMPLETED" | "NOT_COMPLETED";
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_revenue_by_customer_orders: {
+    parameters: {
+      query?: {
+        from?: string | null;
+        to?: string | null;
+        status?: "COMPLETED" | "NOT_COMPLETED";
+        seller_id?: string | null;
+      };
+      header?: never;
+      path: {
+        customer_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RevenueOrderOut"][];
+        };
       };
       /** @description Validation Error */
       422: {

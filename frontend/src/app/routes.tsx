@@ -19,6 +19,7 @@ import { DraftOrderPage } from "../features/orders/pages/DraftOrderPage";
 import { OrdersListPage } from "../features/orders/pages/OrdersListPage";
 import { ProductsPage } from "../features/products/pages/ProductsPage";
 import { ProfilePage } from "../features/profile/pages/ProfilePage";
+import { RevenueByCustomerReportPage } from "../features/revenueReport/pages/RevenueByCustomerReportPage";
 import { ServicesPage } from "../features/services/pages/ServicesPage";
 import { menuPages } from "./menu";
 import { AppShell } from "./shell/AppShell";
@@ -105,6 +106,9 @@ export const routes: RouteObject[] = [
       ...menuRoutes,
       { path: "/employees", element: <EmployeesPage /> },
       { path: "/reports/kpi", element: <KpiReportPage /> },
+      // "/reports/revenue-by-customer" is real (M15-09b) and checks report.revenue.read itself —
+      // no menu entry yet, that comes with M15-11's "Báo cáo" menu group.
+      { path: "/reports/revenue-by-customer", element: <RevenueByCustomerReportPage /> },
       { path: "/audit", element: <AuditPage /> },
       { path: "/catalog/products", element: <ProductsPage /> },
       { path: "/catalog/services", element: <ServicesPage /> },
