@@ -1,6 +1,6 @@
 # M15-09a — Báo cáo Doanh thu theo khách hàng — API
 
-- **Status:** Approved
+- **Status:** Done
 - **Backlog:** M15-09a · **Milestone:** M15
 - **Liên quan:** M15-07/08 (`cost_price`, `cost_price_snapshot` dùng tính lợi nhuận); `docs/specs/M8-01a-kpi-report-api.md` (mẫu báo cáo + export CSV UTF-8 BOM, tái dùng cách làm); `spec/state_machines.yaml#order.states`; `spec/permissions.yaml`
 
