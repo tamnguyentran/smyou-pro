@@ -1,6 +1,6 @@
 # M15-10a — Báo cáo Doanh thu theo nhân viên — API
 
-- **Status:** Draft
+- **Status:** Approved
 - **Backlog:** M15-10a · **Milestone:** M15
 - **Liên quan:** M15-09a (cùng cấu trúc/điều kiện, chỉ đổi chiều nhóm); M15-07/08 (`cost_price_snapshot`)
 
