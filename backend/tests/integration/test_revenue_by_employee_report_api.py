@@ -137,6 +137,7 @@ def test_customer_care_appears_as_employee_row(
 
     rows = {row["employee_code"]: row for row in data["items"]}
     assert rows["NV020"]["order_count"] == 2
+    assert rows["NV020"]["subtotal_revenue"] == 2_000_000
 
 
 @pytest.mark.ac("AC-RPT-046")
