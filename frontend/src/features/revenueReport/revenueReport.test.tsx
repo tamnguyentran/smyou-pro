@@ -97,7 +97,7 @@ function orderDetail(overrides: Partial<OrderDetail> = {}): OrderDetail {
     customer_email: null,
     customer_tax_code: null,
     service_address: "12 Lê Lợi, Q1, TP.HCM",
-    work_description: null,
+    work_description: "",
     priority: "NORMAL",
     requested_date: null,
     subtotal: 5_000_000,
