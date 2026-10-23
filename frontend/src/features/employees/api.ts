@@ -20,8 +20,9 @@ export interface EmployeeFilters {
 export const EMPLOYEES_KEY = "employees";
 
 /** Paginated, searched, filtered list — kept while the next page loads (no flash back to Skeleton). */
-export function useEmployees(filters: EmployeeFilters) {
+export function useEmployees(filters: EmployeeFilters, { enabled = true } = {}) {
   return useQuery({
+    enabled,
     queryKey: [EMPLOYEES_KEY, filters],
     queryFn: async () => {
       const { data, error, response } = await api.GET("/api/v1/employees", {

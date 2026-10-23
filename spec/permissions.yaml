@@ -124,10 +124,12 @@ menu:
     path: /employees
     capability: employee.manage
   - id: reports
-    label: Báo cáo KPI
+    label: Báo cáo
     icon: BarChart3
-    path: /reports/kpi
-    capability: kpi.read
+    children:
+      - { id: reports-kpi,              label: Báo cáo KPI,                icon: BarChart3, path: /reports/kpi,                 capability: kpi.read }
+      - { id: reports-revenue-customer, label: Doanh thu theo khách hàng,  icon: Users,     path: /reports/revenue-by-customer, capability: report.revenue.read }
+      - { id: reports-revenue-employee, label: Doanh thu theo nhân viên,   icon: UserCog,   path: /reports/revenue-by-employee, capability: report.revenue.read }
   - id: audit
     label: Nhật ký hệ thống
     icon: History

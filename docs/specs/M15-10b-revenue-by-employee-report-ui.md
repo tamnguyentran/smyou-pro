@@ -1,6 +1,6 @@
 # M15-10b — Báo cáo Doanh thu theo nhân viên — Giao diện
 
-- **Status:** Draft
+- **Status:** Done (review + verify 2026-10-23, `reports/review-M15-10b.md`)
 - **Backlog:** M15-10b · **Milestone:** M15
 - **Liên quan:** M15-10a (API); M15-09b (cùng mẫu UI, chỉ đổi trục nhóm)
 

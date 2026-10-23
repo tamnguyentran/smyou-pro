@@ -18,12 +18,12 @@ const MENUS: Record<Role, string[]> = {
     "Đơn hàng",
     "Danh mục",
     "Nhân sự & phân quyền",
-    "Báo cáo KPI",
+    "Báo cáo",
     "Nhật ký hệ thống",
   ],
-  sale: ["Tổng quan", "Đơn hàng"],
-  "tech-lead": ["Tổng quan", "Điều phối kỹ thuật", "Báo cáo KPI"],
-  technician: ["Tổng quan", "Việc của tôi", "Báo cáo KPI"],
+  sale: ["Tổng quan", "Đơn hàng", "Báo cáo"],
+  "tech-lead": ["Tổng quan", "Điều phối kỹ thuật", "Báo cáo"],
+  technician: ["Tổng quan", "Việc của tôi", "Báo cáo"],
 };
 
 async function signIn(page: Page, role: Role, path = "/") {

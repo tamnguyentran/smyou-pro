@@ -34,6 +34,7 @@ const AN: Person = {
     "catalog.manage": all,
     "employee.manage": all,
     "kpi.read": all,
+    "report.revenue.read": all,
     "audit.read": all,
     "profile.manage": self,
   },
@@ -47,6 +48,7 @@ const HOA: Person = {
     "dashboard.read": ["own"],
     "order.create": all,
     "customer.manage": all,
+    "report.revenue.read": ["own"],
     "profile.manage": self,
   },
 };
@@ -59,6 +61,7 @@ const TUAN: Person = {
     "dashboard.read": all,
     "task.manage": all,
     "kpi.read": all,
+    "report.revenue.read": all,
     "profile.manage": self,
   },
 };
@@ -85,6 +88,18 @@ const HA: Person = {
     "order.create": all,
     "customer.manage": all,
     "kpi.read": self,
+    "report.revenue.read": ["own"],
+    "profile.manage": self,
+  },
+};
+const LAN: Person = {
+  code: "NV018",
+  full_name: "Đỗ Thị Lan",
+  email: "lan.do@smyou.vn",
+  roles: ["CUSTOMER_CARE"],
+  capabilities: {
+    "dashboard.read": all,
+    "report.revenue.read": ["own"],
     "profile.manage": self,
   },
 };
@@ -169,29 +184,26 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
     [
       "An (Manager)",
       AN,
-      [
-        "Tổng quan",
-        "Đơn hàng",
-        "Danh mục",
-        "Nhân sự & phân quyền",
-        "Báo cáo KPI",
-        "Nhật ký hệ thống",
-      ],
+      ["Tổng quan", "Đơn hàng", "Danh mục", "Nhân sự & phân quyền", "Báo cáo", "Nhật ký hệ thống"],
       {
         "Đơn hàng": ["Danh sách đơn", "Tạo đơn mới", "Khách hàng"],
         "Danh mục": ["Sản phẩm", "Dịch vụ"],
+        "Báo cáo": ["Báo cáo KPI", "Doanh thu theo khách hàng", "Doanh thu theo nhân viên"],
       },
     ],
     [
       "Hoa (Sale)",
       HOA,
-      ["Tổng quan", "Đơn hàng"],
-      { "Đơn hàng": ["Danh sách đơn", "Tạo đơn mới", "Khách hàng"] },
+      ["Tổng quan", "Đơn hàng", "Báo cáo"],
+      {
+        "Đơn hàng": ["Danh sách đơn", "Tạo đơn mới", "Khách hàng"],
+        "Báo cáo": ["Doanh thu theo khách hàng", "Doanh thu theo nhân viên"],
+      },
     ],
     [
       "Tuấn (QLKT)",
       TUAN,
-      ["Tổng quan", "Điều phối kỹ thuật", "Báo cáo KPI"],
+      ["Tổng quan", "Điều phối kỹ thuật", "Báo cáo"],
       {
         "Điều phối kỹ thuật": [
           "Đơn chờ điều phối",
@@ -199,9 +211,10 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
           "Lịch & tải việc",
           "Đơn cần chỉnh sửa",
         ],
+        "Báo cáo": ["Báo cáo KPI", "Doanh thu theo khách hàng", "Doanh thu theo nhân viên"],
       },
     ],
-    ["Khoa (KTV)", KHOA, ["Tổng quan", "Việc của tôi", "Báo cáo KPI"], {}],
+    ["Khoa (KTV)", KHOA, ["Tổng quan", "Việc của tôi", "Báo cáo"], { "Báo cáo": ["Báo cáo KPI"] }],
   ])("AC-SYS-035 menu của %s đúng bảng PERMISSIONS", async (_, person, top, groups) => {
     signedInAs(person);
     renderApp("/");
@@ -216,11 +229,55 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
     renderApp("/");
 
     const structure = await menuStructure();
-    expect(structure.top).toEqual(["Tổng quan", "Việc của tôi", "Đơn hàng", "Báo cáo KPI"]);
+    expect(structure.top).toEqual(["Tổng quan", "Việc của tôi", "Đơn hàng", "Báo cáo"]);
     expect(structure.groups).toEqual({
       "Đơn hàng": ["Danh sách đơn", "Tạo đơn mới", "Khách hàng"],
+      "Báo cáo": ["Báo cáo KPI", "Doanh thu theo khách hàng", "Doanh thu theo nhân viên"],
     });
     expect(screen.getAllByText("Nhân viên kinh doanh · Nhân viên kỹ thuật")).toHaveLength(2); // header + footer
+  });
+
+  test("AC-RPT-050 An (MANAGER, kpi.read + report.revenue.read) thấy đủ 3 mục con Báo cáo", async () => {
+    signedInAs(AN);
+    renderApp("/");
+
+    const structure = await menuStructure();
+    expect(structure.groups["Báo cáo"]).toEqual([
+      "Báo cáo KPI",
+      "Doanh thu theo khách hàng",
+      "Doanh thu theo nhân viên",
+    ]);
+  });
+
+  test("AC-RPT-051 Khoa (TECHNICIAN, chỉ có kpi.read) chỉ thấy Báo cáo KPI", async () => {
+    signedInAs(KHOA);
+    renderApp("/");
+
+    const structure = await menuStructure();
+    expect(structure.groups["Báo cáo"]).toEqual(["Báo cáo KPI"]);
+  });
+
+  test("AC-RPT-052 Hoa (SALE, chỉ có report.revenue.read) thấy 2 mục doanh thu, không có Báo cáo KPI", async () => {
+    signedInAs(HOA);
+    renderApp("/");
+
+    const structure = await menuStructure();
+    expect(structure.groups["Báo cáo"]).toEqual([
+      "Doanh thu theo khách hàng",
+      "Doanh thu theo nhân viên",
+    ]);
+  });
+
+  test("AC-RPT-053 Lan (CUSTOMER_CARE, chỉ có report.revenue.read) thấy 2 mục doanh thu, không có Báo cáo KPI", async () => {
+    signedInAs(LAN);
+    renderApp("/");
+
+    const structure = await menuStructure();
+    expect(structure.top).toEqual(["Tổng quan", "Báo cáo"]);
+    expect(structure.groups["Báo cáo"]).toEqual([
+      "Doanh thu theo khách hàng",
+      "Doanh thu theo nhân viên",
+    ]);
   });
 
   test("AC-SYS-037 badge từ counters: ẩn khi 0, 99+ khi lớn, có nhãn đọc màn hình", async () => {
