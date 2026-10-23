@@ -1,4 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { resolve } from "node:path";
 
 // Accounts/data created by backend/scripts/seed_e2e.py (reset before every `make e2e`).
 // E2E-DH-M1504A: COMPLETED, customer E2E-KH-001, completed_at=now, created_by=MANAGER AN.
@@ -11,6 +13,28 @@ async function signIn(page: Page, email: string, path = "/reports/revenue-by-cus
   await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
 }
+
+function shot(info: TestInfo, file: string) {
+  return resolve(import.meta.dirname, "../../reports/screenshots", info.project.name, file);
+}
+
+test("AC-RPT-015 @a11y @screenshot Manager xem báo cáo doanh thu theo khách hàng: bảng (desktop) / thẻ (mobile)", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Báo cáo doanh thu theo khách hàng" }),
+  ).toBeVisible();
+  await expect(page.getByText("E2E-KH-001")).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(
+    results.violations
+      .filter((v) => v.impact === "serious" || v.impact === "critical")
+      .map((v) => v.id),
+  ).toEqual([]);
+  await page.screenshot({ path: shot(info, "revenue-by-customer-report.png"), fullPage: true });
+});
 
 test("AC-RPT-014 Manager bấm 'Xuất Excel' → tải đúng tham số lọc hiện tại, không rời trang", async ({
   page,
