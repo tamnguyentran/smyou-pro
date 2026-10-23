@@ -16,7 +16,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - `[x]` M15-08 — Lịch sử giá bán/giá vốn + `cost_price_snapshot` trên dòng hàng đơn. `docs/specs/M15-08-catalog-price-history.md`
 - `[x]` M15-09a — API: Báo cáo "Doanh thu theo khách hàng" (list, drilldown, xuất CSV). `docs/specs/M15-09a-revenue-by-customer-report-api.md`
 - `[x]` M15-09b — UI: Báo cáo "Doanh thu theo khách hàng". `docs/specs/M15-09b-revenue-by-customer-report-ui.md`
-- `[~]` M15-10a — API: Báo cáo "Doanh thu theo nhân viên" (list, drilldown, xuất CSV; áp lại scope Q88/Q96). `docs/specs/M15-10a-revenue-by-employee-report-api.md`
+- `[x]` M15-10a — API: Báo cáo "Doanh thu theo nhân viên" (list, drilldown, xuất CSV; áp lại scope Q88/Q96). `docs/specs/M15-10a-revenue-by-employee-report-api.md`
 - `[S]` M15-10b — UI: Báo cáo "Doanh thu theo nhân viên". `docs/specs/M15-10b-revenue-by-employee-report-ui.md`
 - `[S]` M15-11 — Gộp menu "Báo cáo" (KPI + 2 báo cáo doanh thu mới), làm sau cùng. `docs/specs/M15-11-reports-menu-group.md`
 
