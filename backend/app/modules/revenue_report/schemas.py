@@ -42,3 +42,21 @@ class RevenueOrderOut(BaseModel):
     completed_at: datetime | None
     total: int
     profit: int | None
+
+
+class EmployeeRevenueRowOut(BaseModel):
+    employee_id: uuid.UUID
+    employee_code: str
+    employee_name: str
+    order_count: int
+    subtotal_revenue: int
+    profit: int | None
+
+
+class EmployeeRevenueReportOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    from_: date = Field(alias="from")
+    to: date
+    items: list[EmployeeRevenueRowOut]
+    total: int
