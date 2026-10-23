@@ -2769,6 +2769,11 @@ export interface components {
        * Format: date-time
        */
       created_at: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
       /** Profit */
       profit: number | null;
       /** Total */

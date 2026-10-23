@@ -4336,6 +4336,11 @@
             "title": "Created At",
             "type": "string"
           },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
           "profit": {
             "anyOf": [
               {
@@ -4352,7 +4357,7 @@
             "type": "integer"
           }
         },
-        "required": ["code", "created_at", "completed_at", "total", "profit"],
+        "required": ["id", "code", "created_at", "completed_at", "total", "profit"],
         "title": "RevenueOrderOut",
         "type": "object"
       },

@@ -36,6 +36,7 @@ class RevenueReportOut(BaseModel):
 
 
 class RevenueOrderOut(BaseModel):
+    id: uuid.UUID
     code: str
     created_at: datetime
     completed_at: datetime | None

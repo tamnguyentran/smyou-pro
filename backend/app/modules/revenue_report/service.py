@@ -211,6 +211,7 @@ def get_customer_orders(
     order_profits = _order_profits(session, [order.id for order in orders])
     return [
         RevenueOrderOut(
+            id=order.id,
             code=order.code,
             created_at=order.created_at,
             completed_at=order.completed_at,
