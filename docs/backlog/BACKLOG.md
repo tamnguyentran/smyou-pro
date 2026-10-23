@@ -14,8 +14,9 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - `[x]` M15-06 — Bỏ dòng hàng "Tự do" khi tạo đơn (chỉ chọn danh mục). `docs/specs/M15-06-remove-custom-order-line.md`
 - `[x]` M15-07 — Giá vốn bắt buộc trên Sản phẩm/Dịch vụ. `docs/specs/M15-07-catalog-cost-price.md`
 - `[x]` M15-08 — Lịch sử giá bán/giá vốn + `cost_price_snapshot` trên dòng hàng đơn. `docs/specs/M15-08-catalog-price-history.md`
-- `[S]` M15-09a/b — Báo cáo "Doanh thu theo khách hàng" (API + UI, drilldown, xuất Excel). `docs/specs/M15-09a-revenue-by-customer-report-api.md`, `M15-09b-revenue-by-customer-report-ui.md`
-- `[S]` M15-10a/b — Báo cáo "Doanh thu theo nhân viên" (API + UI, drilldown, xuất Excel). `docs/specs/M15-10a-revenue-by-employee-report-api.md`, `M15-10b-revenue-by-employee-report-ui.md`
+- `[S]` M15-09a/b — Báo cáo "Doanh thu theo khách hàng" (API + UI, drilldown, xuất Excel). `docs/specs/M15-09a-revenue-by-customer-report-api.md`, `M15-09b-revenue-by-customer-report-ui.md` (PR #137 chờ merge, sẽ cập nhật `[x]` khi merge)
+- `[S]` M15-10a — API: Báo cáo "Doanh thu theo nhân viên" (list, drilldown, xuất CSV; áp lại scope Q88/Q96). `docs/specs/M15-10a-revenue-by-employee-report-api.md`
+- `[S]` M15-10b — UI: Báo cáo "Doanh thu theo nhân viên". `docs/specs/M15-10b-revenue-by-employee-report-ui.md`
 - `[S]` M15-11 — Gộp menu "Báo cáo" (KPI + 2 báo cáo doanh thu mới), làm sau cùng. `docs/specs/M15-11-reports-menu-group.md`
 
 Mỗi spec đang **Draft**, có mục "8. Giả định & câu hỏi" ghi rõ giả định mặc định — vài điểm ảnh hưởng lớn (phạm vi xem báo cáo doanh thu của Sale/CSKH, cấu trúc "Phụ trách IT") đã đẩy sang `docs/product/OPEN_QUESTIONS.md` (Q86–Q89), cần chủ dự án chốt trước khi duyệt Approved.
