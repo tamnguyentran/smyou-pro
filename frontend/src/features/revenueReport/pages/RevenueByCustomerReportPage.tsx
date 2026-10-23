@@ -12,6 +12,7 @@ import { useRevenueReport, type RevenueFilters as Filters, type RevenueRow } fro
 import { RevenueFilters } from "../components/RevenueFilters";
 import { RevenueTable } from "../components/RevenueTable";
 import { OrdersDrilldownSheet } from "../components/OrdersDrilldownSheet";
+import { RevenueSkeleton } from "../components/RevenueSkeleton";
 import { defaultMonthToDateRange } from "../../../lib/dateRange";
 
 interface Drilldown {
@@ -45,7 +46,7 @@ export function RevenueByCustomerReportPage() {
       />
     );
   }
-  if (!me.data) return <p className="py-8 text-center text-sm text-muted">Đang tải…</p>;
+  if (!me.data) return <RevenueSkeleton />;
   if (!allowed) return <ForbiddenPage />;
 
   const validationMessage =
@@ -74,7 +75,7 @@ export function RevenueByCustomerReportPage() {
       />
       {validationMessage ? <Alert>{validationMessage}</Alert> : null}
       {report.isPending ? (
-        <p className="py-8 text-center text-sm text-muted">Đang tải…</p>
+        <RevenueSkeleton />
       ) : report.isError && !validationMessage ? (
         <EmptyState
           icon={Inbox}
