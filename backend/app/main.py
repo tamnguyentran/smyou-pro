@@ -34,6 +34,7 @@ from app.modules.notifications import realtime as notifications_realtime
 from app.modules.notifications.router import router as notifications_router
 from app.modules.orders import service as orders_service
 from app.modules.orders.router import router as orders_router
+from app.modules.revenue_report.router import router as revenue_report_router
 from app.modules.system.router import router as system_router
 from app.modules.workflow.guards import GUARDS, PENDING_GUARDS
 
@@ -100,6 +101,7 @@ def create_app(
     app.include_router(dashboard_router)
     app.include_router(kpi_router)
     app.include_router(orders_router)
+    app.include_router(revenue_report_router)
     app.include_router(dispatch_router)
     app.include_router(tasks_router)
     return app

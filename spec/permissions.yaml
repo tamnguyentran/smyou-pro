@@ -54,6 +54,7 @@ capabilities:
   # --- Báo cáo ---
   dashboard.read:        { MANAGER: all, SALE: own, TECH_LEAD: all, TECHNICIAN: self, CUSTOMER_CARE: all }
   kpi.read:              { MANAGER: all, TECH_LEAD: all, TECHNICIAN: self }
+  report.revenue.read:   { MANAGER: all, SALE: own, TECH_LEAD: all, CUSTOMER_CARE: own }  # M15-09a, Q88/Q96: own = orders.created_by
   audit.read:            { MANAGER: all }
   notification.read:     { MANAGER: self, SALE: self, TECH_LEAD: self, TECHNICIAN: self }
 
