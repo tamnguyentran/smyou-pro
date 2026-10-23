@@ -47,3 +47,21 @@ def test_menu_document_has_menu_bottom_nav_and_role_labels() -> None:
     ]
     assert doc["mobile_bottom_nav"]["primary_action"]["TECHNICIAN"] is None
     assert doc["mobile_bottom_nav"]["primary_action"]["TECH_LEAD"]["label"] == "Tạo đầu việc"
+
+
+@pytest.mark.ac("AC-RPT-055")
+def test_reports_menu_group_has_no_capability_of_its_own() -> None:
+    """Parent stays capability-less so SALE/CUSTOMER_CARE (report.revenue.read, no kpi.read) see it."""
+    doc = menu_document(load_specs(REPO_SPEC_DIR).permissions)
+    reports = next(item for item in doc["menu"] if item["id"] == "reports")
+    assert reports["capability"] is None
+    assert [c["id"] for c in reports["children"]] == [
+        "reports-kpi",
+        "reports-revenue-customer",
+        "reports-revenue-employee",
+    ]
+    assert [c["capability"] for c in reports["children"]] == [
+        "kpi.read",
+        "report.revenue.read",
+        "report.revenue.read",
+    ]

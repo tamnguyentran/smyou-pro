@@ -20,6 +20,7 @@ import { OrdersListPage } from "../features/orders/pages/OrdersListPage";
 import { ProductsPage } from "../features/products/pages/ProductsPage";
 import { ProfilePage } from "../features/profile/pages/ProfilePage";
 import { RevenueByCustomerReportPage } from "../features/revenueReport/pages/RevenueByCustomerReportPage";
+import { RevenueByEmployeeReportPage } from "../features/revenueReport/pages/RevenueByEmployeeReportPage";
 import { ServicesPage } from "../features/services/pages/ServicesPage";
 import { menuPages } from "./menu";
 import { AppShell } from "./shell/AppShell";
@@ -44,10 +45,15 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/my-tasks" is real (M5-01) and checks assignment.respond itself, same capability as the menu entry.
 // "/dispatch/revisions" is real (M6-03b), same capability (task.manage) as the menu entry.
 // "/reports/kpi" is real (M8-01b) and checks kpi.read itself, same capability as the menu entry.
+// "/reports/revenue-by-customer" is real (M15-09b), same capability (report.revenue.read) as the
+// menu entry added in M15-11.
+// "/reports/revenue-by-employee" is real (M15-10b), same reasoning as above.
 const REAL_PAGES = new Set([
   "/",
   "/employees",
   "/reports/kpi",
+  "/reports/revenue-by-customer",
+  "/reports/revenue-by-employee",
   "/audit",
   "/catalog/products",
   "/catalog/services",
@@ -106,9 +112,8 @@ export const routes: RouteObject[] = [
       ...menuRoutes,
       { path: "/employees", element: <EmployeesPage /> },
       { path: "/reports/kpi", element: <KpiReportPage /> },
-      // "/reports/revenue-by-customer" is real (M15-09b) and checks report.revenue.read itself —
-      // no menu entry yet, that comes with M15-11's "Báo cáo" menu group.
       { path: "/reports/revenue-by-customer", element: <RevenueByCustomerReportPage /> },
+      { path: "/reports/revenue-by-employee", element: <RevenueByEmployeeReportPage /> },
       { path: "/audit", element: <AuditPage /> },
       { path: "/catalog/products", element: <ProductsPage /> },
       { path: "/catalog/services", element: <ServicesPage /> },
