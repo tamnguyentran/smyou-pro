@@ -1,5 +1,7 @@
 """M15-09a: báo cáo doanh thu theo khách hàng (API) (AC-RPT-001…008, 043…045)."""
 
+import csv
+import io
 import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -365,8 +367,13 @@ def test_drilldown_orders_for_one_seller(app: FastAPI, db: Connection, people: d
         f"/api/v1/reports/revenue-by-customer/{kh1}/orders", params={"seller_id": str(people["NV005"])}
     )
     assert res.status_code == 200, res.text
-    orders = res.json()
-    assert {order["code"] for order in orders} == {"DH14", "DH15"}
+    orders = {order["code"]: order for order in res.json()}
+    assert set(orders) == {"DH14", "DH15"}
+    assert orders["DH14"]["total"] == 1_000_000
+    assert orders["DH14"]["profit"] is None
+    assert orders["DH15"]["total"] == 2_000_000
+    assert orders["DH14"]["created_at"] is not None
+    assert orders["DH14"]["completed_at"] is not None
 
 
 @pytest.mark.ac("AC-RPT-008")
@@ -384,17 +391,45 @@ def test_export_returns_csv_with_bom_and_filename(
         completed_at=COMPLETED_IN_RANGE,
     )
 
+    params = {"from": "2026-09-01", "to": "2026-09-26"}
     an = client_as(app, AN)
-    res = an.get(
-        "/api/v1/reports/revenue-by-customer/export", params={"from": "2026-09-01", "to": "2026-09-26"}
-    )
+    json_res = an.get("/api/v1/reports/revenue-by-customer", params=params)
+    assert json_res.status_code == 200, json_res.text
+    report_items = json_res.json()["items"]
+    assert report_items
+
+    res = an.get("/api/v1/reports/revenue-by-customer/export", params=params)
 
     assert res.status_code == 200, res.text
     assert res.headers["content-type"] == "text/csv; charset=utf-8"
     assert "doanh-thu-theo-khach-hang-2026-09-01_2026-09-26.csv" in res.headers["content-disposition"]
     assert res.content.startswith(b"\xef\xbb\xbf")
     text_content = res.content.decode("utf-8-sig")
-    assert "KH00001" in text_content
+    rows = list(csv.reader(io.StringIO(text_content)))
+    assert rows[0] == [
+        "Mã khách hàng",
+        "Tên khách hàng",
+        "Người liên hệ",
+        "Số điện thoại",
+        "Mã người bán",
+        "Tên người bán",
+        "Số đơn",
+        "Doanh thu",
+        "Lợi nhuận",
+    ]
+    assert len(rows) - 1 == len(report_items)
+    for csv_row, item in zip(rows[1:], report_items, strict=True):
+        assert csv_row == [
+            item["customer_code"],
+            item["customer_name"],
+            item["contact_person"] or "",
+            item["contact_phone"],
+            item["seller"]["code"],
+            item["seller"]["full_name"],
+            str(item["order_count"]),
+            str(item["subtotal_revenue"]),
+            "" if item["profit"] is None else str(item["profit"]),
+        ]
 
 
 @pytest.mark.ac("AC-RPT-043")
