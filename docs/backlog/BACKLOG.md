@@ -33,6 +33,7 @@ Mỗi spec đang **Draft**, có mục "8. Giả định & câu hỏi" ghi rõ gi
 - `[x]` M16-06 — Báo cáo "Doanh thu theo khách hàng": cột "người bán" đổi tính theo dòng hàng. Phụ thuộc M16-04. `docs/specs/M16-06-revenue-by-customer-line-based.md`
 - `[x]` M16-07 — Danh mục: "Nhóm sản phẩm/dịch vụ" (CRUD độc lập, seed 3 nhóm mẫu). `docs/specs/M16-07-product-service-groups.md`
 - `[x]` M16-08 — Đơn hàng: "Phòng phụ trách" đổi từ enum cố định sang chọn từ "Nhóm sản phẩm/dịch vụ". Phụ thuộc M16-07, thay Q08. `docs/specs/M16-08-order-division-group.md`
+- `[x]` M16-09 — UI: Danh sách đơn, bố cục dòng bộ lọc (tìm kiếm/từ ngày/đến ngày) theo breakpoint. `docs/specs/M16-09-order-list-filter-row-layout.md`
 
 ## M14 — Vận hành / sửa đổi nhỏ (chưa bắt đầu)
 - `[x]` M14-01 — Giảm số bản backup giữ lại từ 14 xuống **2 bản gần nhất** cho `db-*.dump`/`uploads-*.tar.gz` (`scripts/backup.sh`, `KEEP`); image tag trên Mac/server giữ 2 bản đã là hướng dẫn thủ công có sẵn ở `docs/architecture/DEPLOYMENT.md` §7.1. Quyết định của chủ dự án (2026-10-21). Spec `M9-02` đã cập nhật. (PR #132)
