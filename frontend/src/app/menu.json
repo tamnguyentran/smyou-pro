@@ -142,6 +142,15 @@
           "capability": null,
           "badge": null,
           "children": []
+        },
+        {
+          "id": "product-service-groups",
+          "label": "Nhóm sản phẩm/dịch vụ",
+          "icon": "Tags",
+          "path": "/catalog/groups",
+          "capability": null,
+          "badge": null,
+          "children": []
         }
       ]
     },

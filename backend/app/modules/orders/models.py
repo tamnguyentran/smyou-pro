@@ -23,10 +23,9 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
-from app.modules.catalog.models import SERVICE_UNITS
+from app.modules.catalog.models import SERVICE_UNITS, ProductServiceGroup
 from app.modules.identity.models import Employee
 
-DIVISIONS = ("OFFICE_EQUIPMENT", "SECURITY", "GENERAL")
 PRIORITIES = ("LOW", "NORMAL", "HIGH", "URGENT")
 PAYMENT_STATUSES = ("UNPAID", "PAID", "PAY_LATER")
 PAYMENT_METHODS = ("CASH", "BANK_TRANSFER")
@@ -59,7 +58,7 @@ class Order(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     code: Mapped[str] = mapped_column(String(20), unique=True)
     status: Mapped[str] = mapped_column(String(30), server_default=text("'DRAFT'"), index=True)
-    division: Mapped[str | None] = mapped_column(String(30))
+    division_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("product_service_groups.id"))
     customer_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("customers.id"), index=True)
     customer_name: Mapped[str | None] = mapped_column(String(255))
     customer_phone: Mapped[str | None] = mapped_column(String(20))
@@ -97,6 +96,7 @@ class Order(Base):
     lines: Mapped[list["OrderLine"]] = relationship(
         back_populates="order", order_by="OrderLine.position", cascade="all, delete-orphan"
     )
+    division: Mapped[ProductServiceGroup | None] = relationship()
 
 
 class OrderRevision(Base):

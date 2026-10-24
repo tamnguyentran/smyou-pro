@@ -123,6 +123,7 @@ menu:
     children:
       - { id: products, label: Sản phẩm, icon: Monitor,  path: /catalog/products }
       - { id: services, label: Dịch vụ,  icon: Hammer,   path: /catalog/services }
+      - { id: product-service-groups, label: Nhóm sản phẩm/dịch vụ, icon: Tags, path: /catalog/groups }
   - id: employees
     label: Nhân sự & phân quyền
     icon: UserCog

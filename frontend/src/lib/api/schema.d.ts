@@ -1070,6 +1070,76 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/product-service-groups": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách nhóm sản phẩm/dịch vụ (tìm, lọc, phân trang) */
+    get: operations["product_service_groups_list"];
+    put?: never;
+    /** Tạo nhóm sản phẩm/dịch vụ */
+    post: operations["product_service_groups_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/product-service-groups/{group_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Chi tiết nhóm sản phẩm/dịch vụ */
+    get: operations["product_service_groups_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Sửa nhóm sản phẩm/dịch vụ */
+    patch: operations["product_service_groups_update"];
+    trace?: never;
+  };
+  "/api/v1/product-service-groups/{group_id}/activate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Mở lại hoạt động nhóm sản phẩm/dịch vụ */
+    post: operations["product_service_groups_activate"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/product-service-groups/{group_id}/deactivate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Ngừng hoạt động nhóm sản phẩm/dịch vụ */
+    post: operations["product_service_groups_deactivate"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/products": {
     parameters: {
       query?: never;
@@ -2553,8 +2623,8 @@ export interface components {
       customer_phone?: string | null;
       /** Customer Tax Code */
       customer_tax_code?: string | null;
-      /** Division */
-      division?: ("OFFICE_EQUIPMENT" | "SECURITY" | "GENERAL") | null;
+      /** Division Id */
+      division_id?: string | null;
       /** Payment Method */
       payment_method?: ("CASH" | "BANK_TRANSFER") | null;
       /**
@@ -2626,8 +2696,10 @@ export interface components {
       customer_tax_code: string | null;
       /** Discount Amount */
       discount_amount: number;
-      /** Division */
-      division: string | null;
+      /** Division Id */
+      division_id: string | null;
+      /** Division Name */
+      division_name: string | null;
       /** Has Pending Revision Request */
       has_pending_revision_request: boolean;
       /**
@@ -2870,8 +2942,10 @@ export interface components {
       customer_name: string | null;
       /** Customer Phone */
       customer_phone: string | null;
-      /** Division */
-      division: string | null;
+      /** Division Id */
+      division_id: string | null;
+      /** Division Name */
+      division_name: string | null;
       /**
        * Id
        * Format: uuid
@@ -2911,8 +2985,8 @@ export interface components {
       customer_phone?: string | null;
       /** Customer Tax Code */
       customer_tax_code?: string | null;
-      /** Division */
-      division?: ("OFFICE_EQUIPMENT" | "SECURITY" | "GENERAL") | null;
+      /** Division Id */
+      division_id?: string | null;
       /** Payment Method */
       payment_method?: ("CASH" | "BANK_TRANSFER") | null;
       /** Payment Status */
@@ -3042,6 +3116,43 @@ export interface components {
       offset: number;
       /** Total */
       total: number;
+    };
+    /** ProductServiceGroupCreate */
+    ProductServiceGroupCreate: {
+      /** Name */
+      name: string;
+    };
+    /** ProductServiceGroupOut */
+    ProductServiceGroupOut: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Is Active */
+      is_active: boolean;
+      /** Name */
+      name: string;
+      /** Version */
+      version: number;
+    };
+    /** ProductServiceGroupPage */
+    ProductServiceGroupPage: {
+      /** Items */
+      items: components["schemas"]["ProductServiceGroupOut"][];
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+      /** Total */
+      total: number;
+    };
+    /** ProductServiceGroupUpdate */
+    ProductServiceGroupUpdate: {
+      /** Name */
+      name?: string | null;
+      /** Version */
+      version: number;
     };
     /** ProductUpdate */
     ProductUpdate: {
@@ -6650,6 +6761,265 @@ export interface operations {
         content?: never;
       };
       /** @description problem+json — STALE_VERSION | GUARD_FAILED | INVALID_TRANSITION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  product_service_groups_list: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        is_active?: boolean | null;
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProductServiceGroupPage"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  product_service_groups_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ProductServiceGroupCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProductServiceGroupOut"];
+        };
+      };
+      /** @description problem+json — CONFLICT (name) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  product_service_groups_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        group_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProductServiceGroupOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  product_service_groups_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        group_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ProductServiceGroupUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProductServiceGroupOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | CONFLICT (name) | INVALID_TRANSITION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  product_service_groups_activate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        group_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VersionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProductServiceGroupOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | CONFLICT (name) | INVALID_TRANSITION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  product_service_groups_deactivate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        group_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VersionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProductServiceGroupOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | CONFLICT (name) | INVALID_TRANSITION */
       409: {
         headers: {
           [name: string]: unknown;

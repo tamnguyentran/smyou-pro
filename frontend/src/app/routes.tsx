@@ -18,6 +18,7 @@ import { MyTasksPage } from "../features/myTasks/pages/MyTasksPage";
 import { NotificationsPage } from "../features/notifications/pages/NotificationsPage";
 import { DraftOrderPage } from "../features/orders/pages/DraftOrderPage";
 import { OrdersListPage } from "../features/orders/pages/OrdersListPage";
+import { ProductServiceGroupsPage } from "../features/productServiceGroups/pages/ProductServiceGroupsPage";
 import { ProductsPage } from "../features/products/pages/ProductsPage";
 import { ProfilePage } from "../features/profile/pages/ProfilePage";
 import { RevenueByCustomerReportPage } from "../features/revenueReport/pages/RevenueByCustomerReportPage";
@@ -51,6 +52,8 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/reports/revenue-by-customer" is real (M15-09b), same capability (report.revenue.read) as the
 // menu entry added in M15-11.
 // "/reports/revenue-by-employee" is real (M15-10b), same reasoning as above.
+// "/catalog/groups" is real (M16-07), same capability (catalog.manage on the menu entry,
+// catalog.read on the route) as "/catalog/products"/"/catalog/services".
 const REAL_PAGES = new Set([
   "/",
   "/employees",
@@ -60,6 +63,7 @@ const REAL_PAGES = new Set([
   "/audit",
   "/catalog/products",
   "/catalog/services",
+  "/catalog/groups",
   "/customers",
   "/orders/new",
   "/orders",
@@ -121,6 +125,7 @@ export const routes: RouteObject[] = [
       { path: "/audit", element: <AuditPage /> },
       { path: "/catalog/products", element: <ProductsPage /> },
       { path: "/catalog/services", element: <ServicesPage /> },
+      { path: "/catalog/groups", element: <ProductServiceGroupsPage /> },
       { path: "/customers", element: <CustomersPage /> },
       { path: "/customer-gifts", element: <CustomerGiftsPage /> },
       { path: "/dispatch/queue", element: <DispatchQueuePage /> },

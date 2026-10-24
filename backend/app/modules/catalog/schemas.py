@@ -199,3 +199,30 @@ class PriceHistoryOut(BaseModel):
     new_price: int
     old_cost_price: int | None
     new_cost_price: int | None
+
+
+class ProductServiceGroupCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: Name
+
+
+class ProductServiceGroupUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: int
+    name: Name | None = None
+
+
+class ProductServiceGroupOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    is_active: bool
+    version: int
+
+
+class ProductServiceGroupPage(BaseModel):
+    items: list[ProductServiceGroupOut]
+    total: int
+    limit: int
+    offset: int

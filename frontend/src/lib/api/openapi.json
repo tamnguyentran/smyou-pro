@@ -3176,17 +3176,17 @@
             ],
             "title": "Customer Tax Code"
           },
-          "division": {
+          "division_id": {
             "anyOf": [
               {
-                "enum": ["OFFICE_EQUIPMENT", "SECURITY", "GENERAL"],
+                "format": "uuid",
                 "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Division"
+            "title": "Division Id"
           },
           "payment_method": {
             "anyOf": [
@@ -3423,7 +3423,19 @@
             "title": "Discount Amount",
             "type": "integer"
           },
-          "division": {
+          "division_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Division Id"
+          },
+          "division_name": {
             "anyOf": [
               {
                 "type": "string"
@@ -3432,7 +3444,7 @@
                 "type": "null"
               }
             ],
-            "title": "Division"
+            "title": "Division Name"
           },
           "has_pending_revision_request": {
             "title": "Has Pending Revision Request",
@@ -3518,7 +3530,8 @@
           "id",
           "code",
           "status",
-          "division",
+          "division_id",
+          "division_name",
           "customer_id",
           "customer_name",
           "customer_phone",
@@ -4223,7 +4236,19 @@
             ],
             "title": "Customer Phone"
           },
-          "division": {
+          "division_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Division Id"
+          },
+          "division_name": {
             "anyOf": [
               {
                 "type": "string"
@@ -4232,7 +4257,7 @@
                 "type": "null"
               }
             ],
-            "title": "Division"
+            "title": "Division Name"
           },
           "id": {
             "format": "uuid",
@@ -4274,7 +4299,8 @@
           "status",
           "customer_name",
           "customer_phone",
-          "division",
+          "division_id",
+          "division_name",
           "priority",
           "total",
           "requested_date",
@@ -4370,17 +4396,17 @@
             ],
             "title": "Customer Tax Code"
           },
-          "division": {
+          "division_id": {
             "anyOf": [
               {
-                "enum": ["OFFICE_EQUIPMENT", "SECURITY", "GENERAL"],
+                "format": "uuid",
                 "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Division"
+            "title": "Division Id"
           },
           "payment_method": {
             "anyOf": [
@@ -4773,6 +4799,95 @@
         },
         "required": ["items", "total", "limit", "offset"],
         "title": "ProductPage",
+        "type": "object"
+      },
+      "ProductServiceGroupCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": ["name"],
+        "title": "ProductServiceGroupCreate",
+        "type": "object"
+      },
+      "ProductServiceGroupOut": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["id", "name", "is_active", "version"],
+        "title": "ProductServiceGroupOut",
+        "type": "object"
+      },
+      "ProductServiceGroupPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProductServiceGroupOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": ["items", "total", "limit", "offset"],
+        "title": "ProductServiceGroupPage",
+        "type": "object"
+      },
+      "ProductServiceGroupUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["version"],
+        "title": "ProductServiceGroupUpdate",
         "type": "object"
       },
       "ProductUpdate": {
@@ -10232,6 +10347,346 @@
         },
         "summary": "Mở lại đầu việc đã xong",
         "tags": ["dispatch"]
+      }
+    },
+    "/api/v1/product-service-groups": {
+      "get": {
+        "operationId": "product_service_groups_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "is_active",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Active"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductServiceGroupPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Danh sách nhóm sản phẩm/dịch vụ (tìm, lọc, phân trang)",
+        "tags": ["product-service-groups"]
+      },
+      "post": {
+        "operationId": "product_service_groups_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductServiceGroupCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductServiceGroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "problem+json — CONFLICT (name)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Tạo nhóm sản phẩm/dịch vụ",
+        "tags": ["product-service-groups"]
+      }
+    },
+    "/api/v1/product-service-groups/{group_id}": {
+      "get": {
+        "operationId": "product_service_groups_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductServiceGroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chi tiết nhóm sản phẩm/dịch vụ",
+        "tags": ["product-service-groups"]
+      },
+      "patch": {
+        "operationId": "product_service_groups_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductServiceGroupUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductServiceGroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | CONFLICT (name) | INVALID_TRANSITION"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Sửa nhóm sản phẩm/dịch vụ",
+        "tags": ["product-service-groups"]
+      }
+    },
+    "/api/v1/product-service-groups/{group_id}/activate": {
+      "post": {
+        "operationId": "product_service_groups_activate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductServiceGroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | CONFLICT (name) | INVALID_TRANSITION"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mở lại hoạt động nhóm sản phẩm/dịch vụ",
+        "tags": ["product-service-groups"]
+      }
+    },
+    "/api/v1/product-service-groups/{group_id}/deactivate": {
+      "post": {
+        "operationId": "product_service_groups_deactivate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductServiceGroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | CONFLICT (name) | INVALID_TRANSITION"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ngừng hoạt động nhóm sản phẩm/dịch vụ",
+        "tags": ["product-service-groups"]
       }
     },
     "/api/v1/products": {

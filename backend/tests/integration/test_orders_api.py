@@ -254,6 +254,7 @@ def catalog(db: Connection) -> dict[str, uuid.UUID]:
 
 
 @pytest.mark.ac("AC-ORD-001")
+@pytest.mark.ac("AC-ORD-194")
 def test_create_with_existing_customer(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID], kh00001: uuid.UUID
 ) -> None:
@@ -263,7 +264,7 @@ def test_create_with_existing_customer(
         "/api/v1/orders",
         json={
             "customer_id": str(kh00001),
-            "division": "OFFICE_EQUIPMENT",
+            "division_id": "a1111111-1111-4111-8111-111111111111",
             "service_address": "12 Lê Lợi, Q1",
             "work_description": "Lắp PC mới",
             "priority": "NORMAL",
@@ -280,6 +281,8 @@ def test_create_with_existing_customer(
     assert (body["subtotal"], body["discount_amount"], body["vat_amount"], body["total"]) == (0, 0, 0, 0)
     assert body["lines"] == []
     assert body["created_by"] == str(people["NV005"])
+    assert body["division_id"] == "a1111111-1111-4111-8111-111111111111"
+    assert body["division_name"] == "Thiết bị văn phòng"
 
 
 @pytest.mark.ac("AC-ORD-002")
@@ -292,7 +295,78 @@ def test_create_empty_draft_allowed(app: FastAPI, db: Connection, people: dict[s
     body = res.json()
     assert body["priority"] == "NORMAL"
     assert body["payment_status"] == "UNPAID"
-    assert body["division"] is None
+    assert body["division_id"] is None
+    assert body["division_name"] is None
+
+
+def test_create_rejects_unknown_division_group(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+
+    res = hoa.post("/api/v1/orders", json={"division_id": str(uuid.uuid4())})
+
+    body = problem(res, 422, "VALIDATION_ERROR")
+    assert error_fields(body)[0] == "division_id"
+
+
+@pytest.mark.ac("AC-ORD-195")
+def test_update_rejects_unknown_division_group(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+
+    res = hoa.patch(
+        f"/api/v1/orders/{order['id']}",
+        json={"version": order["version"], "division_id": str(uuid.uuid4())},
+    )
+
+    body = problem(res, 422, "VALIDATION_ERROR")
+    assert error_fields(body)[0] == "division_id"
+
+
+@pytest.mark.ac("AC-ORD-196")
+def test_update_division_set_then_clear(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+
+    set_res = hoa.patch(
+        f"/api/v1/orders/{order['id']}",
+        json={"version": order["version"], "division_id": "a2222222-2222-4222-8222-222222222222"},
+    )
+    assert set_res.status_code == 200, set_res.text
+    set_body = set_res.json()
+    assert set_body["division_id"] == "a2222222-2222-4222-8222-222222222222"
+    assert set_body["division_name"] == "Thiết bị an ninh"
+
+    cleared = hoa.patch(
+        f"/api/v1/orders/{order['id']}",
+        json={"version": set_body["version"], "division_id": None},
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["division_id"] is None
+    assert cleared.json()["division_name"] is None
+
+
+@pytest.mark.ac("AC-ORD-198")
+def test_division_not_editable_after_submit_via_contact_endpoint(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    res = hoa.patch(
+        f"/api/v1/orders/{order['id']}/contact",
+        json={"version": order["version"], "division_id": "a2222222-2222-4222-8222-222222222222"},
+    )
+
+    body = problem(res, 422, "VALIDATION_ERROR")
+    assert "division_id" in error_fields(body)
 
 
 @pytest.mark.ac("AC-ORD-003")
@@ -313,7 +387,7 @@ def test_create_walk_in_customer(app: FastAPI, db: Connection, people: dict[str,
     [
         ({"customer_id": str(uuid.uuid4())}, "customer_id"),
         ({"priority": "WRONG"}, "priority"),
-        ({"division": "WRONG"}, "division"),
+        ({"division_id": "not-a-uuid"}, "division_id"),
         ({"payment_status": "PAID"}, "payment_method"),
         ({"requested_date": "not-a-date"}, "requested_date"),
     ],
@@ -1730,7 +1804,8 @@ def test_list_orders_basic(app: FastAPI, db: Connection, three_orders: dict[str,
         "status",
         "customer_name",
         "customer_phone",
-        "division",
+        "division_id",
+        "division_name",
         "priority",
         "total",
         "requested_date",
