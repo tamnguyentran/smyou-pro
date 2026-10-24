@@ -810,4 +810,52 @@ describe("Tổng quan", () => {
       await screen.findByText("Phản hồi – đánh giá từ khách hàng (tháng này)"),
     ).toBeInTheDocument();
   });
+
+  test("AC-DASH-064 desktop 1440px: An (MANAGER) thấy 3 thẻ CSKH trước khối Top 10/Phản hồi", async () => {
+    signedInAs("an-id", AN);
+    mockDashboard({
+      care_summary: { today: 2, month: 8 },
+      care_staff_count: 3,
+      orders_needing_revision_count: 2,
+      top_customers: TOP_CUSTOMERS,
+      feedback_summary: FEEDBACK_SUMMARY,
+    });
+    renderApp("/");
+
+    const heading = await screen.findByText("Chăm sóc khách hàng (tháng này)");
+    const section = heading.closest("section") as HTMLElement;
+    expect(within(section).getByText("Khách hàng đã chăm sóc")).toBeInTheDocument();
+    expect(within(section).getByText("8")).toBeInTheDocument();
+    expect(within(section).getByText("Hôm nay: 2")).toBeInTheDocument();
+    expect(within(section).getByText("NV đã gọi điện CSKH")).toBeInTheDocument();
+    expect(within(section).getByText("3")).toBeInTheDocument();
+    expect(within(section).getByText("Đơn hàng phải sửa")).toBeInTheDocument();
+    expect(within(section).getByText("2")).toBeInTheDocument();
+
+    const feedbackHeading = await screen.findByText(
+      "Phản hồi – đánh giá từ khách hàng (tháng này)",
+    );
+    // AC-DASH-064: khối CSKH phải nằm trước khối Top 10/Phản hồi trong DOM.
+    expect(
+      heading.compareDocumentPosition(feedbackHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("AC-DASH-065 mobile 390px: Lan (CUSTOMER_CARE) thấy 3 thẻ CSKH xếp lưới không vỡ layout", async () => {
+    mobile();
+    signedInAs(lanCskId, LAN_CSK);
+    mockDashboard({
+      care_summary: { today: 0, month: 0 },
+      care_staff_count: 0,
+      orders_needing_revision_count: 0,
+      top_customers: TOP_CUSTOMERS,
+      feedback_summary: FEEDBACK_SUMMARY,
+    });
+    renderApp("/");
+
+    await screen.findByText("Chăm sóc khách hàng (tháng này)");
+    expect(screen.getByText("Khách hàng đã chăm sóc")).toBeInTheDocument();
+    expect(screen.getByText("NV đã gọi điện CSKH")).toBeInTheDocument();
+    expect(screen.getByText("Đơn hàng phải sửa")).toBeInTheDocument();
+  });
 });

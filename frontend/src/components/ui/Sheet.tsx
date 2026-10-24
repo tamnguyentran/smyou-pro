@@ -14,6 +14,7 @@ export function Sheet({
   children,
   footer,
   dismissible = true,
+  wide = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -25,6 +26,9 @@ export function Sheet({
   /** false while a confirmed action is in flight: Esc/overlay/✕ must not abandon it mid-request
    * (review round 1 — the mutation still completes and its result would surprise a "cancelled" user). */
   dismissible?: boolean;
+  /** true widens the desktop panel (`max-w-2xl` instead of `max-w-lg`) for forms that lay fields
+   * out in 2 columns above `lg` — otherwise the grid has no room and looks no wider than 1 column. */
+  wide?: boolean;
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const opener = useRef<Element | null>(null);
@@ -84,7 +88,8 @@ export function Sheet({
         data-testid="sheet-panel"
         className={cn(
           "absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col rounded-t-2xl bg-card shadow-card-hover",
-          "lg:inset-0 lg:m-auto lg:h-fit lg:max-h-[85vh] lg:w-full lg:max-w-lg lg:rounded-2xl",
+          "lg:inset-0 lg:m-auto lg:h-fit lg:max-h-[85vh] lg:w-full lg:rounded-2xl",
+          wide ? "lg:max-w-2xl" : "lg:max-w-lg",
         )}
       >
         <div

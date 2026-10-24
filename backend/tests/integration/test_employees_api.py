@@ -376,14 +376,22 @@ def test_customer_care_can_create_orders_and_read_any_order(
 
     created = lan.post(
         "/api/v1/orders",
-        json={"division": "GENERAL", "customer_name": "Khách lẻ", "customer_phone": "0909000000"},
+        json={
+            "division_id": "a3333333-3333-4333-8333-333333333333",
+            "customer_name": "Khách lẻ",
+            "customer_phone": "0909000000",
+        },
     )
     assert created.status_code == 201, created.text
 
     hoa = client_as(app, HOA)
     hoa_order = hoa.post(
         "/api/v1/orders",
-        json={"division": "GENERAL", "customer_name": "Khách khác", "customer_phone": "0909111111"},
+        json={
+            "division_id": "a3333333-3333-4333-8333-333333333333",
+            "customer_name": "Khách khác",
+            "customer_phone": "0909111111",
+        },
     )
     assert hoa_order.status_code == 201, hoa_order.text
     seen = lan.get(f"/api/v1/orders/{hoa_order.json()['id']}")

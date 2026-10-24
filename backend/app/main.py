@@ -17,8 +17,10 @@ from app.core.spec_loader import check_guard_registry, load_specs
 from app.modules.assignments import service as assignments_service
 from app.modules.assignments.router import router as assignments_router
 from app.modules.audit.router import router as audit_router
+from app.modules.catalog.groups_router import router as product_service_groups_router
 from app.modules.catalog.router import router as catalog_router
 from app.modules.catalog.router import services_router
+from app.modules.customer_gifts.router import router as customer_gifts_router
 from app.modules.customers.router import router as customers_router
 from app.modules.dashboard.router import router as dashboard_router
 from app.modules.dispatch import service as dispatch_service
@@ -97,8 +99,10 @@ def create_app(
     app.include_router(notifications_router)
     app.include_router(catalog_router)
     app.include_router(services_router)
+    app.include_router(product_service_groups_router)
     app.include_router(files_router)
     app.include_router(customers_router)
+    app.include_router(customer_gifts_router)
     app.include_router(dashboard_router)
     app.include_router(kpi_router)
     app.include_router(orders_router)

@@ -5,8 +5,10 @@ import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { NumberField } from "../../../components/ui/NumberField";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
+import { EmployeeSearchField } from "../../employees/components/EmployeeSearchField";
 import { formatCurrency } from "../../../lib/format";
 import { ApiError } from "../../auth/errors";
 import {
@@ -34,6 +36,8 @@ interface Draft {
   lineDiscount: string;
   vatRate: number;
   isGift: boolean;
+  creditedEmployeeId: string;
+  creditedEmployeeName: string;
 }
 
 function describeError(err: unknown): string {
@@ -49,6 +53,8 @@ function toDraft(line: OrderLine): Draft {
     lineDiscount: String(line.line_discount),
     vatRate: Number(line.vat_rate),
     isGift: line.is_gift,
+    creditedEmployeeId: line.credited_employee_id ?? "",
+    creditedEmployeeName: line.credited_employee_name ?? "",
   };
 }
 
@@ -77,7 +83,8 @@ function OrderLineRow({
     serverSnapshot.unit_price !== line.unit_price ||
     serverSnapshot.vat_rate !== line.vat_rate ||
     serverSnapshot.line_discount !== line.line_discount ||
-    serverSnapshot.is_gift !== line.is_gift
+    serverSnapshot.is_gift !== line.is_gift ||
+    serverSnapshot.credited_employee_id !== line.credited_employee_id
   ) {
     setServerSnapshot(line);
     setDraft(toDraft(line));
@@ -144,10 +151,10 @@ function OrderLineRow({
   return (
     <li
       data-testid={`order-line-${line.id}`}
-      className="grid grid-cols-2 gap-3 rounded-2xl border border-line bg-card p-4 lg:grid-cols-7 lg:items-center"
+      className="grid grid-cols-2 gap-3 rounded-2xl border border-line bg-card p-4 lg:grid-cols-8 lg:items-center"
     >
       {rowError ? (
-        <div className="col-span-2 lg:col-span-7">
+        <div className="col-span-2 lg:col-span-8">
           <Alert>{rowError}</Alert>
         </div>
       ) : null}
@@ -162,14 +169,12 @@ function OrderLineRow({
       </div>
 
       {canEdit ? (
-        <TextField
+        <NumberField
           label="Số lượng"
-          type="number"
-          step="any"
+          allowDecimal
           value={draft.quantity}
           error={quantityError}
-          onChange={(event) => {
-            const raw = event.target.value;
+          onChange={(raw) => {
             setDraft((prev) => ({ ...prev, quantity: raw }));
             const parsed = quantityFieldSchema.safeParse(raw);
             setQuantityError(parsed.success ? undefined : parsed.error.issues[0]?.message);
@@ -203,12 +208,11 @@ function OrderLineRow({
             }
           />
         ) : (
-          <TextField
+          <NumberField
             label="Đơn giá"
-            type="number"
-            value={draft.unitPrice}
-            onChange={(event) => {
-              const unitPrice = Number(event.target.value);
+            value={String(draft.unitPrice)}
+            onChange={(raw) => {
+              const unitPrice = Number(raw) || 0;
               setDraft((prev) => ({ ...prev, unitPrice }));
               preGiftUnitPriceRef.current = unitPrice;
             }}
@@ -234,13 +238,11 @@ function OrderLineRow({
       )}
 
       {draft.isGift ? null : canEdit ? (
-        <TextField
+        <NumberField
           label="Giảm giá"
-          type="number"
           value={draft.lineDiscount}
           error={discountError}
-          onChange={(event) => {
-            const raw = event.target.value;
+          onChange={(raw) => {
             setDraft((prev) => ({ ...prev, lineDiscount: raw }));
             const parsed = discountFieldSchema.safeParse(raw);
             setDiscountError(parsed.success ? undefined : parsed.error.issues[0]?.message);
@@ -252,6 +254,25 @@ function OrderLineRow({
         />
       ) : (
         <p className="text-sm text-body">{formatCurrency(line.line_discount)}</p>
+      )}
+
+      {canEdit ? (
+        <EmployeeSearchField
+          label="Ghi doanh số"
+          employeeId={draft.creditedEmployeeId}
+          employeeName={draft.creditedEmployeeName}
+          includeInactive
+          onSelect={(employee) => {
+            setDraft((prev) => ({
+              ...prev,
+              creditedEmployeeId: employee.id,
+              creditedEmployeeName: employee.name,
+            }));
+            commit({ credited_employee_id: employee.id || null });
+          }}
+        />
+      ) : (
+        <p className="text-sm text-body">{line.credited_employee_name ?? "—"}</p>
       )}
 
       <div className="flex min-w-0 items-center justify-between gap-3 lg:col-span-2 lg:justify-end">

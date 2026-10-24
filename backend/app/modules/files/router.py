@@ -1,7 +1,8 @@
 """/api/v1/attachments — serves stored files (M2-01a: product images; M6-01: order confirmation
-photos). Capability is chosen per-record (`spec/permissions.yaml#dynamic_routes`): `PRODUCT` owners
-check `catalog.read` (always scope `all` for the roles that hold it, so no row-scoping needed —
-same as before M6-01), `ORDER` owners check `order.read` and, unless the caller's scope is `all`,
+photos; M16-01a: customer gift photos). Capability is chosen per-record
+(`spec/permissions.yaml#dynamic_routes`): `PRODUCT` owners check `catalog.read`, `CUSTOMER_GIFT`
+owners check `customer_gift.read` (both always scope `all` for the roles that hold them, so no
+row-scoping needed), `ORDER` owners check `order.read` and, unless the caller's scope is `all`,
 `orders.service.order_in_scope` (keeps `files` from importing `orders.models` directly)."""
 
 import uuid
@@ -33,7 +34,12 @@ Authed = Annotated[Actor, Depends(require_authenticated())]
 def get_attachment(attachment_id: uuid.UUID, request: Request, session: DbSession, actor: Authed) -> Response:
     attachment = service.get_or_404(session, attachment_id)
     specs: Specs = request.app.state.specs
-    capability = "catalog.read" if attachment.owner_type == "PRODUCT" else "order.read"
+    if attachment.owner_type == "PRODUCT":
+        capability = "catalog.read"
+    elif attachment.owner_type == "CUSTOMER_GIFT":
+        capability = "customer_gift.read"
+    else:
+        capability = "order.read"
     scopes = effective_scopes(specs.permissions, actor.roles, capability)
     if not scopes:
         raise AppError(403, "FORBIDDEN", "Bạn không có quyền thực hiện thao tác này.")

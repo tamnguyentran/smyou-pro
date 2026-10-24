@@ -59,9 +59,11 @@ def test_reports_menu_group_has_no_capability_of_its_own() -> None:
         "reports-kpi",
         "reports-revenue-customer",
         "reports-revenue-employee",
+        "reports-customer-gift",
     ]
     assert [c["capability"] for c in reports["children"]] == [
         "kpi.read",
         "report.revenue.read",
         "report.revenue.read",
+        "report.customer_gift.read",
     ]

@@ -53,6 +53,7 @@ function customer(overrides: Partial<Customer> = {}): Customer {
     type: "COMPANY",
     name: "Cty Kim Long",
     contact_person: "Chị Mai",
+    contact_person_phone: null,
     phone: "0912345678",
     email: null,
     tax_code: "0311122233",
@@ -60,9 +61,9 @@ function customer(overrides: Partial<Customer> = {}): Customer {
     note: null,
     founded_date: null,
     director_name: null,
+    director_phone: null,
     it_contact_name: null,
     it_contact_phone: null,
-    it_contact_email: null,
     date_of_birth: null,
     gender: null,
     occupation: null,
@@ -386,11 +387,14 @@ describe("AC-CUS-020/021 trường mở rộng theo loại khách hàng", () => 
     await user.click(await screen.findByRole("button", { name: "Thêm khách hàng" }));
     const dialog = await screen.findByRole("dialog", { name: "Thêm khách hàng" });
 
+    expect(within(dialog).getByLabelText("Người liên hệ")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("SĐT người liên hệ")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Ngày thành lập")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Giám đốc")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("SĐT giám đốc")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Phụ trách IT")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("SĐT phụ trách IT")).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("Email phụ trách IT")).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Email phụ trách IT")).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Ngày sinh")).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Giới tính")).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Nghề nghiệp")).not.toBeInTheDocument();
@@ -409,6 +413,7 @@ describe("AC-CUS-020/021 trường mở rộng theo loại khách hàng", () => 
     expect(within(dialog).getByLabelText("Ngày sinh")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Giới tính")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Nghề nghiệp")).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Người liên hệ")).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Ngày thành lập")).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Giám đốc")).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Phụ trách IT")).not.toBeInTheDocument();

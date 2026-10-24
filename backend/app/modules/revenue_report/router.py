@@ -1,4 +1,4 @@
-"""`GET /api/v1/reports/revenue-by-customer`, `/{customer_id}/orders`, `/export` (M15-09a)."""
+"""`GET /api/v1/reports/revenue-by-customer`, `/{customer_id}/lines`, `/export` (M16-06)."""
 
 import uuid
 from datetime import date
@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 from app.core.authz import Actor, require
 from app.core.db import DbSession
 from app.modules.revenue_report import service
-from app.modules.revenue_report.schemas import RevenueOrderOut, RevenueReportOut
+from app.modules.revenue_report.schemas import RevenueLineOut, RevenueReportOut
 
 router = APIRouter(prefix="/api/v1/reports/revenue-by-customer", tags=["revenue-report"])
 Reader = Annotated[Actor, Depends(require("report.revenue.read"))]
@@ -46,12 +46,12 @@ def get_report(
 
 
 @router.get(
-    "/{customer_id}/orders",
-    operation_id="get_revenue_by_customer_orders",
-    summary="Danh sách đơn của 1 khách hàng (drilldown)",
-    response_model=list[RevenueOrderOut],
+    "/{customer_id}/lines",
+    operation_id="get_revenue_by_customer_lines",
+    summary="Danh sách dòng hàng của 1 khách hàng theo người bán hoặc nhóm 'Chưa gán' (drilldown)",
+    response_model=list[RevenueLineOut],
 )
-def get_customer_orders(
+def get_customer_lines(
     request: Request,
     session: DbSession,
     actor: Reader,
@@ -60,9 +60,10 @@ def get_customer_orders(
     to: date | None = None,
     status: Status = "COMPLETED",
     seller_id: uuid.UUID | None = None,
-) -> list[RevenueOrderOut]:
+    unassigned: bool = False,
+) -> list[RevenueLineOut]:
     resolved_from, resolved_to = _resolve_range(request, date_from, to)
-    return service.get_customer_orders(
+    return service.get_customer_lines(
         session,
         actor,
         customer_id,
@@ -70,6 +71,7 @@ def get_customer_orders(
         date_to=resolved_to,
         status=status,
         seller_id=seller_id,
+        unassigned=unassigned,
     )
 
 

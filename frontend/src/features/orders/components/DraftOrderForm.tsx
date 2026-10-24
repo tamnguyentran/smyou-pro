@@ -27,15 +27,13 @@ import {
   type OrderCreateBody,
 } from "../api";
 import {
-  DIVISION_LABELS,
-  DIVISION_ORDER,
   PRIORITY_LABELS,
   PRIORITY_ORDER,
   orderInfoSchema,
-  type Division,
   type OrderInfoFormValues,
   type Priority,
 } from "../schemas";
+import { useActiveProductServiceGroups } from "../../productServiceGroups/api";
 import { AddLineSheet } from "./AddLineSheet";
 import { CancelOrderSheet } from "./CancelOrderSheet";
 import { CustomerPicker } from "./CustomerPicker";
@@ -54,7 +52,7 @@ const BLANK_VALUES: OrderInfoFormValues = {
   customer_id: "",
   customer_name: "",
   customer_phone: "",
-  division: "",
+  division_id: "",
   service_address: "",
   work_description: "",
   priority: "NORMAL",
@@ -67,7 +65,7 @@ function mapOrderToFormValues(order: Order): OrderInfoFormValues {
     customer_id: order.customer_id ?? "",
     customer_name: order.customer_name ?? "",
     customer_phone: order.customer_phone ?? "",
-    division: (order.division as Division | null) ?? "",
+    division_id: order.division_id ?? "",
     service_address: order.service_address,
     work_description: order.work_description,
     priority: order.priority as Priority,
@@ -80,7 +78,7 @@ function buildOrderFields(values: OrderInfoFormValues): Omit<OrderCreateBody, "p
     customer_id: values.customerMode === "search" ? values.customer_id || null : null,
     customer_name: values.customerMode === "walkin" ? values.customer_name || null : null,
     customer_phone: values.customerMode === "walkin" ? values.customer_phone || null : null,
-    division: values.division || null,
+    division_id: values.division_id || null,
     service_address: values.service_address || null,
     work_description: values.work_description || null,
     priority: values.priority,
@@ -114,6 +112,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
   }
   const orderQuery = useOrder(id);
   const order = orderQuery.data;
+  const groups = useActiveProductServiceGroups();
   const createOrder = useCreateOrder();
   const updateOrder = useUpdateOrder();
   const submitOrder = useSubmitOrder();
@@ -373,13 +372,13 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
               />
               <Select
                 label="Phòng phụ trách"
-                error={formState.errors.division?.message}
-                {...register("division")}
+                error={formState.errors.division_id?.message}
+                {...register("division_id")}
               >
                 <option value="">—</option>
-                {DIVISION_ORDER.map((division) => (
-                  <option key={division} value={division}>
-                    {DIVISION_LABELS[division]}
+                {(groups.data ?? []).map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
                   </option>
                 ))}
               </Select>
@@ -416,10 +415,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
             // scope doesn't cover it — never for a not-yet-created draft.
             <div className="space-y-4">
               <ReadOnlyField label="Khách hàng" value={order.customer_name ?? "Khách lẻ"} />
-              <ReadOnlyField
-                label="Phòng phụ trách"
-                value={order.division ? DIVISION_LABELS[order.division as Division] : ""}
-              />
+              <ReadOnlyField label="Phòng phụ trách" value={order.division_name ?? ""} />
               <ReadOnlyField label="Địa chỉ thi công" value={order.service_address} />
               <ReadOnlyField label="Mô tả công việc" value={order.work_description} />
               <ReadOnlyField

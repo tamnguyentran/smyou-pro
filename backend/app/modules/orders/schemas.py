@@ -12,7 +12,6 @@ from app.modules.catalog.domain import vat_rate_problem
 from app.modules.catalog.schemas import ServiceUnit
 from app.modules.identity.schemas import Email
 
-Division = Literal["OFFICE_EQUIPMENT", "SECURITY", "GENERAL"]
 Priority = Literal["LOW", "NORMAL", "HIGH", "URGENT"]
 OrderStatus = Literal[
     "DRAFT",
@@ -59,7 +58,7 @@ class OrderCreate(BaseModel):
     customer_phone: str | None = None
     customer_email: Email | None = None
     customer_tax_code: TaxCode | None = None
-    division: Division | None = None
+    division_id: uuid.UUID | None = None
     service_address: str | None = None
     work_description: str | None = None
     priority: Priority = "NORMAL"
@@ -79,7 +78,7 @@ class OrderUpdate(BaseModel):
     customer_phone: str | None = None
     customer_email: Email | None = None
     customer_tax_code: TaxCode | None = None
-    division: Division | None = None
+    division_id: uuid.UUID | None = None
     service_address: str | None = None
     work_description: str | None = None
     priority: Priority | None = None
@@ -131,6 +130,7 @@ class OrderLineCreate(BaseModel):
     is_gift: bool = False
     line_discount: Annotated[int, Field(ge=0)] = 0
     note: str | None = None
+    credited_employee_id: uuid.UUID | None = None
 
     _check_product_id = field_validator("product_id")(_required_when("PRODUCT"))
     _check_service_id = field_validator("service_id")(_required_when("SERVICE"))
@@ -149,6 +149,7 @@ class OrderLineUpdate(BaseModel):
     is_gift: bool | None = None
     line_discount: Annotated[int, Field(ge=0)] | None = None
     note: str | None = None
+    credited_employee_id: uuid.UUID | None = None
 
     _check_vat_rate = field_validator("vat_rate")(_check_vat_rate)
 
@@ -249,13 +250,16 @@ class OrderLineOut(BaseModel):
     line_vat: int
     line_total: int
     note: str | None
+    credited_employee_id: uuid.UUID | None
+    credited_employee_name: str | None
 
 
 class OrderDetail(BaseModel):
     id: uuid.UUID
     code: str
     status: str
-    division: str | None
+    division_id: uuid.UUID | None
+    division_name: str | None
     customer_id: uuid.UUID | None
     customer_name: str | None
     customer_phone: str | None
@@ -308,7 +312,8 @@ class OrderSummary(BaseModel):
     status: str
     customer_name: str | None
     customer_phone: str | None
-    division: str | None
+    division_id: uuid.UUID | None
+    division_name: str | None
     priority: str
     total: int
     requested_date: date | None

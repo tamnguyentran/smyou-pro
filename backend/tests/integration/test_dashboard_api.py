@@ -15,6 +15,7 @@ from tests.integration.test_dispatch_api import DUC, HOA, MINH, TUAN, client_as,
 from tests.integration.test_dispatch_board_api import insert_assignment, insert_task
 
 LAN_CSK = Person("lan.csk@smyou.vn", "Lan@SmYou26", ("CUSTOMER_CARE",), "NV021", "Đỗ Thị Lan CSKH", "SALES")
+MAI_CSK = Person("mai.csk@smyou.vn", "Mai@SmYou26", ("CUSTOMER_CARE",), "NV022", "Trần Thị Mai CSKH", "SALES")
 
 
 def insert_done_assignment(
@@ -43,7 +44,7 @@ LAN = Person("lan2.do@smyou.vn", "Lan2@SmYou26", ("SALE", "TECH_LEAD"), "NV020",
 
 @pytest.fixture
 def people(db: Connection) -> dict[str, uuid.UUID]:
-    return {p.code: seed(db, p) for p in (AN, HOA, TUAN, DUC, MINH, KHOA, LAN, LAN_CSK)}
+    return {p.code: seed(db, p) for p in (AN, HOA, TUAN, DUC, MINH, KHOA, LAN, LAN_CSK, MAI_CSK)}
 
 
 def body(res: Any) -> dict[str, Any]:
@@ -763,14 +764,17 @@ def insert_completed_order_for_customer(
     code: str,
     csat_rating: int | None = None,
     completed_at: datetime = COMPLETED_THIS_MONTH_UTC,
+    csat_recorded_by: uuid.UUID | None = None,
+    csat_recorded_at: datetime | None = None,
 ) -> uuid.UUID:
     order_id = uuid.uuid4()
     db.execute(
         text(
             "INSERT INTO orders (id, code, status, created_by, customer_id, service_address,"
-            " work_description, priority, version, total, completed_at, csat_rating)"
+            " work_description, priority, version, total, completed_at, csat_rating,"
+            " csat_recorded_by, csat_recorded_at)"
             " VALUES (:id, :code, 'COMPLETED', :created_by, :customer_id, '12 Lê Lợi, Q1', 'Lắp đặt',"
-            " 'NORMAL', 1, :total, :completed_at, :csat_rating)"
+            " 'NORMAL', 1, :total, :completed_at, :csat_rating, :csat_recorded_by, :csat_recorded_at)"
         ),
         {
             "id": order_id,
@@ -780,6 +784,8 @@ def insert_completed_order_for_customer(
             "total": total,
             "completed_at": completed_at,
             "csat_rating": csat_rating,
+            "csat_recorded_by": csat_recorded_by,
+            "csat_recorded_at": csat_recorded_at,
         },
     )
     return order_id
@@ -934,3 +940,133 @@ def test_top_customers_excludes_guest_orders_without_customer(
     assert len(data["top_customers"]) == 1
     assert data["top_customers"][0]["customer_code"] == "KH97"
     assert sum(row["total_revenue"] for row in data["top_customers"]) < 999_000_000
+
+
+def insert_order_revision(
+    db: Connection,
+    *,
+    order_id: uuid.UUID,
+    revision_no: int,
+    requested_by: uuid.UUID,
+    requested_at: datetime,
+) -> None:
+    db.execute(
+        text(
+            "INSERT INTO order_revisions (id, order_id, revision_no, reason, requested_by, requested_at)"
+            " VALUES (:id, :order_id, :revision_no, 'Khách yêu cầu sửa', :requested_by, :requested_at)"
+        ),
+        {
+            "id": uuid.uuid4(),
+            "order_id": order_id,
+            "revision_no": revision_no,
+            "requested_by": requested_by,
+            "requested_at": requested_at,
+        },
+    )
+
+
+@pytest.mark.ac("AC-DASH-060")
+def test_care_summary_counts_orders_with_csat_today_and_this_month(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    for i in range(6):
+        insert_completed_order_for_customer(
+            db,
+            created_by=people["NV001"],
+            customer_id=None,
+            total=100_000,
+            code=f"DH2609-CARE{i:02d}",
+            csat_recorded_by=people["NV021"],
+            csat_recorded_at=COMPLETED_THIS_MONTH_UTC,
+        )
+    for i in range(2):
+        insert_completed_order_for_customer(
+            db,
+            created_by=people["NV001"],
+            customer_id=None,
+            total=100_000,
+            code=f"DH2609-CARETODAY{i:02d}",
+            csat_recorded_by=people["NV021"],
+            csat_recorded_at=TODAY_VN,
+        )
+
+    an = client_as(app, AN)
+    data = body(an.get("/api/v1/dashboard"))
+    assert data["care_summary"] == {"today": 2, "month": 8}
+
+
+@pytest.mark.ac("AC-DASH-061")
+def test_care_staff_count_distinct_recorders_this_month(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    recorders = [people["NV021"], people["NV021"], people["NV022"], people["NV001"]]
+    for i, recorder in enumerate(recorders):
+        insert_completed_order_for_customer(
+            db,
+            created_by=people["NV001"],
+            customer_id=None,
+            total=100_000,
+            code=f"DH2609-STAFF{i:02d}",
+            csat_recorded_by=recorder,
+            csat_recorded_at=COMPLETED_THIS_MONTH_UTC,
+        )
+
+    tuan = client_as(app, TUAN)
+    data = body(tuan.get("/api/v1/dashboard"))
+    assert data["care_staff_count"] == 3
+
+
+@pytest.mark.ac("AC-DASH-062")
+def test_orders_needing_revision_count_distinct_orders_this_month(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    order_with_two_requests = insert_order(
+        db, created_by=people["NV001"], status="REVISION", code="DH2609-REV01"
+    )
+    insert_order_revision(
+        db,
+        order_id=order_with_two_requests,
+        revision_no=1,
+        requested_by=people["NV010"],
+        requested_at=COMPLETED_THIS_MONTH_UTC,
+    )
+    insert_order_revision(
+        db,
+        order_id=order_with_two_requests,
+        revision_no=2,
+        requested_by=people["NV010"],
+        requested_at=TODAY_VN,
+    )
+    order_with_one_request = insert_order(
+        db, created_by=people["NV001"], status="REVISION", code="DH2609-REV02"
+    )
+    insert_order_revision(
+        db,
+        order_id=order_with_one_request,
+        revision_no=1,
+        requested_by=people["NV010"],
+        requested_at=COMPLETED_THIS_MONTH_UTC,
+    )
+    other_month_order = insert_order(db, created_by=people["NV001"], status="REVISION", code="DH2609-REVOLD")
+    insert_order_revision(
+        db,
+        order_id=other_month_order,
+        revision_no=1,
+        requested_by=people["NV010"],
+        requested_at=datetime(2026, 8, 20, 3, 0, tzinfo=UTC),
+    )
+
+    lan = client_as(app, LAN_CSK)
+    data = body(lan.get("/api/v1/dashboard"))
+    assert data["orders_needing_revision_count"] == 2
+
+
+@pytest.mark.ac("AC-DASH-063")
+def test_technician_only_has_no_cskh_stat_fields(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    duc = client_as(app, DUC)
+    data = body(duc.get("/api/v1/dashboard"))
+    assert "care_summary" not in data
+    assert "care_staff_count" not in data
+    assert "orders_needing_revision_count" not in data

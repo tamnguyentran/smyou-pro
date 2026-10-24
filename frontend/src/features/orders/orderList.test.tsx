@@ -53,7 +53,8 @@ function summary(overrides: Partial<OrderSummary> = {}): OrderSummary {
     id: "b0000000-0000-4000-8000-000000000020",
     code: "DH2609-0001",
     status: "DRAFT",
-    division: null,
+    division_id: null,
+    division_name: null,
     customer_name: "Cty Sáng Tạo Mới",
     customer_phone: "0909123456",
     priority: "NORMAL",
@@ -511,5 +512,90 @@ describe("M15-02b — CSKH tra cứu + CSAT trên /orders", () => {
     await waitFor(() => {
       expect(lastQuery).toContain("csat_rating=3");
     });
+  });
+});
+
+describe("M16-09 — bố cục dòng bộ lọc (Tìm kiếm/Từ ngày/Đến ngày)", () => {
+  function mobile() {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+  }
+
+  test("AC-UI-043: Hoa (không phải CSKH) không có ô Từ ngày/Đến ngày, ô Tìm kiếm nằm trong lưới 2→4 cột", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [summary()], total: 1, limit: 20, offset: 0 }),
+      ),
+    );
+    renderApp("/orders");
+    await screen.findByText("DH2609-0001");
+
+    expect(screen.queryByLabelText("Từ ngày")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Đến ngày")).not.toBeInTheDocument();
+    const searchInput = screen.getByLabelText("Tìm kiếm");
+    const grid = searchInput.closest('div[class*="grid-cols-2"]');
+    expect(grid).not.toBeNull();
+    expect(grid?.className).toContain("lg:grid-cols-4");
+    const searchWrapper = searchInput.closest(".space-y-1\\.5")?.parentElement;
+    expect(searchWrapper?.className).toContain("col-span-2");
+  });
+
+  test("AC-UI-044: Lan (CUSTOMER_CARE), laptop 1440px — Tìm kiếm/Từ ngày/Đến ngày cùng 1 lưới, Tìm kiếm chiếm 2/4 cột", async () => {
+    signedInAs(lanId, LAN);
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [summary()], total: 1, limit: 20, offset: 0 }),
+      ),
+      http.get("/api/v1/orders/csat-summary", () =>
+        HttpResponse.json({ "5": 0, "4": 0, "3": 0, "2": 0, "1": 0, none: 0 }),
+      ),
+    );
+    renderApp("/orders");
+    await screen.findByText("DH2609-0001");
+
+    const searchInput = screen.getByLabelText("Tìm kiếm");
+    const fromInput = screen.getByLabelText("Từ ngày");
+    const toInput = screen.getByLabelText("Đến ngày");
+    const grid = searchInput.closest('div[class*="grid-cols-2"]');
+    expect(grid).not.toBeNull();
+    expect(grid?.className).toContain("lg:grid-cols-4");
+    // Từ ngày/Đến ngày phải là con trực tiếp của đúng lưới chứa Tìm kiếm (cùng 1 dòng ở lg:).
+    expect(fromInput.closest('div[class*="grid-cols-2"]')).toBe(grid);
+    expect(toInput.closest('div[class*="grid-cols-2"]')).toBe(grid);
+    const searchWrapper = searchInput.closest(".space-y-1\\.5")?.parentElement;
+    expect(searchWrapper?.className).toContain("col-span-2");
+  });
+
+  test("AC-UI-045: Lan (CUSTOMER_CARE), mobile/tablet 390px — Tìm kiếm riêng 1 dòng, Từ ngày+Đến ngày dòng tiếp theo", async () => {
+    mobile();
+    signedInAs(lanId, LAN);
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [summary()], total: 1, limit: 20, offset: 0 }),
+      ),
+      http.get("/api/v1/orders/csat-summary", () =>
+        HttpResponse.json({ "5": 0, "4": 0, "3": 0, "2": 0, "1": 0, none: 0 }),
+      ),
+    );
+    renderApp("/orders");
+    await screen.findByText("DH2609-0001");
+
+    const searchInput = screen.getByLabelText("Tìm kiếm");
+    const fromInput = screen.getByLabelText("Từ ngày");
+    const toInput = screen.getByLabelText("Đến ngày");
+    // Lưới base = 2 cột: Tìm kiếm chiếm cả 2 cột (nguyên dòng); Từ ngày/Đến ngày mỗi ô 1 cột
+    // (không có wrapper col-span) → tự nhiên xếp cùng dòng kế tiếp.
+    const searchWrapper = searchInput.closest(".space-y-1\\.5")?.parentElement;
+    expect(searchWrapper?.className).toContain("col-span-2");
+    expect(fromInput.closest(".space-y-1\\.5")?.parentElement?.className).not.toContain("col-span");
+    expect(toInput.closest(".space-y-1\\.5")?.parentElement?.className).not.toContain("col-span");
   });
 });

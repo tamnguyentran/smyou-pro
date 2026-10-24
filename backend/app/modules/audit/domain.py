@@ -15,3 +15,4 @@ class EntityType(StrEnum):
     ORDER = "ORDER"
     TASK = "TASK"
     ASSIGNMENT = "ASSIGNMENT"
+    CUSTOMER_GIFT = "CUSTOMER_GIFT"

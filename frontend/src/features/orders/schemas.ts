@@ -1,16 +1,7 @@
 import { z } from "zod";
 import type { components } from "../../lib/api/schema";
 
-export type Division = NonNullable<components["schemas"]["OrderCreate"]["division"]>;
 export type Priority = components["schemas"]["OrderCreate"]["priority"];
-
-/** DOMAIN_MODEL §5 enum values, in display order. */
-export const DIVISION_LABELS: Record<Division, string> = {
-  OFFICE_EQUIPMENT: "Thiết bị văn phòng",
-  SECURITY: "Thiết bị an ninh",
-  GENERAL: "Kỹ thuật chung",
-};
-export const DIVISION_ORDER = Object.keys(DIVISION_LABELS) as Division[];
 
 export const PRIORITY_LABELS: Record<Priority, string> = {
   LOW: "Thấp",
@@ -69,7 +60,9 @@ export const orderInfoSchema = z
     customer_id: z.string().optional(),
     customer_name: z.string().trim().optional(),
     customer_phone: z.string().trim().optional(),
-    division: z.union([z.enum(DIVISION_ORDER as [Division, ...Division[]]), z.literal("")]),
+    // M16-08: giá trị là id của "Nhóm sản phẩm/dịch vụ" (chuỗi rỗng = chưa chọn) — danh sách
+    // chọn lấy động từ API, không còn enum cố định.
+    division_id: z.string(),
     service_address: z.string().trim().optional(),
     work_description: z.string().trim().optional(),
     priority: z.enum(PRIORITY_ORDER as [Priority, ...Priority[]]),

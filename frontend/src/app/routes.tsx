@@ -5,6 +5,7 @@ import { ChangePasswordPage } from "../features/auth/pages/ChangePasswordPage";
 import { ForgotPasswordPage } from "../features/auth/pages/ForgotPasswordPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { ResetPasswordPage } from "../features/auth/pages/ResetPasswordPage";
+import { CustomerGiftsPage } from "../features/customerGifts/pages/CustomerGiftsPage";
 import { CustomersPage } from "../features/customers/pages/CustomersPage";
 import { DispatchQueuePage } from "../features/dispatch/pages/DispatchQueuePage";
 import { RevisionQueuePage } from "../features/dispatch/pages/RevisionQueuePage";
@@ -17,6 +18,7 @@ import { MyTasksPage } from "../features/myTasks/pages/MyTasksPage";
 import { NotificationsPage } from "../features/notifications/pages/NotificationsPage";
 import { DraftOrderPage } from "../features/orders/pages/DraftOrderPage";
 import { OrdersListPage } from "../features/orders/pages/OrdersListPage";
+import { ProductServiceGroupsPage } from "../features/productServiceGroups/pages/ProductServiceGroupsPage";
 import { ProductsPage } from "../features/products/pages/ProductsPage";
 import { ProfilePage } from "../features/profile/pages/ProfilePage";
 import { RevenueByCustomerReportPage } from "../features/revenueReport/pages/RevenueByCustomerReportPage";
@@ -37,6 +39,8 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/customers" is real (M3-01) and checks customer.read itself — narrower than the menu entry's
 // customer.manage (AC-CUS-012: TECH_LEAD reads it without seeing the "Khách hàng" menu item).
 // "/orders/new" is real (M3-02b) and checks order.create itself, same shape as the menu entry.
+// "/customer-gifts" is real (M16-01b) and checks customer_gift.read itself, same capability as
+// the menu entry added alongside it.
 // "/orders" (list) is real (M3-03b) and checks order.read itself — narrower than the menu entry's
 // order.create (Q56: TECH_LEAD reads it via direct URL without seeing the "Đơn hàng" menu item).
 // "/dispatch/queue" is real (M4-01b) and checks task.manage itself — same capability as the menu entry.
@@ -48,6 +52,8 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/reports/revenue-by-customer" is real (M15-09b), same capability (report.revenue.read) as the
 // menu entry added in M15-11.
 // "/reports/revenue-by-employee" is real (M15-10b), same reasoning as above.
+// "/catalog/groups" is real (M16-07), same capability (catalog.manage on the menu entry,
+// catalog.read on the route) as "/catalog/products"/"/catalog/services".
 const REAL_PAGES = new Set([
   "/",
   "/employees",
@@ -57,9 +63,11 @@ const REAL_PAGES = new Set([
   "/audit",
   "/catalog/products",
   "/catalog/services",
+  "/catalog/groups",
   "/customers",
   "/orders/new",
   "/orders",
+  "/customer-gifts",
   "/dispatch/queue",
   "/dispatch/board",
   "/dispatch/workload",
@@ -117,7 +125,9 @@ export const routes: RouteObject[] = [
       { path: "/audit", element: <AuditPage /> },
       { path: "/catalog/products", element: <ProductsPage /> },
       { path: "/catalog/services", element: <ServicesPage /> },
+      { path: "/catalog/groups", element: <ProductServiceGroupsPage /> },
       { path: "/customers", element: <CustomersPage /> },
+      { path: "/customer-gifts", element: <CustomerGiftsPage /> },
       { path: "/dispatch/queue", element: <DispatchQueuePage /> },
       { path: "/dispatch/board", element: <TaskBoardPage /> },
       { path: "/dispatch/workload", element: <WorkloadPage /> },

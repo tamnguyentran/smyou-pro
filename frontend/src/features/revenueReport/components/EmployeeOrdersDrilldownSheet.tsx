@@ -1,86 +1,81 @@
-import { useState } from "react";
 import { Inbox } from "lucide-react";
 import { Sheet } from "../../../components/ui/Sheet";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { Button } from "../../../components/ui/Button";
 import { formatCurrency } from "../../../lib/format";
-import { formatDate } from "../../../lib/format";
-import type { RevenueFilters, RevenueOrder } from "../api";
-import { useEmployeeOrders } from "../employeeApi";
-import { OrderLinesDrilldownSheet } from "./OrderLinesDrilldownSheet";
+import type { RevenueFilters } from "../api";
+import { useEmployeeLines } from "../employeeApi";
 
-/** AC-RPT-031, AC-RPT-032: drilldown cấp 1 — đơn do nhân viên đã bấm tạo (M15-10a). */
+const PROFIT_TOOLTIP = "Dòng hàng này chưa có giá vốn tại thời điểm tạo đơn.";
+
+/** M16-05 (AC-RPT-064): drilldown — liệt kê DÒNG HÀNG của 1 nhân viên (hoặc nhóm "Chưa gán"),
+ * thay cho danh sách đơn (M15-10a) vì trục tính đã đổi sang `order_lines.credited_employee_id`. */
 export function EmployeeOrdersDrilldownSheet({
-  employeeId,
-  employeeName,
+  selector,
+  title,
   filters,
   onClose,
 }: {
-  employeeId: string;
-  employeeName: string;
+  selector: { employeeId: string } | { unassigned: true };
+  title: string;
   filters: Pick<RevenueFilters, "from" | "to" | "status">;
   onClose: () => void;
 }) {
-  const [selectedOrder, setSelectedOrder] = useState<RevenueOrder | null>(null);
-  const orders = useEmployeeOrders(employeeId, filters);
+  const lines = useEmployeeLines(selector, filters);
 
   return (
-    <>
-      <Sheet open title={employeeName} onClose={onClose}>
-        {orders.isPending ? (
-          <p className="py-8 text-center text-sm text-muted">Đang tải…</p>
-        ) : orders.isError ? (
-          <EmptyState
-            icon={Inbox}
-            message="Không tải được danh sách đơn."
-            action={
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  void orders.refetch();
-                }}
-              >
-                Tải lại
-              </Button>
-            }
-          />
-        ) : orders.data.length === 0 ? (
-          <EmptyState icon={Inbox} message="Không có đơn phù hợp." />
-        ) : (
-          <ul className="divide-y divide-line">
-            {orders.data.map((order) => (
-              <li key={order.id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedOrder(order);
-                  }}
-                  className="flex w-full items-center justify-between gap-3 px-1 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-                >
-                  <span>
-                    <span className="font-semibold text-heading">{order.code}</span>
-                    <span className="block text-xs text-muted">
-                      {formatDate(order.completed_at ?? order.created_at)}
-                    </span>
-                  </span>
-                  <span className="text-sm font-medium text-heading">
-                    {formatCurrency(order.total)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Sheet>
-      {selectedOrder ? (
-        <OrderLinesDrilldownSheet
-          orderId={selectedOrder.id}
-          orderCode={selectedOrder.code}
-          onClose={() => {
-            setSelectedOrder(null);
-          }}
+    <Sheet open title={title} onClose={onClose}>
+      {lines.isPending ? (
+        <p className="py-8 text-center text-sm text-muted">Đang tải…</p>
+      ) : lines.isError ? (
+        <EmptyState
+          icon={Inbox}
+          message="Không tải được danh sách dòng hàng."
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => {
+                void lines.refetch();
+              }}
+            >
+              Tải lại
+            </Button>
+          }
         />
-      ) : null}
-    </>
+      ) : lines.data.length === 0 ? (
+        <EmptyState icon={Inbox} message="Không có dòng hàng phù hợp." />
+      ) : (
+        <table className="w-full overflow-hidden rounded-2xl border border-line bg-card text-left text-sm">
+          <thead className="bg-sidebar-sub text-xs font-semibold text-body uppercase">
+            <tr>
+              {["Mã đơn", "Tên hàng", "Số lượng", "Doanh thu", "Lợi nhuận"].map((heading) => (
+                <th key={heading} scope="col" className="px-3 py-2">
+                  {heading}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {lines.data.map((line) => (
+              <tr key={line.id}>
+                <td className="px-3 py-2 text-heading">{line.order_code}</td>
+                <td className="px-3 py-2 text-body">{line.line_name}</td>
+                <td className="px-3 py-2 text-right text-body">{line.quantity}</td>
+                <td className="px-3 py-2 text-right text-body">
+                  {formatCurrency(line.line_total)}
+                </td>
+                <td className="px-3 py-2 text-right text-body">
+                  {line.profit === null ? (
+                    <span title={PROFIT_TOOLTIP}>—</span>
+                  ) : (
+                    formatCurrency(line.profit)
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Sheet>
   );
 }

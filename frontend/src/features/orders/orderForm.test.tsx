@@ -11,6 +11,7 @@ type Order = components["schemas"]["OrderDetail"];
 type Customer = components["schemas"]["CustomerOut"];
 type OrderLine = components["schemas"]["OrderLineOut"];
 type Product = components["schemas"]["ProductOut"];
+type ProductServiceGroup = components["schemas"]["ProductServiceGroupOut"];
 
 const meId = "9d1f0c2e-0000-4000-8000-000000000003";
 const hoaId = "a0000000-0000-4000-8000-000000000010";
@@ -81,6 +82,7 @@ function customer(overrides: Partial<Customer> = {}): Customer {
     type: "COMPANY",
     name: "Cty Sáng Tạo Mới",
     contact_person: null,
+    contact_person_phone: null,
     phone: "0909123456",
     email: null,
     tax_code: null,
@@ -88,9 +90,9 @@ function customer(overrides: Partial<Customer> = {}): Customer {
     note: null,
     founded_date: null,
     director_name: null,
+    director_phone: null,
     it_contact_name: null,
     it_contact_phone: null,
-    it_contact_email: null,
     date_of_birth: null,
     gender: null,
     occupation: null,
@@ -105,7 +107,8 @@ function order(overrides: Partial<Order> = {}): Order {
     id: orderId,
     code: "DH2609-0001",
     status: "DRAFT",
-    division: null,
+    division_id: null,
+    division_name: null,
     customer_id: null,
     customer_name: null,
     customer_phone: null,
@@ -175,6 +178,8 @@ function orderLine(overrides: Partial<OrderLine> = {}): OrderLine {
     warranty_months_snapshot: 24,
     catalog_price_snapshot: 2_500_000,
     cost_price_snapshot: null,
+    credited_employee_id: null,
+    credited_employee_name: null,
     price_fixed: true,
     vat_rate: "8",
     quantity: "1",
@@ -185,6 +190,16 @@ function orderLine(overrides: Partial<OrderLine> = {}): OrderLine {
     line_vat: 200_000,
     line_total: 2_700_000,
     note: null,
+    ...overrides,
+  };
+}
+
+function group(overrides: Partial<ProductServiceGroup> = {}): ProductServiceGroup {
+  return {
+    id: "d0000000-0000-4000-8000-000000000050",
+    name: "Thiết bị văn phòng",
+    is_active: true,
+    version: 1,
     ...overrides,
   };
 }
@@ -245,6 +260,50 @@ describe("AC-ORD-024 mở trang tạo đơn", () => {
     expect(screen.getByText("Chưa có dòng hàng nào.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Thêm dòng hàng" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Lưu nháp" })).toBeInTheDocument();
+  });
+});
+
+describe("AC-ORD-199/200 (M16-08) Phòng phụ trách chọn từ Nhóm sản phẩm/dịch vụ", () => {
+  test("AC-ORD-199 ô chọn chỉ liệt kê nhóm đang hoạt động", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/product-service-groups", () =>
+        HttpResponse.json({
+          items: [
+            group({ id: "g-active-1", name: "Thiết bị văn phòng" }),
+            group({ id: "g-active-2", name: "Thiết bị an ninh" }),
+          ],
+          total: 2,
+          limit: 100,
+          offset: 0,
+        }),
+      ),
+    );
+    renderApp("/orders/new");
+    await openForm();
+
+    const select = await screen.findByLabelText<HTMLSelectElement>("Phòng phụ trách");
+    const optionLabels = Array.from(select.options).map((o) => o.textContent);
+    expect(optionLabels).toEqual(["—", "Thiết bị văn phòng", "Thiết bị an ninh"]);
+  });
+
+  test("AC-ORD-200 đơn đã lưu trỏ tới nhóm đã ngừng hoạt động vẫn hiện đúng tên ở chế độ xem", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(
+          order({
+            status: "COMPLETED",
+            division_id: "g-inactive",
+            division_name: "Thiết bị văn phòng",
+            created_by: hoaId,
+          }),
+        ),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+
+    expect(await screen.findByText("Thiết bị văn phòng")).toBeInTheDocument();
   });
 });
 

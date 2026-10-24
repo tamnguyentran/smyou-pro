@@ -18,6 +18,7 @@ from app.core.authz import Actor
 from app.modules.assignments.schemas import MyAssignmentOut
 from app.modules.customers.models import Customer
 from app.modules.dashboard.schemas import (
+    CareSummaryOut,
     DashboardOut,
     DispatchSummaryOut,
     MyTaskSummaryOut,
@@ -32,7 +33,7 @@ from app.modules.dashboard.schemas import (
 from app.modules.dispatch.models import OPEN_TASK_STATUSES_EXCLUDE, TASK_STATUSES, Assignment, Task
 from app.modules.identity.models import Employee, EmployeeRole
 from app.modules.orders.models import STATUSES as ORDER_STATUSES
-from app.modules.orders.models import Order
+from app.modules.orders.models import Order, OrderRevision
 
 _DASHBOARD_ROLES_FOR_CUSTOMER_SECTIONS = {"MANAGER", "TECH_LEAD", "SALE", "CUSTOMER_CARE"}
 
@@ -353,6 +354,46 @@ def _feedback_summary(session: Session, *, now: datetime) -> dict[str, int]:
     return counts
 
 
+def _care_summary(session: Session, *, now: datetime) -> CareSummaryOut:
+    """M16-03 (AC-DASH-060): proxy cho "KH đã chăm sóc" — số đơn có `csat_recorded_at` trong
+    ngày/tháng hiện tại (giờ VN), vì hệ thống chưa có log chăm sóc/gọi điện riêng (spec §8)."""
+    today_vn = now.astimezone(VIETNAM).date()
+    today_start = _vn_day_start_utc(today_vn)
+    today_end = _vn_day_start_utc(today_vn + timedelta(days=1))
+    month_start, month_end = _current_month_vn_bounds(now)
+    month_count = session.scalar(
+        select(func.count()).where(Order.csat_recorded_at >= month_start, Order.csat_recorded_at < month_end)
+    )
+    today_count = session.scalar(
+        select(func.count()).where(Order.csat_recorded_at >= today_start, Order.csat_recorded_at < today_end)
+    )
+    return CareSummaryOut(today=today_count or 0, month=month_count or 0)
+
+
+def _care_staff_count(session: Session, *, now: datetime) -> int:
+    """M16-03 (AC-DASH-061): proxy cho "NV đã gọi điện CSKH" — số NV duy nhất
+    (`csat_recorded_by`) đã ghi CSAT cho ít nhất 1 đơn trong tháng hiện tại (spec §8)."""
+    month_start, month_end = _current_month_vn_bounds(now)
+    count = session.scalar(
+        select(func.count(func.distinct(Order.csat_recorded_by))).where(
+            Order.csat_recorded_at >= month_start, Order.csat_recorded_at < month_end
+        )
+    )
+    return count or 0
+
+
+def _orders_needing_revision_count(session: Session, *, now: datetime) -> int:
+    """M16-03 (AC-DASH-062): số đơn duy nhất có ít nhất 1 `order_revisions.requested_at`
+    trong tháng hiện tại (đếm theo đơn, không theo số lần yêu cầu sửa — spec §8)."""
+    month_start, month_end = _current_month_vn_bounds(now)
+    count = session.scalar(
+        select(func.count(func.distinct(OrderRevision.order_id))).where(
+            OrderRevision.requested_at >= month_start, OrderRevision.requested_at < month_end
+        )
+    )
+    return count or 0
+
+
 def get_dashboard(session: Session, actor: Actor, *, now: datetime) -> DashboardOut:
     roles = actor.roles
     out = DashboardOut()
@@ -369,4 +410,7 @@ def get_dashboard(session: Session, actor: Actor, *, now: datetime) -> Dashboard
     if roles & _DASHBOARD_ROLES_FOR_CUSTOMER_SECTIONS:
         out.top_customers = _top_customers(session, now=now)
         out.feedback_summary = _feedback_summary(session, now=now)
+        out.care_summary = _care_summary(session, now=now)
+        out.care_staff_count = _care_staff_count(session, now=now)
+        out.orders_needing_revision_count = _orders_needing_revision_count(session, now=now)
     return out

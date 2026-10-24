@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { TriangleAlert } from "lucide-react";
+import { Save, TriangleAlert, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { Alert } from "../../../components/ui/Alert";
@@ -35,6 +35,7 @@ const SHOWN_FIELDS = [
   "type",
   "name",
   "contact_person",
+  "contact_person_phone",
   "phone",
   "email",
   "tax_code",
@@ -42,9 +43,9 @@ const SHOWN_FIELDS = [
   "note",
   "founded_date",
   "director_name",
+  "director_phone",
   "it_contact_name",
   "it_contact_phone",
-  "it_contact_email",
   "date_of_birth",
   "gender",
   "occupation",
@@ -68,6 +69,17 @@ function DuplicatePhoneWarning({
 }
 
 const FORM_ID = "customer-form";
+
+/** Groups related fields in a 2-col grid on md+ (CLAUDE.md #11: mobile-first, single column
+ * below md). `divider` draws a dashed rule above the group to separate blocks (thông tin chung /
+ * người đại diện / giám đốc / phụ trách IT) without a heading label. */
+function FieldGroup({ divider = true, children }: { divider?: boolean; children: ReactNode }) {
+  return (
+    <div className={divider ? "border-t border-dashed border-line pt-4" : undefined}>
+      <div className="grid gap-4 md:grid-cols-2">{children}</div>
+    </div>
+  );
+}
 
 /** Create or edit a customer (AC-CUS-010/011); read-only detail view for TECH_LEAD (AC-CUS-012).
  * No image, no activate/deactivate (unlike Product/Service) — DOMAIN_MODEL §4 has no status field. */
@@ -102,6 +114,7 @@ export function CustomerFormSheet({
       type: (customer?.type as CustomerType | undefined) ?? TYPE_ORDER[0],
       name: customer?.name ?? "",
       contact_person: customer?.contact_person ?? "",
+      contact_person_phone: customer?.contact_person_phone ?? "",
       phone: customer?.phone ?? "",
       email: customer?.email ?? "",
       tax_code: customer?.tax_code ?? "",
@@ -109,9 +122,9 @@ export function CustomerFormSheet({
       note: customer?.note ?? "",
       founded_date: customer?.founded_date ?? "",
       director_name: customer?.director_name ?? "",
+      director_phone: customer?.director_phone ?? "",
       it_contact_name: customer?.it_contact_name ?? "",
       it_contact_phone: customer?.it_contact_phone ?? "",
-      it_contact_email: customer?.it_contact_email ?? "",
       date_of_birth: customer?.date_of_birth ?? "",
       gender: (customer?.gender as CustomerFormValues["gender"] | undefined) ?? undefined,
       occupation: customer?.occupation ?? "",
@@ -140,7 +153,8 @@ export function CustomerFormSheet({
     const isCompany = values.type === "COMPANY";
     const shared = {
       name: values.name,
-      contact_person: values.contact_person || null,
+      contact_person: isCompany ? values.contact_person || null : null,
+      contact_person_phone: isCompany ? values.contact_person_phone || null : null,
       phone: values.phone,
       email: values.email || null,
       tax_code: values.tax_code || null,
@@ -148,9 +162,9 @@ export function CustomerFormSheet({
       note: values.note || null,
       founded_date: isCompany ? values.founded_date || null : null,
       director_name: isCompany ? values.director_name || null : null,
+      director_phone: isCompany ? values.director_phone || null : null,
       it_contact_name: isCompany ? values.it_contact_name || null : null,
       it_contact_phone: isCompany ? values.it_contact_phone || null : null,
-      it_contact_email: isCompany ? values.it_contact_email || null : null,
       date_of_birth: isCompany ? null : values.date_of_birth || null,
       gender: isCompany ? null : values.gender || null,
       occupation: isCompany ? null : values.occupation || null,
@@ -196,6 +210,7 @@ export function CustomerFormSheet({
       open
       onClose={onClose}
       title={title}
+      wide={!readOnly}
       dismissible={!(create.isPending || update.isPending)}
       footer={
         readOnly ? undefined : showReload ? (
@@ -210,9 +225,27 @@ export function CustomerFormSheet({
             Tải lại
           </Button>
         ) : (
-          <Button type="submit" form={FORM_ID} loading={create.isPending || update.isPending}>
-            Lưu
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex-1"
+              icon={<X aria-hidden="true" className="size-4" />}
+              disabled={create.isPending || update.isPending}
+              onClick={onClose}
+            >
+              Huỷ
+            </Button>
+            <Button
+              type="submit"
+              form={FORM_ID}
+              className="flex-1"
+              icon={<Save aria-hidden="true" className="size-4" />}
+              loading={create.isPending || update.isPending}
+            >
+              Lưu
+            </Button>
+          </div>
         )
       }
     >
@@ -224,7 +257,6 @@ export function CustomerFormSheet({
               [
                 ["Mã KH", customer.code],
                 ["Loại", TYPE_LABELS[customer.type as CustomerType]],
-                ["Người liên hệ", customer.contact_person ?? "—"],
                 ["SĐT", customer.phone],
                 ["Email", customer.email ?? "—"],
                 ["MST", customer.tax_code ?? "—"],
@@ -232,11 +264,13 @@ export function CustomerFormSheet({
                 ["Ghi chú", customer.note ?? "—"],
                 ...((customer.type === "COMPANY"
                   ? [
+                      ["Người liên hệ", customer.contact_person],
+                      ["SĐT người liên hệ", customer.contact_person_phone],
                       ["Ngày thành lập", customer.founded_date],
                       ["Giám đốc", customer.director_name],
+                      ["SĐT giám đốc", customer.director_phone],
                       ["Phụ trách IT", customer.it_contact_name],
                       ["SĐT phụ trách IT", customer.it_contact_phone],
-                      ["Email phụ trách IT", customer.it_contact_email],
                     ]
                   : [
                       ["Ngày sinh", customer.date_of_birth],
@@ -265,109 +299,136 @@ export function CustomerFormSheet({
         >
           {formMessage ? <Alert>{formMessage}</Alert> : null}
           <DuplicatePhoneWarning matches={duplicateMatches} />
-          <Select
-            label="Loại khách hàng"
-            error={formState.errors.type?.message ?? serverErrors.type}
-            disabled={customer !== undefined}
-            {...register("type")}
-          >
-            {TYPE_ORDER.map((value) => (
-              <option key={value} value={value}>
-                {TYPE_LABELS[value]}
-              </option>
-            ))}
-          </Select>
-          <TextField
-            label="Tên khách hàng"
-            error={formState.errors.name?.message ?? serverErrors.name}
-            {...register("name")}
-          />
-          <TextField
-            label="Người liên hệ"
-            error={formState.errors.contact_person?.message ?? serverErrors.contact_person}
-            {...register("contact_person")}
-          />
-          <TextField
-            label="Số điện thoại"
-            inputMode="tel"
-            error={formState.errors.phone?.message ?? serverErrors.phone}
-            {...register("phone")}
-          />
-          <TextField
-            label="Email"
-            inputMode="email"
-            error={formState.errors.email?.message ?? serverErrors.email}
-            {...register("email")}
-          />
-          <TextField
-            label="Mã số thuế"
-            error={formState.errors.tax_code?.message ?? serverErrors.tax_code}
-            {...register("tax_code")}
-          />
-          <Textarea
-            label="Địa chỉ"
-            error={formState.errors.address?.message ?? serverErrors.address}
-            {...register("address")}
-          />
-          <Textarea label="Ghi chú" error={serverErrors.note} {...register("note")} />
-          {selectedType === "COMPANY" ? (
-            <>
+
+          <FieldGroup divider={false}>
+            <Select
+              label="Loại khách hàng"
+              error={formState.errors.type?.message ?? serverErrors.type}
+              disabled={customer !== undefined}
+              {...register("type")}
+            >
+              {TYPE_ORDER.map((value) => (
+                <option key={value} value={value}>
+                  {TYPE_LABELS[value]}
+                </option>
+              ))}
+            </Select>
+            <TextField
+              label="Tên khách hàng"
+              error={formState.errors.name?.message ?? serverErrors.name}
+              {...register("name")}
+            />
+            <TextField
+              label="Số điện thoại"
+              inputMode="tel"
+              error={formState.errors.phone?.message ?? serverErrors.phone}
+              {...register("phone")}
+            />
+            <TextField
+              label="Email"
+              inputMode="email"
+              error={formState.errors.email?.message ?? serverErrors.email}
+              {...register("email")}
+            />
+            <TextField
+              label="Mã số thuế"
+              error={formState.errors.tax_code?.message ?? serverErrors.tax_code}
+              {...register("tax_code")}
+            />
+            {selectedType === "COMPANY" ? (
               <TextField
                 label="Ngày thành lập"
                 type="date"
                 error={formState.errors.founded_date?.message ?? serverErrors.founded_date}
                 {...register("founded_date")}
               />
-              <TextField
-                label="Giám đốc"
-                error={formState.errors.director_name?.message ?? serverErrors.director_name}
-                {...register("director_name")}
+            ) : (
+              <>
+                <TextField
+                  label="Ngày sinh"
+                  type="date"
+                  error={formState.errors.date_of_birth?.message ?? serverErrors.date_of_birth}
+                  {...register("date_of_birth")}
+                />
+                <Select
+                  label="Giới tính"
+                  error={formState.errors.gender?.message ?? serverErrors.gender}
+                  {...register("gender")}
+                >
+                  <option value="">— Chọn —</option>
+                  {GENDER_ORDER.map((value) => (
+                    <option key={value} value={value}>
+                      {GENDER_LABELS[value]}
+                    </option>
+                  ))}
+                </Select>
+                <TextField
+                  label="Nghề nghiệp"
+                  error={formState.errors.occupation?.message ?? serverErrors.occupation}
+                  {...register("occupation")}
+                />
+              </>
+            )}
+            <div className="md:col-span-2">
+              <Textarea
+                label="Địa chỉ"
+                error={formState.errors.address?.message ?? serverErrors.address}
+                {...register("address")}
               />
-              <TextField
-                label="Phụ trách IT"
-                error={formState.errors.it_contact_name?.message ?? serverErrors.it_contact_name}
-                {...register("it_contact_name")}
-              />
-              <TextField
-                label="SĐT phụ trách IT"
-                inputMode="tel"
-                error={formState.errors.it_contact_phone?.message ?? serverErrors.it_contact_phone}
-                {...register("it_contact_phone")}
-              />
-              <TextField
-                label="Email phụ trách IT"
-                inputMode="email"
-                error={formState.errors.it_contact_email?.message ?? serverErrors.it_contact_email}
-                {...register("it_contact_email")}
-              />
-            </>
-          ) : (
+            </div>
+            <div className="md:col-span-2">
+              <Textarea label="Ghi chú" error={serverErrors.note} {...register("note")} />
+            </div>
+          </FieldGroup>
+
+          {selectedType === "COMPANY" ? (
             <>
-              <TextField
-                label="Ngày sinh"
-                type="date"
-                error={formState.errors.date_of_birth?.message ?? serverErrors.date_of_birth}
-                {...register("date_of_birth")}
-              />
-              <Select
-                label="Giới tính"
-                error={formState.errors.gender?.message ?? serverErrors.gender}
-                {...register("gender")}
-              >
-                <option value="">— Chọn —</option>
-                {GENDER_ORDER.map((value) => (
-                  <option key={value} value={value}>
-                    {GENDER_LABELS[value]}
-                  </option>
-                ))}
-              </Select>
-              <TextField
-                label="Nghề nghiệp"
-                error={formState.errors.occupation?.message ?? serverErrors.occupation}
-                {...register("occupation")}
-              />
+              <FieldGroup>
+                <TextField
+                  label="Người liên hệ"
+                  error={formState.errors.contact_person?.message ?? serverErrors.contact_person}
+                  {...register("contact_person")}
+                />
+                <TextField
+                  label="SĐT người liên hệ"
+                  inputMode="tel"
+                  error={
+                    formState.errors.contact_person_phone?.message ??
+                    serverErrors.contact_person_phone
+                  }
+                  {...register("contact_person_phone")}
+                />
+              </FieldGroup>
+              <FieldGroup>
+                <TextField
+                  label="Giám đốc"
+                  error={formState.errors.director_name?.message ?? serverErrors.director_name}
+                  {...register("director_name")}
+                />
+                <TextField
+                  label="SĐT giám đốc"
+                  inputMode="tel"
+                  error={formState.errors.director_phone?.message ?? serverErrors.director_phone}
+                  {...register("director_phone")}
+                />
+              </FieldGroup>
+              <FieldGroup>
+                <TextField
+                  label="Phụ trách IT"
+                  error={formState.errors.it_contact_name?.message ?? serverErrors.it_contact_name}
+                  {...register("it_contact_name")}
+                />
+                <TextField
+                  label="SĐT phụ trách IT"
+                  inputMode="tel"
+                  error={
+                    formState.errors.it_contact_phone?.message ?? serverErrors.it_contact_phone
+                  }
+                  {...register("it_contact_phone")}
+                />
+              </FieldGroup>
             </>
-          )}
+          ) : null}
         </form>
       )}
     </Sheet>
