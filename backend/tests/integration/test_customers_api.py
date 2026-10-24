@@ -20,6 +20,7 @@ ITEM_KEYS = {
     "type",
     "name",
     "contact_person",
+    "contact_person_phone",
     "phone",
     "email",
     "tax_code",
@@ -29,9 +30,9 @@ ITEM_KEYS = {
     "version",
     "founded_date",
     "director_name",
+    "director_phone",
     "it_contact_name",
     "it_contact_phone",
-    "it_contact_email",
     "date_of_birth",
     "gender",
     "occupation",
@@ -147,6 +148,21 @@ def test_list_search_filter_and_page(
     assert hoa.get("/api/v1/customers", params={"limit": 101}).status_code == 422
 
 
+@pytest.mark.ac("AC-CUS-001b")
+def test_list_search_by_code_and_email(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], customers: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+
+    def codes(**params: str) -> list[str]:
+        return [c["code"] for c in hoa.get("/api/v1/customers", params=params).json()["items"]]
+
+    assert codes(q="KH00001") == ["KH00001"]  # tìm theo mã
+
+    created = hoa.post("/api/v1/customers", json=NEW_CUSTOMER).json()
+    assert codes(q=NEW_CUSTOMER["email"]) == [created["code"]]  # tìm theo email
+
+
 @pytest.mark.ac("AC-CUS-002")
 def test_read_rbac(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID], customers: dict[str, uuid.UUID]
@@ -213,7 +229,13 @@ def test_create_duplicate_phone_warning_not_blocking(
 
     res = hoa.post(
         "/api/v1/customers",
-        json={**NEW_CUSTOMER, "name": "Anh Tùng", "type": "INDIVIDUAL", "phone": "0912345678"},
+        json={
+            **NEW_CUSTOMER,
+            "name": "Anh Tùng",
+            "type": "INDIVIDUAL",
+            "phone": "0912345678",
+            "contact_person": None,
+        },
     )
 
     assert res.status_code == 201, res.text
@@ -233,7 +255,9 @@ def test_update_happy_path_and_stale_version(
 
     res = an.patch(
         f"/api/v1/customers/{ngoc_id}",
-        json={"version": 1, "name": "Anh Ngọc - Grand Hotel Spa", "contact_person": "Anh Ngọc"},
+        # M15-05 addendum: `contact_person` chuyển vào nhóm COMPANY — Anh Ngọc là INDIVIDUAL nên
+        # không còn sửa được qua trường này (xem test_update_rejects_contact_person_for_individual).
+        json={"version": 1, "name": "Anh Ngọc - Grand Hotel Spa", "note": "VIP"},
     )
 
     assert res.status_code == 200, res.text
@@ -286,23 +310,58 @@ def test_create_company_extended_fields(app: FastAPI, db: Connection, people: di
         "/api/v1/customers",
         json={
             **NEW_CUSTOMER,
+            "contact_person_phone": "0911111111",
             "founded_date": "2015-03-01",
             "director_name": "Nguyễn Văn A",
+            "director_phone": "0922222222",
             "it_contact_name": "Trần Thị B",
             "it_contact_phone": "0988123456",
-            "it_contact_email": "it@congty.vn",
         },
     )
 
     assert res.status_code == 201, res.text
     body = res.json()
     assert (
+        body["contact_person_phone"],
         body["founded_date"],
         body["director_name"],
+        body["director_phone"],
         body["it_contact_name"],
         body["it_contact_phone"],
-        body["it_contact_email"],
-    ) == ("2015-03-01", "Nguyễn Văn A", "Trần Thị B", "0988123456", "it@congty.vn")
+    ) == ("0911111111", "2015-03-01", "Nguyễn Văn A", "0922222222", "Trần Thị B", "0988123456")
+    assert "it_contact_email" not in body
+
+
+@pytest.mark.ac("AC-CUS-025")
+@pytest.mark.parametrize("field", ["contact_person_phone", "director_phone"])
+def test_create_company_extended_fields_invalid_phone(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], field: str
+) -> None:
+    hoa = client_as(app, HOA)
+    body = problem(
+        hoa.post("/api/v1/customers", json={**NEW_CUSTOMER, field: "098812"}), 422, "VALIDATION_ERROR"
+    )
+    assert field in [e["field"] for e in body["errors"]]
+
+
+@pytest.mark.ac("AC-CUS-026")
+@pytest.mark.parametrize("field", ["contact_person", "contact_person_phone", "director_phone"])
+def test_create_individual_rejects_company_contact_fields(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], field: str
+) -> None:
+    """M15-05 addendum: contact_person/contact_person_phone/director_phone chỉ dành cho COMPANY —
+    thay cho AC-CUS-006 cũ (M3-01) từng cho phép contact_person ở khách INDIVIDUAL."""
+    hoa = client_as(app, HOA)
+    value = "Anh Ngọc" if field == "contact_person" else "0911111111"
+    body = problem(
+        hoa.post(
+            "/api/v1/customers",
+            json={**NEW_CUSTOMER, "type": "INDIVIDUAL", field: value},
+        ),
+        422,
+        "VALIDATION_ERROR",
+    )
+    assert field in [e["field"] for e in body["errors"]]
 
 
 @pytest.mark.ac("AC-CUS-016b")
@@ -347,6 +406,7 @@ def test_create_individual_extended_fields(
         json={
             **NEW_CUSTOMER,
             "type": "INDIVIDUAL",
+            "contact_person": None,
             "date_of_birth": "1990-05-20",
             "gender": "FEMALE",
             "occupation": "Giáo viên",
@@ -416,7 +476,9 @@ def test_update_rejects_mismatched_group_field(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
     hoa = client_as(app, HOA)
-    created = hoa.post("/api/v1/customers", json={**NEW_CUSTOMER, "type": "INDIVIDUAL"}).json()
+    created = hoa.post(
+        "/api/v1/customers", json={**NEW_CUSTOMER, "type": "INDIVIDUAL", "contact_person": None}
+    ).json()
 
     body = problem(
         hoa.patch(

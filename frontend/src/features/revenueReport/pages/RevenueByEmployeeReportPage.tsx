@@ -19,10 +19,9 @@ import { EmployeeOrdersDrilldownSheet } from "../components/EmployeeOrdersDrilld
 import { RevenueSkeleton } from "../components/RevenueSkeleton";
 import { defaultMonthToDateRange } from "../../../lib/dateRange";
 
-interface Drilldown {
-  employeeId: string;
-  employeeName: string;
-}
+type Drilldown =
+  | { selector: { employeeId: string }; title: string }
+  | { selector: { unassigned: true }; title: string };
 
 /** AC-RPT-030…034 (M15-10b): trang `/reports/revenue-by-employee`. */
 export function RevenueByEmployeeReportPage() {
@@ -56,7 +55,11 @@ export function RevenueByEmployeeReportPage() {
       : null;
 
   function openDrilldown(row: EmployeeRevenueRow) {
-    setDrilldown({ employeeId: row.employee_id, employeeName: row.employee_name });
+    if (row.unassigned || row.employee_id === null) {
+      setDrilldown({ selector: { unassigned: true }, title: "Chưa gán" });
+      return;
+    }
+    setDrilldown({ selector: { employeeId: row.employee_id }, title: row.employee_name ?? "" });
   }
 
   return (
@@ -92,8 +95,8 @@ export function RevenueByEmployeeReportPage() {
       )}
       {drilldown ? (
         <EmployeeOrdersDrilldownSheet
-          employeeId={drilldown.employeeId}
-          employeeName={drilldown.employeeName}
+          selector={drilldown.selector}
+          title={drilldown.title}
           filters={filters}
           onClose={() => {
             setDrilldown(null);

@@ -31,6 +31,8 @@ capabilities:
   # --- Khách hàng ---
   customer.read:         { MANAGER: all, SALE: all, CUSTOMER_CARE: all, TECH_LEAD: all }
   customer.manage:       { MANAGER: all, SALE: all, CUSTOMER_CARE: all }
+  customer_gift.read:    { MANAGER: all, SALE: all, CUSTOMER_CARE: all }    # M16-01a, Q97: all — not own
+  customer_gift.manage:  { MANAGER: all, SALE: all, CUSTOMER_CARE: all }    # create + edit, no delete (Q97)
   # --- Đơn hàng ---
   order.read:            { MANAGER: all, SALE: all, CUSTOMER_CARE: all, TECH_LEAD: all, TECHNICIAN: assigned }
   order.read_prices:     { MANAGER: all, SALE: all, TECH_LEAD: all, TECHNICIAN: assigned }  # Q03: technicians see prices of their orders
@@ -55,6 +57,7 @@ capabilities:
   dashboard.read:        { MANAGER: all, SALE: own, TECH_LEAD: all, TECHNICIAN: self, CUSTOMER_CARE: all }
   kpi.read:              { MANAGER: all, TECH_LEAD: all, TECHNICIAN: self }
   report.revenue.read:   { MANAGER: all, SALE: own, TECH_LEAD: all, CUSTOMER_CARE: own }  # M15-09a, Q88/Q96: own = orders.created_by
+  report.customer_gift.read: { MANAGER: all, SALE: all, CUSTOMER_CARE: all }  # M16-02a — matches customer_gift scope (Q97), no own split
   audit.read:            { MANAGER: all }
   notification.read:     { MANAGER: self, SALE: self, TECH_LEAD: self, TECHNICIAN: self }
 
@@ -68,7 +71,8 @@ public_routes:
   - GET /api/v1/auth/_e2e/last-mail
 
 # Routes whose capability is chosen per-record, not statically (M6-01): `GET /attachments/{id}`
-# picks `catalog.read` or `order.read` depending on the attachment's `owner_type` at runtime.
+# picks `catalog.read`, `order.read` or `customer_gift.read` (M16-01a) depending on the
+# attachment's `owner_type` at runtime.
 dynamic_routes:
   - GET /api/v1/attachments/{attachment_id}
 
@@ -110,6 +114,7 @@ menu:
     children:
       - { id: orders,        label: Danh sách đơn, icon: ListOrdered, path: /orders }
       - { id: order-new,     label: Tạo đơn mới,   icon: FilePlus2,   path: /orders/new }
+      - { id: customer-gifts, label: Ghi nhận quà tặng KH, icon: Gift, path: /customer-gifts, capability: customer_gift.read }
       - { id: customers,     label: Khách hàng,    icon: Users,       path: /customers, capability: customer.manage }
   - id: catalog
     label: Danh mục
@@ -130,6 +135,7 @@ menu:
       - { id: reports-kpi,              label: Báo cáo KPI,                icon: BarChart3, path: /reports/kpi,                 capability: kpi.read }
       - { id: reports-revenue-customer, label: Doanh thu theo khách hàng,  icon: Users,     path: /reports/revenue-by-customer, capability: report.revenue.read }
       - { id: reports-revenue-employee, label: Doanh thu theo nhân viên,   icon: UserCog,   path: /reports/revenue-by-employee, capability: report.revenue.read }
+      - { id: reports-customer-gift,    label: Chi phí quà tặng KH,        icon: Gift,      path: /reports/customer-gifts,      capability: report.customer_gift.read }
   - id: audit
     label: Nhật ký hệ thống
     icon: History

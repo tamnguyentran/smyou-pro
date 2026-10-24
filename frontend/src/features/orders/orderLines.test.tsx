@@ -104,6 +104,8 @@ function orderLine(overrides: Partial<OrderLine> = {}): OrderLine {
     warranty_months_snapshot: 24,
     catalog_price_snapshot: 2_500_000,
     cost_price_snapshot: null,
+    credited_employee_id: null,
+    credited_employee_name: null,
     price_fixed: true,
     vat_rate: "8",
     quantity: "1",
@@ -207,6 +209,55 @@ describe("AC-ORD-026 thêm dòng sản phẩm từ tìm kiếm", () => {
       expect(posts).toBe(1);
     });
     expect(await screen.findByText("Màn hình Dell 22 inch")).toBeInTheDocument();
+  });
+});
+
+describe("AC-ORD-192/193 (M16-04) Ghi doanh số trên dòng hàng", () => {
+  test("AC-ORD-192 desktop: dòng hàng có ô 'Ghi doanh số', để trống hợp lệ", async () => {
+    signedInAsHoa();
+    await openExisting(order());
+    const row = screen.getByTestId(`order-line-${dellLineId}`);
+
+    expect(within(row).getByLabelText("Ghi doanh số")).toBeInTheDocument();
+  });
+
+  test("AC-ORD-193: đơn không sửa được hiện tên NV (hoặc '—') dạng text, không phải ô nhập", async () => {
+    signedInAsHoa();
+    await openExisting(
+      order({
+        status: "IN_PROGRESS",
+        can_edit_lines_after_submit: false,
+        lines: [orderLine({ credited_employee_id: null, credited_employee_name: null })],
+      }),
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Dòng hàng" }));
+    const row = screen.getByTestId(`order-line-${dellLineId}`);
+
+    expect(within(row).queryByLabelText("Ghi doanh số")).not.toBeInTheDocument();
+    expect(within(row).getByText("—")).toBeInTheDocument();
+  });
+
+  test("AC-ORD-193: đã gán NV thì hiện đúng tên NV dạng text", async () => {
+    signedInAsHoa();
+    await openExisting(
+      order({
+        status: "IN_PROGRESS",
+        can_edit_lines_after_submit: false,
+        lines: [
+          orderLine({
+            credited_employee_id: "a0000000-0000-4000-8000-000000000099",
+            credited_employee_name: "Phạm Quốc Tuấn",
+          }),
+        ],
+      }),
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Dòng hàng" }));
+    const row = screen.getByTestId(`order-line-${dellLineId}`);
+
+    expect(within(row).queryByLabelText("Ghi doanh số")).not.toBeInTheDocument();
+    expect(within(row).getByText("Phạm Quốc Tuấn")).toBeInTheDocument();
   });
 });
 
@@ -544,7 +595,7 @@ describe("AC-ORD-027/028 lỗi sửa dòng không bị nuốt thầm", () => {
       await within(row).findByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại."),
     ).toBeInTheDocument();
     await waitFor(() => {
-      expect(within(row).getByLabelText("Giảm giá")).toHaveValue(0);
+      expect(within(row).getByLabelText("Giảm giá")).toHaveValue("0");
     });
   });
 });

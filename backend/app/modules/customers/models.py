@@ -24,6 +24,11 @@ class Customer(Base):
         CheckConstraint(
             "it_contact_phone ~ '^0[0-9]{9}$' OR it_contact_phone IS NULL", name="it_contact_phone"
         ),
+        CheckConstraint(
+            "contact_person_phone ~ '^0[0-9]{9}$' OR contact_person_phone IS NULL",
+            name="contact_person_phone",
+        ),
+        CheckConstraint("director_phone ~ '^0[0-9]{9}$' OR director_phone IS NULL", name="director_phone"),
         CheckConstraint(f"{_in('gender', GENDERS)} OR gender IS NULL", name="gender"),
     )
 
@@ -32,17 +37,19 @@ class Customer(Base):
     type: Mapped[str] = mapped_column(String(20))
     name: Mapped[str] = mapped_column(String(255))
     contact_person: Mapped[str | None] = mapped_column(String(120))
+    # M15-05 addendum: chỉ COMPANY (xem domain.COMPANY_FIELDS) — khách INDIVIDUAL không có người liên hệ.
+    contact_person_phone: Mapped[str | None] = mapped_column(String(20))
     phone: Mapped[str] = mapped_column(String(20), index=True)
     email: Mapped[str | None] = mapped_column(String(255))
     tax_code: Mapped[str | None] = mapped_column(String(20))
     address: Mapped[str | None] = mapped_column(Text)
     note: Mapped[str | None] = mapped_column(Text)
-    # M15-05: trường mở rộng theo type — COMPANY dùng 5 cột đầu, INDIVIDUAL dùng 3 cột sau (xem domain.py).
+    # M15-05: trường mở rộng theo type — COMPANY dùng các cột đầu, INDIVIDUAL dùng 3 cột sau (xem domain.py).
     founded_date: Mapped[date | None] = mapped_column(Date)
     director_name: Mapped[str | None] = mapped_column(String(120))
+    director_phone: Mapped[str | None] = mapped_column(String(20))
     it_contact_name: Mapped[str | None] = mapped_column(String(120))
     it_contact_phone: Mapped[str | None] = mapped_column(String(20))
-    it_contact_email: Mapped[str | None] = mapped_column(String(255))
     date_of_birth: Mapped[date | None] = mapped_column(Date)
     gender: Mapped[str | None] = mapped_column(String(10))
     occupation: Mapped[str | None] = mapped_column(String(120))

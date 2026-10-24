@@ -242,6 +242,60 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/customer-gifts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách bản ghi tặng quà của 1 khách hàng */
+    get: operations["customer_gifts_list"];
+    put?: never;
+    /** Ghi nhận tặng quà khách hàng */
+    post: operations["customer_gifts_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/customer-gifts/{gift_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Chi tiết bản ghi tặng quà */
+    get: operations["customer_gifts_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Sửa bản ghi tặng quà */
+    patch: operations["customer_gifts_update"];
+    trace?: never;
+  };
+  "/api/v1/customer-gifts/{gift_id}/photos": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách ảnh tặng quà */
+    get: operations["customer_gifts_list_photos"];
+    put?: never;
+    /** Tải ảnh tặng quà */
+    post: operations["customer_gifts_upload_photo"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/customers": {
     parameters: {
       query?: never;
@@ -1188,15 +1242,15 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/v1/reports/revenue-by-customer/{customer_id}/orders": {
+  "/api/v1/reports/revenue-by-customer/{customer_id}/lines": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Danh sách đơn của 1 khách hàng (drilldown) */
-    get: operations["get_revenue_by_customer_orders"];
+    /** Danh sách dòng hàng của 1 khách hàng theo người bán hoặc nhóm 'Chưa gán' (drilldown) */
+    get: operations["get_revenue_by_customer_lines"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1239,15 +1293,15 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/v1/reports/revenue-by-employee/{employee_id}/orders": {
+  "/api/v1/reports/revenue-by-employee/lines": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Danh sách đơn của 1 nhân viên (drilldown) */
-    get: operations["get_revenue_by_employee_orders"];
+    /** Danh sách dòng hàng của 1 nhân viên hoặc nhóm 'Chưa gán' (drilldown) */
+    get: operations["get_revenue_by_employee_lines"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1500,6 +1554,11 @@ export interface components {
       /** Total */
       total: number;
     };
+    /** Body_customer_gifts_upload_photo */
+    Body_customer_gifts_upload_photo: {
+      /** File */
+      file: string;
+    };
     /** Body_orders_upload_confirmation_attachment */
     Body_orders_upload_confirmation_attachment: {
       /** File */
@@ -1529,6 +1588,13 @@ export interface components {
     Body_services_import_preview: {
       /** File */
       file: string;
+    };
+    /** CareSummaryOut */
+    CareSummaryOut: {
+      /** Month */
+      month: number;
+      /** Today */
+      today: number;
     };
     /** ChangePasswordRequest */
     ChangePasswordRequest: {
@@ -1574,18 +1640,20 @@ export interface components {
       address?: string | null;
       /** Contact Person */
       contact_person?: string | null;
+      /** Contact Person Phone */
+      contact_person_phone?: string | null;
       /** Date Of Birth */
       date_of_birth?: string | null;
       /** Director Name */
       director_name?: string | null;
+      /** Director Phone */
+      director_phone?: string | null;
       /** Email */
       email?: string | null;
       /** Founded Date */
       founded_date?: string | null;
       /** Gender */
       gender?: ("MALE" | "FEMALE" | "OTHER") | null;
-      /** It Contact Email */
-      it_contact_email?: string | null;
       /** It Contact Name */
       it_contact_name?: string | null;
       /** It Contact Phone */
@@ -1605,6 +1673,129 @@ export interface components {
        * @enum {string}
        */
       type: "COMPANY" | "INDIVIDUAL";
+    };
+    /** CustomerGiftCreate */
+    CustomerGiftCreate: {
+      /**
+       * Customer Id
+       * Format: uuid
+       */
+      customer_id: string;
+      /** Gift Name */
+      gift_name: string;
+      /** Note */
+      note?: string | null;
+      /** Occasion Name */
+      occasion_name: string;
+      /**
+       * Other Cost
+       * @default 0
+       */
+      other_cost: number;
+      /**
+       * Performed By
+       * Format: uuid
+       */
+      performed_by: string;
+      /**
+       * Performed Date
+       * Format: date
+       */
+      performed_date: string;
+      /** Quantity */
+      quantity: number;
+      /**
+       * Requested By
+       * Format: uuid
+       */
+      requested_by: string;
+      /** Unit Price */
+      unit_price: number;
+    };
+    /** CustomerGiftOut */
+    CustomerGiftOut: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Created By
+       * Format: uuid
+       */
+      created_by: string;
+      /**
+       * Customer Id
+       * Format: uuid
+       */
+      customer_id: string;
+      /** Gift Name */
+      gift_name: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Note */
+      note: string | null;
+      /** Occasion Name */
+      occasion_name: string;
+      /** Other Cost */
+      other_cost: number;
+      performed_by: components["schemas"]["EmployeeRef"];
+      /**
+       * Performed Date
+       * Format: date
+       */
+      performed_date: string;
+      /** Quantity */
+      quantity: number;
+      requested_by: components["schemas"]["EmployeeRef"];
+      /** Total Amount */
+      total_amount: number;
+      /** Unit Price */
+      unit_price: number;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Version */
+      version: number;
+    };
+    /** CustomerGiftPage */
+    CustomerGiftPage: {
+      /** Items */
+      items: components["schemas"]["CustomerGiftOut"][];
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+      /** Total */
+      total: number;
+    };
+    /** CustomerGiftUpdate */
+    CustomerGiftUpdate: {
+      /** Gift Name */
+      gift_name?: string | null;
+      /** Note */
+      note?: string | null;
+      /** Occasion Name */
+      occasion_name?: string | null;
+      /** Other Cost */
+      other_cost?: number | null;
+      /** Performed By */
+      performed_by?: string | null;
+      /** Performed Date */
+      performed_date?: string | null;
+      /** Quantity */
+      quantity?: number | null;
+      /** Requested By */
+      requested_by?: string | null;
+      /** Unit Price */
+      unit_price?: number | null;
+      /** Version */
+      version: number;
     };
     /**
      * CustomerMatchOut
@@ -1631,6 +1822,8 @@ export interface components {
       code: string;
       /** Contact Person */
       contact_person: string | null;
+      /** Contact Person Phone */
+      contact_person_phone: string | null;
       /**
        * Created By
        * Format: uuid
@@ -1640,6 +1833,8 @@ export interface components {
       date_of_birth: string | null;
       /** Director Name */
       director_name: string | null;
+      /** Director Phone */
+      director_phone: string | null;
       /** Email */
       email: string | null;
       /** Founded Date */
@@ -1651,8 +1846,6 @@ export interface components {
        * Format: uuid
        */
       id: string;
-      /** It Contact Email */
-      it_contact_email: string | null;
       /** It Contact Name */
       it_contact_name: string | null;
       /** It Contact Phone */
@@ -1689,18 +1882,20 @@ export interface components {
       address?: string | null;
       /** Contact Person */
       contact_person?: string | null;
+      /** Contact Person Phone */
+      contact_person_phone?: string | null;
       /** Date Of Birth */
       date_of_birth?: string | null;
       /** Director Name */
       director_name?: string | null;
+      /** Director Phone */
+      director_phone?: string | null;
       /** Email */
       email?: string | null;
       /** Founded Date */
       founded_date?: string | null;
       /** Gender */
       gender?: ("MALE" | "FEMALE" | "OTHER") | null;
-      /** It Contact Email */
-      it_contact_email?: string | null;
       /** It Contact Name */
       it_contact_name?: string | null;
       /** It Contact Phone */
@@ -1726,6 +1921,8 @@ export interface components {
       code: string;
       /** Contact Person */
       contact_person: string | null;
+      /** Contact Person Phone */
+      contact_person_phone: string | null;
       /**
        * Created By
        * Format: uuid
@@ -1735,6 +1932,8 @@ export interface components {
       date_of_birth: string | null;
       /** Director Name */
       director_name: string | null;
+      /** Director Phone */
+      director_phone: string | null;
       /** Duplicate Phone Matches */
       duplicate_phone_matches: components["schemas"]["CustomerMatchOut"][];
       /** Email */
@@ -1748,8 +1947,6 @@ export interface components {
        * Format: uuid
        */
       id: string;
-      /** It Contact Email */
-      it_contact_email: string | null;
       /** It Contact Name */
       it_contact_name: string | null;
       /** It Contact Phone */
@@ -1771,6 +1968,9 @@ export interface components {
     };
     /** DashboardOut */
     DashboardOut: {
+      /** Care Staff Count */
+      care_staff_count?: number | null;
+      care_summary?: components["schemas"]["CareSummaryOut"] | null;
       dispatch_summary?: components["schemas"]["DispatchSummaryOut"] | null;
       /** Feedback Summary */
       feedback_summary?: {
@@ -1778,6 +1978,8 @@ export interface components {
       } | null;
       my_task_summary?: components["schemas"]["MyTaskSummaryOut"] | null;
       order_summary?: components["schemas"]["OrderSummaryOut"] | null;
+      /** Orders Needing Revision Count */
+      orders_needing_revision_count?: number | null;
       staff_summary?: components["schemas"]["StaffSummaryOut"] | null;
       task_summary?: components["schemas"]["TaskSummaryOut"] | null;
       /** Today Tasks */
@@ -1865,6 +2067,18 @@ export interface components {
       /** Total */
       total: number;
     };
+    /** EmployeeRef */
+    EmployeeRef: {
+      /** Code */
+      code: string;
+      /** Full Name */
+      full_name: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+    };
     /** EmployeeRevenueReportOut */
     EmployeeRevenueReportOut: {
       /**
@@ -1885,20 +2099,22 @@ export interface components {
     /** EmployeeRevenueRowOut */
     EmployeeRevenueRowOut: {
       /** Employee Code */
-      employee_code: string;
-      /**
-       * Employee Id
-       * Format: uuid
-       */
-      employee_id: string;
+      employee_code: string | null;
+      /** Employee Id */
+      employee_id: string | null;
       /** Employee Name */
-      employee_name: string;
+      employee_name: string | null;
       /** Order Count */
       order_count: number;
       /** Profit */
       profit: number | null;
       /** Subtotal Revenue */
       subtotal_revenue: number;
+      /**
+       * Unassigned
+       * @default false
+       */
+      unassigned: boolean;
     };
     /** EmployeeSummary */
     EmployeeSummary: {
@@ -1962,7 +2178,15 @@ export interface components {
      * EntityType
      * @enum {string}
      */
-    EntityType: "EMPLOYEE" | "PRODUCT" | "SERVICE" | "CUSTOMER" | "ORDER" | "TASK" | "ASSIGNMENT";
+    EntityType:
+      | "EMPLOYEE"
+      | "PRODUCT"
+      | "SERVICE"
+      | "CUSTOMER"
+      | "ORDER"
+      | "TASK"
+      | "ASSIGNMENT"
+      | "CUSTOMER_GIFT";
     /** ForgotPasswordRequest */
     ForgotPasswordRequest: {
       /** Email */
@@ -1972,6 +2196,35 @@ export interface components {
     ForgotPasswordResponse: {
       /** Detail */
       detail: string;
+    };
+    /** GiftPhoto */
+    GiftPhoto: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Mime Type */
+      mime_type: string;
+      /** Size Bytes */
+      size_bytes: number;
+      /**
+       * Uploaded By
+       * Format: uuid
+       */
+      uploaded_by: string;
+      /** Uploaded By Name */
+      uploaded_by_name: string;
+    };
+    /** GiftPhotoPage */
+    GiftPhotoPage: {
+      /** Items */
+      items: components["schemas"]["GiftPhoto"][];
     };
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -2411,6 +2664,8 @@ export interface components {
     };
     /** OrderLineCreate */
     OrderLineCreate: {
+      /** Credited Employee Id */
+      credited_employee_id?: string | null;
       /**
        * Is Gift
        * @default false
@@ -2456,6 +2711,10 @@ export interface components {
       catalog_price_snapshot: number | null;
       /** Cost Price Snapshot */
       cost_price_snapshot: number | null;
+      /** Credited Employee Id */
+      credited_employee_id: string | null;
+      /** Credited Employee Name */
+      credited_employee_name: string | null;
       /**
        * Id
        * Format: uuid
@@ -2507,6 +2766,8 @@ export interface components {
     };
     /** OrderLineUpdate */
     OrderLineUpdate: {
+      /** Credited Employee Id */
+      credited_employee_id?: string | null;
       /** Is Gift */
       is_gift?: boolean | null;
       /** Line Discount */
@@ -2844,26 +3105,40 @@ export interface components {
       /** Token */
       token: string;
     };
-    /** RevenueOrderOut */
-    RevenueOrderOut: {
-      /** Code */
-      code: string;
-      /** Completed At */
-      completed_at: string | null;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
+    /**
+     * RevenueLineOut
+     * @description M16-05/M16-06: 1 dòng hàng — drilldown của 2 báo cáo doanh thu, tính theo
+     *     `order_lines.credited_employee_id` (1 đơn có thể có nhiều dòng thuộc nhiều nhóm khác nhau,
+     *     nên drilldown không liệt kê theo đơn).
+     */
+    RevenueLineOut: {
       /**
        * Id
        * Format: uuid
        */
       id: string;
+      /** Line Name */
+      line_name: string;
+      /** Line Total */
+      line_total: number;
+      /** Order Code */
+      order_code: string;
+      /** Order Completed At */
+      order_completed_at: string | null;
+      /**
+       * Order Created At
+       * Format: date-time
+       */
+      order_created_at: string;
+      /**
+       * Order Id
+       * Format: uuid
+       */
+      order_id: string;
       /** Profit */
       profit: number | null;
-      /** Total */
-      total: number;
+      /** Quantity */
+      quantity: string;
     };
     /** RevenueReportOut */
     RevenueReportOut: {
@@ -2901,9 +3176,14 @@ export interface components {
       order_count: number;
       /** Profit */
       profit: number | null;
-      seller: components["schemas"]["SellerOut"];
+      seller: components["schemas"]["SellerOut"] | null;
       /** Subtotal Revenue */
       subtotal_revenue: number;
+      /**
+       * Unassigned
+       * @default false
+       */
+      unassigned: boolean;
     };
     /** RolesRequest */
     RolesRequest: {
@@ -3869,6 +4149,244 @@ export interface operations {
         content?: never;
       };
       /** @description problem+json — INVALID_RESET_TOKEN | VALIDATION_ERROR (new_password) */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  customer_gifts_list: {
+    parameters: {
+      query: {
+        customer_id: string;
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CustomerGiftPage"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  customer_gifts_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CustomerGiftCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CustomerGiftOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND (khách hàng/nhân viên) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  customer_gifts_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        gift_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CustomerGiftOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  customer_gifts_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        gift_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CustomerGiftUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CustomerGiftOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  customer_gifts_list_photos: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        gift_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GiftPhotoPage"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  customer_gifts_upload_photo: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        gift_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_customer_gifts_upload_photo"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GiftPhoto"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — INVALID_FILE_TYPE | FILE_TOO_LARGE | UNSUPPORTED_MEDIA_TYPE */
       422: {
         headers: {
           [name: string]: unknown;
@@ -6635,13 +7153,14 @@ export interface operations {
       };
     };
   };
-  get_revenue_by_customer_orders: {
+  get_revenue_by_customer_lines: {
     parameters: {
       query?: {
         from?: string | null;
         to?: string | null;
         status?: "COMPLETED" | "NOT_COMPLETED";
         seller_id?: string | null;
+        unassigned?: boolean;
       };
       header?: never;
       path: {
@@ -6657,7 +7176,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["RevenueOrderOut"][];
+          "application/json": components["schemas"]["RevenueLineOut"][];
         };
       };
       /** @description Validation Error */
@@ -6739,17 +7258,17 @@ export interface operations {
       };
     };
   };
-  get_revenue_by_employee_orders: {
+  get_revenue_by_employee_lines: {
     parameters: {
       query?: {
+        employee_id?: string | null;
+        unassigned?: boolean;
         from?: string | null;
         to?: string | null;
         status?: "COMPLETED" | "NOT_COMPLETED";
       };
       header?: never;
-      path: {
-        employee_id: string;
-      };
+      path?: never;
       cookie?: never;
     };
     requestBody?: never;
@@ -6760,7 +7279,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["RevenueOrderOut"][];
+          "application/json": components["schemas"]["RevenueLineOut"][];
         };
       };
       /** @description Validation Error */

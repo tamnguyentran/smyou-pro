@@ -131,6 +131,7 @@ class OrderLineCreate(BaseModel):
     is_gift: bool = False
     line_discount: Annotated[int, Field(ge=0)] = 0
     note: str | None = None
+    credited_employee_id: uuid.UUID | None = None
 
     _check_product_id = field_validator("product_id")(_required_when("PRODUCT"))
     _check_service_id = field_validator("service_id")(_required_when("SERVICE"))
@@ -149,6 +150,7 @@ class OrderLineUpdate(BaseModel):
     is_gift: bool | None = None
     line_discount: Annotated[int, Field(ge=0)] | None = None
     note: str | None = None
+    credited_employee_id: uuid.UUID | None = None
 
     _check_vat_rate = field_validator("vat_rate")(_check_vat_rate)
 
@@ -249,6 +251,8 @@ class OrderLineOut(BaseModel):
     line_vat: int
     line_total: int
     note: str | None
+    credited_employee_id: uuid.UUID | None
+    credited_employee_name: str | None
 
 
 class OrderDetail(BaseModel):

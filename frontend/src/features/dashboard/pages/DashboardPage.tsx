@@ -6,6 +6,7 @@ import { EmptyState } from "../../../components/ui/EmptyState";
 import { cn } from "../../../lib/cn";
 import { useMe } from "../../me/api";
 import { useDashboard } from "../api";
+import { CskhStatsSection } from "../components/CskhStatsSection";
 import { DashboardSkeleton } from "../components/DashboardSkeleton";
 import { DispatchSummarySection } from "../components/DispatchSummarySection";
 import { FeedbackSummarySection } from "../components/FeedbackSummarySection";
@@ -95,6 +96,15 @@ export function DashboardPage() {
         />
       ) : null}
       {data.my_task_summary ? <MyTaskSummarySection summary={data.my_task_summary} /> : null}
+      {data.care_summary != null &&
+      data.care_staff_count != null &&
+      data.orders_needing_revision_count != null ? (
+        <CskhStatsSection
+          careSummary={data.care_summary}
+          careStaffCount={data.care_staff_count}
+          ordersNeedingRevisionCount={data.orders_needing_revision_count}
+        />
+      ) : null}
       {data.top_customers || data.feedback_summary ? (
         <div className="grid gap-6 lg:grid-cols-2">
           {data.top_customers ? <TopCustomersSection items={data.top_customers} /> : null}

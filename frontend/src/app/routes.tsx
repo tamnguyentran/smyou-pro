@@ -5,6 +5,7 @@ import { ChangePasswordPage } from "../features/auth/pages/ChangePasswordPage";
 import { ForgotPasswordPage } from "../features/auth/pages/ForgotPasswordPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { ResetPasswordPage } from "../features/auth/pages/ResetPasswordPage";
+import { CustomerGiftsPage } from "../features/customerGifts/pages/CustomerGiftsPage";
 import { CustomersPage } from "../features/customers/pages/CustomersPage";
 import { DispatchQueuePage } from "../features/dispatch/pages/DispatchQueuePage";
 import { RevisionQueuePage } from "../features/dispatch/pages/RevisionQueuePage";
@@ -37,6 +38,8 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/customers" is real (M3-01) and checks customer.read itself — narrower than the menu entry's
 // customer.manage (AC-CUS-012: TECH_LEAD reads it without seeing the "Khách hàng" menu item).
 // "/orders/new" is real (M3-02b) and checks order.create itself, same shape as the menu entry.
+// "/customer-gifts" is real (M16-01b) and checks customer_gift.read itself, same capability as
+// the menu entry added alongside it.
 // "/orders" (list) is real (M3-03b) and checks order.read itself — narrower than the menu entry's
 // order.create (Q56: TECH_LEAD reads it via direct URL without seeing the "Đơn hàng" menu item).
 // "/dispatch/queue" is real (M4-01b) and checks task.manage itself — same capability as the menu entry.
@@ -60,6 +63,7 @@ const REAL_PAGES = new Set([
   "/customers",
   "/orders/new",
   "/orders",
+  "/customer-gifts",
   "/dispatch/queue",
   "/dispatch/board",
   "/dispatch/workload",
@@ -118,6 +122,7 @@ export const routes: RouteObject[] = [
       { path: "/catalog/products", element: <ProductsPage /> },
       { path: "/catalog/services", element: <ServicesPage /> },
       { path: "/customers", element: <CustomersPage /> },
+      { path: "/customer-gifts", element: <CustomerGiftsPage /> },
       { path: "/dispatch/queue", element: <DispatchQueuePage /> },
       { path: "/dispatch/board", element: <TaskBoardPage /> },
       { path: "/dispatch/workload", element: <WorkloadPage /> },

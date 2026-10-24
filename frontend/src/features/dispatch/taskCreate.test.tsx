@@ -32,6 +32,8 @@ function line(overrides: Partial<OrderLineOut> = {}): OrderLineOut {
     unit_price: 1000000,
     catalog_price_snapshot: 1000000,
     cost_price_snapshot: null,
+    credited_employee_id: null,
+    credited_employee_name: null,
     price_fixed: false,
     vat_rate: "10",
     line_discount: 0,

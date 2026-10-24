@@ -65,6 +65,11 @@ class MyTaskSummaryOut(BaseModel):
     awaiting_confirmation_count: int
 
 
+class CareSummaryOut(BaseModel):
+    today: int
+    month: int
+
+
 class TopCustomerOut(BaseModel):
     customer_id: uuid.UUID
     customer_code: str
@@ -85,3 +90,7 @@ class DashboardOut(BaseModel):
     # M15-04: company-wide, không scope theo actor — xem decision log trong dashboard/service.py.
     top_customers: list[TopCustomerOut] | None = None
     feedback_summary: dict[str, int] | None = None
+    # M16-03: company-wide, cùng điều kiện vai trò với top_customers/feedback_summary.
+    care_summary: CareSummaryOut | None = None
+    care_staff_count: int | None = None
+    orders_needing_revision_count: int | None = None

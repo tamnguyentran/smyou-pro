@@ -55,6 +55,7 @@ NOT_FOUND_LINE = "Không tìm thấy dòng hàng."
 NOT_FOUND_CUSTOMER = "Không tìm thấy khách hàng."
 NOT_FOUND_PRODUCT = "Không tìm thấy sản phẩm."
 NOT_FOUND_SERVICE = "Không tìm thấy dịch vụ."
+NOT_FOUND_EMPLOYEE = "Không tìm thấy nhân viên."
 ORDER_NOT_DRAFT = "Đơn phải đang ở trạng thái Nháp mới thực hiện được thao tác này."
 ORDER_NOT_SUBMITTED = "Đơn chưa được gửi — dùng chức năng sửa đơn nháp."
 ORDER_LOCKED = "Đơn đã hoàn tất hoặc đã huỷ, không thể sửa."
@@ -284,6 +285,8 @@ def _line_out(line: OrderLine) -> OrderLineOut:
         line_vat=line.line_vat,
         line_total=line.line_total,
         note=line.note,
+        credited_employee_id=line.credited_employee_id,
+        credited_employee_name=line.credited_employee.full_name if line.credited_employee else None,
     )
 
 
@@ -1241,11 +1244,22 @@ def _find_line(order: Order, line_id: uuid.UUID) -> OrderLine:
     return line
 
 
+def _check_credited_employee_exists(session: Session, employee_id: uuid.UUID | None) -> None:
+    """M16-04: `credited_employee_id` may be any employee (no active/role filter) — raised as a
+    field error (422), not 404, since it comes from the line create/update body."""
+    if employee_id is None:
+        return
+    exists = session.scalar(select(Employee.id).where(Employee.id == employee_id)) is not None
+    if not exists:
+        raise _field_error("credited_employee_id", NOT_FOUND_EMPLOYEE)
+
+
 def _build_line(session: Session, order: Order, body: OrderLineCreate) -> OrderLine:
     # M15-06: dòng hàng mới chỉ được chọn từ danh mục; dòng CUSTOM lịch sử vẫn đọc/sửa được
     # qua `_apply_line_changes`, chỉ `_build_line` (tạo mới) chặn ở đây.
     if body.item_type == "CUSTOM":
         raise _field_error("item_type", CUSTOM_LINE_DISABLED, code="invalid")
+    _check_credited_employee_exists(session, body.credited_employee_id)
     snapshot = _snapshot_item(session, body)
     unit_price, vat_rate, totals = _resolve_pricing(
         quantity=body.quantity,
@@ -1280,6 +1294,7 @@ def _build_line(session: Session, order: Order, body: OrderLineCreate) -> OrderL
         line_vat=totals.line_vat,
         line_total=totals.line_total,
         note=body.note,
+        credited_employee_id=body.credited_employee_id,
     )
 
 
@@ -1287,10 +1302,20 @@ def _build_line(session: Session, order: Order, body: OrderLineCreate) -> OrderL
 # regardless of what the client sent on `OrderLineUpdate` — pricing side effects (e.g.
 # `is_gift=True` zeroing `unit_price` in `_resolve_pricing`) must still show up in the diff,
 # since it's money data needed for dispute resolution (spec M3-04a §2/§4, AC-ORD-106).
-_LINE_DIFF_FIELDS = ("quantity", "unit_price", "vat_rate", "is_gift", "line_discount", "note")
+_LINE_DIFF_FIELDS = (
+    "quantity",
+    "unit_price",
+    "vat_rate",
+    "is_gift",
+    "line_discount",
+    "note",
+    "credited_employee_id",
+)
 
 
-def _apply_line_changes(line: OrderLine, body: OrderLineUpdate) -> dict[str, dict[str, object]]:
+def _apply_line_changes(
+    session: Session, line: OrderLine, body: OrderLineUpdate
+) -> dict[str, dict[str, object]]:
     """Mutates `line` exactly as before this item existed, and additionally returns a
     `{field: {"before", "after"}}` diff (every tracked field whose value actually changed,
     including side effects of fields the client sent) — `update_line` (DRAFT) ignores the
@@ -1324,6 +1349,9 @@ def _apply_line_changes(line: OrderLine, body: OrderLineUpdate) -> dict[str, dic
     line.line_total = totals.line_total
     if "note" in changes:
         line.note = changes["note"]
+    if "credited_employee_id" in changes:
+        _check_credited_employee_exists(session, changes["credited_employee_id"])
+        line.credited_employee_id = changes["credited_employee_id"]
 
     return _diff_fields(before, {field: getattr(line, field) for field in _LINE_DIFF_FIELDS})
 
@@ -1368,7 +1396,7 @@ def update_line(
     order = lock_order(session, actor, order_id, body.version)
     _require_draft(order)
     line = _find_line(order, line_id)
-    _apply_line_changes(line, body)
+    _apply_line_changes(session, line, body)
 
     _recompute_order_totals(order)
     _bump(order)
@@ -1494,7 +1522,7 @@ def update_line_after_submit(
     order = lock_order(session, actor, order_id, body.version)
     _require_editable_after_submit(order)
     line = _find_line(order, line_id)
-    diff = _apply_line_changes(line, body)
+    diff = _apply_line_changes(session, line, body)
 
     _recompute_order_totals(order)
     _bump(order)

@@ -98,6 +98,15 @@
           "children": []
         },
         {
+          "id": "customer-gifts",
+          "label": "Ghi nhận quà tặng KH",
+          "icon": "Gift",
+          "path": "/customer-gifts",
+          "capability": "customer_gift.read",
+          "badge": null,
+          "children": []
+        },
+        {
           "id": "customers",
           "label": "Khách hàng",
           "icon": "Users",
@@ -177,6 +186,15 @@
           "icon": "UserCog",
           "path": "/reports/revenue-by-employee",
           "capability": "report.revenue.read",
+          "badge": null,
+          "children": []
+        },
+        {
+          "id": "reports-customer-gift",
+          "label": "Chi phí quà tặng KH",
+          "icon": "Gift",
+          "path": "/reports/customer-gifts",
+          "capability": "report.customer_gift.read",
           "badge": null,
           "children": []
         }

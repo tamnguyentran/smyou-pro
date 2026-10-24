@@ -36,6 +36,7 @@ class CustomerCreate(BaseModel):
     type: CustomerType
     name: Name
     contact_person: ContactPerson | None = None
+    contact_person_phone: str | None = None
     phone: str
     email: Email | None = None
     tax_code: TaxCode | None = None
@@ -44,14 +45,16 @@ class CustomerCreate(BaseModel):
     # M15-05: chỉ hợp lệ với đúng `type` — service kiểm tra, xem domain.mismatched_fields.
     founded_date: date | None = None
     director_name: PersonName | None = None
+    director_phone: str | None = None
     it_contact_name: PersonName | None = None
     it_contact_phone: str | None = None
-    it_contact_email: Email | None = None
     date_of_birth: date | None = None
     gender: Gender | None = None
     occupation: PersonName | None = None
 
     _check_phone = field_validator("phone")(_phone_required)
+    _check_contact_person_phone = field_validator("contact_person_phone")(_phone_optional)
+    _check_director_phone = field_validator("director_phone")(_phone_optional)
     _check_it_contact_phone = field_validator("it_contact_phone")(_phone_optional)
 
 
@@ -62,6 +65,7 @@ class CustomerUpdate(BaseModel):
     version: int
     name: Name | None = None
     contact_person: ContactPerson | None = None
+    contact_person_phone: str | None = None
     phone: str | None = None
     email: Email | None = None
     tax_code: TaxCode | None = None
@@ -69,14 +73,16 @@ class CustomerUpdate(BaseModel):
     note: str | None = None
     founded_date: date | None = None
     director_name: PersonName | None = None
+    director_phone: str | None = None
     it_contact_name: PersonName | None = None
     it_contact_phone: str | None = None
-    it_contact_email: Email | None = None
     date_of_birth: date | None = None
     gender: Gender | None = None
     occupation: PersonName | None = None
 
     _check_phone = field_validator("phone")(_phone_optional)
+    _check_contact_person_phone = field_validator("contact_person_phone")(_phone_optional)
+    _check_director_phone = field_validator("director_phone")(_phone_optional)
     _check_it_contact_phone = field_validator("it_contact_phone")(_phone_optional)
 
 
@@ -86,6 +92,7 @@ class CustomerOut(BaseModel):
     type: str
     name: str
     contact_person: str | None
+    contact_person_phone: str | None
     phone: str
     email: str | None
     tax_code: str | None
@@ -93,9 +100,9 @@ class CustomerOut(BaseModel):
     note: str | None
     founded_date: date | None
     director_name: str | None
+    director_phone: str | None
     it_contact_name: str | None
     it_contact_phone: str | None
-    it_contact_email: str | None
     date_of_birth: date | None
     gender: str | None
     occupation: str | None

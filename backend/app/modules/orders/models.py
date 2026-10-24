@@ -24,6 +24,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
 from app.modules.catalog.models import SERVICE_UNITS
+from app.modules.identity.models import Employee
 
 DIVISIONS = ("OFFICE_EQUIPMENT", "SECURITY", "GENERAL")
 PRIORITIES = ("LOW", "NORMAL", "HIGH", "URGENT")
@@ -144,5 +145,7 @@ class OrderLine(Base):
     line_vat: Mapped[int] = mapped_column(BigInteger)
     line_total: Mapped[int] = mapped_column(BigInteger)
     note: Mapped[str | None] = mapped_column(Text)
+    credited_employee_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("employees.id"))
 
     order: Mapped[Order] = relationship(back_populates="lines")
+    credited_employee: Mapped[Employee | None] = relationship()

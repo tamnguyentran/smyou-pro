@@ -211,6 +211,18 @@
         "title": "AuditEventPage",
         "type": "object"
       },
+      "Body_customer_gifts_upload_photo": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": ["file"],
+        "title": "Body_customer_gifts_upload_photo",
+        "type": "object"
+      },
       "Body_orders_upload_confirmation_attachment": {
         "properties": {
           "file": {
@@ -281,6 +293,21 @@
         },
         "required": ["file"],
         "title": "Body_services_import_preview",
+        "type": "object"
+      },
+      "CareSummaryOut": {
+        "properties": {
+          "month": {
+            "title": "Month",
+            "type": "integer"
+          },
+          "today": {
+            "title": "Today",
+            "type": "integer"
+          }
+        },
+        "required": ["today", "month"],
+        "title": "CareSummaryOut",
         "type": "object"
       },
       "ChangePasswordRequest": {
@@ -387,6 +414,17 @@
             ],
             "title": "Contact Person"
           },
+          "contact_person_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Person Phone"
+          },
           "date_of_birth": {
             "anyOf": [
               {
@@ -410,6 +448,17 @@
               }
             ],
             "title": "Director Name"
+          },
+          "director_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Director Phone"
           },
           "email": {
             "anyOf": [
@@ -447,19 +496,6 @@
               }
             ],
             "title": "Gender"
-          },
-          "it_contact_email": {
-            "anyOf": [
-              {
-                "maxLength": 254,
-                "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "It Contact Email"
           },
           "it_contact_name": {
             "anyOf": [
@@ -539,6 +575,330 @@
         "title": "CustomerCreate",
         "type": "object"
       },
+      "CustomerGiftCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "customer_id": {
+            "format": "uuid",
+            "title": "Customer Id",
+            "type": "string"
+          },
+          "gift_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Gift Name",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "occasion_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Occasion Name",
+            "type": "string"
+          },
+          "other_cost": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Other Cost",
+            "type": "integer"
+          },
+          "performed_by": {
+            "format": "uuid",
+            "title": "Performed By",
+            "type": "string"
+          },
+          "performed_date": {
+            "format": "date",
+            "title": "Performed Date",
+            "type": "string"
+          },
+          "quantity": {
+            "exclusiveMinimum": 0.0,
+            "title": "Quantity",
+            "type": "integer"
+          },
+          "requested_by": {
+            "format": "uuid",
+            "title": "Requested By",
+            "type": "string"
+          },
+          "unit_price": {
+            "minimum": 0.0,
+            "title": "Unit Price",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "customer_id",
+          "occasion_name",
+          "performed_date",
+          "gift_name",
+          "quantity",
+          "unit_price",
+          "performed_by",
+          "requested_by"
+        ],
+        "title": "CustomerGiftCreate",
+        "type": "object"
+      },
+      "CustomerGiftOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "customer_id": {
+            "format": "uuid",
+            "title": "Customer Id",
+            "type": "string"
+          },
+          "gift_name": {
+            "title": "Gift Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "occasion_name": {
+            "title": "Occasion Name",
+            "type": "string"
+          },
+          "other_cost": {
+            "title": "Other Cost",
+            "type": "integer"
+          },
+          "performed_by": {
+            "$ref": "#/components/schemas/EmployeeRef"
+          },
+          "performed_date": {
+            "format": "date",
+            "title": "Performed Date",
+            "type": "string"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "integer"
+          },
+          "requested_by": {
+            "$ref": "#/components/schemas/EmployeeRef"
+          },
+          "total_amount": {
+            "title": "Total Amount",
+            "type": "integer"
+          },
+          "unit_price": {
+            "title": "Unit Price",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "customer_id",
+          "occasion_name",
+          "performed_date",
+          "gift_name",
+          "quantity",
+          "unit_price",
+          "other_cost",
+          "total_amount",
+          "note",
+          "performed_by",
+          "requested_by",
+          "created_by",
+          "version",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CustomerGiftOut",
+        "type": "object"
+      },
+      "CustomerGiftPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerGiftOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": ["items", "total", "limit", "offset"],
+        "title": "CustomerGiftPage",
+        "type": "object"
+      },
+      "CustomerGiftUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "gift_name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gift Name"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "occasion_name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occasion Name"
+          },
+          "other_cost": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Other Cost"
+          },
+          "performed_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Performed By"
+          },
+          "performed_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Performed Date"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["version"],
+        "title": "CustomerGiftUpdate",
+        "type": "object"
+      },
       "CustomerMatchOut": {
         "description": "One other customer sharing a phone number (a warning, not an error — spec §4).",
         "properties": {
@@ -592,6 +952,17 @@
             ],
             "title": "Contact Person"
           },
+          "contact_person_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Person Phone"
+          },
           "created_by": {
             "format": "uuid",
             "title": "Created By",
@@ -619,6 +990,17 @@
               }
             ],
             "title": "Director Name"
+          },
+          "director_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Director Phone"
           },
           "email": {
             "anyOf": [
@@ -658,17 +1040,6 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
-          },
-          "it_contact_email": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "It Contact Email"
           },
           "it_contact_name": {
             "anyOf": [
@@ -748,6 +1119,7 @@
           "type",
           "name",
           "contact_person",
+          "contact_person_phone",
           "phone",
           "email",
           "tax_code",
@@ -755,9 +1127,9 @@
           "note",
           "founded_date",
           "director_name",
+          "director_phone",
           "it_contact_name",
           "it_contact_phone",
-          "it_contact_email",
           "date_of_birth",
           "gender",
           "occupation",
@@ -819,6 +1191,17 @@
             ],
             "title": "Contact Person"
           },
+          "contact_person_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Person Phone"
+          },
           "date_of_birth": {
             "anyOf": [
               {
@@ -842,6 +1225,17 @@
               }
             ],
             "title": "Director Name"
+          },
+          "director_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Director Phone"
           },
           "email": {
             "anyOf": [
@@ -879,19 +1273,6 @@
               }
             ],
             "title": "Gender"
-          },
-          "it_contact_email": {
-            "anyOf": [
-              {
-                "maxLength": 254,
-                "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "It Contact Email"
           },
           "it_contact_name": {
             "anyOf": [
@@ -1012,6 +1393,17 @@
             ],
             "title": "Contact Person"
           },
+          "contact_person_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Person Phone"
+          },
           "created_by": {
             "format": "uuid",
             "title": "Created By",
@@ -1039,6 +1431,17 @@
               }
             ],
             "title": "Director Name"
+          },
+          "director_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Director Phone"
           },
           "duplicate_phone_matches": {
             "items": {
@@ -1085,17 +1488,6 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
-          },
-          "it_contact_email": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "It Contact Email"
           },
           "it_contact_name": {
             "anyOf": [
@@ -1175,6 +1567,7 @@
           "type",
           "name",
           "contact_person",
+          "contact_person_phone",
           "phone",
           "email",
           "tax_code",
@@ -1182,9 +1575,9 @@
           "note",
           "founded_date",
           "director_name",
+          "director_phone",
           "it_contact_name",
           "it_contact_phone",
-          "it_contact_email",
           "date_of_birth",
           "gender",
           "occupation",
@@ -1197,6 +1590,27 @@
       },
       "DashboardOut": {
         "properties": {
+          "care_staff_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Care Staff Count"
+          },
+          "care_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CareSummaryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "dispatch_summary": {
             "anyOf": [
               {
@@ -1240,6 +1654,17 @@
                 "type": "null"
               }
             ]
+          },
+          "orders_needing_revision_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orders Needing Revision Count"
           },
           "staff_summary": {
             "anyOf": [
@@ -1506,6 +1931,26 @@
         "title": "EmployeePage",
         "type": "object"
       },
+      "EmployeeRef": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": ["id", "code", "full_name"],
+        "title": "EmployeeRef",
+        "type": "object"
+      },
       "EmployeeRevenueReportOut": {
         "properties": {
           "from": {
@@ -1537,17 +1982,38 @@
       "EmployeeRevenueRowOut": {
         "properties": {
           "employee_code": {
-            "title": "Employee Code",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employee Code"
           },
           "employee_id": {
-            "format": "uuid",
-            "title": "Employee Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employee Id"
           },
           "employee_name": {
-            "title": "Employee Name",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employee Name"
           },
           "order_count": {
             "title": "Order Count",
@@ -1567,6 +2033,11 @@
           "subtotal_revenue": {
             "title": "Subtotal Revenue",
             "type": "integer"
+          },
+          "unassigned": {
+            "default": false,
+            "title": "Unassigned",
+            "type": "boolean"
           }
         },
         "required": [
@@ -1757,7 +2228,16 @@
         "type": "object"
       },
       "EntityType": {
-        "enum": ["EMPLOYEE", "PRODUCT", "SERVICE", "CUSTOMER", "ORDER", "TASK", "ASSIGNMENT"],
+        "enum": [
+          "EMPLOYEE",
+          "PRODUCT",
+          "SERVICE",
+          "CUSTOMER",
+          "ORDER",
+          "TASK",
+          "ASSIGNMENT",
+          "CUSTOMER_GIFT"
+        ],
         "title": "EntityType",
         "type": "string"
       },
@@ -1783,6 +2263,61 @@
         },
         "required": ["detail"],
         "title": "ForgotPasswordResponse",
+        "type": "object"
+      },
+      "GiftPhoto": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mime_type": {
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "uploaded_by": {
+            "format": "uuid",
+            "title": "Uploaded By",
+            "type": "string"
+          },
+          "uploaded_by_name": {
+            "title": "Uploaded By Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "mime_type",
+          "size_bytes",
+          "uploaded_by",
+          "uploaded_by_name",
+          "created_at"
+        ],
+        "title": "GiftPhoto",
+        "type": "object"
+      },
+      "GiftPhotoPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GiftPhoto"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": ["items"],
+        "title": "GiftPhotoPage",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -3021,6 +3556,18 @@
       "OrderLineCreate": {
         "additionalProperties": false,
         "properties": {
+          "credited_employee_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credited Employee Id"
+          },
           "is_gift": {
             "default": false,
             "title": "Is Gift",
@@ -3186,6 +3733,29 @@
             ],
             "title": "Cost Price Snapshot"
           },
+          "credited_employee_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credited Employee Id"
+          },
+          "credited_employee_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credited Employee Name"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -3336,7 +3906,9 @@
           "line_gross",
           "line_vat",
           "line_total",
-          "note"
+          "note",
+          "credited_employee_id",
+          "credited_employee_name"
         ],
         "title": "OrderLineOut",
         "type": "object"
@@ -3356,6 +3928,18 @@
       "OrderLineUpdate": {
         "additionalProperties": false,
         "properties": {
+          "credited_employee_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credited Employee Id"
+          },
           "is_gift": {
             "anyOf": [
               {
@@ -4387,13 +4971,27 @@
         "title": "ResetPasswordRequest",
         "type": "object"
       },
-      "RevenueOrderOut": {
+      "RevenueLineOut": {
+        "description": "M16-05/M16-06: 1 dòng hàng — drilldown của 2 báo cáo doanh thu, tính theo\n`order_lines.credited_employee_id` (1 đơn có thể có nhiều dòng thuộc nhiều nhóm khác nhau,\nnên drilldown không liệt kê theo đơn).",
         "properties": {
-          "code": {
-            "title": "Code",
+          "id": {
+            "format": "uuid",
+            "title": "Id",
             "type": "string"
           },
-          "completed_at": {
+          "line_name": {
+            "title": "Line Name",
+            "type": "string"
+          },
+          "line_total": {
+            "title": "Line Total",
+            "type": "integer"
+          },
+          "order_code": {
+            "title": "Order Code",
+            "type": "string"
+          },
+          "order_completed_at": {
             "anyOf": [
               {
                 "format": "date-time",
@@ -4403,16 +5001,16 @@
                 "type": "null"
               }
             ],
-            "title": "Completed At"
+            "title": "Order Completed At"
           },
-          "created_at": {
+          "order_created_at": {
             "format": "date-time",
-            "title": "Created At",
+            "title": "Order Created At",
             "type": "string"
           },
-          "id": {
+          "order_id": {
             "format": "uuid",
-            "title": "Id",
+            "title": "Order Id",
             "type": "string"
           },
           "profit": {
@@ -4426,13 +5024,24 @@
             ],
             "title": "Profit"
           },
-          "total": {
-            "title": "Total",
-            "type": "integer"
+          "quantity": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Quantity",
+            "type": "string"
           }
         },
-        "required": ["id", "code", "created_at", "completed_at", "total", "profit"],
-        "title": "RevenueOrderOut",
+        "required": [
+          "id",
+          "order_id",
+          "order_code",
+          "line_name",
+          "quantity",
+          "line_total",
+          "profit",
+          "order_created_at",
+          "order_completed_at"
+        ],
+        "title": "RevenueLineOut",
         "type": "object"
       },
       "RevenueReportOut": {
@@ -4509,11 +5118,23 @@
             "title": "Profit"
           },
           "seller": {
-            "$ref": "#/components/schemas/SellerOut"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SellerOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "subtotal_revenue": {
             "title": "Subtotal Revenue",
             "type": "integer"
+          },
+          "unassigned": {
+            "default": false,
+            "title": "Unassigned",
+            "type": "boolean"
           }
         },
         "required": [
@@ -6259,6 +6880,298 @@
         },
         "summary": "Đặt mật khẩu mới bằng token nhận qua email",
         "tags": ["auth"]
+      }
+    },
+    "/api/v1/customer-gifts": {
+      "get": {
+        "operationId": "customer_gifts_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "customer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Customer Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerGiftPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Danh sách bản ghi tặng quà của 1 khách hàng",
+        "tags": ["customer-gifts"]
+      },
+      "post": {
+        "operationId": "customer_gifts_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerGiftCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerGiftOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND (khách hàng/nhân viên)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ghi nhận tặng quà khách hàng",
+        "tags": ["customer-gifts"]
+      }
+    },
+    "/api/v1/customer-gifts/{gift_id}": {
+      "get": {
+        "operationId": "customer_gifts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "gift_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Gift Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerGiftOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chi tiết bản ghi tặng quà",
+        "tags": ["customer-gifts"]
+      },
+      "patch": {
+        "operationId": "customer_gifts_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "gift_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Gift Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerGiftUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerGiftOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Sửa bản ghi tặng quà",
+        "tags": ["customer-gifts"]
+      }
+    },
+    "/api/v1/customer-gifts/{gift_id}/photos": {
+      "get": {
+        "operationId": "customer_gifts_list_photos",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "gift_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Gift Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftPhotoPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Danh sách ảnh tặng quà",
+        "tags": ["customer-gifts"]
+      },
+      "post": {
+        "operationId": "customer_gifts_upload_photo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "gift_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Gift Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_customer_gifts_upload_photo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftPhoto"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "422": {
+            "description": "problem+json — INVALID_FILE_TYPE | FILE_TOO_LARGE | UNSUPPORTED_MEDIA_TYPE"
+          }
+        },
+        "summary": "Tải ảnh tặng quà",
+        "tags": ["customer-gifts"]
       }
     },
     "/api/v1/customers": {
@@ -10053,9 +10966,9 @@
         "tags": ["revenue-report"]
       }
     },
-    "/api/v1/reports/revenue-by-customer/{customer_id}/orders": {
+    "/api/v1/reports/revenue-by-customer/{customer_id}/lines": {
       "get": {
-        "operationId": "get_revenue_by_customer_orders",
+        "operationId": "get_revenue_by_customer_lines",
         "parameters": [
           {
             "in": "path",
@@ -10128,6 +11041,16 @@
               ],
               "title": "Seller Id"
             }
+          },
+          {
+            "in": "query",
+            "name": "unassigned",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Unassigned",
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -10136,9 +11059,9 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/RevenueOrderOut"
+                    "$ref": "#/components/schemas/RevenueLineOut"
                   },
-                  "title": "Response Get Revenue By Customer Orders",
+                  "title": "Response Get Revenue By Customer Lines",
                   "type": "array"
                 }
               }
@@ -10156,7 +11079,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Danh sách đơn của 1 khách hàng (drilldown)",
+        "summary": "Danh sách dòng hàng của 1 khách hàng theo người bán hoặc nhóm 'Chưa gán' (drilldown)",
         "tags": ["revenue-report"]
       }
     },
@@ -10344,18 +11267,35 @@
         "tags": ["revenue-report"]
       }
     },
-    "/api/v1/reports/revenue-by-employee/{employee_id}/orders": {
+    "/api/v1/reports/revenue-by-employee/lines": {
       "get": {
-        "operationId": "get_revenue_by_employee_orders",
+        "operationId": "get_revenue_by_employee_lines",
         "parameters": [
           {
-            "in": "path",
+            "in": "query",
             "name": "employee_id",
-            "required": true,
+            "required": false,
             "schema": {
-              "format": "uuid",
-              "title": "Employee Id",
-              "type": "string"
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Employee Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "unassigned",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Unassigned",
+              "type": "boolean"
             }
           },
           {
@@ -10410,9 +11350,9 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/RevenueOrderOut"
+                    "$ref": "#/components/schemas/RevenueLineOut"
                   },
-                  "title": "Response Get Revenue By Employee Orders",
+                  "title": "Response Get Revenue By Employee Lines",
                   "type": "array"
                 }
               }
@@ -10430,7 +11370,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Danh sách đơn của 1 nhân viên (drilldown)",
+        "summary": "Danh sách dòng hàng của 1 nhân viên hoặc nhóm 'Chưa gán' (drilldown)",
         "tags": ["revenue-report"]
       }
     },

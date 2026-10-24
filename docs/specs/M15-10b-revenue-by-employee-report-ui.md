@@ -1,6 +1,6 @@
 # M15-10b — Báo cáo Doanh thu theo nhân viên — Giao diện
 
-- **Status:** Done (review + verify 2026-10-23, `reports/review-M15-10b.md`)
+- **Status:** Superseded by `docs/specs/M16-05-revenue-by-employee-line-based.md` (2026-10-24) — UI này cần cập nhật theo trục nhóm mới (xem M16-05 §6); ACs dưới đây giữ nguyên làm lịch sử, không còn enforce coverage
 - **Backlog:** M15-10b · **Milestone:** M15
 - **Liên quan:** M15-10a (API); M15-09b (cùng mẫu UI, chỉ đổi trục nhóm)
 
