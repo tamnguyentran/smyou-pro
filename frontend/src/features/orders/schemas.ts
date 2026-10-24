@@ -60,9 +60,10 @@ export const orderInfoSchema = z
     customer_id: z.string().optional(),
     customer_name: z.string().trim().optional(),
     customer_phone: z.string().trim().optional(),
-    // M16-08: giá trị là id của "Nhóm sản phẩm/dịch vụ" (chuỗi rỗng = chưa chọn) — danh sách
-    // chọn lấy động từ API, không còn enum cố định.
-    division_id: z.string(),
+    // M16-08/M16-10: giá trị là id của "Nhóm sản phẩm/dịch vụ", danh sách chọn lấy động từ API.
+    // Bắt buộc chọn (M16-10) — lỗi hiện ngay dưới ô chọn khi bấm Lưu mà chưa chọn, không gộp vào
+    // điều kiện enable/disable nút Lưu (khác hasCustomer/hasLine ở AC-ORD-158..165).
+    division_id: z.string().min(1, "Vui lòng chọn Nhóm sản phẩm/dịch vụ."),
     service_address: z.string().trim().optional(),
     work_description: z.string().trim().optional(),
     priority: z.enum(PRIORITY_ORDER as [Priority, ...Priority[]]),

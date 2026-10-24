@@ -20,7 +20,7 @@ export function EmployeeSearchField({
   employeeName: string;
   onSelect: (employee: { id: string; name: string }) => void;
   error?: string;
-  /** M16-04: "Ghi doanh số" trên dòng hàng cho phép chọn NV đã ngừng hoạt động (spec §8) —
+  /** M16-04: "Người nhận doanh số" trên dòng hàng cho phép chọn NV đã ngừng hoạt động (spec §8) —
    * mặc định `false` giữ hành vi cũ (chỉ NV đang hoạt động) cho các nơi dùng khác (M16-01b). */
   includeInactive?: boolean;
 }) {

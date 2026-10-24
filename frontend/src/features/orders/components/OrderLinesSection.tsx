@@ -258,7 +258,7 @@ function OrderLineRow({
 
       {canEdit ? (
         <EmployeeSearchField
-          label="Ghi doanh số"
+          label="Người nhận doanh số"
           employeeId={draft.creditedEmployeeId}
           employeeName={draft.creditedEmployeeName}
           includeInactive

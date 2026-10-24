@@ -5,6 +5,7 @@ import { ChangePasswordPage } from "../features/auth/pages/ChangePasswordPage";
 import { ForgotPasswordPage } from "../features/auth/pages/ForgotPasswordPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { ResetPasswordPage } from "../features/auth/pages/ResetPasswordPage";
+import { CustomerGiftReportPage } from "../features/customerGiftReport/pages/CustomerGiftReportPage";
 import { CustomerGiftsPage } from "../features/customerGifts/pages/CustomerGiftsPage";
 import { CustomersPage } from "../features/customers/pages/CustomersPage";
 import { DispatchQueuePage } from "../features/dispatch/pages/DispatchQueuePage";
@@ -54,12 +55,15 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/reports/revenue-by-employee" is real (M15-10b), same reasoning as above.
 // "/catalog/groups" is real (M16-07), same capability (catalog.manage on the menu entry,
 // catalog.read on the route) as "/catalog/products"/"/catalog/services".
+// "/reports/customer-gifts" is real (M16-02b), same capability (report.customer_gift.read) as the
+// menu entry added alongside M16-02a's capability.
 const REAL_PAGES = new Set([
   "/",
   "/employees",
   "/reports/kpi",
   "/reports/revenue-by-customer",
   "/reports/revenue-by-employee",
+  "/reports/customer-gifts",
   "/audit",
   "/catalog/products",
   "/catalog/services",
@@ -122,6 +126,7 @@ export const routes: RouteObject[] = [
       { path: "/reports/kpi", element: <KpiReportPage /> },
       { path: "/reports/revenue-by-customer", element: <RevenueByCustomerReportPage /> },
       { path: "/reports/revenue-by-employee", element: <RevenueByEmployeeReportPage /> },
+      { path: "/reports/customer-gifts", element: <CustomerGiftReportPage /> },
       { path: "/audit", element: <AuditPage /> },
       { path: "/catalog/products", element: <ProductsPage /> },
       { path: "/catalog/services", element: <ServicesPage /> },

@@ -25,8 +25,8 @@ Mỗi spec đang **Draft**, có mục "8. Giả định & câu hỏi" ghi rõ gi
 ## M16 — Tặng quà khách hàng (spec Approved, 2026-10-24)
 - `[A]` M16-01a — API: ghi nhận tặng quà KH (`customer_gifts`, CRUD trừ xoá, ảnh, lịch sử sửa qua `audit_events`). `docs/specs/M16-01a-customer-gift-tracking-api.md`
 - `[x]` M16-01b — UI: màn hình riêng "Ghi nhận quà tặng KH" trong menu Đơn hàng. `docs/specs/M16-01b-customer-gift-tracking-ui.md`
-- `[A]` M16-02a — API: báo cáo "Chi phí quà tặng KH" (list theo khách hàng, drilldown, xuất CSV). `docs/specs/M16-02a-customer-gift-report-api.md`
-- `[A]` M16-02b — UI: báo cáo "Chi phí quà tặng KH" + menu Báo cáo. `docs/specs/M16-02b-customer-gift-report-ui.md`
+- `[x]` M16-02a — API: báo cáo "Chi phí quà tặng KH" (list theo khách hàng, drilldown, xuất CSV). `docs/specs/M16-02a-customer-gift-report-api.md`
+- `[x]` M16-02b — UI: báo cáo "Chi phí quà tặng KH" + menu Báo cáo. `docs/specs/M16-02b-customer-gift-report-ui.md`
 - `[x]` M16-03 — Dashboard: 3 thẻ thống kê CSKH (KH đã chăm sóc, NV gọi điện CSKH, đơn phải sửa) trước khối Phản hồi KH. `docs/specs/M16-03-dashboard-cskh-stats.md`
 - `[x]` M16-04 — Dòng hàng: trường "Ghi doanh số" (NV ghi nhận doanh số/dòng, có thể để trống). `docs/specs/M16-04-order-line-credited-employee.md`
 - `[x]` M16-05 — Báo cáo "Doanh thu theo nhân viên": đổi tính theo dòng hàng (Ghi doanh số), thay Q88/Q96 cho báo cáo này. Phụ thuộc M16-04. `docs/specs/M16-05-revenue-by-employee-line-based.md`

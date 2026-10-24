@@ -1278,6 +1278,57 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/reports/customer-gifts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Báo cáo chi phí quà tặng KH theo khách hàng */
+    get: operations["get_customer_gift_report"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/reports/customer-gifts/export": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Xuất CSV báo cáo chi phí quà tặng KH */
+    get: operations["export_customer_gift_report"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/reports/customer-gifts/{customer_id}/items": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách bản ghi tặng quà của 1 khách hàng trong khoảng (drilldown) */
+    get: operations["get_customer_gift_report_items"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/reports/revenue-by-customer": {
     parameters: {
       query?: never;
@@ -1843,6 +1894,41 @@ export interface components {
       offset: number;
       /** Total */
       total: number;
+    };
+    /** CustomerGiftReportOut */
+    CustomerGiftReportOut: {
+      /**
+       * From
+       * Format: date
+       */
+      from: string;
+      /** Items */
+      items: components["schemas"]["CustomerGiftReportRowOut"][];
+      /**
+       * To
+       * Format: date
+       */
+      to: string;
+      /** Total */
+      total: number;
+    };
+    /** CustomerGiftReportRowOut */
+    CustomerGiftReportRowOut: {
+      /** Contact Person */
+      contact_person: string | null;
+      /** Customer Code */
+      customer_code: string;
+      /**
+       * Customer Id
+       * Format: uuid
+       */
+      customer_id: string;
+      /** Customer Name */
+      customer_name: string;
+      /** Gift Count */
+      gift_count: number;
+      /** Total Cost */
+      total_cost: number;
     };
     /** CustomerGiftUpdate */
     CustomerGiftUpdate: {
@@ -7443,6 +7529,106 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_customer_gift_report: {
+    parameters: {
+      query?: {
+        from?: string | null;
+        to?: string | null;
+        customer_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CustomerGiftReportOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  export_customer_gift_report: {
+    parameters: {
+      query?: {
+        from?: string | null;
+        to?: string | null;
+        customer_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_customer_gift_report_items: {
+    parameters: {
+      query?: {
+        from?: string | null;
+        to?: string | null;
+      };
+      header?: never;
+      path: {
+        customer_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CustomerGiftOut"][];
+        };
       };
       /** @description Validation Error */
       422: {

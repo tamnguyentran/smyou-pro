@@ -107,8 +107,10 @@ function order(overrides: Partial<Order> = {}): Order {
     id: orderId,
     code: "DH2609-0001",
     status: "DRAFT",
-    division_id: null,
-    division_name: null,
+    // M16-10: bắt buộc chọn — mặc định đã có nhóm, như 1 đơn thật sự từng được lưu; test riêng cho
+    // trường hợp chưa chọn/null override field này.
+    division_id: "g1",
+    division_name: "Thiết bị văn phòng",
     customer_id: null,
     customer_name: null,
     customer_phone: null,
@@ -246,7 +248,7 @@ describe("AC-ORD-024 mở trang tạo đơn", () => {
     renderApp("/orders/new");
     await openForm();
 
-    expect(screen.getByLabelText("Phòng phụ trách")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nhóm sản phẩm/dịch vụ")).toBeInTheDocument();
     expect(screen.getByLabelText("Địa chỉ thi công")).toBeInTheDocument();
     expect(screen.getByLabelText("Mô tả công việc")).toBeInTheDocument();
     expect(screen.getByLabelText("Ngày hẹn")).toBeInTheDocument();
@@ -263,7 +265,7 @@ describe("AC-ORD-024 mở trang tạo đơn", () => {
   });
 });
 
-describe("AC-ORD-199/200 (M16-08) Phòng phụ trách chọn từ Nhóm sản phẩm/dịch vụ", () => {
+describe("AC-ORD-199/200 (M16-08) Nhóm sản phẩm/dịch vụ (bắt buộc chọn)", () => {
   test("AC-ORD-199 ô chọn chỉ liệt kê nhóm đang hoạt động", async () => {
     signedInAs(hoaId, HOA);
     server.use(
@@ -282,9 +284,9 @@ describe("AC-ORD-199/200 (M16-08) Phòng phụ trách chọn từ Nhóm sản ph
     renderApp("/orders/new");
     await openForm();
 
-    const select = await screen.findByLabelText<HTMLSelectElement>("Phòng phụ trách");
+    const select = await screen.findByLabelText<HTMLSelectElement>("Nhóm sản phẩm/dịch vụ");
     const optionLabels = Array.from(select.options).map((o) => o.textContent);
-    expect(optionLabels).toEqual(["—", "Thiết bị văn phòng", "Thiết bị an ninh"]);
+    expect(optionLabels).toEqual(["— Chọn nhóm —", "Thiết bị văn phòng", "Thiết bị an ninh"]);
   });
 
   test("AC-ORD-200 đơn đã lưu trỏ tới nhóm đã ngừng hoạt động vẫn hiện đúng tên ở chế độ xem", async () => {

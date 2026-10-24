@@ -7,6 +7,7 @@ import { cn } from "../../../lib/cn";
 import { formatCurrency } from "../../../lib/format";
 import { useDebouncedValue } from "../../../lib/useDebouncedValue";
 import { ApiError } from "../../auth/errors";
+import { useMe } from "../../me/api";
 import { productImageUrl, useProducts, type Product } from "../../products/api";
 import { ProductImage } from "../../products/components/ProductList";
 import { useServices, type Service } from "../../services/api";
@@ -151,6 +152,10 @@ export function AddLineSheet({
 }) {
   const [tab, setTab] = useState<Tab>("PRODUCT");
   const [error, setError] = useState<string | null>(null);
+  // Mặc định "Người nhận doanh số" là người đang thêm dòng hàng — sửa lại được ngay trên dòng vừa
+  // thêm (OrderLinesSection), không khoá cố định.
+  const me = useMe();
+  const defaultCreditedEmployeeId = me.data?.employee.id ?? null;
   const addLineDraft = useAddLine();
   const addLineAfterSubmit = useAddLineAfterSubmit();
   const addLine = lineEndpoint === "after-submit" ? addLineAfterSubmit : addLineDraft;
@@ -214,6 +219,7 @@ export function AddLineSheet({
               vat_rate: Number(product.vat_rate),
               is_gift: false,
               line_discount: 0,
+              credited_employee_id: defaultCreditedEmployeeId,
             });
           }}
         />
@@ -229,6 +235,7 @@ export function AddLineSheet({
               vat_rate: Number(service.vat_rate),
               is_gift: false,
               line_discount: 0,
+              credited_employee_id: defaultCreditedEmployeeId,
             });
           }}
         />

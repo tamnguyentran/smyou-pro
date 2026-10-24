@@ -38,7 +38,7 @@ export function useProductServiceGroups(filters: ProductServiceGroupFilters) {
   });
 }
 
-/** M16-08: ô chọn "Phòng phụ trách" trên đơn — luôn chỉ hiện nhóm đang hoạt động, không phân trang. */
+/** M16-08: ô chọn "Nhóm sản phẩm/dịch vụ" trên đơn — luôn chỉ hiện nhóm đang hoạt động, không phân trang. */
 export function useActiveProductServiceGroups() {
   return useQuery({
     queryKey: [PRODUCT_SERVICE_GROUPS_KEY, "active"],

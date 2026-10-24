@@ -371,11 +371,12 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
                 errors={formState.errors}
               />
               <Select
-                label="Phòng phụ trách"
+                label="Nhóm sản phẩm/dịch vụ"
+                required
                 error={formState.errors.division_id?.message}
                 {...register("division_id")}
               >
-                <option value="">—</option>
+                <option value="">— Chọn nhóm —</option>
                 {(groups.data ?? []).map((group) => (
                   <option key={group.id} value={group.id}>
                     {group.name}
@@ -415,7 +416,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
             // scope doesn't cover it — never for a not-yet-created draft.
             <div className="space-y-4">
               <ReadOnlyField label="Khách hàng" value={order.customer_name ?? "Khách lẻ"} />
-              <ReadOnlyField label="Phòng phụ trách" value={order.division_name ?? ""} />
+              <ReadOnlyField label="Nhóm sản phẩm/dịch vụ" value={order.division_name ?? ""} />
               <ReadOnlyField label="Địa chỉ thi công" value={order.service_address} />
               <ReadOnlyField label="Mô tả công việc" value={order.work_description} />
               <ReadOnlyField

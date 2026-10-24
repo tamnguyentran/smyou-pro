@@ -213,13 +213,13 @@ describe("AC-ORD-026 thêm dòng sản phẩm từ tìm kiếm", () => {
   });
 });
 
-describe("AC-ORD-192/193 (M16-04) Ghi doanh số trên dòng hàng", () => {
-  test("AC-ORD-192 desktop: dòng hàng có ô 'Ghi doanh số', để trống hợp lệ", async () => {
+describe("AC-ORD-192/193 (M16-04) Người nhận doanh số trên dòng hàng", () => {
+  test("AC-ORD-192 desktop: dòng hàng có ô 'Người nhận doanh số', để trống hợp lệ", async () => {
     signedInAsHoa();
     await openExisting(order());
     const row = screen.getByTestId(`order-line-${dellLineId}`);
 
-    expect(within(row).getByLabelText("Ghi doanh số")).toBeInTheDocument();
+    expect(within(row).getByLabelText("Người nhận doanh số")).toBeInTheDocument();
   });
 
   test("AC-ORD-193: đơn không sửa được hiện tên NV (hoặc '—') dạng text, không phải ô nhập", async () => {
@@ -235,7 +235,7 @@ describe("AC-ORD-192/193 (M16-04) Ghi doanh số trên dòng hàng", () => {
     await user.click(screen.getByRole("tab", { name: "Dòng hàng" }));
     const row = screen.getByTestId(`order-line-${dellLineId}`);
 
-    expect(within(row).queryByLabelText("Ghi doanh số")).not.toBeInTheDocument();
+    expect(within(row).queryByLabelText("Người nhận doanh số")).not.toBeInTheDocument();
     expect(within(row).getByText("—")).toBeInTheDocument();
   });
 
@@ -257,7 +257,7 @@ describe("AC-ORD-192/193 (M16-04) Ghi doanh số trên dòng hàng", () => {
     await user.click(screen.getByRole("tab", { name: "Dòng hàng" }));
     const row = screen.getByTestId(`order-line-${dellLineId}`);
 
-    expect(within(row).queryByLabelText("Ghi doanh số")).not.toBeInTheDocument();
+    expect(within(row).queryByLabelText("Người nhận doanh số")).not.toBeInTheDocument();
     expect(within(row).getByText("Phạm Quốc Tuấn")).toBeInTheDocument();
   });
 });

@@ -141,8 +141,9 @@ function order(overrides: Partial<Order> = {}): Order {
     id: orderId,
     code: "DH2610-0042",
     status: "DRAFT",
-    division_id: null,
-    division_name: null,
+    // M16-10: "Nhóm sản phẩm/dịch vụ" bắt buộc chọn — mặc định đã có nhóm, như 1 đơn thật.
+    division_id: "g1",
+    division_name: "Thiết bị văn phòng",
     customer_id: null,
     customer_name: null,
     customer_phone: null,
