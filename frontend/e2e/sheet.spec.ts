@@ -46,7 +46,8 @@ test("AC-SYS-083 AC-SYS-084 AC-SYS-092 tiêu đề + footer luôn trong khung nh
   await expect(dialog.getByRole("button", { name: "Lưu" })).toBeInViewport();
   if (width === 1440) {
     const panel = await dialog.getByTestId("sheet-panel").boundingBox();
-    expect(panel?.width ?? Infinity).toBeLessThanOrEqual(512);
+    // Form khách hàng dùng Sheet `wide` (2 cột) → ≤ max-w-2xl (672px), xem AC-SYS-084.
+    expect(panel?.width ?? Infinity).toBeLessThanOrEqual(672);
   }
   const noHorizontalScroll = await page.evaluate(
     () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,

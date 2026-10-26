@@ -20,8 +20,8 @@ export function RevenueFilters({
   }
 
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-      <div className="grid gap-3 sm:grid-cols-3">
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <TextField
           type="date"
           label="Từ ngày"
@@ -30,6 +30,7 @@ export function RevenueFilters({
             set("from", event.target.value);
           }}
         />
+
         <TextField
           type="date"
           label="Đến ngày"
@@ -38,6 +39,7 @@ export function RevenueFilters({
             set("to", event.target.value);
           }}
         />
+
         <Select
           label="Trạng thái"
           value={filters.status}
@@ -48,6 +50,7 @@ export function RevenueFilters({
           <option value="COMPLETED">Đã hoàn tất</option>
           <option value="NOT_COMPLETED">Chưa xong</option>
         </Select>
+
         <CustomerSearchField
           customerId={filters.customerId}
           customerName={customerName}
@@ -56,15 +59,18 @@ export function RevenueFilters({
           }}
         />
       </div>
-      <a
-        href={revenueExportUrl(filters)}
-        target="_blank"
-        rel="noopener"
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-heading transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-      >
-        <Download aria-hidden="true" className="size-4" />
-        Xuất Excel
-      </a>
+
+      <div className="flex justify-end">
+        <a
+          href={revenueExportUrl(filters)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-heading transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+        >
+          <Download aria-hidden="true" className="size-4" />
+          Xuất Excel
+        </a>
+      </div>
     </div>
   );
 }

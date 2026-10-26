@@ -76,6 +76,7 @@ async function submitUrgentOrder(page: Page): Promise<string> {
   await signIn(page, SALE, "/orders/new");
   await page.getByLabel("Tìm khách hàng").fill("Sáng Tạo Mới");
   await page.getByRole("option", { name: /Cty Sáng Tạo Mới E2E/ }).click();
+  await page.getByLabel("Nhóm sản phẩm/dịch vụ").selectOption({ label: "Kỹ thuật chung" });
   await page.getByLabel("Địa chỉ thi công").fill("12 Lê Lợi, Q1, TP.HCM");
   await page.getByLabel("Mô tả công việc").fill("Lắp 4 camera tầng 1");
   await page

@@ -103,6 +103,9 @@ export function NumberField({
         aria-describedby={described || undefined}
         onChange={handleChange}
         onBlur={onBlur}
+        onFocus={(event) => {
+          event.target.select();
+        }}
         className={cn(
           "h-11 w-full rounded-xl border border-line bg-card px-3 text-base text-body placeholder:text-placeholder",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-focus focus-visible:ring-offset-2",
