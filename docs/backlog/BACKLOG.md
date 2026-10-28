@@ -36,6 +36,7 @@ Mỗi spec đang **Draft**, có mục "8. Giả định & câu hỏi" ghi rõ gi
 - `[x]` M16-09 — UI: Danh sách đơn, bố cục dòng bộ lọc (tìm kiếm/từ ngày/đến ngày) theo breakpoint. `docs/specs/M16-09-order-list-filter-row-layout.md`
 - `[x]` M16-10 — UI: Màn tạo/sửa đơn nháp theo lưới chuẩn (mobile 1 cột, tablet 2 cột, desktop 3 cột; thẻ dòng hàng 2/6/12 cột); VAT dòng hàng thành ô nhập số. `docs/specs/M16-10-draft-order-form-grid.md` Thêm khách hàng (cá nhân/công ty) ngay trong màn tạo đơn bằng modal của Quản lý khách hàng.
 - `[x]` M16-11 — API `GET /employees/lookup` (capability `employee.lookup`: Manager/Sale/CSKH/QLKT) cho ô "Người nhận doanh số"/"Người thực hiện"; thay đổi vẫn ghi `audit_events`. `docs/specs/M16-11-employee-lookup.md`
+- `[x]` M16-12 — UI: bỏ nút "+ Khách lẻ" ở màn tạo đơn (khách mới tạo qua "Thêm khách hàng"); đơn nháp cũ là khách lẻ vẫn sửa được. `docs/specs/M16-12-remove-walkin-button.md`
 
 ## M14 — Vận hành / sửa đổi nhỏ (chưa bắt đầu)
 - `[x]` M14-01 — Giảm số bản backup giữ lại từ 14 xuống **2 bản gần nhất** cho `db-*.dump`/`uploads-*.tar.gz` (`scripts/backup.sh`, `KEEP`); image tag trên Mac/server giữ 2 bản đã là hướng dẫn thủ công có sẵn ở `docs/architecture/DEPLOYMENT.md` §7.1. Quyết định của chủ dự án (2026-10-21). Spec `M9-02` đã cập nhật. (PR #132)

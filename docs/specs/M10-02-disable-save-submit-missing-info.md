@@ -56,3 +56,6 @@ Không có.
 ## 8. Giả định & câu hỏi
 - Giả định: quy tắc "khách hàng + ≥1 dòng hàng" (theo đúng chữ trong `BACKLOG.md`) áp dụng **giống nhau** cho cả "Lưu nháp" và "Gửi đơn" ở tầng client, dù guard server thật của lệnh `submit` (`has_lines_or_description`) cho phép thay dòng hàng bằng mô tả công việc. Nghĩa là: một đơn chỉ có mô tả công việc (không có dòng hàng nào) vẫn **không** bật được nút ở client theo rule mới, dù server sẽ chấp nhận nếu gọi API trực tiếp. Chọn theo đúng câu chữ backlog vì đây là phản hồi UAT cụ thể của chủ dự án, không cần hỏi lại — nhưng ghi rõ ở đây để chủ dự án duyệt lại nếu ý thật là "khách + (dòng HOẶC mô tả)" khớp hệt guard server.
 - Không có câu hỏi mới cần thêm vào `OPEN_QUESTIONS.md` — giả định trên lấy trực tiếp từ câu chữ backlog, chủ dự án duyệt spec là xác nhận.
+
+## Sửa đổi 2026-10-28 (M16-12)
+Không còn nút "+ Khách lẻ"; AC-ORD-165 chỉ còn áp dụng cho đơn nháp cũ đã lưu dạng khách lẻ. Xem `M16-12-remove-walkin-button.md`.

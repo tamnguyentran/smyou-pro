@@ -59,3 +59,6 @@ Không có.
 - Giả định: khi người dùng thêm dòng đầu tiên trên `/orders/new` mà đơn chưa từng lưu, FE tự gọi `POST /orders` ngầm (dùng dữ liệu section 1 hiện có, kể cả nếu còn thiếu) để có `id` trước khi gọi `POST .../lines` — người dùng chỉ thấy 1 trạng thái loading, không cần bấm "Lưu nháp" trước; nếu section 1 đổi sau đó, `PATCH` bình thường theo `version` mới nhất.
 - Giả định: đóng tab/rời trang giữa chừng sau khi đã có `id` (đã lưu ít nhất 1 lần) không mất dữ liệu — đơn nháp vẫn nằm trong DB ở trạng thái `DRAFT`; chưa có trang danh sách (`/orders`) để tìm lại ở item này (M3-03), nên trong phiên UAT người dùng cần tự lưu lại URL `/orders/{id}` nếu muốn quay lại trước M3-03.
 - Không có câu hỏi mới về giao diện — mọi quyết định UI đã có sẵn trong `UI_GUIDELINES.md` §5.
+
+## Sửa đổi 2026-10-28 (M16-12)
+Bỏ nút "+ Khách lẻ" (AC-ORD-025 chỉ còn vế tìm khách có sẵn); khách mới tạo qua "Thêm khách hàng" (M16-10). Xem `M16-12-remove-walkin-button.md`.

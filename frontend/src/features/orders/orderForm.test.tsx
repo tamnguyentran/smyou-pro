@@ -258,7 +258,8 @@ describe("AC-ORD-024 mở trang tạo đơn", () => {
       "true",
     );
     expect(screen.getByLabelText("Tìm khách hàng")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "+ Khách lẻ" })).toBeInTheDocument();
+    // M16-12 (chủ dự án 2026-10-28): bỏ nút "+ Khách lẻ".
+    expect(screen.queryByRole("button", { name: "+ Khách lẻ" })).not.toBeInTheDocument();
     expect(screen.getByText("Chưa có dòng hàng nào.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Thêm dòng hàng" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Lưu nháp" })).toBeInTheDocument();
@@ -502,17 +503,20 @@ describe("AC-ORD-158..166 disable Lưu nháp/Gửi đơn khi thiếu thông tin"
     expect(screen.queryByRole("button", { name: "Gửi đơn" })).not.toBeInTheDocument();
   });
 
-  test("AC-ORD-165 Khách lẻ chỉ điền tên, thiếu SĐT → vẫn disabled, helper thiếu khách hàng", async () => {
+  test("AC-ORD-165 đơn nháp cũ là Khách lẻ, chỉ có tên, thiếu SĐT → vẫn disabled, helper thiếu khách hàng", async () => {
     signedInAs(hoaId, HOA);
+    // M16-12: không còn nút "+ Khách lẻ" — chỉ đơn nháp cũ đã lưu dạng khách lẻ mới rơi vào nhánh này.
     server.use(
-      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ lines: [orderLine()] }))),
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(
+          order({ lines: [orderLine()], customer_name: "Khách lẻ ABC", customer_phone: null }),
+        ),
+      ),
     );
     renderApp(`/orders/${orderId}`);
     await openForm("DH2609-0001");
-    const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "+ Khách lẻ" }));
-    await user.type(screen.getByLabelText("Tên khách hàng"), "Khách lẻ ABC");
+    expect(screen.getByLabelText("Tên khách hàng")).toHaveValue("Khách lẻ ABC");
 
     const saveBtn = screen.getByRole("button", { name: "Lưu nháp" });
     expect(saveBtn).toBeDisabled();
@@ -646,16 +650,23 @@ describe("AC-ORD-025 tìm khách hoặc Khách lẻ", () => {
     expect(screen.getByText("12 Lê Lợi, Q1, TP.HCM")).toBeInTheDocument();
   });
 
-  test("bấm + Khách lẻ ẩn ô tìm, hiện tên/SĐT nhập tay", async () => {
+  test("AC-ORD-201 không còn nút + Khách lẻ; đơn nháp cũ là khách lẻ vẫn hiện tên/SĐT và chuyển được sang khách có sẵn", async () => {
     signedInAs(hoaId, HOA);
-    renderApp("/orders/new");
-    await openForm();
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ customer_name: "Anh Tư", customer_phone: "0909111222" })),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "+ Khách lẻ" }));
-    expect(screen.queryByLabelText("Tìm khách hàng")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Tên khách hàng")).toBeInTheDocument();
-    expect(screen.getByLabelText("Số điện thoại")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "+ Khách lẻ" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Tên khách hàng")).toHaveValue("Anh Tư");
+    expect(screen.getByLabelText("Số điện thoại")).toHaveValue("0909111222");
+    await user.click(screen.getByRole("button", { name: "Chọn khách có sẵn" }));
+    expect(screen.getByLabelText("Tìm khách hàng")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "+ Khách lẻ" })).not.toBeInTheDocument();
   });
 
   test("mở lại đơn đã có khách hàng hiện đúng tên trong ô tìm, không rơi vào Khách lẻ", async () => {

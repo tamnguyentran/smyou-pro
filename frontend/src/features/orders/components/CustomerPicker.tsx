@@ -11,7 +11,9 @@ import type { OrderInfoFormValues } from "../schemas";
 
 const RESULTS_ID = "customer-search-results";
 
-/** AC-ORD-025: autocomplete over GET /customers (reused from Khách hàng), or "+ Khách lẻ" free text. */
+/** AC-ORD-025: autocomplete over GET /customers (reused from Khách hàng). M16-12: no more
+ * "+ Khách lẻ" — new customers go through "Thêm khách hàng"; the walk-in branch below only renders
+ * for drafts saved as walk-in before that change. */
 export function CustomerPicker({
   register,
   watch,
@@ -108,18 +110,6 @@ export function CustomerPicker({
           />
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              setValue("customerMode", "walkin");
-              setValue("customer_id", "");
-              setSelected(null);
-              setQuery("");
-            }}
-          >
-            + Khách lẻ
-          </Button>
           {canCreateCustomer ? (
             <Button
               type="button"
