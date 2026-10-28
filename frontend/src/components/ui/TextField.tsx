@@ -39,6 +39,9 @@ export function TextField({
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-focus focus-visible:ring-offset-2",
             error && "border-urgent-fg",
             trailing ? "pr-12" : undefined,
+            // Dữ liệu số (giá, số lượng, giờ…) luôn căn phải — UI_GUIDELINES; SĐT/mã dùng "tel"/text.
+            (rest.inputMode === "numeric" || rest.inputMode === "decimal") &&
+              "text-right tabular-nums",
             className,
           )}
           {...rest}

@@ -21,9 +21,8 @@ import {
   type OrderLineUpdateBody,
 } from "../api";
 import { computeLineTotal } from "../pricing";
-import { discountFieldSchema, quantityFieldSchema } from "../schemas";
+import { discountFieldSchema, quantityFieldSchema, vatOtherFieldSchema } from "../schemas";
 import { isStaleAfterSubmit, type RunOrderWrite } from "./writeQueue";
-import { VatChipField } from "./VatChipField";
 
 /** Which route family a line write goes to — "draft" (M3-02a, `.../lines*`) or "after-submit"
  * (M3-04a, `.../lines-after-submit*`). Both hooks for the active pair are always called (Rules of
@@ -78,6 +77,8 @@ function OrderLineRow({
   // a prop changes"), not in an effect, so it never causes an extra commit-then-recommit render.
   const [serverSnapshot, setServerSnapshot] = useState(line);
   const [draft, setDraft] = useState<Draft>(() => toDraft(line));
+  const [vatText, setVatText] = useState(() => String(Number(line.vat_rate)));
+  const [vatError, setVatError] = useState<string>();
   if (
     serverSnapshot.quantity !== line.quantity ||
     serverSnapshot.unit_price !== line.unit_price ||
@@ -88,6 +89,8 @@ function OrderLineRow({
   ) {
     setServerSnapshot(line);
     setDraft(toDraft(line));
+    setVatText(String(Number(line.vat_rate)));
+    setVatError(undefined);
   }
   const [quantityError, setQuantityError] = useState<string>();
   const [discountError, setDiscountError] = useState<string>();
@@ -151,14 +154,17 @@ function OrderLineRow({
   return (
     <li
       data-testid={`order-line-${line.id}`}
-      className="grid grid-cols-2 gap-3 rounded-2xl border border-line bg-card p-4 lg:grid-cols-8 lg:items-center"
+      className="grid grid-cols-2 items-start gap-3 rounded-2xl border border-line bg-card p-4 md:grid-cols-6 lg:grid-cols-12"
     >
       {rowError ? (
-        <div className="col-span-2 lg:col-span-8">
+        <div className="col-span-full">
           <Alert>{rowError}</Alert>
         </div>
       ) : null}
-      <div className="col-span-2 flex flex-wrap items-center gap-2 lg:col-span-1">
+      <div
+        data-testid="order-line-name"
+        className="col-span-full flex flex-wrap items-center gap-2"
+      >
         <span className="font-semibold text-heading">{line.name_snapshot}</span>
         {line.price_fixed ? (
           <span title="Giá cố định" className="inline-flex items-center text-muted">
@@ -168,114 +174,147 @@ function OrderLineRow({
         {draft.isGift ? <Badge tone="completed">Tặng kèm</Badge> : null}
       </div>
 
-      {canEdit ? (
-        <NumberField
-          label="Số lượng"
-          allowDecimal
-          value={draft.quantity}
-          error={quantityError}
-          onChange={(raw) => {
-            setDraft((prev) => ({ ...prev, quantity: raw }));
-            const parsed = quantityFieldSchema.safeParse(raw);
-            setQuantityError(parsed.success ? undefined : parsed.error.issues[0]?.message);
-          }}
-          onBlur={() => {
-            const parsed = quantityFieldSchema.safeParse(draft.quantity);
-            if (parsed.success) commit({ quantity: parsed.data });
-          }}
-        />
-      ) : (
-        <p className="text-sm text-body">{line.quantity}</p>
-      )}
-
-      {canEdit ? (
-        readOnlyPrice ? (
-          <TextField
-            label="Đơn giá"
-            type="text"
-            readOnly
-            value={formatCurrency(draft.unitPrice)}
-            trailing={
-              line.price_fixed ? (
-                <span
-                  title="Giá cố định"
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted"
-                >
-                  <Lock className="size-4" />
-                </span>
-              ) : undefined
-            }
-          />
-        ) : (
+      <div className="md:col-span-2">
+        {canEdit ? (
           <NumberField
-            label="Đơn giá"
-            value={String(draft.unitPrice)}
+            label="Số lượng"
+            allowDecimal
+            value={draft.quantity}
+            error={quantityError}
             onChange={(raw) => {
-              const unitPrice = Number(raw) || 0;
-              setDraft((prev) => ({ ...prev, unitPrice }));
-              preGiftUnitPriceRef.current = unitPrice;
+              setDraft((prev) => ({ ...prev, quantity: raw }));
+              const parsed = quantityFieldSchema.safeParse(raw);
+              setQuantityError(parsed.success ? undefined : parsed.error.issues[0]?.message);
             }}
             onBlur={() => {
-              commit({ unit_price: draft.unitPrice });
+              const parsed = quantityFieldSchema.safeParse(draft.quantity);
+              if (parsed.success) commit({ quantity: parsed.data });
             }}
           />
-        )
-      ) : (
-        <p className="text-sm text-body">{formatCurrency(line.unit_price)}</p>
+        ) : (
+          <p className="text-right text-sm tabular-nums text-body">{line.quantity}</p>
+        )}
+      </div>
+
+      <div className="md:col-span-2">
+        {canEdit ? (
+          readOnlyPrice ? (
+            <TextField
+              label="Đơn giá"
+              type="text"
+              readOnly
+              value={formatCurrency(draft.unitPrice)}
+              className="text-right tabular-nums"
+              trailing={
+                line.price_fixed ? (
+                  <span
+                    title="Giá cố định"
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted"
+                  >
+                    <Lock className="size-4" />
+                  </span>
+                ) : undefined
+              }
+            />
+          ) : (
+            <NumberField
+              label="Đơn giá"
+              value={String(draft.unitPrice)}
+              onChange={(raw) => {
+                const unitPrice = Number(raw) || 0;
+                setDraft((prev) => ({ ...prev, unitPrice }));
+                preGiftUnitPriceRef.current = unitPrice;
+              }}
+              onBlur={() => {
+                commit({ unit_price: draft.unitPrice });
+              }}
+            />
+          )
+        ) : (
+          <p className="text-right text-sm tabular-nums text-body">
+            {formatCurrency(line.unit_price)}
+          </p>
+        )}
+      </div>
+
+      <div className="md:col-span-2">
+        {canEdit ? (
+          <NumberField
+            label="VAT (%)"
+            allowDecimal
+            value={vatText}
+            error={vatError}
+            onChange={(raw) => {
+              setVatText(raw);
+              const parsed = vatOtherFieldSchema.safeParse(raw);
+              setVatError(parsed.success ? undefined : parsed.error.issues[0]?.message);
+              if (parsed.success) setDraft((prev) => ({ ...prev, vatRate: parsed.data }));
+            }}
+            onBlur={() => {
+              const parsed = vatOtherFieldSchema.safeParse(vatText);
+              if (parsed.success) commit({ vat_rate: parsed.data });
+            }}
+          />
+        ) : (
+          <p className="text-right text-sm tabular-nums text-body">{Number(line.vat_rate)}%</p>
+        )}
+      </div>
+
+      {draft.isGift ? null : (
+        <div className="md:col-span-3 lg:col-span-2">
+          {canEdit ? (
+            <NumberField
+              label="Giảm giá"
+              value={draft.lineDiscount}
+              error={discountError}
+              onChange={(raw) => {
+                setDraft((prev) => ({ ...prev, lineDiscount: raw }));
+                const parsed = discountFieldSchema.safeParse(raw);
+                setDiscountError(parsed.success ? undefined : parsed.error.issues[0]?.message);
+              }}
+              onBlur={() => {
+                const parsed = discountFieldSchema.safeParse(draft.lineDiscount);
+                if (parsed.success) commit({ line_discount: parsed.data });
+              }}
+            />
+          ) : (
+            <p className="text-right text-sm tabular-nums text-body">
+              {formatCurrency(line.line_discount)}
+            </p>
+          )}
+        </div>
       )}
 
-      {canEdit ? (
-        <VatChipField
-          value={draft.vatRate}
-          onChange={(value) => {
-            setDraft((prev) => ({ ...prev, vatRate: value }));
-            commit({ vat_rate: value });
-          }}
-        />
-      ) : (
-        <p className="text-sm text-body">{Number(line.vat_rate)}%</p>
-      )}
+      <div
+        className={
+          draft.isGift ? "col-span-2 md:col-span-6" : "col-span-2 md:col-span-3 lg:col-span-4"
+        }
+      >
+        {canEdit ? (
+          <EmployeeSearchField
+            label="Người nhận doanh số"
+            employeeId={draft.creditedEmployeeId}
+            employeeName={draft.creditedEmployeeName}
+            includeInactive
+            onSelect={(employee) => {
+              setDraft((prev) => ({
+                ...prev,
+                creditedEmployeeId: employee.id,
+                creditedEmployeeName: employee.name,
+              }));
+              commit({ credited_employee_id: employee.id || null });
+            }}
+          />
+        ) : (
+          <p className="text-sm text-body">{line.credited_employee_name ?? "—"}</p>
+        )}
+      </div>
 
-      {draft.isGift ? null : canEdit ? (
-        <NumberField
-          label="Giảm giá"
-          value={draft.lineDiscount}
-          error={discountError}
-          onChange={(raw) => {
-            setDraft((prev) => ({ ...prev, lineDiscount: raw }));
-            const parsed = discountFieldSchema.safeParse(raw);
-            setDiscountError(parsed.success ? undefined : parsed.error.issues[0]?.message);
-          }}
-          onBlur={() => {
-            const parsed = discountFieldSchema.safeParse(draft.lineDiscount);
-            if (parsed.success) commit({ line_discount: parsed.data });
-          }}
-        />
-      ) : (
-        <p className="text-sm text-body">{formatCurrency(line.line_discount)}</p>
-      )}
-
-      {canEdit ? (
-        <EmployeeSearchField
-          label="Người nhận doanh số"
-          employeeId={draft.creditedEmployeeId}
-          employeeName={draft.creditedEmployeeName}
-          includeInactive
-          onSelect={(employee) => {
-            setDraft((prev) => ({
-              ...prev,
-              creditedEmployeeId: employee.id,
-              creditedEmployeeName: employee.name,
-            }));
-            commit({ credited_employee_id: employee.id || null });
-          }}
-        />
-      ) : (
-        <p className="text-sm text-body">{line.credited_employee_name ?? "—"}</p>
-      )}
-
-      <div className="flex min-w-0 items-center justify-between gap-3 lg:col-span-2 lg:justify-end">
+      <div
+        data-testid="order-line-actions"
+        className="col-span-full flex min-w-0 items-center justify-between gap-3 border-t border-line pt-3 md:justify-end"
+      >
         {canEdit ? (
           // A <label> (not a <span>) so the 44px padding is actually clickable/tappable, not just
           // visual spacing around the browser's fixed-size checkbox.

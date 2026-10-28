@@ -1893,6 +1893,42 @@
         "title": "EmployeeCreate",
         "type": "object"
       },
+      "EmployeeLookupOut": {
+        "description": "M16-11: slim row for pickers — no email/roles/lock state.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          }
+        },
+        "required": ["id", "code", "full_name", "phone", "is_active"],
+        "title": "EmployeeLookupOut",
+        "type": "object"
+      },
       "EmployeeOut": {
         "properties": {
           "code": {
@@ -7747,6 +7783,80 @@
           }
         },
         "summary": "Thêm nhân viên (mật khẩu tạm hiện một lần)",
+        "tags": ["employees"]
+      }
+    },
+    "/api/v1/employees/lookup": {
+      "get": {
+        "operationId": "employees_lookup",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_inactive",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Include Inactive",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 8,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeLookupOut"
+                  },
+                  "title": "Response Employees Lookup",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Tra cứu nhân viên cho ô chọn (id, mã, tên, SĐT)",
         "tags": ["employees"]
       }
     },

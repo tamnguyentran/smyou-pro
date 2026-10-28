@@ -12,6 +12,7 @@ from app.core.request_id import get_request_id
 from app.modules.employees import service
 from app.modules.employees.schemas import (
     EmployeeCreate,
+    EmployeeLookupOut,
     EmployeeOut,
     EmployeePage,
     EmployeeUpdate,
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/api/v1/employees", tags=["employees"])
 NO_STORE = "no-store"  # responses carrying a temporary password must not be cached
 Reader = Annotated[Actor, Depends(require("employee.read"))]
 Manager = Annotated[Actor, Depends(require("employee.manage"))]
+LookupReader = Annotated[Actor, Depends(require("employee.lookup"))]
 
 
 def _docs(*lines: tuple[int, str]) -> dict[int | str, dict[str, Any]]:
@@ -62,6 +64,22 @@ def list_employees(
     return service.list_employees(
         session, actor, q=q, role=role, is_active=is_active, limit=limit, offset=offset, now=_now(request)
     )
+
+
+@router.get(
+    "/lookup",
+    operation_id="employees_lookup",
+    summary="Tra cứu nhân viên cho ô chọn (id, mã, tên, SĐT)",
+    response_model=list[EmployeeLookupOut],
+)
+def lookup_employees(
+    session: DbSession,
+    actor: LookupReader,
+    q: Annotated[str | None, Query(max_length=100)] = None,
+    include_inactive: bool = True,
+    limit: Annotated[int, Query(ge=1, le=50)] = 8,
+) -> list[EmployeeLookupOut]:
+    return service.lookup_employees(session, q=q, include_inactive=include_inactive, limit=limit)
 
 
 @router.get(

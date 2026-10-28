@@ -222,6 +222,42 @@ describe("AC-ORD-192/193 (M16-04) Người nhận doanh số trên dòng hàng",
     expect(within(row).getByLabelText("Người nhận doanh số")).toBeInTheDocument();
   });
 
+  test("AC-EMP-032 Sale tìm 'Người nhận doanh số' qua /employees/lookup và chọn được", async () => {
+    signedInAsHoa();
+    let patched: unknown;
+    server.use(
+      http.get("/api/v1/employees", () =>
+        HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }),
+      ),
+      http.get("/api/v1/employees/lookup", () =>
+        HttpResponse.json([
+          {
+            id: "a0000000-0000-4000-8000-000000000099",
+            code: "NV010",
+            full_name: "Phạm Quốc Tuấn",
+            phone: null,
+            is_active: true,
+          },
+        ]),
+      ),
+      http.patch("/api/v1/orders/:id/lines/:lineId", async ({ request }) => {
+        patched = await request.json();
+        return HttpResponse.json(order());
+      }),
+    );
+    await openExisting(order());
+    const row = screen.getByTestId(`order-line-${dellLineId}`);
+    const user = userEvent.setup();
+
+    await user.type(within(row).getByLabelText("Người nhận doanh số"), "tuan");
+    await user.click(await within(row).findByRole("option", { name: /Phạm Quốc Tuấn/ }));
+    await waitFor(() => {
+      expect(patched).toMatchObject({
+        credited_employee_id: "a0000000-0000-4000-8000-000000000099",
+      });
+    });
+  });
+
   test("AC-ORD-193: đơn không sửa được hiện tên NV (hoặc '—') dạng text, không phải ô nhập", async () => {
     signedInAsHoa();
     await openExisting(
@@ -302,7 +338,7 @@ describe("AC-ORD-027 dòng giá cố định", () => {
 });
 
 describe("AC-ORD-028 giảm giá và VAT theo dòng", () => {
-  test("sửa giảm giá và đổi VAT cập nhật tổng dòng theo response", async () => {
+  test("AC-UI-048 sửa giảm giá và đổi VAT (ô nhập số) cập nhật tổng dòng theo response", async () => {
     signedInAsHoa();
     const pcLine = orderLine({
       id: pcLineId,
@@ -358,11 +394,14 @@ describe("AC-ORD-028 giảm giá và VAT theo dòng", () => {
     await user.tab();
     expect(await within(row).findByText("11.800.500 ₫")).toBeInTheDocument();
 
-    await user.click(within(row).getByRole("radio", { name: "8%" }));
+    // M16-10: VAT ở dòng hàng là ô nhập số (không còn chip 0/8/10%/Khác).
+    const vatOther = within(row).getByLabelText("VAT (%)");
+    await user.clear(vatOther);
+    await user.type(vatOther, "8");
+    await user.tab();
     expect(await within(row).findByText("12.744.500 ₫")).toBeInTheDocument();
 
-    await user.click(within(row).getByRole("radio", { name: "Khác" }));
-    const vatOther = within(row).getByLabelText("VAT khác (%)");
+    await user.clear(vatOther);
     await user.type(vatOther, "150");
     expect(await within(row).findByText("VAT phải trong khoảng 0-100.")).toBeInTheDocument();
 

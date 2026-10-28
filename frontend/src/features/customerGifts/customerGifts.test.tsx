@@ -136,7 +136,7 @@ function stub({
     http.get("/api/v1/customers", () =>
       HttpResponse.json({ items: customers, total: customers.length }),
     ),
-    http.get("/api/v1/employees", () => HttpResponse.json({ items: [employee()], total: 1 })),
+    http.get("/api/v1/employees/lookup", () => HttpResponse.json([employee()])),
     http.get("/api/v1/customer-gifts", ({ request }) => {
       const url = new URL(request.url);
       const customerId = url.searchParams.get("customer_id");

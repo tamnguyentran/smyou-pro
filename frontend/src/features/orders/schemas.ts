@@ -16,10 +16,6 @@ export function isPriority(value: string): value is Priority {
   return Object.hasOwn(PRIORITY_LABELS, value);
 }
 
-/** VAT chip choices (UI_GUIDELINES §5): 0/8/10% quick picks, "Khác" opens a free-entry field. */
-export const VAT_CHIP_RATES = [0, 8, 10] as const;
-export const VAT_OTHER = "other" as const;
-
 // Q51-style phone check, same as customers/employees: 10 digits, starts with 0.
 const phoneValid = (value: string) => /^0\d{9}$/.test(value.replace(/\D/g, ""));
 

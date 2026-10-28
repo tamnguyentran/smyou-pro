@@ -19,6 +19,7 @@ from app.modules.audit import service as audit
 from app.modules.employees.domain import employee_code, last_code_number, temporary_password
 from app.modules.employees.schemas import (
     EmployeeCreate,
+    EmployeeLookupOut,
     EmployeeOut,
     EmployeePage,
     EmployeeUpdate,
@@ -166,6 +167,30 @@ def list_employees(
     ordered = query.order_by(func.length(Employee.code), Employee.code)
     rows = session.scalars(ordered.limit(limit).offset(offset)).all()
     return EmployeePage(items=[_out(e, now) for e in rows], total=total, limit=limit, offset=offset)
+
+
+def lookup_employees(
+    session: Session, *, q: str | None, include_inactive: bool, limit: int
+) -> list[EmployeeLookupOut]:
+    """M16-11: picker search for any order-screen role (`employee.lookup`, no scope — the slim
+    row exposes nothing beyond what an order line already shows)."""
+    query = select(Employee)
+    if q and q.strip():
+        pattern = _like(q.strip())
+        query = query.where(
+            or_(
+                func.unaccent(Employee.full_name).ilike(func.unaccent(pattern)),
+                Employee.code.ilike(pattern),
+                Employee.phone.ilike(pattern),
+            )
+        )
+    if not include_inactive:
+        query = query.where(Employee.is_active.is_(True))
+    rows = session.scalars(query.order_by(func.length(Employee.code), Employee.code).limit(limit)).all()
+    return [
+        EmployeeLookupOut(id=e.id, code=e.code, full_name=e.full_name, phone=e.phone, is_active=e.is_active)
+        for e in rows
+    ]
 
 
 def get_employee(session: Session, actor: Actor, employee_id: uuid.UUID, *, now: datetime) -> EmployeeOut:

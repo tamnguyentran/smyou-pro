@@ -2,10 +2,10 @@ import { Search } from "lucide-react";
 import { useId, useState } from "react";
 import { TextField } from "../../../components/ui/TextField";
 import { useDebouncedValue } from "../../../lib/useDebouncedValue";
-import { useEmployees } from "../api";
+import { useEmployeeLookup } from "../api";
 
-/** Ô tìm nhân viên (search-select) — tìm theo tên, mã, SĐT hoặc email (`useEmployees` `q`, khớp
- * `full_name`/`code`/`phone`/`email` ở server). Dùng cho các form cần chọn 1 nhân viên đang hoạt
+/** Ô tìm nhân viên (search-select) — tìm theo tên, mã hoặc SĐT (`useEmployeeLookup`, M16-11: mọi vai
+ * trò vào màn đơn hàng đều dùng được). Dùng cho các form cần chọn 1 nhân viên đang hoạt
  * động, ví dụ "Người thực hiện"/"Người yêu cầu" ở M16-01b. */
 export function EmployeeSearchField({
   label,
@@ -28,16 +28,13 @@ export function EmployeeSearchField({
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 300);
   const searching = !employeeId && debouncedQuery.trim() !== "";
-  const results = useEmployees(
-    { q: debouncedQuery, role: "", is_active: includeInactive ? "" : "true", limit: 8, offset: 0 },
-    { enabled: searching },
-  );
+  const results = useEmployeeLookup({ q: debouncedQuery, includeInactive }, { enabled: searching });
 
   return (
     <div className="relative space-y-2">
       <TextField
         label={label}
-        placeholder="Tìm theo tên, mã, SĐT hoặc email…"
+        placeholder="Tìm theo tên, mã hoặc SĐT…"
         role="combobox"
         aria-expanded={searching}
         aria-controls={resultsId}
@@ -57,14 +54,14 @@ export function EmployeeSearchField({
           </span>
         }
       />
-      {searching && (results.data?.items.length ?? 0) > 0 ? (
+      {searching && (results.data?.length ?? 0) > 0 ? (
         <ul
           id={resultsId}
           role="listbox"
           aria-label="Kết quả tìm nhân viên"
           className="absolute z-10 w-full divide-y divide-line rounded-xl border border-line bg-card shadow-card-hover"
         >
-          {(results.data?.items ?? []).map((candidate) => (
+          {(results.data ?? []).map((candidate) => (
             <li
               key={candidate.id}
               role="option"

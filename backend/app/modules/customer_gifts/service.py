@@ -102,6 +102,15 @@ def _get_or_404(session: Session, gift_id: uuid.UUID) -> CustomerGift:
     return gift
 
 
+def _get_locked_or_404(session: Session, gift_id: uuid.UUID) -> CustomerGift:
+    stmt = select(CustomerGift).where(CustomerGift.id == gift_id)
+    stmt = stmt.with_for_update().execution_options(populate_existing=True)
+    gift = session.scalars(stmt).one_or_none()
+    if gift is None:
+        raise AppError(404, "NOT_FOUND", "Không tìm thấy bản ghi tặng quà.")
+    return gift
+
+
 def create_gift(
     session: Session, actor: Actor, body: CustomerGiftCreate, *, request_id: str | None = None
 ) -> CustomerGiftOut:
@@ -167,7 +176,7 @@ def update_gift(
     *,
     request_id: str | None = None,
 ) -> CustomerGiftOut:
-    gift = _get_or_404(session, gift_id)
+    gift = _get_locked_or_404(session, gift_id)
     if gift.version != body.version:
         raise AppError(409, "STALE_VERSION", "Thông tin đã bị người khác thay đổi. Vui lòng tải lại.")
     changes = body.model_dump(exclude_unset=True, exclude={"version"})

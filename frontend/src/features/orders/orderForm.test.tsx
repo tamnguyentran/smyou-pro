@@ -1016,3 +1016,86 @@ describe("AC-ORD-063 huỷ đơn nháp", () => {
     });
   });
 });
+
+describe("M16-10 bố cục lưới màn tạo/sửa đơn nháp", () => {
+  test("AC-UI-046 khung 2 cột (lg) / 3 cột (xl); Thông tin đơn là lưới container 2 cột, ô dài chiếm cả dòng", async () => {
+    signedInAs(hoaId, HOA);
+    renderApp("/orders/new");
+    await openForm();
+
+    const layout = screen.getByTestId("draft-order-layout");
+    expect(layout.className).toMatch(/lg:grid-cols-2/);
+    expect(layout.className).toMatch(/xl:grid-cols-3/);
+    const section = document.getElementById("draft-order-section1");
+    expect(section?.className).toMatch(/@container/);
+    const fieldGrid = screen.getByTestId("draft-order-fields");
+    expect(fieldGrid.className).toMatch(/@lg:grid-cols-2/);
+    for (const label of ["Địa chỉ thi công", "Mô tả công việc"]) {
+      expect(screen.getByLabelText(label).closest(".col-span-full")).not.toBeNull();
+    }
+  });
+
+  test("AC-UI-047 thẻ dòng hàng lưới 2/6/12 cột; tên và hàng thao tác chiếm cả dòng", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ lines: [orderLine()] }))),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+
+    const card = await screen.findByTestId(`order-line-${orderLine().id}`);
+    expect(card.className).toMatch(/grid-cols-2/);
+    expect(card.className).toMatch(/md:grid-cols-6/);
+    expect(card.className).toMatch(/lg:grid-cols-12/);
+    expect(within(card).getByTestId("order-line-name").className).toMatch(/col-span-full/);
+    expect(within(card).getByTestId("order-line-actions").className).toMatch(/col-span-full/);
+  });
+});
+
+describe("M16-10 thêm khách hàng ngay trong màn tạo đơn", () => {
+  const HOA_MANAGE: Person = {
+    ...HOA,
+    capabilities: { ...HOA.capabilities, "customer.manage": all },
+  };
+
+  test("AC-UI-049 mở modal Thêm khách hàng (dùng lại của Quản lý KH), lưu xong tự chọn khách mới vào đơn", async () => {
+    signedInAs(hoaId, HOA_MANAGE);
+    server.use(
+      http.post("/api/v1/customers", async ({ request }) => {
+        const body = (await request.json()) as { name: string; phone: string; type: string };
+        return HttpResponse.json(
+          {
+            ...customer({ id: "new-cus-id", name: body.name, phone: body.phone }),
+            type: body.type,
+            duplicate_phone_matches: [],
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    renderApp("/orders/new");
+    await openForm();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Thêm khách hàng" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm khách hàng" });
+    expect(within(dialog).getByRole("option", { name: "Cá nhân" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("option", { name: "Công ty" })).toBeInTheDocument();
+    await user.type(within(dialog).getByLabelText("Tên khách hàng"), "Anh Bình");
+    await user.type(within(dialog).getByLabelText("Số điện thoại"), "0912345678");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Thêm khách hàng" })).not.toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("Tìm khách hàng")).toHaveValue("Anh Bình");
+  });
+
+  test("AC-UI-050 không có customer.manage → không có nút Thêm khách hàng", async () => {
+    signedInAs(hoaId, HOA);
+    renderApp("/orders/new");
+    await openForm();
+
+    expect(screen.queryByRole("button", { name: "Thêm khách hàng" })).not.toBeInTheDocument();
+  });
+});

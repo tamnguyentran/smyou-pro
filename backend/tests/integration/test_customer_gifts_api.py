@@ -5,7 +5,7 @@ import uuid
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import Connection, text
+from sqlalchemy import Connection, event, text
 
 from tests.integration.conftest import AN, KHOA, Person, login, seed
 
@@ -225,6 +225,29 @@ def test_update_stale_version(
     stale = hoa.patch(f"/api/v1/customer-gifts/{created['id']}", json={"version": 1, "quantity": 5})
 
     problem(stale, 409, "STALE_VERSION")
+
+
+@pytest.mark.ac("AC-GFT-010")
+def test_update_locks_the_row_before_the_version_check(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], customer_id: uuid.UUID
+) -> None:
+    """Review M16: without FOR UPDATE two concurrent PATCHes with the same version both win."""
+    hoa = client_as(app, HOA)
+    created = hoa.post("/api/v1/customer-gifts", json=gift_body(people, customer_id)).json()
+    locked: list[str] = []
+
+    def spy(_conn: object, _cursor: object, statement: str, *_args: object) -> None:
+        if "FOR UPDATE" in statement and "customer_gifts" in statement:
+            locked.append(statement)
+
+    event.listen(db, "before_cursor_execute", spy)
+    try:
+        res = hoa.patch(f"/api/v1/customer-gifts/{created['id']}", json={"version": 1, "quantity": 3})
+    finally:
+        event.remove(db, "before_cursor_execute", spy)
+
+    assert res.status_code == 200, res.text
+    assert len(locked) == 1
 
 
 @pytest.mark.ac("AC-GFT-011")

@@ -367,6 +367,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/employees/lookup": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Tra cứu nhân viên cho ô chọn (id, mã, tên, SĐT) */
+    get: operations["employees_lookup"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/employees/{employee_id}": {
     parameters: {
       query?: never;
@@ -2181,6 +2198,25 @@ export interface components {
       roles: ("MANAGER" | "SALE" | "CUSTOMER_CARE" | "TECH_LEAD" | "TECHNICIAN")[];
       /** Title */
       title?: string | null;
+    };
+    /**
+     * EmployeeLookupOut
+     * @description M16-11: slim row for pickers — no email/roles/lock state.
+     */
+    EmployeeLookupOut: {
+      /** Code */
+      code: string;
+      /** Full Name */
+      full_name: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Is Active */
+      is_active: boolean;
+      /** Phone */
+      phone: string | null;
     };
     /** EmployeeOut */
     EmployeeOut: {
@@ -4829,6 +4865,39 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  employees_lookup: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        include_inactive?: boolean;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EmployeeLookupOut"][];
+        };
       };
       /** @description Validation Error */
       422: {

@@ -107,7 +107,7 @@ export function NumberField({
           event.target.select();
         }}
         className={cn(
-          "h-11 w-full rounded-xl border border-line bg-card px-3 text-base text-body placeholder:text-placeholder",
+          "h-11 w-full rounded-xl border border-line bg-card px-3 text-right text-base tabular-nums text-body placeholder:text-placeholder",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-focus focus-visible:ring-offset-2",
           error && "border-urgent-fg",
           className,

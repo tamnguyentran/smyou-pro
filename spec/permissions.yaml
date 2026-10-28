@@ -27,6 +27,7 @@ capabilities:
   # --- Nhân sự ---
   employee.read:         { MANAGER: all, TECH_LEAD: all }
   employee.manage:       { MANAGER: all }            # create, edit, deactivate, set roles, reset password
+  employee.lookup:       { MANAGER: all, SALE: all, CUSTOMER_CARE: all, TECH_LEAD: all }  # M16-11: slim picker search (id/code/name/phone), every order-screen role
   profile.manage:        { MANAGER: self, SALE: self, CUSTOMER_CARE: self, TECH_LEAD: self, TECHNICIAN: self }
   # --- Khách hàng ---
   customer.read:         { MANAGER: all, SALE: all, CUSTOMER_CARE: all, TECH_LEAD: all }
@@ -56,7 +57,7 @@ capabilities:
   # --- Báo cáo ---
   dashboard.read:        { MANAGER: all, SALE: own, TECH_LEAD: all, TECHNICIAN: self, CUSTOMER_CARE: all }
   kpi.read:              { MANAGER: all, TECH_LEAD: all, TECHNICIAN: self }
-  report.revenue.read:   { MANAGER: all, SALE: own, TECH_LEAD: all, CUSTOMER_CARE: own }  # M15-09a, Q88/Q96: own = orders.created_by
+  report.revenue.read:   { MANAGER: all, SALE: own, TECH_LEAD: all, CUSTOMER_CARE: own }  # M15-09a Q88/Q96; redefined M16-05/06: own = order_lines.credited_employee_id (line-based)
   report.customer_gift.read: { MANAGER: all, SALE: all, CUSTOMER_CARE: all }  # M16-02a — matches customer_gift scope (Q97), no own split
   audit.read:            { MANAGER: all }
   notification.read:     { MANAGER: self, SALE: self, TECH_LEAD: self, TECHNICIAN: self }

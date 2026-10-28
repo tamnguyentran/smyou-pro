@@ -319,12 +319,12 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
   const isDirty = formState.isDirty;
 
   return (
-    <div data-testid="draft-order-layout" className="grid gap-6 lg:grid-cols-2">
+    <div data-testid="draft-order-layout" className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
       <form
         id="draft-order-form"
         noValidate
         onSubmit={(event) => void onSave(event)}
-        className="space-y-6 lg:col-start-1 lg:row-start-1"
+        className="space-y-6 lg:col-start-1 lg:row-start-1 xl:col-span-2"
       >
         {formError ? <Alert>{formError}</Alert> : null}
         {submitError ? <Alert>{submitError}</Alert> : null}
@@ -361,15 +361,21 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
           )}
         </button>
 
-        <div id="draft-order-section1" hidden={!showSection1} className="space-y-6">
+        <div
+          id="draft-order-section1"
+          hidden={!showSection1}
+          className="@container rounded-2xl border border-line bg-card p-4 lg:p-6"
+        >
           {canEdit ? (
-            <>
-              <CustomerPicker
-                register={register}
-                watch={watch}
-                setValue={setValue}
-                errors={formState.errors}
-              />
+            <div data-testid="draft-order-fields" className="grid gap-4 @lg:grid-cols-2">
+              <div className="col-span-full">
+                <CustomerPicker
+                  register={register}
+                  watch={watch}
+                  setValue={setValue}
+                  errors={formState.errors}
+                />
+              </div>
               <Select
                 label="Nhóm sản phẩm/dịch vụ"
                 required
@@ -384,41 +390,51 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
                 ))}
               </Select>
               <TextField
-                label="Địa chỉ thi công"
-                error={formState.errors.service_address?.message}
-                {...register("service_address")}
-              />
-              <Textarea
-                label="Mô tả công việc"
-                error={formState.errors.work_description?.message}
-                {...register("work_description")}
-              />
-              <ChipGroup
-                label="Độ ưu tiên"
-                value={priority}
-                options={PRIORITY_ORDER.map((priority) => ({
-                  value: priority,
-                  label: PRIORITY_LABELS[priority],
-                }))}
-                onChange={(value) => {
-                  setValue("priority", value, { shouldDirty: true });
-                }}
-              />
-              <TextField
                 label="Ngày hẹn"
                 type="date"
                 error={formState.errors.requested_date?.message}
                 {...register("requested_date")}
               />
-            </>
+              <div className="col-span-full">
+                <TextField
+                  label="Địa chỉ thi công"
+                  error={formState.errors.service_address?.message}
+                  {...register("service_address")}
+                />
+              </div>
+              <div className="col-span-full">
+                <Textarea
+                  label="Mô tả công việc"
+                  error={formState.errors.work_description?.message}
+                  {...register("work_description")}
+                />
+              </div>
+              <div className="col-span-full">
+                <ChipGroup
+                  label="Độ ưu tiên"
+                  value={priority}
+                  options={PRIORITY_ORDER.map((priority) => ({
+                    value: priority,
+                    label: PRIORITY_LABELS[priority],
+                  }))}
+                  onChange={(value) => {
+                    setValue("priority", value, { shouldDirty: true });
+                  }}
+                />
+              </div>
+            </div>
           ) : (
             // canEdit is false only when `order` exists (see its definition above) and the actor's
             // scope doesn't cover it — never for a not-yet-created draft.
-            <div className="space-y-4">
+            <div className="grid gap-4 @lg:grid-cols-2">
               <ReadOnlyField label="Khách hàng" value={order.customer_name ?? "Khách lẻ"} />
               <ReadOnlyField label="Nhóm sản phẩm/dịch vụ" value={order.division_name ?? ""} />
-              <ReadOnlyField label="Địa chỉ thi công" value={order.service_address} />
-              <ReadOnlyField label="Mô tả công việc" value={order.work_description} />
+              <div className="col-span-full">
+                <ReadOnlyField label="Địa chỉ thi công" value={order.service_address} />
+              </div>
+              <div className="col-span-full">
+                <ReadOnlyField label="Mô tả công việc" value={order.work_description} />
+              </div>
               <ReadOnlyField
                 label="Độ ưu tiên"
                 value={PRIORITY_LABELS[order.priority as Priority]}
@@ -434,7 +450,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
           trường mỗi dòng) — dùng phương án thay thế của spec: bảng dòng hàng full-width bên dưới.
           Đứng trước trong DOM để mobile vẫn đọc Dòng hàng → Tổng tiền theo đúng thứ tự; desktop tự
           đặt lại vị trí bằng lg:col-start/row-start bên dưới, không phụ thuộc thứ tự DOM. */}
-      <div className="lg:col-span-2 lg:row-start-2">
+      <div className="lg:col-span-2 lg:row-start-2 xl:col-span-3">
         <OrderLinesSection
           order={order}
           canEdit={canEdit}
@@ -446,8 +462,10 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
       </div>
 
       {order ? (
-        <div className="lg:col-start-2 lg:row-start-1">
-          <OrderTotalsSection order={order} />
+        <div className="lg:col-start-2 lg:row-start-1 xl:col-start-3">
+          <div className="lg:sticky lg:top-4">
+            <OrderTotalsSection order={order} />
+          </div>
         </div>
       ) : null}
 
@@ -459,7 +477,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
           // the page's Content already reserves this space (UI_GUIDELINES §4) for exactly this.
           // flex-col: AC-ORD-166 cần helper text nằm trong chính khối sticky này (không phải phía
           // dưới DOM của nó) để không bị đẩy ra ngoài vùng nhìn thấy trên mobile.
-          className="sticky bottom-16 z-10 flex flex-col gap-2 bg-page py-3 lg:static lg:col-span-2 lg:row-start-3 lg:bottom-auto lg:bg-transparent lg:py-0"
+          className="sticky bottom-16 z-10 flex flex-col gap-2 bg-page py-3 lg:static lg:col-span-2 lg:row-start-3 xl:col-span-3 lg:bottom-auto lg:bg-transparent lg:py-0"
         >
           {missingInfoHint ? <p className="text-xs text-muted">{missingInfoHint}</p> : null}
           <div className="flex flex-wrap gap-3">

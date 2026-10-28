@@ -79,6 +79,16 @@ class EmployeeOut(BaseModel):
     version: int
 
 
+class EmployeeLookupOut(BaseModel):
+    """M16-11: slim row for pickers — no email/roles/lock state."""
+
+    id: uuid.UUID
+    code: str
+    full_name: str
+    phone: str | None
+    is_active: bool
+
+
 class EmployeePage(BaseModel):
     items: list[EmployeeOut]
     total: int

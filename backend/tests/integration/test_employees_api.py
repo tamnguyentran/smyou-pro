@@ -517,6 +517,7 @@ def test_routes_capabilities_and_logs(
     employee_routes = {r for r in declared_routes(app) if "/employees" in r[1]}
     assert employee_routes == {
         ("GET", "/api/v1/employees", "employee.read"),
+        ("GET", "/api/v1/employees/lookup", "employee.lookup"),
         ("GET", "/api/v1/employees/{employee_id}", "employee.read"),
         ("POST", "/api/v1/employees", "employee.manage"),
         ("PATCH", "/api/v1/employees/{employee_id}", "employee.manage"),

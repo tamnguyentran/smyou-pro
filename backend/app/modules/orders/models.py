@@ -58,7 +58,7 @@ class Order(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     code: Mapped[str] = mapped_column(String(20), unique=True)
     status: Mapped[str] = mapped_column(String(30), server_default=text("'DRAFT'"), index=True)
-    division_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("product_service_groups.id"))
+    division_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("product_service_groups.id"), index=True)
     customer_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("customers.id"), index=True)
     customer_name: Mapped[str | None] = mapped_column(String(255))
     customer_phone: Mapped[str | None] = mapped_column(String(20))
@@ -145,7 +145,7 @@ class OrderLine(Base):
     line_vat: Mapped[int] = mapped_column(BigInteger)
     line_total: Mapped[int] = mapped_column(BigInteger)
     note: Mapped[str | None] = mapped_column(Text)
-    credited_employee_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("employees.id"))
+    credited_employee_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("employees.id"), index=True)
 
     order: Mapped[Order] = relationship(back_populates="lines")
     credited_employee: Mapped[Employee | None] = relationship()

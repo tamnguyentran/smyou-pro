@@ -87,10 +87,14 @@ export function CustomerFormSheet({
   onClose,
   customer: initialCustomer,
   canManage,
+  onCreated,
 }: {
   onClose: () => void;
   customer?: Customer;
   canManage: boolean;
+  /** M16-10: màn tạo đơn dùng lại modal này và cần biết khách vừa tạo để chọn sẵn vào đơn —
+   * gọi ngay sau khi tạo thành công, kể cả khi modal ở lại vì cảnh báo trùng SĐT. */
+  onCreated?: (customer: Customer) => void;
 }) {
   // The working copy: updated after every successful command, so a duplicate-phone banner or a
   // second save in the same open sheet uses the fresh `version` (same rationale as ProductFormSheet).
@@ -174,6 +178,7 @@ export function CustomerFormSheet({
         const body: CustomerCreateBody = { type: values.type, ...shared };
         const created = await create.mutateAsync(body);
         toast(`Đã thêm khách hàng ${created.name}.`);
+        onCreated?.(created);
         // Trùng SĐT là cảnh báo không chặn (AC-CUS-010) nhưng cần ở lại để người dùng đọc được —
         // đóng ngay sẽ làm banner biến mất trước khi kịp thấy (giống nhánh sửa ở dưới).
         if (created.duplicate_phone_matches.length === 0) {
