@@ -210,6 +210,15 @@
       ]
     },
     {
+      "id": "company",
+      "label": "Thông tin công ty",
+      "icon": "Building2",
+      "path": "/settings/company",
+      "capability": "company.manage",
+      "badge": null,
+      "children": []
+    },
+    {
       "id": "audit",
       "label": "Nhật ký hệ thống",
       "icon": "History",

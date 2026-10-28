@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Building2,
   CalendarRange,
   ClipboardCheck,
   FilePlus2,
@@ -50,6 +51,7 @@ const ROLE_PRIORITY = ["TECH_LEAD", "SALE", "MANAGER", "TECHNICIAN"];
 
 const ICONS: Record<string, LucideIcon> = {
   BarChart3,
+  Building2,
   CalendarRange,
   ClipboardCheck,
   FilePlus2,

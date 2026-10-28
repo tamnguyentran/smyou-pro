@@ -35,6 +35,7 @@ def test_menu_document_has_menu_bottom_nav_and_role_labels() -> None:
         "catalog",
         "employees",
         "reports",
+        "company",
         "audit",
     ]
     dispatch = doc["menu"][2]

@@ -1,5 +1,6 @@
 import type { RouteObject } from "react-router";
 import { AuditPage } from "../features/audit/pages/AuditPage";
+import { CompanyProfilePage } from "../features/company/pages/CompanyProfilePage";
 import { RequireSession, SignedOutOnly } from "../features/auth/guards";
 import { ChangePasswordPage } from "../features/auth/pages/ChangePasswordPage";
 import { ForgotPasswordPage } from "../features/auth/pages/ForgotPasswordPage";
@@ -57,6 +58,7 @@ import { NotFoundPage } from "./shell/StatusPage";
 // catalog.read on the route) as "/catalog/products"/"/catalog/services".
 // "/reports/customer-gifts" is real (M16-02b), same capability (report.customer_gift.read) as the
 // menu entry added alongside M16-02a's capability.
+// "/settings/company" is real (M17-01) and checks company.manage itself, same as the menu entry.
 const REAL_PAGES = new Set([
   "/",
   "/employees",
@@ -65,6 +67,7 @@ const REAL_PAGES = new Set([
   "/reports/revenue-by-employee",
   "/reports/customer-gifts",
   "/audit",
+  "/settings/company",
   "/catalog/products",
   "/catalog/services",
   "/catalog/groups",
@@ -128,6 +131,7 @@ export const routes: RouteObject[] = [
       { path: "/reports/revenue-by-employee", element: <RevenueByEmployeeReportPage /> },
       { path: "/reports/customer-gifts", element: <CustomerGiftReportPage /> },
       { path: "/audit", element: <AuditPage /> },
+      { path: "/settings/company", element: <CompanyProfilePage /> },
       { path: "/catalog/products", element: <ProductsPage /> },
       { path: "/catalog/services", element: <ServicesPage /> },
       { path: "/catalog/groups", element: <ProductServiceGroupsPage /> },

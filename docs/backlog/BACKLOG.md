@@ -4,6 +4,10 @@ Trạng thái: `[ ]` chưa làm · `[S]` spec đang viết · `[A]` spec Approve
 Mỗi item là **lát cắt dọc** (DB → API → UI → test) giao được trong 1 phiên. Làm theo thứ tự; item sau phụ thuộc item trước.
 Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatch), `ASG`, `CMP` (completion/revision), `NTF`, `DASH` (dashboard), `KPI`, `UI` (style thuần, xuyên module, không đổi API/quyền).
 
+## M17 — Thông tin công ty & phòng ban (2026-10-28)
+- `[~]` M17-01 — Thông tin công ty: 1 bản ghi (tên, MST, địa chỉ, ĐT, fax, email, website, logo), seed từ hoá đơn, màn cài đặt chỉ Manager. `docs/specs/M17-01-company-profile.md`
+- `[ ]` M17-02 — Phòng ban: danh sách quản lý được (thêm/sửa/ngừng hoạt động), nhân viên chọn từ danh sách thay enum cố định; seed "Phát Triển Kinh Tế", "Nhân sự/marketing", "Kế Toán - tài chính".
+
 ## M15 — Giai đoạn 2: CSKH, vai trò kết hợp, giá vốn, báo cáo doanh thu (spec Draft, 2026-10-21)
 - `[x]` M15-01 — Vai trò CSKH (`CUSTOMER_CARE`) + ràng buộc gán vai trò: Manager ⇒ tự có Sale/CSKH/QLKT (không bao giờ cùng Kỹ thuật viên); nhân viên khác gán tự do. `docs/specs/M15-01-customer-care-role.md` (PR #126)
 - `[x]` M15-02a — API: CSKH tra cứu đơn + ghi phản hồi (sao 1–5 + nội dung, tách riêng `customer_feedback`/`result_note`). `docs/specs/M15-02a-customer-feedback-api.md` (PR #127)

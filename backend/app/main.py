@@ -20,6 +20,7 @@ from app.modules.audit.router import router as audit_router
 from app.modules.catalog.groups_router import router as product_service_groups_router
 from app.modules.catalog.router import router as catalog_router
 from app.modules.catalog.router import services_router
+from app.modules.company.router import router as company_router
 from app.modules.customer_gift_report.router import router as customer_gift_report_router
 from app.modules.customer_gifts.router import router as customer_gifts_router
 from app.modules.customers.router import router as customers_router
@@ -105,6 +106,7 @@ def create_app(
     app.include_router(customers_router)
     app.include_router(customer_gifts_router)
     app.include_router(customer_gift_report_router)
+    app.include_router(company_router)
     app.include_router(dashboard_router)
     app.include_router(kpi_router)
     app.include_router(orders_router)

@@ -242,6 +242,41 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/company-profile": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Thông tin công ty */
+    get: operations["company_profile_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Sửa thông tin công ty */
+    patch: operations["company_profile_update"];
+    trace?: never;
+  };
+  "/api/v1/company-profile/logo": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Tải logo công ty (thay logo cũ) */
+    post: operations["company_profile_upload_logo"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/customer-gifts": {
     parameters: {
       query?: never;
@@ -1692,6 +1727,11 @@ export interface components {
       /** Total */
       total: number;
     };
+    /** Body_company_profile_upload_logo */
+    Body_company_profile_upload_logo: {
+      /** File */
+      file: string;
+    };
     /** Body_customer_gifts_upload_photo */
     Body_customer_gifts_upload_photo: {
       /** File */
@@ -1740,6 +1780,59 @@ export interface components {
       current_password: string;
       /** New Password */
       new_password: string;
+    };
+    /** CompanyProfileOut */
+    CompanyProfileOut: {
+      /** Address */
+      address: string;
+      /** Email */
+      email: string | null;
+      /** Fax */
+      fax: string | null;
+      /** Logo Attachment Id */
+      logo_attachment_id: string | null;
+      /** Name */
+      name: string;
+      /** Phone */
+      phone: string;
+      /** Phone Secondary */
+      phone_secondary: string | null;
+      /** Tax Code */
+      tax_code: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Version */
+      version: number;
+      /** Website */
+      website: string | null;
+    };
+    /**
+     * CompanyProfileUpdate
+     * @description Every field optional except `version`; only fields sent are changed. Required columns sent as
+     *     null are rejected (AC-SYS-126), optional ones sent null/blank are cleared.
+     */
+    CompanyProfileUpdate: {
+      /** Address */
+      address?: string | null;
+      /** Email */
+      email?: string | null;
+      /** Fax */
+      fax?: string | null;
+      /** Name */
+      name?: string | null;
+      /** Phone */
+      phone?: string | null;
+      /** Phone Secondary */
+      phone_secondary?: string | null;
+      /** Tax Code */
+      tax_code?: string | null;
+      /** Version */
+      version: number;
+      /** Website */
+      website?: string | null;
     };
     /** ConfirmationAttachment */
     ConfirmationAttachment: {
@@ -2378,7 +2471,8 @@ export interface components {
       | "ORDER"
       | "TASK"
       | "ASSIGNMENT"
-      | "CUSTOMER_GIFT";
+      | "CUSTOMER_GIFT"
+      | "COMPANY_PROFILE";
     /** ForgotPasswordRequest */
     ForgotPasswordRequest: {
       /** Email */
@@ -4382,6 +4476,106 @@ export interface operations {
         content?: never;
       };
       /** @description problem+json — INVALID_RESET_TOKEN | VALIDATION_ERROR (new_password) */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  company_profile_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CompanyProfileOut"];
+        };
+      };
+    };
+  };
+  company_profile_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CompanyProfileUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CompanyProfileOut"];
+        };
+      };
+      /** @description problem+json — STALE_VERSION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  company_profile_upload_logo: {
+    parameters: {
+      query: {
+        version: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_company_profile_upload_logo"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CompanyProfileOut"];
+        };
+      };
+      /** @description problem+json — STALE_VERSION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — INVALID_FILE_TYPE | FILE_TOO_LARGE | UNSUPPORTED_MEDIA_TYPE */
       422: {
         headers: {
           [name: string]: unknown;

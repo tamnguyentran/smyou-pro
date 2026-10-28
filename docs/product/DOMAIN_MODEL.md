@@ -202,7 +202,7 @@ Unique partial index: `(task_id, employee_id, cycle) WHERE status IN ('PENDING',
 `task_id, cycle (chu kỳ bị lỗi), assignment_id, employee_id, reason, severity (MINOR|MAJOR), reported_by, created_at` — tạo tự động khi reopen, 1 dòng cho mỗi kỹ thuật viên đã DONE ở chu kỳ trước. Quản lý kỹ thuật có thể đánh dấu `excluded_from_kpi` kèm lý do (lỗi không do nhân viên).
 
 ## 11. Attachment — `attachments`
-`owner_type (ORDER|TASK|PRODUCT|CUSTOMER_GIFT), owner_id, kind (CUSTOMER_CONFIRMATION|TASK_PHOTO|PRODUCT_IMAGE|GIFT_PHOTO|OTHER), revision_no, storage_key, original_filename, mime_type, size_bytes, sha256, width, height, uploaded_by`.
+`owner_type (ORDER|TASK|PRODUCT|CUSTOMER_GIFT|COMPANY), owner_id, kind (CUSTOMER_CONFIRMATION|TASK_PHOTO|PRODUCT_IMAGE|GIFT_PHOTO|COMPANY_LOGO|OTHER), revision_no, storage_key, original_filename, mime_type, size_bytes, sha256, width, height, uploaded_by`.
 Chỉ nhận `image/jpeg`, `image/png`, `image/webp`, `image/heic` và `application/pdf`; kiểm tra magic bytes, ≤ 10MB. Lưu trên volume `/data/uploads/{yyyy}/{mm}/{uuid}`; không phục vụ tĩnh — chỉ qua `GET /api/v1/attachments/{id}` có kiểm quyền.
 
 ## 12. AuditEvent — `audit_events` (append-only, không UPDATE/DELETE)
@@ -231,6 +231,23 @@ Chỉ nhận `image/jpeg`, `image/png`, `image/webp`, `image/heic` và `applicat
 
 Ảnh ("hình chụp"): dùng `attachments` (`owner_type=CUSTOMER_GIFT`, `kind=GIFT_PHOTO`), nhiều ảnh/bản ghi, tái dùng pipeline tải ảnh của M6-01.
 `MANAGER`/`SALE`/`CUSTOMER_CARE` đều xem/sửa được **mọi** bản ghi (`all`, Q97) — mỗi lần sửa ghi `audit_events` (`entity_type=CUSTOMER_GIFT`) kèm giá trị cũ/mới từng trường đã đổi, không có route xoá.
+
+## 15. CompanyProfile (Thông tin công ty) — `company_profile` (M17-01)
+Đúng **1 dòng** (`id smallint = 1`, `CHECK (id = 1)`), migration tạo sẵn với dữ liệu từ hoá đơn bán hàng; không có tạo/xoá, chỉ xem + sửa.
+| Trường | Kiểu | Ghi chú |
+|---|---|---|
+| name | varchar(255) | bắt buộc — "Tên công ty" |
+| tax_code | varchar(14) | bắt buộc, `^\d{10}(-\d{3})?$` (MST 10 số hoặc 13 số chi nhánh) |
+| address | varchar(500) | bắt buộc |
+| phone | varchar(20) | bắt buộc — "Điện thoại 1"; chuẩn hoá chỉ chữ số, `^0\d{9,10}$` (số bàn 028… có 11 số) |
+| phone_secondary, fax | varchar(20), tuỳ chọn | cùng quy tắc với `phone` |
+| email | varchar(255), tuỳ chọn | |
+| website | varchar(255), tuỳ chọn | phải bắt đầu `http://` hoặc `https://` |
+| logo_attachment_id | uuid → attachments, tuỳ chọn | `owner_type=COMPANY`, `owner_id=00000000-0000-0000-0000-000000000001`, `kind=COMPANY_LOGO`; đổi logo chỉ đổi con trỏ, logo cũ không xoá |
+| version | int, mặc định 1 | optimistic lock |
+| created_at/updated_at | timestamptz | |
+
+Chỉ `MANAGER` (`company.manage`). Mỗi lần sửa/đổi logo ghi `audit_events` (`entity_type=COMPANY_PROFILE`, `action=company_profile.update` kèm `{trường: {from, to}}` / `company_profile.logo_update`).
 
 ## Quy tắc tính tiền (có test property-based)
 Giá và VAT **tách riêng**: đơn giá luôn lưu chưa VAT; % VAT gắn với từng sản phẩm/dịch vụ và được snapshot vào từng dòng, nên một đơn có thể có nhiều mức VAT.

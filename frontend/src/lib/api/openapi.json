@@ -211,6 +211,18 @@
         "title": "AuditEventPage",
         "type": "object"
       },
+      "Body_company_profile_upload_logo": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": ["file"],
+        "title": "Body_company_profile_upload_logo",
+        "type": "object"
+      },
       "Body_customer_gifts_upload_photo": {
         "properties": {
           "file": {
@@ -326,6 +338,209 @@
         },
         "required": ["current_password", "new_password"],
         "title": "ChangePasswordRequest",
+        "type": "object"
+      },
+      "CompanyProfileOut": {
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "fax": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fax"
+          },
+          "logo_attachment_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Attachment Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          },
+          "phone_secondary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Secondary"
+          },
+          "tax_code": {
+            "title": "Tax Code",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          }
+        },
+        "required": [
+          "name",
+          "tax_code",
+          "address",
+          "phone",
+          "phone_secondary",
+          "fax",
+          "email",
+          "website",
+          "logo_attachment_id",
+          "version",
+          "updated_at"
+        ],
+        "title": "CompanyProfileOut",
+        "type": "object"
+      },
+      "CompanyProfileUpdate": {
+        "additionalProperties": false,
+        "description": "Every field optional except `version`; only fields sent are changed. Required columns sent as\nnull are rejected (AC-SYS-126), optional ones sent null/blank are cleared.",
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 254,
+                "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "fax": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fax"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "phone_secondary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Secondary"
+          },
+          "tax_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Code"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          }
+        },
+        "required": ["version"],
+        "title": "CompanyProfileUpdate",
         "type": "object"
       },
       "ConfirmationAttachment": {
@@ -2346,7 +2561,8 @@
           "ORDER",
           "TASK",
           "ASSIGNMENT",
-          "CUSTOMER_GIFT"
+          "CUSTOMER_GIFT",
+          "COMPANY_PROFILE"
         ],
         "title": "EntityType",
         "type": "string"
@@ -7105,6 +7321,111 @@
         },
         "summary": "Đặt mật khẩu mới bằng token nhận qua email",
         "tags": ["auth"]
+      }
+    },
+    "/api/v1/company-profile": {
+      "get": {
+        "operationId": "company_profile_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyProfileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Thông tin công ty",
+        "tags": ["company-profile"]
+      },
+      "patch": {
+        "operationId": "company_profile_update",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyProfileUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyProfileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Sửa thông tin công ty",
+        "tags": ["company-profile"]
+      }
+    },
+    "/api/v1/company-profile/logo": {
+      "post": {
+        "operationId": "company_profile_upload_logo",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "title": "Version",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_company_profile_upload_logo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyProfileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION"
+          },
+          "422": {
+            "description": "problem+json — INVALID_FILE_TYPE | FILE_TOO_LARGE | UNSUPPORTED_MEDIA_TYPE"
+          }
+        },
+        "summary": "Tải logo công ty (thay logo cũ)",
+        "tags": ["company-profile"]
       }
     },
     "/api/v1/customer-gifts": {
