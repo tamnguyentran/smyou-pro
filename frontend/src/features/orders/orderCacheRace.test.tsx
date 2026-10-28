@@ -98,6 +98,8 @@ function dellLine(): OrderLine {
     warranty_months_snapshot: 24,
     catalog_price_snapshot: 2_500_000,
     cost_price_snapshot: null,
+    credited_employee_id: null,
+    credited_employee_name: null,
     price_fixed: true,
     vat_rate: "8",
     quantity: "1",
@@ -139,7 +141,9 @@ function order(overrides: Partial<Order> = {}): Order {
     id: orderId,
     code: "DH2610-0042",
     status: "DRAFT",
-    division: null,
+    // M16-10: "Nhóm sản phẩm/dịch vụ" bắt buộc chọn — mặc định đã có nhóm, như 1 đơn thật.
+    division_id: "g1",
+    division_name: "Thiết bị văn phòng",
     customer_id: null,
     customer_name: null,
     customer_phone: null,
@@ -210,14 +214,14 @@ function startRace(snapshot: Order) {
   const gate = createGate();
   const state = { getDone: false, patchedVersions: [] as number[], serverVersion: 1 };
   server.use(
-    // M10-02: dù chỉ request chưa có dòng hàng, response vẫn phải phản ánh đúng khách lẻ client đã
-    // chọn (`selectWalkInCustomer`) — như backend thật sẽ làm — để `reset(mapOrderToFormValues(...))`
+    // M10-02: dù chỉ request chưa có dòng hàng, response vẫn phải phản ánh đúng khách client đã
+    // chọn (`selectCustomer`) — như backend thật sẽ làm — để `reset(mapOrderToFormValues(...))`
     // khi `id` vừa xuất hiện không xoá mất lựa chọn khách của form.
+    http.get("/api/v1/customers", () =>
+      HttpResponse.json({ items: [raceCustomer()], total: 1, limit: 20, offset: 0 }),
+    ),
     http.post("/api/v1/orders", () =>
-      HttpResponse.json(
-        order({ version: 1, customer_name: "Khách lẻ E2E", customer_phone: "0909999999" }),
-        { status: 201 },
-      ),
+      HttpResponse.json(order({ version: 1, ...RACE_CUSTOMER_FIELDS }), { status: 201 }),
     ),
     http.get("/api/v1/products", () =>
       HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 }),
@@ -227,8 +231,7 @@ function startRace(snapshot: Order) {
       return HttpResponse.json(
         order({
           version: 2,
-          customer_name: "Khách lẻ E2E",
-          customer_phone: "0909999999",
+          ...RACE_CUSTOMER_FIELDS,
           lines: [dellLine()],
         }),
         { status: 201 },
@@ -254,12 +257,44 @@ function startRace(snapshot: Order) {
   return { gate, state };
 }
 
-/** M10-02: cả "Lưu nháp" đều cần có khách hàng trước khi enable — dùng Khách lẻ, không cần mock
- * `GET /customers`. */
-async function selectWalkInCustomer(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole("button", { name: "+ Khách lẻ" }));
-  await user.type(screen.getByLabelText("Tên khách hàng"), "Khách lẻ E2E");
-  await user.type(screen.getByLabelText("Số điện thoại"), "0909999999");
+const RACE_CUSTOMER_ID = "e0000000-0000-4000-8000-000000000007";
+const RACE_CUSTOMER_FIELDS = {
+  customer_id: RACE_CUSTOMER_ID,
+  customer_name: "Cty Sáng Tạo Mới",
+  customer_phone: "0909123456",
+};
+
+function raceCustomer(): components["schemas"]["CustomerOut"] {
+  return {
+    id: RACE_CUSTOMER_ID,
+    code: "KH00001",
+    type: "COMPANY",
+    name: "Cty Sáng Tạo Mới",
+    contact_person: null,
+    contact_person_phone: null,
+    phone: "0909123456",
+    email: null,
+    tax_code: null,
+    address: null,
+    note: null,
+    founded_date: null,
+    director_name: null,
+    director_phone: null,
+    it_contact_name: null,
+    it_contact_phone: null,
+    date_of_birth: null,
+    gender: null,
+    occupation: null,
+    created_by: RACE_CUSTOMER_ID,
+    version: 1,
+  };
+}
+
+/** M10-02: cả "Lưu nháp" đều cần có khách hàng trước khi enable. M16-12: không còn "+ Khách lẻ" —
+ * chọn khách có sẵn qua ô tìm. */
+async function selectCustomer(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText("Tìm khách hàng"), "sáng tạo");
+  await user.click(await screen.findByRole("option", { name: /Cty Sáng Tạo Mới/ }));
 }
 
 /** Thêm dòng `LCD-DELL22` từ sheet — bước này tạo nháp ngầm rồi mới `POST .../lines` (AC-ORD-026). */
@@ -285,7 +320,7 @@ describe("AC-ORD-119/120 phản hồi GET cũ không ghi đè bản chụp mới
     await screen.findByRole("heading", { level: 1, name: "Tạo đơn mới" });
     const user = userEvent.setup();
 
-    await selectWalkInCustomer(user);
+    await selectCustomer(user);
     await addDellLine(user);
     gate.release();
     await waitFor(() => {
@@ -342,7 +377,7 @@ describe("AC-ORD-121 bản chụp mới hơn vẫn được nhận", () => {
     await screen.findByRole("heading", { level: 1, name: "Tạo đơn mới" });
     const user = userEvent.setup();
 
-    await selectWalkInCustomer(user);
+    await selectCustomer(user);
     await addDellLine(user);
     gate.release();
 

@@ -77,7 +77,8 @@ erDiagram
 | code | varchar(20) | unique, tự sinh `KH00001` |
 | type | enum `COMPANY`, `INDIVIDUAL` | |
 | name | varchar(255) | "Cty Sáng Tạo Mới", "Anh Ngọc - Grand Hotel" |
-| contact_person | varchar(120) null | người liên hệ/người ký thường gặp |
+| contact_person | varchar(120) null | người liên hệ/người ký thường gặp, chỉ `COMPANY` (M15-05 addendum — trước đó dùng chung cả 2 loại) |
+| contact_person_phone | varchar(20) null | SĐT người liên hệ, chuẩn hoá như `phone`, chỉ `COMPANY` (M15-05 addendum) |
 | phone | varchar(20) | bắt buộc, chuẩn hoá |
 | email | varchar(255) null | "xuất hoá đơn gửi về mail công ty" |
 | tax_code | varchar(20) null | MST |
@@ -85,9 +86,9 @@ erDiagram
 | note | text | |
 | founded_date | date null | chỉ `COMPANY` (M15-05) |
 | director_name | varchar(120) null | "Giám đốc", chỉ `COMPANY` (M15-05) |
+| director_phone | varchar(20) null | SĐT giám đốc, chuẩn hoá như `phone`, chỉ `COMPANY` (M15-05 addendum) |
 | it_contact_name | varchar(120) null | "Phụ trách IT", chỉ `COMPANY` (M15-05) |
 | it_contact_phone | varchar(20) null | chuẩn hoá như `phone`, chỉ `COMPANY` (M15-05) |
-| it_contact_email | varchar(255) null | chỉ `COMPANY` (M15-05) |
 | date_of_birth | date null | chỉ `INDIVIDUAL` (M15-05) |
 | gender | enum `MALE`, `FEMALE`, `OTHER` null | chỉ `INDIVIDUAL` (M15-05) |
 | occupation | varchar(120) null | "Nghề nghiệp", chỉ `INDIVIDUAL` (M15-05) |
@@ -201,7 +202,7 @@ Unique partial index: `(task_id, employee_id, cycle) WHERE status IN ('PENDING',
 `task_id, cycle (chu kỳ bị lỗi), assignment_id, employee_id, reason, severity (MINOR|MAJOR), reported_by, created_at` — tạo tự động khi reopen, 1 dòng cho mỗi kỹ thuật viên đã DONE ở chu kỳ trước. Quản lý kỹ thuật có thể đánh dấu `excluded_from_kpi` kèm lý do (lỗi không do nhân viên).
 
 ## 11. Attachment — `attachments`
-`owner_type (ORDER|TASK|PRODUCT), owner_id, kind (CUSTOMER_CONFIRMATION|TASK_PHOTO|PRODUCT_IMAGE|OTHER), revision_no, storage_key, original_filename, mime_type, size_bytes, sha256, width, height, uploaded_by`.
+`owner_type (ORDER|TASK|PRODUCT|CUSTOMER_GIFT|COMPANY), owner_id, kind (CUSTOMER_CONFIRMATION|TASK_PHOTO|PRODUCT_IMAGE|GIFT_PHOTO|COMPANY_LOGO|OTHER), revision_no, storage_key, original_filename, mime_type, size_bytes, sha256, width, height, uploaded_by`.
 Chỉ nhận `image/jpeg`, `image/png`, `image/webp`, `image/heic` và `application/pdf`; kiểm tra magic bytes, ≤ 10MB. Lưu trên volume `/data/uploads/{yyyy}/{mm}/{uuid}`; không phục vụ tĩnh — chỉ qua `GET /api/v1/attachments/{id}` có kiểm quyền.
 
 ## 12. AuditEvent — `audit_events` (append-only, không UPDATE/DELETE)
@@ -209,6 +210,44 @@ Chỉ nhận `image/jpeg`, `image/png`, `image/webp`, `image/heic` và `applicat
 
 ## 13. Notification — `notifications`
 `recipient_id, type, title, body, entity_type, entity_id, read_at`.
+
+## 14. CustomerGift (Tặng quà khách hàng) — `customer_gifts` (M16-01)
+| Trường | Kiểu | Ghi chú |
+|---|---|---|
+| customer_id | uuid → customers | bắt buộc — không gắn `order_id` (Q98) |
+| occasion_name | varchar(255) | "Tên dịp/lễ" (Tết, sinh nhật, khai trương…) |
+| performed_date | date | "Ngày thực hiện" |
+| gift_name | varchar(255) | "Tên gói quà" |
+| quantity | int | > 0 |
+| unit_price | bigint (VND) | "Đơn giá" |
+| other_cost | bigint (VND), mặc định 0 | "Chi phí khác" (vận chuyển, gói quà…) |
+| total_amount | bigint (VND) | "Thành tiền" — server tính `quantity × unit_price + other_cost`, không nhận trực tiếp từ client |
+| performed_by | uuid → employees | "Người thực hiện" — chọn từ danh sách nhân viên (Q99), không phải chữ tự do |
+| requested_by | uuid → employees | "Người yêu cầu" — chọn từ danh sách nhân viên (Q99) |
+| created_by | uuid → employees | người ghi nhận bản ghi |
+| note | text, tuỳ chọn | "Ghi chú" tự do, tối đa 2000 ký tự (bổ sung 2026-10-24) |
+| version | int, mặc định 1 | optimistic lock (giống Customer/Order) |
+| created_at/updated_at | timestamptz | |
+
+Ảnh ("hình chụp"): dùng `attachments` (`owner_type=CUSTOMER_GIFT`, `kind=GIFT_PHOTO`), nhiều ảnh/bản ghi, tái dùng pipeline tải ảnh của M6-01.
+`MANAGER`/`SALE`/`CUSTOMER_CARE` đều xem/sửa được **mọi** bản ghi (`all`, Q97) — mỗi lần sửa ghi `audit_events` (`entity_type=CUSTOMER_GIFT`) kèm giá trị cũ/mới từng trường đã đổi, không có route xoá.
+
+## 15. CompanyProfile (Thông tin công ty) — `company_profile` (M17-01)
+Đúng **1 dòng** (`id smallint = 1`, `CHECK (id = 1)`), migration tạo sẵn với dữ liệu từ hoá đơn bán hàng; không có tạo/xoá, chỉ xem + sửa.
+| Trường | Kiểu | Ghi chú |
+|---|---|---|
+| name | varchar(255) | bắt buộc — "Tên công ty" |
+| tax_code | varchar(14) | bắt buộc, `^\d{10}(-\d{3})?$` (MST 10 số hoặc 13 số chi nhánh) |
+| address | varchar(500) | bắt buộc |
+| phone | varchar(20) | bắt buộc — "Điện thoại 1"; chuẩn hoá chỉ chữ số, `^0\d{9,10}$` (số bàn 028… có 11 số) |
+| phone_secondary, fax | varchar(20), tuỳ chọn | cùng quy tắc với `phone` |
+| email | varchar(255), tuỳ chọn | |
+| website | varchar(255), tuỳ chọn | phải bắt đầu `http://` hoặc `https://` |
+| logo_attachment_id | uuid → attachments, tuỳ chọn | `owner_type=COMPANY`, `owner_id=00000000-0000-0000-0000-000000000001`, `kind=COMPANY_LOGO`; đổi logo chỉ đổi con trỏ, logo cũ không xoá |
+| version | int, mặc định 1 | optimistic lock |
+| created_at/updated_at | timestamptz | |
+
+Chỉ `MANAGER` (`company.manage`). Mỗi lần sửa/đổi logo ghi `audit_events` (`entity_type=COMPANY_PROFILE`, `action=company_profile.update` kèm `{trường: {from, to}}` / `company_profile.logo_update`).
 
 ## Quy tắc tính tiền (có test property-based)
 Giá và VAT **tách riêng**: đơn giá luôn lưu chưa VAT; % VAT gắn với từng sản phẩm/dịch vụ và được snapshot vào từng dòng, nên một đơn có thể có nhiều mức VAT.

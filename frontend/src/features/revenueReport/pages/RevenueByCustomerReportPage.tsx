@@ -15,12 +15,11 @@ import { OrdersDrilldownSheet } from "../components/OrdersDrilldownSheet";
 import { RevenueSkeleton } from "../components/RevenueSkeleton";
 import { defaultMonthToDateRange } from "../../../lib/dateRange";
 
-interface Drilldown {
+type Drilldown = {
   customerId: string;
   customerName: string;
-  sellerId: string;
-  sellerName: string;
-}
+  sellerLabel: string;
+} & ({ selector: { sellerId: string } } | { selector: { unassigned: true } });
 
 /** AC-RPT-010…019 (M15-09b): trang `/reports/revenue-by-customer`. */
 export function RevenueByCustomerReportPage() {
@@ -55,11 +54,20 @@ export function RevenueByCustomerReportPage() {
       : null;
 
   function openDrilldown(row: RevenueRow) {
+    if (row.unassigned || row.seller === null) {
+      setDrilldown({
+        customerId: row.customer_id,
+        customerName: row.customer_name,
+        selector: { unassigned: true },
+        sellerLabel: "Chưa gán",
+      });
+      return;
+    }
     setDrilldown({
       customerId: row.customer_id,
       customerName: row.customer_name,
-      sellerId: row.seller.id,
-      sellerName: row.seller.full_name,
+      selector: { sellerId: row.seller.id },
+      sellerLabel: row.seller.full_name,
     });
   }
 
@@ -100,8 +108,8 @@ export function RevenueByCustomerReportPage() {
         <OrdersDrilldownSheet
           customerId={drilldown.customerId}
           customerName={drilldown.customerName}
-          sellerId={drilldown.sellerId}
-          sellerName={drilldown.sellerName}
+          selector={drilldown.selector}
+          sellerLabel={drilldown.sellerLabel}
           filters={filters}
           onClose={() => {
             setDrilldown(null);

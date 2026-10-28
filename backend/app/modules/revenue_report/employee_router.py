@@ -1,4 +1,4 @@
-"""`GET /api/v1/reports/revenue-by-employee`, `/{employee_id}/orders`, `/export` (M15-10a)."""
+"""`GET /api/v1/reports/revenue-by-employee`, `/lines`, `/export` (M16-05)."""
 
 import uuid
 from datetime import date
@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 from app.core.authz import Actor, require
 from app.core.db import DbSession
 from app.modules.revenue_report import employee_service as service
-from app.modules.revenue_report.schemas import EmployeeRevenueReportOut, RevenueOrderOut
+from app.modules.revenue_report.schemas import EmployeeRevenueReportOut, RevenueLineOut
 from app.modules.revenue_report.service import default_date_range
 
 router = APIRouter(prefix="/api/v1/reports/revenue-by-employee", tags=["revenue-report"])
@@ -47,23 +47,30 @@ def get_report(
 
 
 @router.get(
-    "/{employee_id}/orders",
-    operation_id="get_revenue_by_employee_orders",
-    summary="Danh sách đơn của 1 nhân viên (drilldown)",
-    response_model=list[RevenueOrderOut],
+    "/lines",
+    operation_id="get_revenue_by_employee_lines",
+    summary="Danh sách dòng hàng của 1 nhân viên hoặc nhóm 'Chưa gán' (drilldown)",
+    response_model=list[RevenueLineOut],
 )
-def get_employee_orders(
+def get_lines(
     request: Request,
     session: DbSession,
     actor: Reader,
-    employee_id: uuid.UUID,
+    employee_id: uuid.UUID | None = None,
+    unassigned: bool = False,
     date_from: DateFrom = None,
     to: date | None = None,
     status: Status = "COMPLETED",
-) -> list[RevenueOrderOut]:
+) -> list[RevenueLineOut]:
     resolved_from, resolved_to = _resolve_range(request, date_from, to)
-    return service.get_employee_orders(
-        session, actor, employee_id, date_from=resolved_from, date_to=resolved_to, status=status
+    return service.get_lines(
+        session,
+        actor,
+        date_from=resolved_from,
+        date_to=resolved_to,
+        status=status,
+        employee_id=employee_id,
+        unassigned=unassigned,
     )
 
 

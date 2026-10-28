@@ -99,48 +99,52 @@ export function OrdersListPage() {
         />
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <TextField
-          label="Tìm kiếm"
-          placeholder="Mã đơn, tên khách, số điện thoại…"
-          value={q}
-          onChange={(event) => {
-            setQ(event.target.value);
-            setOffset(0);
-          }}
-          trailing={
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted"
-            >
-              <Search className="size-4" />
-            </span>
-          }
-        />
-      </div>
-
-      {isCustomerCare ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+      {/* Laptop (lg:): tìm kiếm + từ ngày + đến ngày cùng 1 dòng (4 cột, tìm kiếm chiếm 2).
+          Tablet/mobile: tìm kiếm riêng 1 dòng (col-span-2 trên lưới 2 cột), từ ngày + đến ngày
+          cùng 1 dòng tiếp theo. */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="col-span-2">
           <TextField
-            type="date"
-            label="Từ ngày"
-            value={effectiveDateFrom ?? ""}
+            label="Tìm kiếm"
+            placeholder="Mã đơn, tên khách, số điện thoại…"
+            value={q}
             onChange={(event) => {
-              setDateFrom(event.target.value);
+              setQ(event.target.value);
               setOffset(0);
             }}
-          />
-          <TextField
-            type="date"
-            label="Đến ngày"
-            value={effectiveDateTo ?? ""}
-            onChange={(event) => {
-              setDateTo(event.target.value);
-              setOffset(0);
-            }}
+            trailing={
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted"
+              >
+                <Search className="size-4" />
+              </span>
+            }
           />
         </div>
-      ) : null}
+        {isCustomerCare ? (
+          <>
+            <TextField
+              type="date"
+              label="Từ ngày"
+              value={effectiveDateFrom ?? ""}
+              onChange={(event) => {
+                setDateFrom(event.target.value);
+                setOffset(0);
+              }}
+            />
+            <TextField
+              type="date"
+              label="Đến ngày"
+              value={effectiveDateTo ?? ""}
+              onChange={(event) => {
+                setDateTo(event.target.value);
+                setOffset(0);
+              }}
+            />
+          </>
+        ) : null}
+      </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <ChipGroup

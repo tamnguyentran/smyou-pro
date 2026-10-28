@@ -1,16 +1,7 @@
 import { z } from "zod";
 import type { components } from "../../lib/api/schema";
 
-export type Division = NonNullable<components["schemas"]["OrderCreate"]["division"]>;
 export type Priority = components["schemas"]["OrderCreate"]["priority"];
-
-/** DOMAIN_MODEL §5 enum values, in display order. */
-export const DIVISION_LABELS: Record<Division, string> = {
-  OFFICE_EQUIPMENT: "Thiết bị văn phòng",
-  SECURITY: "Thiết bị an ninh",
-  GENERAL: "Kỹ thuật chung",
-};
-export const DIVISION_ORDER = Object.keys(DIVISION_LABELS) as Division[];
 
 export const PRIORITY_LABELS: Record<Priority, string> = {
   LOW: "Thấp",
@@ -24,10 +15,6 @@ export const PRIORITY_ORDER = Object.keys(PRIORITY_LABELS) as Priority[];
 export function isPriority(value: string): value is Priority {
   return Object.hasOwn(PRIORITY_LABELS, value);
 }
-
-/** VAT chip choices (UI_GUIDELINES §5): 0/8/10% quick picks, "Khác" opens a free-entry field. */
-export const VAT_CHIP_RATES = [0, 8, 10] as const;
-export const VAT_OTHER = "other" as const;
 
 // Q51-style phone check, same as customers/employees: 10 digits, starts with 0.
 const phoneValid = (value: string) => /^0\d{9}$/.test(value.replace(/\D/g, ""));
@@ -69,7 +56,10 @@ export const orderInfoSchema = z
     customer_id: z.string().optional(),
     customer_name: z.string().trim().optional(),
     customer_phone: z.string().trim().optional(),
-    division: z.union([z.enum(DIVISION_ORDER as [Division, ...Division[]]), z.literal("")]),
+    // M16-08/M16-10: giá trị là id của "Nhóm sản phẩm/dịch vụ", danh sách chọn lấy động từ API.
+    // Bắt buộc chọn (M16-10) — lỗi hiện ngay dưới ô chọn khi bấm Lưu mà chưa chọn, không gộp vào
+    // điều kiện enable/disable nút Lưu (khác hasCustomer/hasLine ở AC-ORD-158..165).
+    division_id: z.string().min(1, "Vui lòng chọn Nhóm sản phẩm/dịch vụ."),
     service_address: z.string().trim().optional(),
     work_description: z.string().trim().optional(),
     priority: z.enum(PRIORITY_ORDER as [Priority, ...Priority[]]),

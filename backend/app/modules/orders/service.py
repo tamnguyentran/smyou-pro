@@ -4,6 +4,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from typing import cast
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import ColumnElement, case, func, or_, select
@@ -16,7 +17,7 @@ from app.core.sequences import next_value
 from app.core.spec_loader import Specs
 from app.modules.audit import service as audit
 from app.modules.audit.schemas import AuditEventPage
-from app.modules.catalog.models import Product, Service
+from app.modules.catalog.models import Product, ProductServiceGroup, Service
 from app.modules.customers.models import Customer
 from app.modules.dispatch import domain as dispatch_domain
 from app.modules.dispatch.models import OPEN_TASK_STATUSES_EXCLUDE, Assignment, Task
@@ -55,6 +56,8 @@ NOT_FOUND_LINE = "Không tìm thấy dòng hàng."
 NOT_FOUND_CUSTOMER = "Không tìm thấy khách hàng."
 NOT_FOUND_PRODUCT = "Không tìm thấy sản phẩm."
 NOT_FOUND_SERVICE = "Không tìm thấy dịch vụ."
+NOT_FOUND_EMPLOYEE = "Không tìm thấy nhân viên."
+NOT_FOUND_DIVISION_GROUP = "Không tìm thấy nhóm sản phẩm/dịch vụ."
 ORDER_NOT_DRAFT = "Đơn phải đang ở trạng thái Nháp mới thực hiện được thao tác này."
 ORDER_NOT_SUBMITTED = "Đơn chưa được gửi — dùng chức năng sửa đơn nháp."
 ORDER_LOCKED = "Đơn đã hoàn tất hoặc đã huỷ, không thể sửa."
@@ -65,7 +68,7 @@ CUSTOM_LINE_DISABLED = "Chỉ được chọn Sản phẩm hoặc Dịch vụ."
 
 CUSTOMER_FIELDS = ("customer_id", "customer_name", "customer_phone", "customer_email", "customer_tax_code")
 HEADER_FIELDS = (
-    "division",
+    "division_id",
     "service_address",
     "work_description",
     "priority",
@@ -235,7 +238,11 @@ def _require_completed(order: Order) -> None:
 
 def lock_order(session: Session, actor: Actor, order_id: uuid.UUID, version: int) -> Order:
     stmt = apply_scope(select(Order).where(Order.id == order_id), actor, RULES)
-    stmt = stmt.options(selectinload(Order.lines)).with_for_update().execution_options(populate_existing=True)
+    stmt = (
+        stmt.options(selectinload(Order.lines), selectinload(Order.division))
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
     order = session.scalars(stmt).one_or_none()
     if order is None:
         raise _not_found(NOT_FOUND_ORDER)
@@ -284,6 +291,8 @@ def _line_out(line: OrderLine) -> OrderLineOut:
         line_vat=line.line_vat,
         line_total=line.line_total,
         note=line.note,
+        credited_employee_id=line.credited_employee_id,
+        credited_employee_name=line.credited_employee.full_name if line.credited_employee else None,
     )
 
 
@@ -365,7 +374,8 @@ def _out(session: Session, order: Order, actor: Actor, specs: Specs) -> OrderDet
         id=order.id,
         code=order.code,
         status=order.status,
-        division=order.division,
+        division_id=order.division_id,
+        division_name=order.division.name if order.division else None,
         customer_id=order.customer_id,
         customer_name=order.customer_name,
         customer_phone=order.customer_phone,
@@ -401,14 +411,15 @@ def _out(session: Session, order: Order, actor: Actor, specs: Specs) -> OrderDet
     )
 
 
-def _summary(order: Order, created_by_name: str | None) -> OrderSummary:
+def _summary(order: Order, created_by_name: str | None, division_name: str | None) -> OrderSummary:
     return OrderSummary(
         id=order.id,
         code=order.code,
         status=order.status,
         customer_name=order.customer_name,
         customer_phone=order.customer_phone,
-        division=order.division,
+        division_id=order.division_id,
+        division_name=division_name,
         priority=order.priority,
         total=order.total,
         requested_date=order.requested_date,
@@ -522,6 +533,19 @@ def _resolve_pricing(
     return unit_price, vat_rate, totals
 
 
+def _check_division_group_exists(session: Session, division_id: uuid.UUID | None) -> None:
+    """M16-08: `division_id` may reference any group regardless of `is_active` (chọn lại nhóm đã
+    ngừng hoạt động vẫn hợp lệ, cùng nguyên tắc với `credited_employee_id` ở M16-04)."""
+    if division_id is None:
+        return
+    exists = (
+        session.scalar(select(ProductServiceGroup.id).where(ProductServiceGroup.id == division_id))
+        is not None
+    )
+    if not exists:
+        raise _field_error("division_id", NOT_FOUND_DIVISION_GROUP)
+
+
 def create_order(
     session: Session,
     actor: Actor,
@@ -539,12 +563,13 @@ def create_order(
         body.customer_email,
         body.customer_tax_code,
     )
+    _check_division_group_exists(session, body.division_id)
     period = now.astimezone(VIETNAM).strftime("%y%m")
     number = next_value(session, "order", period=period)
     order = Order(
         code=domain.order_code(period, number),
         status="DRAFT",
-        division=body.division,
+        division_id=body.division_id,
         customer_id=customer_id,
         customer_name=customer_name,
         customer_phone=customer_phone,
@@ -573,7 +598,11 @@ def create_order(
 
 
 def get_order(session: Session, actor: Actor, order_id: uuid.UUID, *, specs: Specs) -> OrderDetail:
-    stmt = select(Order).where(Order.id == order_id).options(selectinload(Order.lines))
+    stmt = (
+        select(Order)
+        .where(Order.id == order_id)
+        .options(selectinload(Order.lines), selectinload(Order.division))
+    )
     order = get_in_scope_or_404(session, stmt, actor, RULES)
     return _out(session, order, actor, specs)
 
@@ -595,7 +624,11 @@ def list_orders(
     offset: int,
 ) -> OrderPage:
     query = apply_scope(
-        select(Order, Employee).outerjoin(Employee, Employee.id == Order.created_by), actor, RULES
+        select(Order, Employee, ProductServiceGroup)
+        .outerjoin(Employee, Employee.id == Order.created_by)
+        .outerjoin(ProductServiceGroup, ProductServiceGroup.id == Order.division_id),
+        actor,
+        RULES,
     )
     if q and q.strip():
         pattern = _like(q.strip())
@@ -639,7 +672,10 @@ def list_orders(
         ordered = query.order_by(Order.created_at.desc())
     rows = session.execute(ordered.limit(limit).offset(offset)).all()
     return OrderPage(
-        items=[_summary(o, employee.full_name if employee else None) for o, employee in rows],
+        items=[
+            _summary(o, employee.full_name if employee else None, group.name if group else None)
+            for o, employee, group in rows
+        ],
         total=total,
         limit=limit,
         offset=offset,
@@ -1216,9 +1252,16 @@ def update_order(
             value = changes[field]
             if field in NON_NULL_TEXT_FIELDS and value is None:
                 value = ""
+            if field == "division_id":
+                _check_division_group_exists(session, cast(uuid.UUID | None, value))
             if getattr(order, field) != value:
                 changed_fields.append(field)
             setattr(order, field, value)
+            # `division_id` changed via setattr, not through the `division` relationship — expire
+            # it so `_out`'s `order.division.name` lazy-loads the new row, not `lock_order`'s
+            # eagerly-loaded (now stale) one.
+            if field == "division_id":
+                session.expire(order, ["division"])
 
     _bump(order)
     session.flush()
@@ -1241,11 +1284,22 @@ def _find_line(order: Order, line_id: uuid.UUID) -> OrderLine:
     return line
 
 
+def _check_credited_employee_exists(session: Session, employee_id: uuid.UUID | None) -> None:
+    """M16-04: `credited_employee_id` may be any employee (no active/role filter) — raised as a
+    field error (422), not 404, since it comes from the line create/update body."""
+    if employee_id is None:
+        return
+    exists = session.scalar(select(Employee.id).where(Employee.id == employee_id)) is not None
+    if not exists:
+        raise _field_error("credited_employee_id", NOT_FOUND_EMPLOYEE)
+
+
 def _build_line(session: Session, order: Order, body: OrderLineCreate) -> OrderLine:
     # M15-06: dòng hàng mới chỉ được chọn từ danh mục; dòng CUSTOM lịch sử vẫn đọc/sửa được
     # qua `_apply_line_changes`, chỉ `_build_line` (tạo mới) chặn ở đây.
     if body.item_type == "CUSTOM":
         raise _field_error("item_type", CUSTOM_LINE_DISABLED, code="invalid")
+    _check_credited_employee_exists(session, body.credited_employee_id)
     snapshot = _snapshot_item(session, body)
     unit_price, vat_rate, totals = _resolve_pricing(
         quantity=body.quantity,
@@ -1280,6 +1334,7 @@ def _build_line(session: Session, order: Order, body: OrderLineCreate) -> OrderL
         line_vat=totals.line_vat,
         line_total=totals.line_total,
         note=body.note,
+        credited_employee_id=body.credited_employee_id,
     )
 
 
@@ -1287,10 +1342,20 @@ def _build_line(session: Session, order: Order, body: OrderLineCreate) -> OrderL
 # regardless of what the client sent on `OrderLineUpdate` — pricing side effects (e.g.
 # `is_gift=True` zeroing `unit_price` in `_resolve_pricing`) must still show up in the diff,
 # since it's money data needed for dispute resolution (spec M3-04a §2/§4, AC-ORD-106).
-_LINE_DIFF_FIELDS = ("quantity", "unit_price", "vat_rate", "is_gift", "line_discount", "note")
+_LINE_DIFF_FIELDS = (
+    "quantity",
+    "unit_price",
+    "vat_rate",
+    "is_gift",
+    "line_discount",
+    "note",
+    "credited_employee_id",
+)
 
 
-def _apply_line_changes(line: OrderLine, body: OrderLineUpdate) -> dict[str, dict[str, object]]:
+def _apply_line_changes(
+    session: Session, line: OrderLine, body: OrderLineUpdate
+) -> dict[str, dict[str, object]]:
     """Mutates `line` exactly as before this item existed, and additionally returns a
     `{field: {"before", "after"}}` diff (every tracked field whose value actually changed,
     including side effects of fields the client sent) — `update_line` (DRAFT) ignores the
@@ -1324,6 +1389,9 @@ def _apply_line_changes(line: OrderLine, body: OrderLineUpdate) -> dict[str, dic
     line.line_total = totals.line_total
     if "note" in changes:
         line.note = changes["note"]
+    if "credited_employee_id" in changes:
+        _check_credited_employee_exists(session, changes["credited_employee_id"])
+        line.credited_employee_id = changes["credited_employee_id"]
 
     return _diff_fields(before, {field: getattr(line, field) for field in _LINE_DIFF_FIELDS})
 
@@ -1368,7 +1436,7 @@ def update_line(
     order = lock_order(session, actor, order_id, body.version)
     _require_draft(order)
     line = _find_line(order, line_id)
-    _apply_line_changes(line, body)
+    _apply_line_changes(session, line, body)
 
     _recompute_order_totals(order)
     _bump(order)
@@ -1494,7 +1562,7 @@ def update_line_after_submit(
     order = lock_order(session, actor, order_id, body.version)
     _require_editable_after_submit(order)
     line = _find_line(order, line_id)
-    diff = _apply_line_changes(line, body)
+    diff = _apply_line_changes(session, line, body)
 
     _recompute_order_totals(order)
     _bump(order)

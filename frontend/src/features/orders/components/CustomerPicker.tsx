@@ -1,15 +1,19 @@
-import { Search } from "lucide-react";
+import { Search, UserPlus } from "lucide-react";
 import { useState } from "react";
 import type { FieldErrors, UseFormRegister, UseFormSetValue, UseFormWatch } from "react-hook-form";
 import { Button } from "../../../components/ui/Button";
 import { TextField } from "../../../components/ui/TextField";
 import { useDebouncedValue } from "../../../lib/useDebouncedValue";
 import { useCustomers, type Customer } from "../../customers/api";
+import { CustomerFormSheet } from "../../customers/components/CustomerFormSheet";
+import { useMe } from "../../me/api";
 import type { OrderInfoFormValues } from "../schemas";
 
 const RESULTS_ID = "customer-search-results";
 
-/** AC-ORD-025: autocomplete over GET /customers (reused from Khách hàng), or "+ Khách lẻ" free text. */
+/** AC-ORD-025: autocomplete over GET /customers (reused from Khách hàng). M16-12: no more
+ * "+ Khách lẻ" — new customers go through "Thêm khách hàng"; the walk-in branch below only renders
+ * for drafts saved as walk-in before that change. */
 export function CustomerPicker({
   register,
   watch,
@@ -26,6 +30,8 @@ export function CustomerPicker({
   const customerName = watch("customer_name");
   const customerPhone = watch("customer_phone");
   const [query, setQuery] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const canCreateCustomer = "customer.manage" in (useMe().data?.capabilities ?? {});
   const [selected, setSelected] = useState<Pick<Customer, "name" | "phone" | "address"> | null>(
     null,
   );
@@ -59,24 +65,26 @@ export function CustomerPicker({
             Chọn khách có sẵn
           </Button>
         </div>
-        <TextField
-          label="Tên khách hàng"
-          error={errors.customer_name?.message}
-          {...register("customer_name")}
-        />
-        <TextField
-          label="Số điện thoại"
-          inputMode="tel"
-          error={errors.customer_phone?.message}
-          {...register("customer_phone")}
-        />
+        <div className="grid gap-4 @lg:grid-cols-2">
+          <TextField
+            label="Tên khách hàng"
+            error={errors.customer_name?.message}
+            {...register("customer_name")}
+          />
+          <TextField
+            label="Số điện thoại"
+            inputMode="tel"
+            error={errors.customer_phone?.message}
+            {...register("customer_phone")}
+          />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-2">
-      <div className="flex items-end gap-3">
+      <div className="flex flex-col gap-3 @lg:flex-row @lg:items-end">
         <div className="relative flex-1">
           <TextField
             label="Tìm khách hàng"
@@ -101,19 +109,35 @@ export function CustomerPicker({
             }
           />
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => {
-            setValue("customerMode", "walkin");
-            setValue("customer_id", "");
-            setSelected(null);
-            setQuery("");
-          }}
-        >
-          + Khách lẻ
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          {canCreateCustomer ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setCreateOpen(true);
+              }}
+            >
+              <UserPlus aria-hidden="true" className="size-4" />
+              Thêm khách hàng
+            </Button>
+          ) : null}
+        </div>
       </div>
+      {createOpen ? (
+        // M16-10: dùng lại đúng modal của màn Quản lý khách hàng (cả cá nhân lẫn công ty).
+        <CustomerFormSheet
+          canManage
+          onClose={() => {
+            setCreateOpen(false);
+          }}
+          onCreated={(created) => {
+            setSelected(created);
+            setValue("customer_id", created.id, { shouldDirty: true });
+            setQuery(created.name);
+          }}
+        />
+      ) : null}
       {selected ? (
         <p className="flex flex-wrap gap-x-1 text-sm text-muted">
           <span>{selected.phone}</span>

@@ -187,7 +187,7 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
       ["Tổng quan", "Đơn hàng", "Danh mục", "Nhân sự & phân quyền", "Báo cáo", "Nhật ký hệ thống"],
       {
         "Đơn hàng": ["Danh sách đơn", "Tạo đơn mới", "Khách hàng"],
-        "Danh mục": ["Sản phẩm", "Dịch vụ"],
+        "Danh mục": ["Sản phẩm", "Dịch vụ", "Nhóm sản phẩm/dịch vụ"],
         "Báo cáo": ["Báo cáo KPI", "Doanh thu theo khách hàng", "Doanh thu theo nhân viên"],
       },
     ],

@@ -43,6 +43,25 @@ export function useEmployees(filters: EmployeeFilters, { enabled = true } = {}) 
   });
 }
 
+/** M16-11: slim picker search (`employee.lookup` — every order-screen role, unlike the full list's
+ * `employee.read`). */
+export function useEmployeeLookup(
+  { q, includeInactive }: { q: string; includeInactive: boolean },
+  { enabled = true } = {},
+) {
+  return useQuery({
+    enabled,
+    queryKey: [EMPLOYEES_KEY, "lookup", q, includeInactive],
+    queryFn: async () => {
+      const { data, error, response } = await api.GET("/api/v1/employees/lookup", {
+        params: { query: { q: q || undefined, include_inactive: includeInactive, limit: 8 } },
+      });
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+  });
+}
+
 function useInvalidate() {
   const queryClient = useQueryClient();
   return () => {

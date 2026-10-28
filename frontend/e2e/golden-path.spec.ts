@@ -106,6 +106,7 @@ test("AC-SYS-096 AC-SYS-097 @screenshot golden path: tạo đơn → điều ph�
   await signIn(page, SALE, "/orders/new");
   await page.getByLabel("Tìm khách hàng").fill("Anh Ngọc E2E");
   await page.getByRole("option", { name: /Anh Ngọc E2E - Grand Hotel/ }).click();
+  await page.getByLabel("Nhóm sản phẩm/dịch vụ").selectOption({ label: "Kỹ thuật chung" });
   await page.getByLabel("Địa chỉ thi công").fill("186 Dương Công Khi, Xã Hóc Môn");
 
   await page.getByRole("button", { name: "Thêm dòng hàng" }).click();

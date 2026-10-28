@@ -28,6 +28,14 @@ export const customerSchema = z.object({
   type: z.enum(TYPE_ORDER as [CustomerType, ...CustomerType[]], "Vui lòng chọn loại khách hàng."),
   name: z.string().trim().min(1, "Vui lòng nhập tên khách hàng."),
   contact_person: z.string().trim().optional(),
+  contact_person_phone: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === "" || phoneValid(value),
+      "Số điện thoại cần 10 chữ số, bắt đầu bằng 0.",
+    )
+    .optional(),
   phone: z
     .string()
     .trim()
@@ -44,6 +52,14 @@ export const customerSchema = z.object({
   // M15-05: chỉ bộ field khớp `type` được gửi lên server — xem toPayload() trong CustomerFormSheet.
   founded_date: z.string().trim().optional(),
   director_name: z.string().trim().optional(),
+  director_phone: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === "" || phoneValid(value),
+      "Số điện thoại cần 10 chữ số, bắt đầu bằng 0.",
+    )
+    .optional(),
   it_contact_name: z.string().trim().optional(),
   it_contact_phone: z
     .string()
@@ -52,11 +68,6 @@ export const customerSchema = z.object({
       (value) => value === "" || phoneValid(value),
       "Số điện thoại cần 10 chữ số, bắt đầu bằng 0.",
     )
-    .optional(),
-  it_contact_email: z
-    .string()
-    .trim()
-    .refine((value) => value === "" || z.email().safeParse(value).success, "Email không hợp lệ.")
     .optional(),
   date_of_birth: z.string().trim().optional(),
   // "" = chưa chọn ("— Chọn —") — select không có placeholder riêng như input nên phải chấp nhận

@@ -7,6 +7,7 @@ import type { RevenueStatus } from "./api";
 
 export type EmployeeRevenueRow = components["schemas"]["EmployeeRevenueRowOut"];
 export type EmployeeRevenueReport = components["schemas"]["EmployeeRevenueReportOut"];
+export type RevenueLine = components["schemas"]["RevenueLineOut"];
 
 export interface EmployeeRevenueFilters {
   from: string;
@@ -46,25 +47,36 @@ export function useEmployeeRevenueReport(filters: EmployeeRevenueFilters, { enab
   });
 }
 
-/** M15-10a `GET /api/v1/reports/revenue-by-employee/{employee_id}/orders` — drilldown cấp 1. */
-export function useEmployeeOrders(
-  employeeId: string,
+/** M16-05 `GET /api/v1/reports/revenue-by-employee/lines` — drilldown theo dòng hàng. Truyền
+ * đúng 1 trong 2: `employeeId` (1 NV) hoặc `unassigned: true` (nhóm "Chưa gán"). */
+export function useEmployeeLines(
+  selector: { employeeId: string } | { unassigned: true },
   filters: Pick<EmployeeRevenueFilters, "from" | "to" | "status">,
   { enabled = true } = {},
 ) {
+  const employeeId = "employeeId" in selector ? selector.employeeId : undefined;
+  const unassigned = "unassigned" in selector;
   return useQuery({
     enabled,
-    queryKey: [EMPLOYEE_REVENUE_ORDERS_KEY, employeeId, filters.from, filters.to, filters.status],
+    queryKey: [
+      EMPLOYEE_REVENUE_ORDERS_KEY,
+      employeeId ?? "unassigned",
+      filters.from,
+      filters.to,
+      filters.status,
+    ],
     queryFn: async () => {
-      const { data, error, response } = await api.GET(
-        "/api/v1/reports/revenue-by-employee/{employee_id}/orders",
-        {
-          params: {
-            path: { employee_id: employeeId },
-            query: { from: filters.from, to: filters.to, status: filters.status },
+      const { data, error, response } = await api.GET("/api/v1/reports/revenue-by-employee/lines", {
+        params: {
+          query: {
+            employee_id: employeeId,
+            unassigned,
+            from: filters.from,
+            to: filters.to,
+            status: filters.status,
           },
         },
-      );
+      });
       if (!data) throw toApiError(response, error);
       return data;
     },

@@ -1,6 +1,6 @@
 # M15-09b — Báo cáo Doanh thu theo khách hàng — Giao diện
 
-- **Status:** Done
+- **Status:** Superseded by `docs/specs/M16-06-revenue-by-customer-line-based.md` (2026-10-24) — UI này cần cập nhật theo trục nhóm mới (xem M16-06 §6); ACs dưới đây giữ nguyên làm lịch sử, không còn enforce coverage
 - **Backlog:** M15-09b · **Milestone:** M15
 - **Liên quan:** M15-09a (API `GET /api/v1/reports/revenue-by-customer`, `.../{customer_id}/orders`, `.../export`); `docs/specs/M8-01b-kpi-report-ui.md` (mẫu màn báo cáo: bộ lọc, nút xuất file qua URL trực tiếp dùng session cookie, `StatusPage` lỗi chung, route guard theo capability); `docs/design/UI_GUIDELINES.md`; `docs/product/OPEN_QUESTIONS_ARCHIVE.md` Q88/Q96 (scope `own` cho SALE/CUSTOMER_CARE, tách dòng theo người bán)
 

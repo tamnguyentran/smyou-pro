@@ -2,7 +2,7 @@ import { Pencil } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { formatCurrency, formatDate } from "../../../lib/format";
 import type { Order } from "../api";
-import { DIVISION_LABELS, PRIORITY_LABELS, type Division, type Priority } from "../schemas";
+import { PRIORITY_LABELS, type Priority } from "../schemas";
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -44,10 +44,7 @@ export function OrderInfoTab({
           <InfoRow label="Số điện thoại" value={order.customer_phone ?? ""} />
           <InfoRow label="Email" value={order.customer_email ?? ""} />
           <InfoRow label="Mã số thuế" value={order.customer_tax_code ?? ""} />
-          <InfoRow
-            label="Phòng phụ trách"
-            value={order.division ? DIVISION_LABELS[order.division as Division] : ""}
-          />
+          <InfoRow label="Nhóm sản phẩm/dịch vụ" value={order.division_name ?? ""} />
           <InfoRow label="Địa chỉ thi công" value={order.service_address} />
           <InfoRow label="Mô tả công việc" value={order.work_description} />
           <InfoRow label="Độ ưu tiên" value={PRIORITY_LABELS[order.priority as Priority]} />

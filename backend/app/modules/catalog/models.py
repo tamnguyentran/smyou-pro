@@ -95,6 +95,30 @@ class Product(Base):
     )
 
 
+class ProductServiceGroup(Base):
+    """M16-07: danh sách "Nhóm sản phẩm/dịch vụ" — độc lập với Product/Service, dùng làm nguồn
+    chọn cho `orders.division_id` (M16-08), không gắn vào catalog item nào."""
+
+    __tablename__ = "product_service_groups"
+    __table_args__ = (
+        Index(
+            "uq_product_service_groups_name_active",
+            text("lower(btrim(name))"),
+            unique=True,
+            postgresql_where=text("is_active"),
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
+    name: Mapped[str] = mapped_column(String(100))
+    is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"), index=True)
+    version: Mapped[int] = mapped_column(server_default=text("1"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class CatalogPriceHistory(Base):
     """One row per `price`/`cost_price` change on a Product or Service (M15-08, AC-CAT-081/082)."""
 

@@ -11,6 +11,7 @@ type Order = components["schemas"]["OrderDetail"];
 type Customer = components["schemas"]["CustomerOut"];
 type OrderLine = components["schemas"]["OrderLineOut"];
 type Product = components["schemas"]["ProductOut"];
+type ProductServiceGroup = components["schemas"]["ProductServiceGroupOut"];
 
 const meId = "9d1f0c2e-0000-4000-8000-000000000003";
 const hoaId = "a0000000-0000-4000-8000-000000000010";
@@ -81,6 +82,7 @@ function customer(overrides: Partial<Customer> = {}): Customer {
     type: "COMPANY",
     name: "Cty Sáng Tạo Mới",
     contact_person: null,
+    contact_person_phone: null,
     phone: "0909123456",
     email: null,
     tax_code: null,
@@ -88,9 +90,9 @@ function customer(overrides: Partial<Customer> = {}): Customer {
     note: null,
     founded_date: null,
     director_name: null,
+    director_phone: null,
     it_contact_name: null,
     it_contact_phone: null,
-    it_contact_email: null,
     date_of_birth: null,
     gender: null,
     occupation: null,
@@ -105,7 +107,10 @@ function order(overrides: Partial<Order> = {}): Order {
     id: orderId,
     code: "DH2609-0001",
     status: "DRAFT",
-    division: null,
+    // M16-10: bắt buộc chọn — mặc định đã có nhóm, như 1 đơn thật sự từng được lưu; test riêng cho
+    // trường hợp chưa chọn/null override field này.
+    division_id: "g1",
+    division_name: "Thiết bị văn phòng",
     customer_id: null,
     customer_name: null,
     customer_phone: null,
@@ -175,6 +180,8 @@ function orderLine(overrides: Partial<OrderLine> = {}): OrderLine {
     warranty_months_snapshot: 24,
     catalog_price_snapshot: 2_500_000,
     cost_price_snapshot: null,
+    credited_employee_id: null,
+    credited_employee_name: null,
     price_fixed: true,
     vat_rate: "8",
     quantity: "1",
@@ -185,6 +192,16 @@ function orderLine(overrides: Partial<OrderLine> = {}): OrderLine {
     line_vat: 200_000,
     line_total: 2_700_000,
     note: null,
+    ...overrides,
+  };
+}
+
+function group(overrides: Partial<ProductServiceGroup> = {}): ProductServiceGroup {
+  return {
+    id: "d0000000-0000-4000-8000-000000000050",
+    name: "Thiết bị văn phòng",
+    is_active: true,
+    version: 1,
     ...overrides,
   };
 }
@@ -231,7 +248,7 @@ describe("AC-ORD-024 mở trang tạo đơn", () => {
     renderApp("/orders/new");
     await openForm();
 
-    expect(screen.getByLabelText("Phòng phụ trách")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nhóm sản phẩm/dịch vụ")).toBeInTheDocument();
     expect(screen.getByLabelText("Địa chỉ thi công")).toBeInTheDocument();
     expect(screen.getByLabelText("Mô tả công việc")).toBeInTheDocument();
     expect(screen.getByLabelText("Ngày hẹn")).toBeInTheDocument();
@@ -241,10 +258,55 @@ describe("AC-ORD-024 mở trang tạo đơn", () => {
       "true",
     );
     expect(screen.getByLabelText("Tìm khách hàng")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "+ Khách lẻ" })).toBeInTheDocument();
+    // M16-12 (chủ dự án 2026-10-28): bỏ nút "+ Khách lẻ".
+    expect(screen.queryByRole("button", { name: "+ Khách lẻ" })).not.toBeInTheDocument();
     expect(screen.getByText("Chưa có dòng hàng nào.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Thêm dòng hàng" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Lưu nháp" })).toBeInTheDocument();
+  });
+});
+
+describe("AC-ORD-199/200 (M16-08) Nhóm sản phẩm/dịch vụ (bắt buộc chọn)", () => {
+  test("AC-ORD-199 ô chọn chỉ liệt kê nhóm đang hoạt động", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/product-service-groups", () =>
+        HttpResponse.json({
+          items: [
+            group({ id: "g-active-1", name: "Thiết bị văn phòng" }),
+            group({ id: "g-active-2", name: "Thiết bị an ninh" }),
+          ],
+          total: 2,
+          limit: 100,
+          offset: 0,
+        }),
+      ),
+    );
+    renderApp("/orders/new");
+    await openForm();
+
+    const select = await screen.findByLabelText<HTMLSelectElement>("Nhóm sản phẩm/dịch vụ");
+    const optionLabels = Array.from(select.options).map((o) => o.textContent);
+    expect(optionLabels).toEqual(["— Chọn nhóm —", "Thiết bị văn phòng", "Thiết bị an ninh"]);
+  });
+
+  test("AC-ORD-200 đơn đã lưu trỏ tới nhóm đã ngừng hoạt động vẫn hiện đúng tên ở chế độ xem", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(
+          order({
+            status: "COMPLETED",
+            division_id: "g-inactive",
+            division_name: "Thiết bị văn phòng",
+            created_by: hoaId,
+          }),
+        ),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+
+    expect(await screen.findByText("Thiết bị văn phòng")).toBeInTheDocument();
   });
 });
 
@@ -441,17 +503,20 @@ describe("AC-ORD-158..166 disable Lưu nháp/Gửi đơn khi thiếu thông tin"
     expect(screen.queryByRole("button", { name: "Gửi đơn" })).not.toBeInTheDocument();
   });
 
-  test("AC-ORD-165 Khách lẻ chỉ điền tên, thiếu SĐT → vẫn disabled, helper thiếu khách hàng", async () => {
+  test("AC-ORD-165 đơn nháp cũ là Khách lẻ, chỉ có tên, thiếu SĐT → vẫn disabled, helper thiếu khách hàng", async () => {
     signedInAs(hoaId, HOA);
+    // M16-12: không còn nút "+ Khách lẻ" — chỉ đơn nháp cũ đã lưu dạng khách lẻ mới rơi vào nhánh này.
     server.use(
-      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ lines: [orderLine()] }))),
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(
+          order({ lines: [orderLine()], customer_name: "Khách lẻ ABC", customer_phone: null }),
+        ),
+      ),
     );
     renderApp(`/orders/${orderId}`);
     await openForm("DH2609-0001");
-    const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "+ Khách lẻ" }));
-    await user.type(screen.getByLabelText("Tên khách hàng"), "Khách lẻ ABC");
+    expect(screen.getByLabelText("Tên khách hàng")).toHaveValue("Khách lẻ ABC");
 
     const saveBtn = screen.getByRole("button", { name: "Lưu nháp" });
     expect(saveBtn).toBeDisabled();
@@ -585,16 +650,23 @@ describe("AC-ORD-025 tìm khách hoặc Khách lẻ", () => {
     expect(screen.getByText("12 Lê Lợi, Q1, TP.HCM")).toBeInTheDocument();
   });
 
-  test("bấm + Khách lẻ ẩn ô tìm, hiện tên/SĐT nhập tay", async () => {
+  test("AC-ORD-201 không còn nút + Khách lẻ; đơn nháp cũ là khách lẻ vẫn hiện tên/SĐT và chuyển được sang khách có sẵn", async () => {
     signedInAs(hoaId, HOA);
-    renderApp("/orders/new");
-    await openForm();
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ customer_name: "Anh Tư", customer_phone: "0909111222" })),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "+ Khách lẻ" }));
-    expect(screen.queryByLabelText("Tìm khách hàng")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Tên khách hàng")).toBeInTheDocument();
-    expect(screen.getByLabelText("Số điện thoại")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "+ Khách lẻ" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Tên khách hàng")).toHaveValue("Anh Tư");
+    expect(screen.getByLabelText("Số điện thoại")).toHaveValue("0909111222");
+    await user.click(screen.getByRole("button", { name: "Chọn khách có sẵn" }));
+    expect(screen.getByLabelText("Tìm khách hàng")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "+ Khách lẻ" })).not.toBeInTheDocument();
   });
 
   test("mở lại đơn đã có khách hàng hiện đúng tên trong ô tìm, không rơi vào Khách lẻ", async () => {
@@ -953,5 +1025,88 @@ describe("AC-ORD-063 huỷ đơn nháp", () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/orders");
     });
+  });
+});
+
+describe("M16-10 bố cục lưới màn tạo/sửa đơn nháp", () => {
+  test("AC-UI-046 khung 2 cột (lg) / 3 cột (xl); Thông tin đơn là lưới container 2 cột, ô dài chiếm cả dòng", async () => {
+    signedInAs(hoaId, HOA);
+    renderApp("/orders/new");
+    await openForm();
+
+    const layout = screen.getByTestId("draft-order-layout");
+    expect(layout.className).toMatch(/lg:grid-cols-2/);
+    expect(layout.className).toMatch(/xl:grid-cols-3/);
+    const section = document.getElementById("draft-order-section1");
+    expect(section?.className).toMatch(/@container/);
+    const fieldGrid = screen.getByTestId("draft-order-fields");
+    expect(fieldGrid.className).toMatch(/@lg:grid-cols-2/);
+    for (const label of ["Địa chỉ thi công", "Mô tả công việc"]) {
+      expect(screen.getByLabelText(label).closest(".col-span-full")).not.toBeNull();
+    }
+  });
+
+  test("AC-UI-047 thẻ dòng hàng lưới 2/6/12 cột; tên và hàng thao tác chiếm cả dòng", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ lines: [orderLine()] }))),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+
+    const card = await screen.findByTestId(`order-line-${orderLine().id}`);
+    expect(card.className).toMatch(/grid-cols-2/);
+    expect(card.className).toMatch(/md:grid-cols-6/);
+    expect(card.className).toMatch(/lg:grid-cols-12/);
+    expect(within(card).getByTestId("order-line-name").className).toMatch(/col-span-full/);
+    expect(within(card).getByTestId("order-line-actions").className).toMatch(/col-span-full/);
+  });
+});
+
+describe("M16-10 thêm khách hàng ngay trong màn tạo đơn", () => {
+  const HOA_MANAGE: Person = {
+    ...HOA,
+    capabilities: { ...HOA.capabilities, "customer.manage": all },
+  };
+
+  test("AC-UI-049 mở modal Thêm khách hàng (dùng lại của Quản lý KH), lưu xong tự chọn khách mới vào đơn", async () => {
+    signedInAs(hoaId, HOA_MANAGE);
+    server.use(
+      http.post("/api/v1/customers", async ({ request }) => {
+        const body = (await request.json()) as { name: string; phone: string; type: string };
+        return HttpResponse.json(
+          {
+            ...customer({ id: "new-cus-id", name: body.name, phone: body.phone }),
+            type: body.type,
+            duplicate_phone_matches: [],
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    renderApp("/orders/new");
+    await openForm();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Thêm khách hàng" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm khách hàng" });
+    expect(within(dialog).getByRole("option", { name: "Cá nhân" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("option", { name: "Công ty" })).toBeInTheDocument();
+    await user.type(within(dialog).getByLabelText("Tên khách hàng"), "Anh Bình");
+    await user.type(within(dialog).getByLabelText("Số điện thoại"), "0912345678");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Thêm khách hàng" })).not.toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("Tìm khách hàng")).toHaveValue("Anh Bình");
+  });
+
+  test("AC-UI-050 không có customer.manage → không có nút Thêm khách hàng", async () => {
+    signedInAs(hoaId, HOA);
+    renderApp("/orders/new");
+    await openForm();
+
+    expect(screen.queryByRole("button", { name: "Thêm khách hàng" })).not.toBeInTheDocument();
   });
 });

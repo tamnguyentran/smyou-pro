@@ -1,8 +1,10 @@
 import {
   BarChart3,
+  Building2,
   CalendarRange,
   ClipboardCheck,
   FilePlus2,
+  Gift,
   Hammer,
   History,
   Inbox,
@@ -14,6 +16,7 @@ import {
   Plus,
   RotateCcw,
   ShoppingBag,
+  Tags,
   UserCog,
   Users,
   Wrench,
@@ -48,9 +51,11 @@ const ROLE_PRIORITY = ["TECH_LEAD", "SALE", "MANAGER", "TECHNICIAN"];
 
 const ICONS: Record<string, LucideIcon> = {
   BarChart3,
+  Building2,
   CalendarRange,
   ClipboardCheck,
   FilePlus2,
+  Gift,
   Hammer,
   History,
   Inbox,
@@ -62,6 +67,7 @@ const ICONS: Record<string, LucideIcon> = {
   Plus,
   RotateCcw,
   ShoppingBag,
+  Tags,
   UserCog,
   Users,
   Wrench,

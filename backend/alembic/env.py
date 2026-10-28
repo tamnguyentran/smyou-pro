@@ -9,6 +9,8 @@ from sqlalchemy import create_engine, pool
 import app.core.sequences  # registers tables on Base.metadata
 import app.modules.audit.models  # registers tables on Base.metadata
 import app.modules.catalog.models  # registers tables on Base.metadata
+import app.modules.company.models  # registers tables on Base.metadata
+import app.modules.customer_gifts.models  # registers tables on Base.metadata
 import app.modules.customers.models  # registers tables on Base.metadata
 import app.modules.dispatch.models  # registers tables on Base.metadata
 import app.modules.files.models  # registers tables on Base.metadata

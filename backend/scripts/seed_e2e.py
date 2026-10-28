@@ -7,6 +7,7 @@ Never run against production: the passwords below are public.
 import sys
 import uuid
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 from sqlalchemy import delete, func, select, update
 
@@ -419,6 +420,29 @@ def main() -> int:
         dashboard_order.total = 12_000_000
         dashboard_order.completed_at = now
         dashboard_order.csat_rating = 5
+        # M16: báo cáo doanh thu cộng theo dòng hàng (credited_employee_id), nên đơn cần ≥1 dòng
+        # ghi công cho An thì E2E-KH-001 / Nguyễn Văn An mới hiện trong báo cáo.
+        session.flush()
+        has_line = session.scalars(
+            select(OrderLine.id).where(OrderLine.order_id == dashboard_order.id).limit(1)
+        ).one_or_none()
+        if has_line is None:
+            session.add(
+                OrderLine(
+                    order_id=dashboard_order.id,
+                    position=1,
+                    item_type="CUSTOM",
+                    name_snapshot="Lắp đặt hệ thống camera E2E",
+                    unit_snapshot="gói",
+                    vat_rate=Decimal("0"),
+                    quantity=Decimal("1"),
+                    unit_price=12_000_000,
+                    line_gross=12_000_000,
+                    line_vat=0,
+                    line_total=12_000_000,
+                    credited_employee_id=creator_id,
+                )
+            )
     sys.stdout.write(
         f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products, {len(SERVICES)} E2E services,"
         f" {len(CUSTOMERS)} E2E customers, {len(MY_TASKS)} E2E my-tasks assignments\n"

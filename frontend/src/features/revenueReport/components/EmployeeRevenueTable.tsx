@@ -35,8 +35,10 @@ export function EmployeeRevenueTable({
         </thead>
         <tbody className="divide-y divide-line">
           {rows.map((row) => (
-            <tr key={row.employee_id} className="hover:bg-sidebar-sub">
-              <td className="px-4 py-3 font-medium text-heading">{row.employee_code}</td>
+            <tr key={row.employee_id ?? "unassigned"} className="hover:bg-sidebar-sub">
+              <td className="px-4 py-3 font-medium text-heading">
+                {row.unassigned ? "—" : row.employee_code}
+              </td>
               <td className="px-4 py-3">
                 <button
                   type="button"
@@ -45,7 +47,7 @@ export function EmployeeRevenueTable({
                   }}
                   className="min-h-11 rounded font-semibold text-heading underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                 >
-                  {row.employee_name}
+                  {row.unassigned ? "Chưa gán" : row.employee_name}
                 </button>
               </td>
               <td className="px-4 py-3 text-right text-body">{row.order_count}</td>
@@ -65,7 +67,7 @@ export function EmployeeRevenueTable({
   return (
     <ul className="space-y-3">
       {rows.map((row) => (
-        <li key={row.employee_id}>
+        <li key={row.employee_id ?? "unassigned"}>
           <button
             type="button"
             onClick={() => {
@@ -74,8 +76,12 @@ export function EmployeeRevenueTable({
             className="w-full rounded-2xl bg-card p-5 text-left shadow-card transition duration-200 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           >
             <div className="flex items-center justify-between gap-2">
-              <p className="font-semibold text-heading">{row.employee_name}</p>
-              <span className="text-xs font-medium text-muted">{row.employee_code}</span>
+              <p className="font-semibold text-heading">
+                {row.unassigned ? "Chưa gán" : row.employee_name}
+              </p>
+              <span className="text-xs font-medium text-muted">
+                {row.unassigned ? "—" : row.employee_code}
+              </span>
             </div>
             <dl className="mt-2 space-y-1 text-sm text-body">
               <div className="flex justify-between">

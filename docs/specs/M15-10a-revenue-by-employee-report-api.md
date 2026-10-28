@@ -1,6 +1,6 @@
 # M15-10a — Báo cáo Doanh thu theo nhân viên — API
 
-- **Status:** Done
+- **Status:** Superseded by `docs/specs/M16-05-revenue-by-employee-line-based.md` (2026-10-24) — trục nhóm `orders.created_by` ở spec này không còn đúng, ACs dưới đây giữ nguyên làm lịch sử, không còn enforce coverage
 - **Backlog:** M15-10a · **Milestone:** M15
 - **Liên quan:** M15-09a (cùng cấu trúc/điều kiện, chỉ đổi chiều nhóm); M15-07/08 (`cost_price_snapshot`)
 

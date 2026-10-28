@@ -98,6 +98,15 @@
           "children": []
         },
         {
+          "id": "customer-gifts",
+          "label": "Ghi nhận quà tặng KH",
+          "icon": "Gift",
+          "path": "/customer-gifts",
+          "capability": "customer_gift.read",
+          "badge": null,
+          "children": []
+        },
+        {
           "id": "customers",
           "label": "Khách hàng",
           "icon": "Users",
@@ -130,6 +139,15 @@
           "label": "Dịch vụ",
           "icon": "Hammer",
           "path": "/catalog/services",
+          "capability": null,
+          "badge": null,
+          "children": []
+        },
+        {
+          "id": "product-service-groups",
+          "label": "Nhóm sản phẩm/dịch vụ",
+          "icon": "Tags",
+          "path": "/catalog/groups",
           "capability": null,
           "badge": null,
           "children": []
@@ -179,8 +197,26 @@
           "capability": "report.revenue.read",
           "badge": null,
           "children": []
+        },
+        {
+          "id": "reports-customer-gift",
+          "label": "Chi phí quà tặng KH",
+          "icon": "Gift",
+          "path": "/reports/customer-gifts",
+          "capability": "report.customer_gift.read",
+          "badge": null,
+          "children": []
         }
       ]
+    },
+    {
+      "id": "company",
+      "label": "Thông tin công ty",
+      "icon": "Building2",
+      "path": "/settings/company",
+      "capability": "company.manage",
+      "badge": null,
+      "children": []
     },
     {
       "id": "audit",

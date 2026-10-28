@@ -12,7 +12,11 @@ function Profit({ profit }: { profit: number | null }) {
 }
 
 function rowKey(row: RevenueRow): string {
-  return `${row.customer_id}:${row.seller.id}`;
+  return `${row.customer_id}:${row.seller?.id ?? "unassigned"}`;
+}
+
+function sellerLabel(row: RevenueRow): string {
+  return row.seller ? `${row.seller.full_name} (${row.seller.code})` : "Chưa gán";
 }
 
 /** AC-RPT-011, AC-RPT-013, AC-RPT-015: bảng (desktop) / thẻ (mobile) — mỗi dòng là 1 cặp
@@ -59,9 +63,7 @@ export function RevenueTable({
                 {row.contact_person ? `${row.contact_person} · ` : ""}
                 {row.contact_phone}
               </td>
-              <td className="px-4 py-3 text-body">
-                {row.seller.full_name} ({row.seller.code})
-              </td>
+              <td className="px-4 py-3 text-body">{sellerLabel(row)}</td>
               <td className="px-4 py-3 text-right text-body">{row.order_count}</td>
               <td className="px-4 py-3 text-right text-body">
                 {formatCurrency(row.subtotal_revenue)}
@@ -98,9 +100,7 @@ export function RevenueTable({
             <dl className="mt-2 space-y-1 text-sm text-body">
               <div className="flex justify-between">
                 <dt className="text-muted">Người bán</dt>
-                <dd>
-                  {row.seller.full_name} ({row.seller.code})
-                </dd>
+                <dd>{sellerLabel(row)}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted">Số đơn</dt>

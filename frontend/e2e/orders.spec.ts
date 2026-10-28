@@ -76,6 +76,7 @@ test("AC-ORD-024 AC-ORD-025 AC-ORD-026 AC-ORD-032 AC-ORD-034 AC-ORD-039 AC-ORD-1
   await page.getByLabel("Tìm khách hàng").fill("Sáng Tạo Mới");
   await page.getByRole("option", { name: /Cty Sáng Tạo Mới E2E/ }).click();
   await expect(page.getByText("0909123456")).toBeVisible();
+  await page.getByLabel("Nhóm sản phẩm/dịch vụ").selectOption({ label: "Kỹ thuật chung" });
   await page.getByLabel("Địa chỉ thi công").fill("12 Lê Lợi, Q1, TP.HCM");
   await evidence(page, info, "order-new.png");
 
@@ -123,6 +124,7 @@ test("AC-ORD-037 Hà (SALE khác) chỉ xem đơn của Hoa; An (MANAGER) sửa 
   await signIn(page, SALE);
   await page.getByLabel("Tìm khách hàng").fill("Sáng Tạo Mới");
   await page.getByRole("option", { name: /Cty Sáng Tạo Mới E2E/ }).click();
+  await page.getByLabel("Nhóm sản phẩm/dịch vụ").selectOption({ label: "Kỹ thuật chung" });
   // M10-02: "Lưu nháp" chỉ enable khi có khách hàng + ≥1 dòng hàng.
   await page.getByRole("button", { name: "Thêm dòng hàng" }).click();
   const lineSheet = page.getByRole("dialog", { name: "Thêm dòng hàng" });
@@ -161,6 +163,7 @@ test("AC-ORD-061 AC-ORD-064 AC-ORD-065 AC-ORD-067 AC-ORD-071 AC-ORD-093 AC-ORD-0
   await signIn(page, SALE);
   await page.getByLabel("Tìm khách hàng").fill("Sáng Tạo Mới");
   await page.getByRole("option", { name: /Cty Sáng Tạo Mới E2E/ }).click();
+  await page.getByLabel("Nhóm sản phẩm/dịch vụ").selectOption({ label: "Kỹ thuật chung" });
   await page.getByLabel("Địa chỉ thi công").fill("12 Lê Lợi, Q1, TP.HCM");
   await page.getByRole("button", { name: "Thêm dòng hàng" }).click();
   const sheet = page.getByRole("dialog", { name: "Thêm dòng hàng" });
@@ -258,6 +261,7 @@ test("AC-ORD-061 AC-ORD-064 AC-ORD-065 AC-ORD-067 AC-ORD-071 AC-ORD-093 AC-ORD-0
 
 test("AC-ORD-063 huỷ đơn nháp", async ({ page }) => {
   await signIn(page, SALE);
+  await page.getByLabel("Nhóm sản phẩm/dịch vụ").selectOption({ label: "Kỹ thuật chung" });
   await page.getByLabel("Địa chỉ thi công").fill("34 Nguyễn Huệ, Q1, TP.HCM");
   await page.getByLabel("Mô tả công việc").fill("Lắp camera văn phòng");
   // M10-02: "Lưu nháp" chỉ enable khi có khách hàng + ≥1 dòng hàng.
@@ -288,6 +292,7 @@ test("AC-ORD-069 AC-ORD-110 AC-ORD-113 AC-ORD-114 AC-UI-014 @a11y @screenshot da
   page,
 }, info) => {
   await signIn(page, SALE);
+  await page.getByLabel("Nhóm sản phẩm/dịch vụ").selectOption({ label: "Kỹ thuật chung" });
   await page.getByLabel("Địa chỉ thi công").fill("56 Lý Tự Trọng, Q1, TP.HCM");
   // M10-02: "Lưu nháp" chỉ enable khi có khách hàng + ≥1 dòng hàng.
   await page.getByLabel("Tìm khách hàng").fill("Sáng Tạo Mới");

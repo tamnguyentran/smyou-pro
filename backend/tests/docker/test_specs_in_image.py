@@ -4,7 +4,9 @@ import os
 
 import pytest
 
+from app.core.spec_loader import load_specs
 from tests.docker.stack import run
+from tests.spec_fixtures import REPO_SPEC_DIR
 
 pytestmark = pytest.mark.docker
 
@@ -20,4 +22,6 @@ def test_prod_image_loads_bundled_specs() -> None:
     out = run(
         "docker", "run", "--rm", "--platform", "linux/amd64", "--entrypoint", "python", BACKEND, "-c", PROBE
     )
-    assert out.split()[-2:] == ["30", "23"]
+    repo = load_specs(REPO_SPEC_DIR)
+    expected = [str(len(repo.permissions.capabilities)), str(len(repo.state_machines.guards))]
+    assert out.split()[-2:] == expected

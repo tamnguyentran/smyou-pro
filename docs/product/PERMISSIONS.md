@@ -28,6 +28,7 @@
 | Sửa dòng hàng/giá sau khi gửi (tới trước Hoàn tất/Huỷ, có audit) | ✅ | đơn của mình (Q09) | — | — |
 | Nhận/từ chối/bắt đầu/xong task | — | — | — | của mình |
 | KPI | tất cả | — | tất cả | của mình |
+| Thông tin công ty (xem/sửa, logo — M17-01) | ✅ | — | — | — |
 | Nhật ký hệ thống | ✅ | — | — | — |
 
 ## Menu theo vai trò (desktop sidebar 2 cấp)
@@ -40,6 +41,7 @@
 | 📦 Danh mục → Sản phẩm · Dịch vụ | MANAGER |
 | 👤 Nhân sự & phân quyền | MANAGER |
 | 📈 Báo cáo KPI | MANAGER, TECH_LEAD, TECHNICIAN (của mình) |
+| 🏢 Thông tin công ty | MANAGER |
 | 🕘 Nhật ký hệ thống | MANAGER |
 
 Mobile: xem `docs/design/UI_GUIDELINES.md` §4.

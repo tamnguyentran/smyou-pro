@@ -8,7 +8,18 @@ CODE_PREFIX = "KH"
 _CODE = re.compile(rf"{CODE_PREFIX}(\d+)")
 
 # M15-05: trường mở rộng chỉ hợp lệ với đúng `type` của khách hàng.
-COMPANY_FIELDS = ("founded_date", "director_name", "it_contact_name", "it_contact_phone", "it_contact_email")
+# M15-05 addendum: contact_person/contact_person_phone chuyển vào nhóm COMPANY — khách INDIVIDUAL
+# không còn "người liên hệ" riêng (chủ dự án chốt, thay cho AC-CUS-006 cũ của M3-01); bỏ
+# it_contact_email (chủ dự án chốt — phụ trách IT chỉ cần tên + SĐT).
+COMPANY_FIELDS = (
+    "contact_person",
+    "contact_person_phone",
+    "director_name",
+    "director_phone",
+    "founded_date",
+    "it_contact_name",
+    "it_contact_phone",
+)
 INDIVIDUAL_FIELDS = ("date_of_birth", "gender", "occupation")
 
 

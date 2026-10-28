@@ -97,7 +97,7 @@ def test_unknown_field_is_forbidden(tmp_path: Path) -> None:
             PERM,
             r"(    icon: History\n    path: /audit\n    capability: )audit\.read",
             r"\1audit.readx",
-            "menu[7].capability: unknown capability 'audit.readx'",
+            "menu[8].capability: unknown capability 'audit.readx'",
         ),
     ],
 )

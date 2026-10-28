@@ -254,6 +254,7 @@ def catalog(db: Connection) -> dict[str, uuid.UUID]:
 
 
 @pytest.mark.ac("AC-ORD-001")
+@pytest.mark.ac("AC-ORD-194")
 def test_create_with_existing_customer(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID], kh00001: uuid.UUID
 ) -> None:
@@ -263,7 +264,7 @@ def test_create_with_existing_customer(
         "/api/v1/orders",
         json={
             "customer_id": str(kh00001),
-            "division": "OFFICE_EQUIPMENT",
+            "division_id": "a1111111-1111-4111-8111-111111111111",
             "service_address": "12 Lê Lợi, Q1",
             "work_description": "Lắp PC mới",
             "priority": "NORMAL",
@@ -280,6 +281,8 @@ def test_create_with_existing_customer(
     assert (body["subtotal"], body["discount_amount"], body["vat_amount"], body["total"]) == (0, 0, 0, 0)
     assert body["lines"] == []
     assert body["created_by"] == str(people["NV005"])
+    assert body["division_id"] == "a1111111-1111-4111-8111-111111111111"
+    assert body["division_name"] == "Thiết bị văn phòng"
 
 
 @pytest.mark.ac("AC-ORD-002")
@@ -292,7 +295,78 @@ def test_create_empty_draft_allowed(app: FastAPI, db: Connection, people: dict[s
     body = res.json()
     assert body["priority"] == "NORMAL"
     assert body["payment_status"] == "UNPAID"
-    assert body["division"] is None
+    assert body["division_id"] is None
+    assert body["division_name"] is None
+
+
+def test_create_rejects_unknown_division_group(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+
+    res = hoa.post("/api/v1/orders", json={"division_id": str(uuid.uuid4())})
+
+    body = problem(res, 422, "VALIDATION_ERROR")
+    assert error_fields(body)[0] == "division_id"
+
+
+@pytest.mark.ac("AC-ORD-195")
+def test_update_rejects_unknown_division_group(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+
+    res = hoa.patch(
+        f"/api/v1/orders/{order['id']}",
+        json={"version": order["version"], "division_id": str(uuid.uuid4())},
+    )
+
+    body = problem(res, 422, "VALIDATION_ERROR")
+    assert error_fields(body)[0] == "division_id"
+
+
+@pytest.mark.ac("AC-ORD-196")
+def test_update_division_set_then_clear(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+
+    set_res = hoa.patch(
+        f"/api/v1/orders/{order['id']}",
+        json={"version": order["version"], "division_id": "a2222222-2222-4222-8222-222222222222"},
+    )
+    assert set_res.status_code == 200, set_res.text
+    set_body = set_res.json()
+    assert set_body["division_id"] == "a2222222-2222-4222-8222-222222222222"
+    assert set_body["division_name"] == "Thiết bị an ninh"
+
+    cleared = hoa.patch(
+        f"/api/v1/orders/{order['id']}",
+        json={"version": set_body["version"], "division_id": None},
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["division_id"] is None
+    assert cleared.json()["division_name"] is None
+
+
+@pytest.mark.ac("AC-ORD-198")
+def test_division_not_editable_after_submit_via_contact_endpoint(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+
+    res = hoa.patch(
+        f"/api/v1/orders/{order['id']}/contact",
+        json={"version": order["version"], "division_id": "a2222222-2222-4222-8222-222222222222"},
+    )
+
+    body = problem(res, 422, "VALIDATION_ERROR")
+    assert "division_id" in error_fields(body)
 
 
 @pytest.mark.ac("AC-ORD-003")
@@ -313,7 +387,7 @@ def test_create_walk_in_customer(app: FastAPI, db: Connection, people: dict[str,
     [
         ({"customer_id": str(uuid.uuid4())}, "customer_id"),
         ({"priority": "WRONG"}, "priority"),
-        ({"division": "WRONG"}, "division"),
+        ({"division_id": "not-a-uuid"}, "division_id"),
         ({"payment_status": "PAID"}, "payment_method"),
         ({"requested_date": "not-a-date"}, "requested_date"),
     ],
@@ -897,6 +971,237 @@ def test_add_line_position_not_reused_after_remove(
 
     positions = sorted(line["position"] for line in third["lines"])
     assert positions == sorted(set(positions)), positions
+
+
+@pytest.mark.ac("AC-ORD-186")
+def test_add_line_with_credited_employee(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], catalog: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+
+    res = hoa.post(
+        f"/api/v1/orders/{order['id']}/lines",
+        json={
+            "version": order["version"],
+            "item_type": "PRODUCT",
+            "product_id": str(catalog["LCD-DELL22"]),
+            "quantity": "1",
+            "unit_price": 2_500_000,
+            "vat_rate": "8",
+            "credited_employee_id": str(people["NV010"]),
+        },
+    )
+
+    assert res.status_code == 201, res.text
+    line = res.json()["lines"][0]
+    assert line["credited_employee_id"] == str(people["NV010"])
+
+
+@pytest.mark.ac("AC-ORD-187")
+def test_update_line_sets_credited_employee(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], catalog: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+    with_line = hoa.post(
+        f"/api/v1/orders/{order['id']}/lines",
+        json={
+            "version": order["version"],
+            "item_type": "PRODUCT",
+            "product_id": str(catalog["LCD-DELL22"]),
+            "quantity": "1",
+            "unit_price": 2_500_000,
+            "vat_rate": "8",
+        },
+    ).json()
+    line_id = with_line["lines"][0]["id"]
+    assert with_line["lines"][0]["credited_employee_id"] is None
+
+    res = hoa.patch(
+        f"/api/v1/orders/{order['id']}/lines/{line_id}",
+        json={"version": with_line["version"], "credited_employee_id": str(people["NV010"])},
+    )
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    line = body["lines"][0]
+    assert line["credited_employee_id"] == str(people["NV010"])
+    assert line["quantity"] == "1.00"
+    assert line["unit_price"] == 2_500_000
+
+
+@pytest.mark.ac("AC-ORD-188")
+def test_line_credited_employee_must_exist(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], catalog: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+
+    res = hoa.post(
+        f"/api/v1/orders/{order['id']}/lines",
+        json={
+            "version": order["version"],
+            "item_type": "PRODUCT",
+            "product_id": str(catalog["LCD-DELL22"]),
+            "quantity": "1",
+            "unit_price": 2_500_000,
+            "vat_rate": "8",
+            "credited_employee_id": str(uuid.uuid4()),
+        },
+    )
+
+    body = problem(res, 422, "VALIDATION_ERROR")
+    assert error_fields(body)[0] == "credited_employee_id"
+
+
+@pytest.mark.ac("AC-ORD-188")
+def test_update_line_credited_employee_must_exist(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], catalog: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+    with_line = hoa.post(
+        f"/api/v1/orders/{order['id']}/lines",
+        json={
+            "version": order["version"],
+            "item_type": "PRODUCT",
+            "product_id": str(catalog["LCD-DELL22"]),
+            "quantity": "1",
+            "unit_price": 2_500_000,
+            "vat_rate": "8",
+        },
+    ).json()
+    line_id = with_line["lines"][0]["id"]
+
+    res = hoa.patch(
+        f"/api/v1/orders/{order['id']}/lines/{line_id}",
+        json={"version": with_line["version"], "credited_employee_id": str(uuid.uuid4())},
+    )
+
+    body = problem(res, 422, "VALIDATION_ERROR")
+    assert error_fields(body)[0] == "credited_employee_id"
+
+
+@pytest.mark.ac("AC-ORD-188")
+def test_line_after_submit_credited_employee_must_exist(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+    line_id = order["lines"][0]["id"]
+
+    patch_res = hoa.patch(
+        f"/api/v1/orders/{order['id']}/lines-after-submit/{line_id}",
+        json={"version": order["version"], "credited_employee_id": str(uuid.uuid4())},
+    )
+    body = problem(patch_res, 422, "VALIDATION_ERROR")
+    assert error_fields(body)[0] == "credited_employee_id"
+
+    post_res = hoa.post(
+        f"/api/v1/orders/{order['id']}/lines-after-submit",
+        json={
+            "version": order["version"],
+            "item_type": "PRODUCT",
+            "product_id": str(catalog["PC-I5-12400"]),
+            "quantity": "1",
+            "unit_price": 11_980_000,
+            "vat_rate": "0",
+            "credited_employee_id": str(uuid.uuid4()),
+        },
+    )
+    body = problem(post_res, 422, "VALIDATION_ERROR")
+    assert error_fields(body)[0] == "credited_employee_id"
+
+
+@pytest.mark.ac("AC-ORD-189")
+def test_update_line_clears_credited_employee(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], catalog: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+    with_line = hoa.post(
+        f"/api/v1/orders/{order['id']}/lines",
+        json={
+            "version": order["version"],
+            "item_type": "PRODUCT",
+            "product_id": str(catalog["LCD-DELL22"]),
+            "quantity": "1",
+            "unit_price": 2_500_000,
+            "vat_rate": "8",
+            "credited_employee_id": str(people["NV010"]),
+        },
+    ).json()
+    line_id = with_line["lines"][0]["id"]
+
+    res = hoa.patch(
+        f"/api/v1/orders/{order['id']}/lines/{line_id}",
+        json={"version": with_line["version"], "credited_employee_id": None},
+    )
+
+    assert res.status_code == 200, res.text
+    assert res.json()["lines"][0]["credited_employee_id"] is None
+
+
+@pytest.mark.ac("AC-ORD-190")
+def test_update_line_after_submit_credited_employee_is_audited(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    kh00001: uuid.UUID,
+    catalog: dict[str, uuid.UUID],
+) -> None:
+    hoa = client_as(app, HOA)
+    order = submitted_order(hoa, customer_id=kh00001, product_id=catalog["LCD-DELL22"])
+    line_id = order["lines"][0]["id"]
+
+    res = hoa.patch(
+        f"/api/v1/orders/{order['id']}/lines-after-submit/{line_id}",
+        json={"version": order["version"], "credited_employee_id": str(people["NV010"])},
+    )
+
+    assert res.status_code == 200, res.text
+    assert res.json()["lines"][0]["credited_employee_id"] == str(people["NV010"])
+
+    event = next(e for e in audit_rows(db, uuid.UUID(order["id"])) if e.action == "update_line_after_submit")
+    assert event.data["changes"]["credited_employee_id"] == {
+        "before": None,
+        "after": str(people["NV010"]),
+    }
+
+
+@pytest.mark.ac("AC-ORD-191")
+def test_line_credited_employee_requires_edit_capability(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], catalog: dict[str, uuid.UUID]
+) -> None:
+    hoa = client_as(app, HOA)
+    order = hoa.post("/api/v1/orders", json={}).json()
+    with_line = hoa.post(
+        f"/api/v1/orders/{order['id']}/lines",
+        json={
+            "version": order["version"],
+            "item_type": "PRODUCT",
+            "product_id": str(catalog["LCD-DELL22"]),
+            "quantity": "1",
+            "unit_price": 2_500_000,
+            "vat_rate": "8",
+        },
+    ).json()
+    line_id = with_line["lines"][0]["id"]
+
+    khoa = client_as(app, KHOA)
+    problem(
+        khoa.patch(
+            f"/api/v1/orders/{order['id']}/lines/{line_id}",
+            json={"version": with_line["version"], "credited_employee_id": str(people["NV010"])},
+        ),
+        403,
+        "FORBIDDEN",
+    )
 
 
 @pytest.mark.ac("AC-ORD-019")
@@ -1499,7 +1804,8 @@ def test_list_orders_basic(app: FastAPI, db: Connection, three_orders: dict[str,
         "status",
         "customer_name",
         "customer_phone",
-        "division",
+        "division_id",
+        "division_name",
         "priority",
         "total",
         "requested_date",

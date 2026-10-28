@@ -8,9 +8,7 @@ import { renderApp } from "../../test/renderApp";
 import { signedInAs, type Person } from "../dispatch/testFixtures";
 
 type RevenueRow = components["schemas"]["RevenueRowOut"];
-type RevenueOrder = components["schemas"]["RevenueOrderOut"];
-type OrderDetail = components["schemas"]["OrderDetail"];
-type OrderLine = components["schemas"]["OrderLineOut"];
+type RevenueLine = components["schemas"]["RevenueLineOut"];
 
 const anId = "a0000000-0000-4000-8000-000000000001";
 const hoaId = "a0000000-0000-4000-8000-000000000010";
@@ -66,6 +64,7 @@ function row(overrides: Partial<RevenueRow> = {}): RevenueRow {
     contact_person: "Nguyễn Văn A",
     contact_phone: "0909123456",
     seller: { id: hoaId, code: "NV005", full_name: "Nguyễn Thị Hoa" },
+    unassigned: false,
     order_count: 3,
     subtotal_revenue: 15_000_000,
     profit: 3_000_000,
@@ -73,82 +72,33 @@ function row(overrides: Partial<RevenueRow> = {}): RevenueRow {
   };
 }
 
-function order(overrides: Partial<RevenueOrder> = {}): RevenueOrder {
+function unassignedRow(overrides: Partial<RevenueRow> = {}): RevenueRow {
   return {
-    id: order1Id,
-    code: "DH2609-0010",
-    created_at: "2026-09-10T02:00:00Z",
-    completed_at: "2026-09-12T02:00:00Z",
-    total: 5_000_000,
-    profit: 1_000_000,
-    ...overrides,
-  };
-}
-
-function orderDetail(overrides: Partial<OrderDetail> = {}): OrderDetail {
-  return {
-    id: order1Id,
-    code: "DH2609-0010",
-    status: "COMPLETED",
-    division: null,
     customer_id: kh1Id,
+    customer_code: "KH00001",
     customer_name: "Cty Sáng Tạo Mới",
-    customer_phone: "0909123456",
-    customer_email: null,
-    customer_tax_code: null,
-    service_address: "12 Lê Lợi, Q1, TP.HCM",
-    work_description: "",
-    priority: "NORMAL",
-    requested_date: null,
-    subtotal: 5_000_000,
-    discount_amount: 0,
-    vat_amount: 0,
-    total: 5_000_000,
-    payment_status: "PAID",
-    payment_method: null,
-    csat_rating: null,
-    csat_comment: null,
-    csat_recorded_by: null,
-    csat_recorded_at: null,
-    revision_no: 0,
-    created_by: hoaId,
-    version: 1,
-    lines: [],
-    allowed_commands: [],
-    can_edit_contact: false,
-    can_edit_lines_after_submit: false,
-    can_upload_confirmation: false,
-    can_complete: false,
-    can_revise: false,
-    has_pending_revision_request: false,
+    contact_person: "Nguyễn Văn A",
+    contact_phone: "0909123456",
+    seller: null,
+    unassigned: true,
+    order_count: 1,
+    subtotal_revenue: 2_000_000,
+    profit: null,
     ...overrides,
   };
 }
 
-function line(overrides: Partial<OrderLine> = {}): OrderLine {
+function revenueLine(overrides: Partial<RevenueLine> = {}): RevenueLine {
   return {
     id: "d0000000-0000-4000-8000-000000000040",
-    position: 1,
-    item_type: "PRODUCT",
-    product_id: "f0000000-0000-4000-8000-000000000050",
-    service_id: null,
-    sku_snapshot: "LCD-DELL22",
-    name_snapshot: "Màn hình Dell 22 inch",
-    unit_snapshot: "CAI",
-    specs_snapshot: null,
-    warranty_months_snapshot: 24,
-    catalog_price_snapshot: 5_000_000,
-    cost_price_snapshot: 4_000_000,
-    price_fixed: true,
+    order_id: order1Id,
+    order_code: "DH2609-0010",
+    line_name: "Màn hình Dell 22 inch",
     quantity: "1",
-    unit_price: 5_000_000,
-    line_discount: 0,
-    vat_rate: "0",
-    is_gift: false,
-    line_gross: 5_000_000,
-    line_vat: 0,
     line_total: 5_000_000,
-    note: null,
+    profit: 1_000_000,
+    order_created_at: "2026-09-10T02:00:00Z",
+    order_completed_at: "2026-09-12T02:00:00Z",
     ...overrides,
   };
 }
@@ -183,17 +133,20 @@ describe("Báo cáo doanh thu theo khách hàng", () => {
     expect(screen.getByLabelText("Khách hàng")).toHaveValue("");
   });
 
-  test("AC-RPT-011 bấm 1 dòng → drilldown đúng cặp KH×người bán, kèm seller_id, đúng 3 đơn", async () => {
+  test("AC-RPT-071 bấm 1 dòng → drilldown liệt kê DÒNG HÀNG (không phải đơn), kèm seller_id", async () => {
     signedInAs(anId, AN);
     mockReport([row()]);
-    const ordersRequests: string[] = [];
+    const linesRequests: string[] = [];
     server.use(
-      http.get("/api/v1/reports/revenue-by-customer/:customerId/orders", ({ request }) => {
-        ordersRequests.push(new URL(request.url).search);
+      http.get("/api/v1/reports/revenue-by-customer/:customerId/lines", ({ request }) => {
+        linesRequests.push(new URL(request.url).search);
         return HttpResponse.json([
-          order({ code: "DH2609-0010" }),
-          order({ id: "b0000000-0000-4000-8000-000000000021", code: "DH2609-0011" }),
-          order({ id: "b0000000-0000-4000-8000-000000000022", code: "DH2609-0012" }),
+          revenueLine({ order_code: "DH2609-0010" }),
+          revenueLine({
+            id: "d0000000-0000-4000-8000-000000000041",
+            order_code: "DH2609-0011",
+            line_name: "Camera IMOU 2MP",
+          }),
         ]);
       }),
     );
@@ -205,43 +158,38 @@ describe("Báo cáo doanh thu theo khách hàng", () => {
 
     await screen.findByRole("dialog", { name: "Cty Sáng Tạo Mới — Người bán: Nguyễn Thị Hoa" });
     await waitFor(() => {
-      expect(ordersRequests[0]).toContain(`seller_id=${hoaId}`);
+      expect(linesRequests[0]).toContain(`seller_id=${hoaId}`);
     });
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("DH2609-0010")).toBeInTheDocument();
+    expect(within(dialog).getByText("Màn hình Dell 22 inch")).toBeInTheDocument();
     expect(within(dialog).getByText("DH2609-0011")).toBeInTheDocument();
-    expect(within(dialog).getByText("DH2609-0012")).toBeInTheDocument();
+    expect(within(dialog).getByText("Camera IMOU 2MP")).toBeInTheDocument();
   });
 
-  test("AC-RPT-012 bấm 1 đơn trong drilldown → gọi GET /orders/{id} (không /lines), hiện dòng hàng chỉ đọc", async () => {
+  test("AC-RPT-071 dòng 'Chưa gán' hiện trong bảng, bấm vào gọi /lines?unassigned=true", async () => {
     signedInAs(anId, AN);
-    mockReport([row()]);
+    mockReport([row(), unassignedRow()]);
+    const linesRequests: string[] = [];
     server.use(
-      http.get("/api/v1/reports/revenue-by-customer/:customerId/orders", () =>
-        HttpResponse.json([order()]),
-      ),
-      http.get("/api/v1/orders/:id", ({ params }) => {
-        expect(params.id).toBe(order1Id);
-        return HttpResponse.json(
-          orderDetail({ lines: [line({ name_snapshot: "Màn hình Dell 22 inch" })] }),
-        );
-      }),
-      http.get("/api/v1/orders/:id/lines", () => {
-        throw new Error("route /orders/{id}/lines không tồn tại và không được gọi");
+      http.get("/api/v1/reports/revenue-by-customer/:customerId/lines", ({ request }) => {
+        linesRequests.push(new URL(request.url).search);
+        return HttpResponse.json([revenueLine({ order_code: "DH2609-0099" })]);
       }),
     );
     renderApp("/reports/revenue-by-customer");
     const user = userEvent.setup();
 
-    await screen.findByText("Cty Sáng Tạo Mới");
-    await user.click(screen.getByRole("button", { name: "Cty Sáng Tạo Mới" }));
-    await screen.findByText("DH2609-0010");
-    await user.click(screen.getByText("DH2609-0010"));
+    await screen.findByText("Chưa gán");
+    const [, unassignedButton] = screen.getAllByRole("button", { name: "Cty Sáng Tạo Mới" });
+    if (!unassignedButton) throw new Error("expected 2 buttons");
+    await user.click(unassignedButton);
 
-    const lineDialog = await screen.findByRole("dialog", { name: "Đơn DH2609-0010" });
-    expect(within(lineDialog).getByText("Màn hình Dell 22 inch")).toBeInTheDocument();
-    expect(within(lineDialog).queryByRole("button", { name: /xoá/i })).not.toBeInTheDocument();
-    expect(within(lineDialog).queryByRole("spinbutton")).not.toBeInTheDocument();
+    await screen.findByRole("dialog", { name: "Cty Sáng Tạo Mới — Người bán: Chưa gán" });
+    await waitFor(() => {
+      expect(linesRequests[0]).toContain("unassigned=true");
+    });
+    expect(screen.getByText("DH2609-0099")).toBeInTheDocument();
   });
 
   test("AC-RPT-013 profit null → hiện '—' kèm tooltip, không hiện '0 ₫'", async () => {

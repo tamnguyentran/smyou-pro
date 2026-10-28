@@ -8,6 +8,7 @@ Chuyển thể từ `Tài liệu tham khảo/UI.md` (bản gốc giữ nguyên �
 2. **Thân thiện:** bo `rounded-xl`/`rounded-2xl`, khoảng trắng thoáng, chuyển động `duration-200 ease-in-out`, mỗi mục menu/trạng thái/nút chính có icon lucide.
 3. **Quét nhanh:** trạng thái luôn là badge màu + chữ (không chỉ màu); con số quan trọng (hạn chót, số giờ, tổng tiền) in đậm.
 4. **Mobile-first:** viết class cho 390px trước, mở rộng bằng `md:` (≥768) và `lg:` (≥1024). KTV dùng 1 tay ngoài hiện trường.
+5. **Dữ liệu số luôn căn phải** (giá, số lượng, VAT, số giờ, tiền… — ô nhập lẫn hiển thị, `text-right tabular-nums`): `NumberField` tự căn phải; `TextField` tự căn phải khi `inputMode` là `numeric`/`decimal`. SĐT, mã, MST là định danh, không phải số → căn trái. Chủ dự án chốt 2026-10-28.
 
 ## 2. Design tokens (Tailwind v4 — `frontend/src/styles/index.css`)
 ```css
@@ -74,7 +75,7 @@ Không dùng mã màu hex rời rạc trong component (`bg-[#C2410C]` ❌ → `b
 | Đơn chờ điều phối | QLKT | Danh sách đơn PENDING_DISPATCH sắp theo ưu tiên + ngày hẹn; mở đơn → panel tạo task (gợi ý giờ từ dịch vụ trong đơn). |
 | Bảng đầu việc | QLKT | Kanban theo trạng thái task (desktop), danh sách lọc theo trạng thái (mobile). Task NEEDS_ASSIGNEE nổi đỏ đầu cột. |
 | Lịch & tải việc | QLKT | Theo nhân viên: tổng giờ ước tính task đang mở, hạn chót gần nhất — giúp chọn người khi giao. |
-| Tạo/sửa đơn | Sale | Chọn/tạo nhanh khách; thêm dòng bằng ô tìm sản phẩm/dịch vụ (mã, tên); dòng tự do; tổng tiền cập nhật ngay (hiển thị), server tính lại khi lưu. Dòng **giá cố định**: ô đơn giá chỉ đọc + icon `Lock` + tooltip "Giá cố định"; ô giảm giá và công tắc "Tặng kèm" vẫn dùng được. VAT: chip chọn nhanh 0% · 8% · 10% + "Khác" mở ô nhập số. Cuối đơn: bảng tổng theo từng mức VAT. |
+| Tạo/sửa đơn | Sale | Chọn/tạo nhanh khách; thêm dòng bằng ô tìm sản phẩm/dịch vụ (mã, tên); dòng tự do; tổng tiền cập nhật ngay (hiển thị), server tính lại khi lưu. Dòng **giá cố định**: ô đơn giá chỉ đọc + icon `Lock` + tooltip "Giá cố định"; ô giảm giá và công tắc "Tặng kèm" vẫn dùng được. VAT: ô nhập số "VAT (%)" (0–100, tối đa 2 chữ số thập phân) như ô Số lượng — đổi từ chip 0/8/10%/Khác theo chủ dự án 2026-10-26 (M16-10). Cuối đơn: bảng tổng theo từng mức VAT. |
 | Chi tiết đơn | tất cả | Header: mã, trạng thái, khách; tab: Thông tin · Dòng hàng (ẩn giá nếu không có quyền) · Đầu việc · Tệp đính kèm · Lịch sử (timeline audit). Hành động hiển thị theo `allowed_commands`. |
 
 ## 6. Component & tương tác
@@ -85,9 +86,10 @@ Không dùng mã màu hex rời rạc trong component (`bg-[#C2410C]` ❌ → `b
 - **Tải:** Skeleton đúng hình dạng nội dung, không spinner toàn trang.
 - **Tiền:** `Intl.NumberFormat('vi-VN')` + " ₫" → `11.800.000 ₫`. **Ngày:** `dd/MM/yyyy HH:mm`; tương đối cho hạn chót ("còn 3 giờ", "quá hạn 1 ngày").
 - **SĐT** hiển thị `0932 06 8787`, link `tel:`; địa chỉ có link bản đồ.
+- **Quy tắc bắt buộc (2026-10-24) — nhập số lượng/đơn giá/tiền:** mọi ô nhập liệu cho dữ liệu dạng số lượng (`quantity`), đơn giá, chi phí, giảm giá, thành tiền... phải hiện phân cách hàng nghìn kiểu Việt Nam (dấu `.`) **ngay khi đang gõ**, không chỉ lúc hiển thị giá trị đã lưu. Dùng component `NumberField` (`frontend/src/components/ui/NumberField.tsx`) thay cho `TextField type="number"` — nó tự format khi gõ, giá trị trả ra qua `onChange` vẫn là chuỗi số chuẩn (`.` là dấu thập phân) nên không đổi logic validate/parse phía gọi. Số lượng hỗ trợ phần thập phân (vd hàng theo kg) thì bật `allowDecimal` (hiển thị dấu `,` trước phần thập phân, kiểu `1.234,5`). **Không áp dụng** cho trường định danh dạng số (SĐT, mã KH/NV, MST, OTP...) — những trường này không phải số lượng, giữ nguyên `TextField` thường, không phân cách hàng nghìn. Không áp dụng khi xuất Excel/báo cáo (giữ số thô ở đó).
 
 ## 7. Icon (lucide-react) — dùng nhất quán
-Tổng quan `LayoutDashboard` · Việc của tôi `ClipboardCheck` · Điều phối `Wrench` · Đơn hàng `ShoppingBag` · Khách hàng `Users` · Sản phẩm `Monitor` · Dịch vụ `Hammer` · Nhân sự `UserCog` · KPI `BarChart3` · Nhật ký `History` · Thông báo `Bell` · Camera/phiếu `Camera` · Tiếp nhận `CheckCircle2` · Từ chối `XCircle` · Bắt đầu `PlayCircle` · Hoàn thành `BadgeCheck` · Mở lại `RotateCcw` · Hạn chót `CalendarClock` · Số giờ `Timer` · Địa chỉ `MapPin` · Gọi `Phone` · Máy in `Printer` · Camera an ninh `Cctv` · Laptop `Laptop`.
+Tổng quan `LayoutDashboard` · Việc của tôi `ClipboardCheck` · Điều phối `Wrench` · Đơn hàng `ShoppingBag` · Khách hàng `Users` · Sản phẩm `Monitor` · Dịch vụ `Hammer` · Nhân sự `UserCog` · KPI `BarChart3` · Nhật ký `History` · Thông báo `Bell` · Camera/phiếu `Camera` · Tiếp nhận `CheckCircle2` · Từ chối `XCircle` · Bắt đầu `PlayCircle` · Hoàn thành `BadgeCheck` · Mở lại `RotateCcw` · Hạn chót `CalendarClock` · Số giờ `Timer` · Địa chỉ `MapPin` · Gọi `Phone` · Máy in `Printer` · Camera an ninh `Cctv` · Laptop `Laptop` · Quà tặng KH `Gift` · Nhóm sản phẩm/dịch vụ `Tags`.
 
 ## 8. Khả năng truy cập & chất lượng (được test tự động)
 - axe-core không có vi phạm `serious`/`critical` trên mọi trang trong E2E.

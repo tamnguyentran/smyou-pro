@@ -12,10 +12,12 @@ export function CustomerSearchField({
   customerId,
   customerName,
   onSelect,
+  placeholder = "Tất cả",
 }: {
   customerId: string;
   customerName: string;
   onSelect: (customer: { id: string; name: string }) => void;
+  placeholder?: string;
 }) {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 300);
@@ -26,7 +28,7 @@ export function CustomerSearchField({
     <div className="relative space-y-2">
       <TextField
         label="Khách hàng"
-        placeholder="Tất cả"
+        placeholder={placeholder}
         role="combobox"
         aria-expanded={searching}
         aria-controls={RESULTS_ID}

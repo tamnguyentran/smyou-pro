@@ -1,4 +1,4 @@
-"""M15-10a: báo cáo doanh thu theo nhân viên (API) (AC-RPT-020…022, 024…025, 046…049)."""
+"""M16-05: báo cáo doanh thu theo nhân viên tính theo dòng hàng (AC-RPT-056…064)."""
 
 import csv
 import io
@@ -38,158 +38,300 @@ def test_revenue_by_employee_capability_declared() -> None:
     app = create_app()
     routes = {(method, path): capability for method, path, capability in declared_routes(app)}
     assert routes[("GET", "/api/v1/reports/revenue-by-employee")] == "report.revenue.read"
-    assert (
-        routes[("GET", "/api/v1/reports/revenue-by-employee/{employee_id}/orders")] == "report.revenue.read"
-    )
+    assert routes[("GET", "/api/v1/reports/revenue-by-employee/lines")] == "report.revenue.read"
     assert routes[("GET", "/api/v1/reports/revenue-by-employee/export")] == "report.revenue.read"
 
 
-@pytest.mark.ac("AC-RPT-020")
-def test_report_groups_by_employee_with_defaults(
+@pytest.mark.ac("AC-RPT-056")
+def test_report_groups_by_credited_employee_across_orders(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
-    for i in range(4):
-        order = insert_order(
-            db,
-            customer_id=None,
-            created_by=people["NV005"],
-            status="COMPLETED",
-            code=f"DH{i + 1:02d}",
-            total=20_000_000,
-            completed_at=COMPLETED_IN_RANGE,
-        )
-        insert_order_line(
-            db, order, line_total=20_000_000, unit_price=20_000_000, cost_price_snapshot=15_000_000
-        )
-    order_an = insert_order(
+    order_a = insert_order(
+        db,
+        customer_id=None,
+        created_by=people["NV005"],
+        status="COMPLETED",
+        code="DHA",
+        total=150_000_000,
+        completed_at=COMPLETED_IN_RANGE,
+    )
+    insert_order_line(
+        db,
+        order_a,
+        line_total=100_000_000,
+        unit_price=100_000_000,
+        cost_price_snapshot=60_000_000,
+        credited_employee_id=people["NV005"],
+    )
+    insert_order_line(
+        db,
+        order_a,
+        position=2,
+        line_total=50_000_000,
+        unit_price=50_000_000,
+        cost_price_snapshot=30_000_000,
+        credited_employee_id=people["NV020"],
+    )
+    order_b = insert_order(
         db,
         customer_id=None,
         created_by=people["NV001"],
         status="COMPLETED",
-        code="DH99",
-        total=1_000_000,
+        code="DHB",
+        total=30_000_000,
         completed_at=COMPLETED_IN_RANGE,
     )
-    insert_order_line(db, order_an, line_total=1_000_000, unit_price=1_000_000, cost_price_snapshot=500_000)
+    insert_order_line(
+        db,
+        order_b,
+        line_total=30_000_000,
+        unit_price=30_000_000,
+        cost_price_snapshot=20_000_000,
+        credited_employee_id=people["NV005"],
+    )
 
     an = client_as(app, AN)
     data = body(an.get("/api/v1/reports/revenue-by-employee"))
 
-    assert data["from"] == "2026-09-01"
-    assert data["to"] == "2026-09-26"
-    assert data["total"] == 2
-    codes = [row["employee_code"] for row in data["items"]]
-    assert codes == sorted(codes)
     rows = {row["employee_code"]: row for row in data["items"]}
-    hoa_row = rows["NV005"]
-    assert (hoa_row["order_count"], hoa_row["subtotal_revenue"], hoa_row["profit"]) == (
-        4,
-        80_000_000,
+    assert (rows["NV005"]["order_count"], rows["NV005"]["subtotal_revenue"], rows["NV005"]["profit"]) == (
+        2,
+        130_000_000,
+        50_000_000,
+    )
+    assert (rows["NV020"]["order_count"], rows["NV020"]["subtotal_revenue"], rows["NV020"]["profit"]) == (
+        1,
+        50_000_000,
         20_000_000,
     )
-    assert rows["NV001"]["order_count"] == 1
 
 
-@pytest.mark.ac("AC-RPT-021")
-def test_report_filters_by_employee_id(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
-    insert_order(
-        db,
-        customer_id=None,
-        created_by=people["NV005"],
-        status="COMPLETED",
-        code="DH01",
-        total=1_000_000,
-        completed_at=COMPLETED_IN_RANGE,
-    )
-    insert_order(
+@pytest.mark.ac("AC-RPT-056")
+def test_report_order_count_not_double_counted_for_two_lines_same_employee(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    order_a = insert_order(
         db,
         customer_id=None,
         created_by=people["NV001"],
         status="COMPLETED",
-        code="DH02",
-        total=2_000_000,
+        code="DHA",
+        total=30_000_000,
         completed_at=COMPLETED_IN_RANGE,
     )
-
-    an = client_as(app, AN)
-    data = body(an.get("/api/v1/reports/revenue-by-employee", params={"employee_id": str(people["NV005"])}))
-
-    assert [row["employee_code"] for row in data["items"]] == ["NV005"]
-
-
-@pytest.mark.ac("AC-RPT-022")
-def test_customer_care_appears_as_employee_row(
-    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
-) -> None:
-    for i in range(2):
-        insert_order(
-            db,
-            customer_id=None,
-            created_by=people["NV020"],
-            status="COMPLETED",
-            code=f"DHL{i + 1}",
-            total=1_000_000,
-            completed_at=COMPLETED_IN_RANGE,
-        )
+    insert_order_line(
+        db,
+        order_a,
+        line_total=10_000_000,
+        unit_price=10_000_000,
+        cost_price_snapshot=5_000_000,
+        credited_employee_id=people["NV005"],
+    )
+    insert_order_line(
+        db,
+        order_a,
+        position=2,
+        line_total=20_000_000,
+        unit_price=20_000_000,
+        cost_price_snapshot=10_000_000,
+        credited_employee_id=people["NV005"],
+    )
 
     an = client_as(app, AN)
     data = body(an.get("/api/v1/reports/revenue-by-employee"))
 
     rows = {row["employee_code"]: row for row in data["items"]}
-    assert rows["NV020"]["order_count"] == 2
-    assert rows["NV020"]["subtotal_revenue"] == 2_000_000
+    assert rows["NV005"]["order_count"] == 1
+    assert rows["NV005"]["subtotal_revenue"] == 30_000_000
 
 
-@pytest.mark.ac("AC-RPT-046")
-def test_sale_sees_only_own_row(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
-    insert_order(
+@pytest.mark.ac("AC-RPT-057")
+def test_report_has_unassigned_bucket_for_lines_without_employee(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    order_c = insert_order(
         db,
         customer_id=None,
         created_by=people["NV005"],
         status="COMPLETED",
-        code="DH01",
-        total=1_000_000,
+        code="DHC",
+        total=20_000_000,
         completed_at=COMPLETED_IN_RANGE,
     )
-    insert_order(
+    insert_order_line(
+        db,
+        order_c,
+        line_total=20_000_000,
+        unit_price=20_000_000,
+        cost_price_snapshot=10_000_000,
+        credited_employee_id=None,
+    )
+
+    an = client_as(app, AN)
+    data = body(an.get("/api/v1/reports/revenue-by-employee"))
+
+    unassigned_rows = [row for row in data["items"] if row["unassigned"]]
+    assert len(unassigned_rows) == 1
+    row = unassigned_rows[0]
+    assert row["employee_id"] is None
+    assert row["employee_code"] is None
+    assert row["subtotal_revenue"] == 20_000_000
+
+
+@pytest.mark.ac("AC-RPT-058")
+def test_sale_own_scope_sees_only_lines_credited_to_self(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    order_d = insert_order(
         db,
         customer_id=None,
-        created_by=people["NV001"],
+        created_by=people["NV005"],
         status="COMPLETED",
-        code="DH02",
-        total=2_000_000,
+        code="DHD",
+        total=10_000_000,
         completed_at=COMPLETED_IN_RANGE,
+    )
+    insert_order_line(
+        db,
+        order_d,
+        line_total=10_000_000,
+        unit_price=10_000_000,
+        cost_price_snapshot=5_000_000,
+        credited_employee_id=people["NV020"],
     )
 
     hoa = client_as(app, HOA)
     data = body(hoa.get("/api/v1/reports/revenue-by-employee"))
 
-    assert [row["employee_code"] for row in data["items"]] == ["NV005"]
+    assert data["items"] == []
 
 
-@pytest.mark.ac("AC-RPT-047")
-def test_drilldown_404_when_employee_outside_scope(
+@pytest.mark.ac("AC-RPT-059")
+def test_profit_null_when_line_missing_cost_snapshot(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
-    insert_order(
+    order_e = insert_order(
+        db,
+        customer_id=None,
+        created_by=people["NV005"],
+        status="COMPLETED",
+        code="DHE",
+        total=5_000_000,
+        completed_at=COMPLETED_IN_RANGE,
+    )
+    insert_order_line(
+        db,
+        order_e,
+        line_total=5_000_000,
+        unit_price=5_000_000,
+        cost_price_snapshot=None,
+        credited_employee_id=people["NV005"],
+    )
+
+    an = client_as(app, AN)
+    data = body(an.get("/api/v1/reports/revenue-by-employee"))
+
+    rows = {row["employee_code"]: row for row in data["items"]}
+    assert rows["NV005"]["profit"] is None
+
+
+@pytest.mark.ac("AC-RPT-060")
+def test_lines_drilldown_by_employee_id(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    order_a = insert_order(
+        db,
+        customer_id=None,
+        created_by=people["NV005"],
+        status="COMPLETED",
+        code="DHA",
+        total=1_000_000,
+        completed_at=COMPLETED_IN_RANGE,
+    )
+    insert_order_line(
+        db,
+        order_a,
+        line_total=1_000_000,
+        unit_price=1_000_000,
+        cost_price_snapshot=500_000,
+        credited_employee_id=people["NV005"],
+        name_snapshot="Camera IMOU 2MP",
+    )
+    order_b = insert_order(
         db,
         customer_id=None,
         created_by=people["NV001"],
         status="COMPLETED",
-        code="DH01",
-        total=1_000_000,
+        code="DHB",
+        total=2_000_000,
         completed_at=COMPLETED_IN_RANGE,
     )
+    insert_order_line(
+        db,
+        order_b,
+        line_total=2_000_000,
+        unit_price=2_000_000,
+        cost_price_snapshot=1_000_000,
+        credited_employee_id=people["NV020"],
+    )
 
-    hoa = client_as(app, HOA)
-    problem(hoa.get(f"/api/v1/reports/revenue-by-employee/{people['NV001']}/orders"), 404, "NOT_FOUND")
+    an = client_as(app, AN)
+    res = an.get("/api/v1/reports/revenue-by-employee/lines", params={"employee_id": str(people["NV005"])})
+    assert res.status_code == 200, res.text
+    lines = res.json()
+    assert len(lines) == 1
+    assert lines[0]["order_code"] == "DHA"
+    assert lines[0]["line_name"] == "Camera IMOU 2MP"
+    assert lines[0]["line_total"] == 1_000_000
+    assert lines[0]["profit"] == 500_000
 
 
-@pytest.mark.ac("AC-RPT-048")
+@pytest.mark.ac("AC-RPT-061")
+def test_lines_drilldown_unassigned(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    order_c = insert_order(
+        db,
+        customer_id=None,
+        created_by=people["NV005"],
+        status="COMPLETED",
+        code="DHC",
+        total=3_000_000,
+        completed_at=COMPLETED_IN_RANGE,
+    )
+    insert_order_line(
+        db,
+        order_c,
+        line_total=3_000_000,
+        unit_price=3_000_000,
+        cost_price_snapshot=1_000_000,
+        credited_employee_id=None,
+    )
+
+    an = client_as(app, AN)
+    res = an.get("/api/v1/reports/revenue-by-employee/lines", params={"unassigned": "true"})
+    assert res.status_code == 200, res.text
+    lines = res.json()
+    assert len(lines) == 1
+    assert lines[0]["order_code"] == "DHC"
+
+
+@pytest.mark.ac("AC-RPT-062")
+def test_lines_drilldown_requires_exactly_one_selector(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    problem(an.get("/api/v1/reports/revenue-by-employee/lines"), 422, "VALIDATION_ERROR")
+    problem(
+        an.get(
+            "/api/v1/reports/revenue-by-employee/lines",
+            params={"employee_id": str(people["NV005"]), "unassigned": "true"},
+        ),
+        422,
+        "VALIDATION_ERROR",
+    )
+
+
 def test_not_completed_excludes_cancelled_and_draft(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
-    insert_order(
+    pending = insert_order(
         db,
         customer_id=None,
         created_by=people["NV005"],
@@ -198,7 +340,15 @@ def test_not_completed_excludes_cancelled_and_draft(
         total=1_000_000,
         created_at=CREATED_IN_RANGE,
     )
-    insert_order(
+    insert_order_line(
+        db,
+        pending,
+        line_total=1_000_000,
+        unit_price=1_000_000,
+        cost_price_snapshot=None,
+        credited_employee_id=people["NV005"],
+    )
+    cancelled = insert_order(
         db,
         customer_id=None,
         created_by=people["NV005"],
@@ -207,7 +357,15 @@ def test_not_completed_excludes_cancelled_and_draft(
         total=2_000_000,
         created_at=CREATED_IN_RANGE,
     )
-    insert_order(
+    insert_order_line(
+        db,
+        cancelled,
+        line_total=2_000_000,
+        unit_price=2_000_000,
+        cost_price_snapshot=None,
+        credited_employee_id=people["NV005"],
+    )
+    draft = insert_order(
         db,
         customer_id=None,
         created_by=people["NV005"],
@@ -215,6 +373,14 @@ def test_not_completed_excludes_cancelled_and_draft(
         code="DH03",
         total=3_000_000,
         created_at=CREATED_IN_RANGE,
+    )
+    insert_order_line(
+        db,
+        draft,
+        line_total=3_000_000,
+        unit_price=3_000_000,
+        cost_price_snapshot=None,
+        credited_employee_id=people["NV005"],
     )
 
     an = client_as(app, AN)
@@ -224,7 +390,6 @@ def test_not_completed_excludes_cancelled_and_draft(
     assert rows["NV005"]["order_count"] == 1
 
 
-@pytest.mark.ac("AC-RPT-049")
 def test_technician_without_capability_is_forbidden(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
@@ -232,57 +397,43 @@ def test_technician_without_capability_is_forbidden(
     problem(duc.get("/api/v1/reports/revenue-by-employee"), 403, "FORBIDDEN")
 
 
-@pytest.mark.ac("AC-RPT-024")
-def test_drilldown_orders_for_one_employee(
+@pytest.mark.ac("AC-RPT-056")
+def test_export_returns_csv_with_bom_and_unassigned_row(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
-    insert_order(
+    order_a = insert_order(
         db,
         customer_id=None,
         created_by=people["NV005"],
         status="COMPLETED",
-        code="DH01",
+        code="DHA",
         total=1_000_000,
         completed_at=COMPLETED_IN_RANGE,
     )
-    insert_order(
+    insert_order_line(
+        db,
+        order_a,
+        line_total=1_000_000,
+        unit_price=1_000_000,
+        cost_price_snapshot=500_000,
+        credited_employee_id=people["NV005"],
+    )
+    order_c = insert_order(
         db,
         customer_id=None,
         created_by=people["NV005"],
         status="COMPLETED",
-        code="DH02",
+        code="DHC",
         total=2_000_000,
         completed_at=COMPLETED_IN_RANGE,
     )
-    insert_order(
+    insert_order_line(
         db,
-        customer_id=None,
-        created_by=people["NV001"],
-        status="COMPLETED",
-        code="DH03",
-        total=9_000_000,
-        completed_at=COMPLETED_IN_RANGE,
-    )
-
-    an = client_as(app, AN)
-    res = an.get(f"/api/v1/reports/revenue-by-employee/{people['NV005']}/orders")
-    assert res.status_code == 200, res.text
-    codes = {order["code"] for order in res.json()}
-    assert codes == {"DH01", "DH02"}
-
-
-@pytest.mark.ac("AC-RPT-025")
-def test_export_returns_csv_with_bom_and_filename(
-    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
-) -> None:
-    insert_order(
-        db,
-        customer_id=None,
-        created_by=people["NV005"],
-        status="COMPLETED",
-        code="DH01",
-        total=1_000_000,
-        completed_at=COMPLETED_IN_RANGE,
+        order_c,
+        line_total=2_000_000,
+        unit_price=2_000_000,
+        cost_price_snapshot=1_000_000,
+        credited_employee_id=None,
     )
 
     params = {"from": "2026-09-01", "to": "2026-09-26"}
@@ -290,7 +441,7 @@ def test_export_returns_csv_with_bom_and_filename(
     json_res = an.get("/api/v1/reports/revenue-by-employee", params=params)
     assert json_res.status_code == 200, json_res.text
     report_items = json_res.json()["items"]
-    assert report_items
+    assert len(report_items) == 2
 
     res = an.get("/api/v1/reports/revenue-by-employee/export", params=params)
 
@@ -300,19 +451,7 @@ def test_export_returns_csv_with_bom_and_filename(
     assert res.content.startswith(b"\xef\xbb\xbf")
     text_content = res.content.decode("utf-8-sig")
     rows = list(csv.reader(io.StringIO(text_content)))
-    assert rows[0] == [
-        "Mã nhân viên",
-        "Tên nhân viên",
-        "Số đơn",
-        "Doanh thu",
-        "Lợi nhuận",
-    ]
+    assert rows[0] == ["Mã nhân viên", "Tên nhân viên", "Số đơn", "Doanh thu", "Lợi nhuận"]
     assert len(rows) - 1 == len(report_items)
-    for csv_row, item in zip(rows[1:], report_items, strict=True):
-        assert csv_row == [
-            item["employee_code"],
-            item["employee_name"],
-            str(item["order_count"]),
-            str(item["subtotal_revenue"]),
-            "" if item["profit"] is None else str(item["profit"]),
-        ]
+    unassigned_csv_row = next(row for row in rows[1:] if row[0] == "")
+    assert unassigned_csv_row[1] == "(Chưa gán)"
