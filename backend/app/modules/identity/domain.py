@@ -7,7 +7,7 @@ MAX_PASSWORD_LENGTH = 128
 
 
 def password_problems(
-    new_password: str, *, current_password: str | None, email: str
+    new_password: str, *, current_password: str | None, email: str | None
 ) -> list[tuple[str, str]]:
     """(field, Vietnamese message) for every rule the new password breaks; empty when acceptable.
 
@@ -20,7 +20,7 @@ def password_problems(
         problems.append(f"Mật khẩu tối đa {MAX_PASSWORD_LENGTH} ký tự.")
     if current_password is not None and new_password == current_password:
         problems.append("Mật khẩu mới phải khác mật khẩu hiện tại.")
-    email_name = email.strip().split("@", 1)[0].lower()
+    email_name = (email or "").strip().split("@", 1)[0].lower()
     if email_name and email_name in new_password.lower():
         problems.append("Mật khẩu không được chứa tên email.")
     return [("new_password", message) for message in problems]

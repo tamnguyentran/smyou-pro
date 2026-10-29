@@ -69,7 +69,7 @@ def test_failed_create_writes_no_audit_row(app: FastAPI, db: Connection) -> None
         json={
             "full_name": "Trùng Email",
             "email": HOA.email.upper(),
-            "department": "SALES",
+            "department_id": "d2222222-2222-4222-8222-222222222222",
             "roles": ["SALE"],
         },
     )
@@ -88,7 +88,7 @@ def test_create_employee_audits_create(app: FastAPI, db: Connection) -> None:
         json={
             "full_name": "Trần Thị Mai",
             "email": "mai.tran@smyou.vn",
-            "department": "SALES",
+            "department_id": "d2222222-2222-4222-8222-222222222222",
             "roles": ["SALE"],
         },
     )
@@ -114,14 +114,15 @@ def test_update_employee_audits_changed_fields(app: FastAPI, db: Connection) -> 
     client = client_as(app, AN)
 
     res = client.patch(
-        f"/api/v1/employees/{hoa}", json={"version": 1, "phone": "0932068787", "department": "TECHNICAL"}
+        f"/api/v1/employees/{hoa}",
+        json={"version": 1, "phone": "0932068787", "department_id": "d3333333-3333-4333-8333-333333333333"},
     )
     assert res.status_code == 200, res.text
 
     [row] = audit_rows(db, hoa)
     assert row.action == "update"
     payload = row.data if isinstance(row.data, dict) else json.loads(row.data)
-    assert sorted(payload["changed_fields"]) == ["department", "phone"]
+    assert sorted(payload["changed_fields"]) == ["department_id", "phone"]
 
 
 @pytest.mark.ac("AC-SYS-059")

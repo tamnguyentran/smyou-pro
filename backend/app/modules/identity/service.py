@@ -30,6 +30,7 @@ from app.core.security import (
 )
 from app.core.spec_loader import PermissionsSpec
 from app.modules.audit import service as audit
+from app.modules.departments.models import LEGACY_DEPARTMENT_IDS
 from app.modules.identity.domain import is_locked, password_problems, register_failure
 from app.modules.identity.models import (
     AuthSession,
@@ -38,7 +39,7 @@ from app.modules.identity.models import (
     PasswordResetRequest,
     PasswordResetToken,
 )
-from app.modules.identity.schemas import MeEmployee, MeResponse
+from app.modules.identity.schemas import MeDepartment, MeEmployee, MeResponse
 from app.modules.notifications import service as notifications
 
 logger = logging.getLogger(__name__)
@@ -357,7 +358,8 @@ def forgot_password(
             f"{reset_link}\n\n"
             "Nếu bạn không yêu cầu điều này, hãy bỏ qua email này."
         )
-        mailer(settings, employee.email, "Đặt lại mật khẩu — SMYou Pro", body)
+        # matched by email above, so it is never None here (email is optional since M17-03a)
+        mailer(settings, employee.email or email, "Đặt lại mật khẩu — SMYou Pro", body)
         logger.info("forgot-password: reset email dispatched for %s", employee.id)
     return None
 
@@ -401,7 +403,7 @@ def create_manager(
         email=email,
         full_name=full_name,
         code=code,
-        department="MANAGEMENT",
+        department_id=LEGACY_DEPARTMENT_IDS["MANAGEMENT"],
         password_hash=hash_password(password),
         must_change_password=False,
         password_changed_at=now,
@@ -442,6 +444,24 @@ def authenticate(request: HTTPConnection, session: Session) -> Actor | None:
     )
 
 
+# MeEmployee fields copied straight from the Employee row (M17-03a adds the profile ones).
+_ME_COLUMNS = (
+    "code",
+    "full_name",
+    "email",
+    "title",
+    "phone",
+    "birth_date",
+    "birth_place",
+    "gender",
+    "address",
+    "id_number",
+    "id_issued_date",
+    "id_issued_place",
+    "marital_status",
+)
+
+
 def me(
     session: Session,
     actor: Actor,
@@ -459,11 +479,8 @@ def me(
     return MeResponse(
         employee=MeEmployee(
             id=employee.id,
-            code=employee.code,
-            full_name=employee.full_name,
-            email=employee.email,
-            title=employee.title,
-            department=employee.department,
+            department=MeDepartment(id=employee.department.id, name=employee.department.name),
+            **{field: getattr(employee, field) for field in _ME_COLUMNS},
         ),
         roles=[role for role in permissions.roles if role in actor.roles],
         capabilities=capabilities,

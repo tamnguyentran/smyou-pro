@@ -29,6 +29,7 @@
 | Nhận/từ chối/bắt đầu/xong task | — | — | — | của mình |
 | KPI | tất cả | — | tất cả | của mình |
 | Thông tin công ty (xem/sửa, logo — M17-01) | ✅ | — | — | — |
+| Phòng ban (thêm/sửa/ngừng — M17-02a; QLKT chỉ xem qua API) | ✅ | — | — | — |
 | Nhật ký hệ thống | ✅ | — | — | — |
 
 ## Menu theo vai trò (desktop sidebar 2 cấp)
@@ -40,6 +41,7 @@
 | 🛍️ Đơn hàng → Danh sách đơn · Tạo đơn mới · Khách hàng | SALE, MANAGER |
 | 📦 Danh mục → Sản phẩm · Dịch vụ | MANAGER |
 | 👤 Nhân sự & phân quyền | MANAGER |
+| 🕸️ Phòng ban | MANAGER |
 | 📈 Báo cáo KPI | MANAGER, TECH_LEAD, TECHNICIAN (của mình) |
 | 🏢 Thông tin công ty | MANAGER |
 | 🕘 Nhật ký hệ thống | MANAGER |

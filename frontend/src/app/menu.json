@@ -164,6 +164,15 @@
       "children": []
     },
     {
+      "id": "departments",
+      "label": "Phòng ban",
+      "icon": "Network",
+      "path": "/settings/departments",
+      "capability": "employee.manage",
+      "badge": null,
+      "children": []
+    },
+    {
       "id": "reports",
       "label": "Báo cáo",
       "icon": "BarChart3",

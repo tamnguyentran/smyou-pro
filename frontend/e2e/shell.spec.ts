@@ -18,6 +18,7 @@ const MENUS: Record<Role, string[]> = {
     "Đơn hàng",
     "Danh mục",
     "Nhân sự & phân quyền",
+    "Phòng ban",
     "Báo cáo",
     "Thông tin công ty",
     "Nhật ký hệ thống",

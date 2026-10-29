@@ -22,6 +22,7 @@ const ACTION_LABELS: Record<string, string> = {
 const ENTITY_TYPE_LABELS: Record<string, string> = {
   EMPLOYEE: "Nhân viên",
   COMPANY_PROFILE: "Thông tin công ty",
+  DEPARTMENT: "Phòng ban",
 };
 
 // Same labels and tones as the employees list (EmployeeList StatusBadges).

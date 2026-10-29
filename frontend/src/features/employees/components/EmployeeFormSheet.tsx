@@ -22,13 +22,15 @@ import {
   useSetRoles,
   useUpdateEmployee,
   type Employee,
-  type EmployeeCreateBody,
-  type EmployeeUpdateBody,
   type Role,
 } from "../api";
 import { fieldErrors } from "../errors";
+import { formatDate } from "../../../lib/format";
+import { useActiveDepartments } from "../../departments/api";
 import {
-  DEPARTMENT_LABELS,
+  GENDER_LABELS,
+  MARITAL_STATUS_LABELS,
+  PROFILE_FIELDS,
   ROLE_ORDER,
   employeeFormSchema,
   type EmployeeFormValues,
@@ -106,6 +108,25 @@ function RoleField({
 
 const FORM_ID = "employee-form";
 
+/** M17-03a optional profile: blank → null (the server trims too). */
+function profileBody(values: EmployeeFormValues) {
+  return {
+    birth_date: values.birth_date || null,
+    birth_place: values.birth_place || null,
+    gender: (values.gender || null) as Employee["gender"],
+    address: values.address || null,
+    id_number: values.id_number || null,
+    id_issued_date: values.id_issued_date || null,
+    id_issued_place: values.id_issued_place || null,
+    marital_status: (values.marital_status || null) as Employee["marital_status"],
+  };
+}
+
+/** Today in Asia/Ho_Chi_Minh as YYYY-MM-DD — the latest selectable birth/issue date (AC-EMP-066). */
+function todayInVietnam(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
+}
+
 /** Create or edit an employee (AC-EMP-014/015); read-only detail view for TECH_LEAD (AC-EMP-017);
  * roles and account state (khoá/mở/cấp lại mật khẩu, AC-EMP-016) live in the same sheet. */
 export function EmployeeFormSheet({
@@ -122,6 +143,20 @@ export function EmployeeFormSheet({
   // (review round 1: otherwise it looked like STALE_VERSION even though nobody else touched the row).
   const [employee, setEmployee] = useState<Employee | undefined>(initialEmployee);
   const readOnly = employee !== undefined && !canManage;
+  const departmentsQuery = useActiveDepartments(!readOnly);
+  const activeDepartments = departmentsQuery.data ?? [];
+  const departmentPlaceholder = departmentsQuery.isLoading
+    ? "Đang tải phòng ban…"
+    : departmentsQuery.isError
+      ? "Không tải được danh sách phòng ban"
+      : "Chọn phòng ban";
+  // The current department is always an option (keyed by id, so the selected <option> node survives
+  // the list loading); an inactive one stays selectable only for this employee (M17-02b §6).
+  const current = employee?.department;
+  const departmentOptions =
+    current && !activeDepartments.some((d) => d.id === current.id)
+      ? [current, ...activeDepartments]
+      : activeDepartments;
   const { data: session } = useSession();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -150,10 +185,14 @@ export function EmployeeFormSheet({
       full_name: employee?.full_name ?? "",
       email: employee?.email ?? "",
       phone: employee?.phone ?? "",
-      department: employee?.department ?? "",
+      department_id: employee?.department.id ?? "",
       title: employee?.title ?? "",
+      ...Object.fromEntries(PROFILE_FIELDS.map((f) => [f, employee?.[f] ?? ""])),
     },
   });
+  const today = todayInVietnam();
+  const fieldError = (name: keyof EmployeeFormValues) =>
+    formState.errors[name]?.message ?? serverErrors[name];
 
   const isSelf = employee !== undefined && session?.employee.id === employee.id;
   const title = employee ? (readOnly ? "Chi tiết nhân viên" : "Sửa nhân viên") : "Thêm nhân viên";
@@ -194,9 +233,10 @@ export function EmployeeFormSheet({
       if (!employee) {
         const created = await create.mutateAsync({
           full_name: values.full_name,
-          email: values.email,
+          email: values.email || null,
           phone: values.phone || null,
-          department: values.department as EmployeeCreateBody["department"],
+          ...profileBody(values),
+          department_id: values.department_id,
           title: values.title || null,
           roles,
         });
@@ -206,9 +246,10 @@ export function EmployeeFormSheet({
       let version = employee.version;
       const infoChanged =
         values.full_name !== employee.full_name ||
-        values.email !== employee.email ||
+        (values.email || "") !== (employee.email ?? "") ||
         (values.phone || "") !== (employee.phone ?? "") ||
-        values.department !== employee.department ||
+        PROFILE_FIELDS.some((f) => (values[f] || "") !== (employee[f] ?? "")) ||
+        values.department_id !== employee.department.id ||
         (values.title || "") !== (employee.title ?? "");
       if (infoChanged) {
         const updated = await update.mutateAsync({
@@ -216,9 +257,10 @@ export function EmployeeFormSheet({
           body: {
             version,
             full_name: values.full_name,
-            email: values.email,
+            email: values.email || null,
             phone: values.phone || null,
-            department: values.department as EmployeeUpdateBody["department"],
+            ...profileBody(values),
+            department_id: values.department_id,
             title: values.title || null,
           },
         });
@@ -296,6 +338,7 @@ export function EmployeeFormSheet({
         open
         onClose={onClose}
         title={title}
+        wide
         // Esc/overlay must reach only the topmost sheet: while a ConfirmDialog or the reset-password
         // dialog sits on top, this outer one ignores them — both sheets listen on `document`, independently.
         dismissible={
@@ -333,15 +376,26 @@ export function EmployeeFormSheet({
                 [
                   ["Mã", employee.code],
                   ["Họ và tên", employee.full_name],
-                  ["Email", employee.email],
+                  ["Ngày sinh", employee.birth_date ? formatDate(employee.birth_date) : "—"],
+                  ["Nơi sinh", employee.birth_place ?? "—"],
+                  ["Giới tính", employee.gender ? GENDER_LABELS[employee.gender] : "—"],
                   ["SĐT", employee.phone ?? "—"],
-                  ["Bộ phận", DEPARTMENT_LABELS[employee.department] ?? employee.department],
+                  ["Địa chỉ", employee.address ?? "—"],
+                  ["Email", employee.email ?? "—"],
+                  ["CMND/CCCD", employee.id_number ?? "—"],
+                  ["Ngày cấp", employee.id_issued_date ? formatDate(employee.id_issued_date) : "—"],
+                  ["Nơi cấp", employee.id_issued_place ?? "—"],
+                  [
+                    "Tình trạng hôn nhân",
+                    employee.marital_status ? MARITAL_STATUS_LABELS[employee.marital_status] : "—",
+                  ],
+                  ["Phòng ban", employee.department.name],
                   ["Chức danh", employee.title ?? "—"],
                 ] as [string, ReactNode][]
               ).map(([label, value]) => (
                 <div key={label} className="flex justify-between gap-4 py-2 text-sm">
                   <dt className="text-muted">{label}</dt>
-                  <dd className="font-medium text-heading">{value}</dd>
+                  <dd className="text-right font-medium text-heading">{value}</dd>
                 </div>
               ))}
               <div className="flex justify-between gap-4 py-2 text-sm">
@@ -361,31 +415,91 @@ export function EmployeeFormSheet({
             className="space-y-4"
           >
             {formMessage ? <Alert>{formMessage}</Alert> : null}
-            <TextField
-              label="Họ và tên"
-              error={formState.errors.full_name?.message ?? serverErrors.full_name}
-              {...register("full_name")}
-            />
-            <TextField
-              label="Email"
-              type="email"
-              error={formState.errors.email?.message ?? serverErrors.email}
-              {...register("email")}
-            />
-            <TextField label="SĐT" error={serverErrors.phone} {...register("phone")} />
-            <Select
-              label="Bộ phận"
-              error={formState.errors.department?.message ?? serverErrors.department}
-              {...register("department")}
-            >
-              <option value="">-- Chọn bộ phận --</option>
-              {Object.entries(DEPARTMENT_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </Select>
-            <TextField label="Chức danh" error={serverErrors.title} {...register("title")} />
+            {/* Field order follows the company's paper profile (M17-03a §2); 2 columns from lg. */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextField
+                label="Mã NV"
+                value={employee?.code ?? ""}
+                placeholder="Tự sinh khi lưu"
+                disabled
+                readOnly
+              />
+              <TextField
+                label="Họ và tên"
+                error={fieldError("full_name")}
+                {...register("full_name")}
+              />
+              <TextField
+                label="Ngày sinh"
+                type="date"
+                max={today}
+                error={fieldError("birth_date")}
+                {...register("birth_date")}
+              />
+              <TextField
+                label="Nơi sinh"
+                error={fieldError("birth_place")}
+                {...register("birth_place")}
+              />
+              <Select label="Giới tính" error={fieldError("gender")} {...register("gender")}>
+                <option value="">—</option>
+                {Object.entries(GENDER_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+              <TextField label="SĐT" error={serverErrors.phone} {...register("phone")} />
+              <TextField label="Địa chỉ" error={fieldError("address")} {...register("address")} />
+              <TextField
+                label="Email"
+                type="email"
+                error={fieldError("email")}
+                {...register("email")}
+              />
+              <TextField
+                label="CMND/CCCD"
+                error={fieldError("id_number")}
+                {...register("id_number")}
+              />
+              <TextField
+                label="Ngày cấp"
+                type="date"
+                max={today}
+                error={fieldError("id_issued_date")}
+                {...register("id_issued_date")}
+              />
+              <TextField
+                label="Nơi cấp"
+                error={fieldError("id_issued_place")}
+                {...register("id_issued_place")}
+              />
+              <Select
+                label="Tình trạng hôn nhân"
+                error={fieldError("marital_status")}
+                {...register("marital_status")}
+              >
+                <option value="">—</option>
+                {Object.entries(MARITAL_STATUS_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                label="Phòng ban"
+                error={formState.errors.department_id?.message ?? serverErrors.department_id}
+                {...register("department_id")}
+              >
+                <option value="">{departmentPlaceholder}</option>
+                {departmentOptions.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.is_active ? d.name : `${d.name} (ngừng hoạt động)`}
+                  </option>
+                ))}
+              </Select>
+              <TextField label="Chức danh" error={serverErrors.title} {...register("title")} />
+            </div>
             <RoleField
               selected={selectedRoles}
               onToggle={toggleRole}

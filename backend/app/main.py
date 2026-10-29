@@ -25,6 +25,7 @@ from app.modules.customer_gift_report.router import router as customer_gift_repo
 from app.modules.customer_gifts.router import router as customer_gifts_router
 from app.modules.customers.router import router as customers_router
 from app.modules.dashboard.router import router as dashboard_router
+from app.modules.departments.router import router as departments_router
 from app.modules.dispatch import service as dispatch_service
 from app.modules.dispatch.router import router as dispatch_router
 from app.modules.dispatch.router import tasks_router
@@ -97,6 +98,7 @@ def create_app(
     app.include_router(auth_router)
     app.include_router(me_router)
     app.include_router(employees_router)
+    app.include_router(departments_router)
     app.include_router(audit_router)
     app.include_router(notifications_router)
     app.include_router(catalog_router)

@@ -17,6 +17,21 @@ interface Person {
   capabilities: Record<string, string[]>;
 }
 const all = ["all"];
+const MANAGEMENT = {
+  id: "d1111111-1111-4111-8111-111111111111",
+  name: "Ban quản lý",
+  is_active: true,
+};
+const SALES = { id: "d2222222-2222-4222-8222-222222222222", name: "Kinh doanh", is_active: true };
+const TECHNICAL = { id: "d3333333-3333-4333-8333-333333333333", name: "Kỹ thuật", is_active: true };
+const ACTIVE_DEPARTMENTS = [
+  MANAGEMENT,
+  { id: "d6666666-6666-4666-8666-666666666666", name: "Kế Toán - tài chính", is_active: true },
+  SALES,
+  TECHNICAL,
+  { id: "d5555555-5555-4555-8555-555555555555", name: "Nhân sự/marketing", is_active: true },
+  { id: "d4444444-4444-4444-8444-444444444444", name: "Phát Triển Kinh Tế", is_active: true },
+];
 const self = ["self"];
 const AN: Person = {
   code: "NV001",
@@ -52,13 +67,21 @@ function employee(overrides: Partial<Employee> = {}): Employee {
     full_name: "Lê Thị Hoa",
     email: "hoa.le@smyou.vn",
     phone: "0932068787",
-    department: "SALES",
+    department: SALES,
     title: "Nhân viên kinh doanh",
     roles: ["SALE"],
     is_active: true,
     is_locked: false,
     must_change_password: false,
     version: 1,
+    birth_date: null,
+    birth_place: null,
+    gender: null,
+    address: null,
+    id_number: null,
+    id_issued_date: null,
+    id_issued_place: null,
+    marital_status: null,
     ...overrides,
   };
 }
@@ -68,7 +91,7 @@ const AN_ROW = employee({
   full_name: "Nguyễn Văn An",
   email: "an.nguyen@smyou.vn",
   phone: null,
-  department: "MANAGEMENT",
+  department: MANAGEMENT,
   title: "Quản lý chung",
   roles: ["MANAGER"],
 });
@@ -94,13 +117,23 @@ function signedInAs(person: Person, employeesHandler?: Parameters<typeof http.ge
           full_name: person.full_name,
           email: person.email,
           title: null,
-          department: "MANAGEMENT",
+          department: { id: MANAGEMENT.id, name: MANAGEMENT.name },
         },
         roles: person.roles,
         capabilities: person.capabilities,
         counters: {},
       }),
     ),
+    http.get("/api/v1/departments", ({ request }) => {
+      const onlyActive = new URL(request.url).searchParams.get("is_active") === "true";
+      const items = ACTIVE_DEPARTMENTS.map((d) => ({
+        ...d,
+        version: 1,
+        created_at: "2026-10-28T00:00:00Z",
+        updated_at: "2026-10-28T00:00:00Z",
+      })).filter((d) => !onlyActive || d.is_active);
+      return HttpResponse.json({ items, total: items.length, limit: 100, offset: 0 });
+    }),
     ...(employeesHandler ? [http.get("/api/v1/employees", employeesHandler)] : []),
   );
   markSignedIn();
@@ -276,7 +309,7 @@ describe("AC-EMP-014 thêm nhân viên", () => {
 
     await user.type(within(dialog).getByLabelText("Họ và tên"), "Lê Thị Hoa");
     await user.type(within(dialog).getByLabelText("Email"), "khong-hop-le");
-    await user.selectOptions(within(dialog).getByLabelText("Bộ phận"), "SALES");
+    await user.selectOptions(within(dialog).getByLabelText("Phòng ban"), SALES.id);
     await user.click(within(dialog).getByRole("checkbox", { name: "Nhân viên kinh doanh" }));
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
     expect(await within(dialog).findByText("Email không hợp lệ.")).toBeInTheDocument();
@@ -316,7 +349,7 @@ describe("AC-EMP-014 thêm nhân viên", () => {
     const dialog = await screen.findByRole("dialog", { name: "Thêm nhân viên" });
     await user.type(within(dialog).getByLabelText("Họ và tên"), "X");
     await user.type(within(dialog).getByLabelText("Email"), "x@smyou.vn");
-    await user.selectOptions(within(dialog).getByLabelText("Bộ phận"), "SALES");
+    await user.selectOptions(within(dialog).getByLabelText("Phòng ban"), SALES.id);
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
     expect(await within(dialog).findByText("Cần chọn ít nhất một vai trò.")).toBeInTheDocument();
     expect(posted).toBe(false);
@@ -637,13 +670,238 @@ describe("Review vòng 1", () => {
     const dialog = await screen.findByRole("dialog", { name: "Thêm nhân viên" });
     await user.type(within(dialog).getByLabelText("Họ và tên"), "Lê Thị Hoa");
     await user.type(within(dialog).getByLabelText("Email"), "hoa.le@smyou.vn");
-    await user.selectOptions(within(dialog).getByLabelText("Bộ phận"), "SALES");
+    await user.selectOptions(within(dialog).getByLabelText("Phòng ban"), SALES.id);
     await user.click(within(dialog).getByRole("checkbox", { name: "Nhân viên kinh doanh" }));
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
 
     const emailField = within(dialog).getByLabelText("Email");
     await waitFor(() => {
       expect(emailField).toHaveAccessibleDescription("Email không hợp lệ.");
+    });
+  });
+});
+
+describe("M17-02b phòng ban lấy từ danh sách", () => {
+  test("AC-EMP-060 chỉ liệt kê phòng đang hoạt động; bỏ trống → thông báo", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([AN_ROW])));
+    renderApp("/employees");
+    await openMenu();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Thêm nhân viên" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm nhân viên" });
+
+    const select = within(dialog).getByLabelText("Phòng ban");
+    await waitFor(() => {
+      expect(within(select).getAllByRole("option")).toHaveLength(7);
+    });
+    const labels = within(select)
+      .getAllByRole("option")
+      .map((o) => o.textContent);
+    expect(labels).toEqual(["Chọn phòng ban", ...ACTIVE_DEPARTMENTS.map((d) => d.name)]);
+
+    await user.type(within(dialog).getByLabelText("Họ và tên"), "X");
+    await user.type(within(dialog).getByLabelText("Email"), "x@smyou.vn");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+    expect(await within(dialog).findByText("Vui lòng chọn phòng ban.")).toBeInTheDocument();
+  });
+
+  test("AC-EMP-061 phòng hiện tại đã ngừng hoạt động vẫn hiện và lưu được", async () => {
+    const inactiveSales = { ...SALES, is_active: false };
+    let patched: Record<string, unknown> | null = null;
+    signedInAs(AN, () => HttpResponse.json(page([employee({ department: inactiveSales })])));
+    server.use(
+      http.get("/api/v1/departments", () => {
+        const items = ACTIVE_DEPARTMENTS.filter((d) => d.id !== SALES.id).map((d) => ({
+          ...d,
+          version: 1,
+          created_at: "2026-10-28T00:00:00Z",
+          updated_at: "2026-10-28T00:00:00Z",
+        }));
+        return HttpResponse.json({ items, total: items.length, limit: 100, offset: 0 });
+      }),
+      http.patch("/api/v1/employees/:id", async ({ request }) => {
+        patched = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          employee({ department: inactiveSales, title: "Trưởng nhóm", version: 2 }),
+        );
+      }),
+    );
+    renderApp("/employees");
+    await openMenu();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("Lê Thị Hoa"));
+    const dialog = await screen.findByRole("dialog", { name: "Sửa nhân viên" });
+
+    const select = within(dialog).getByLabelText<HTMLSelectElement>("Phòng ban");
+    expect(select.value).toBe(SALES.id);
+    expect(within(select).getByRole("option", { selected: true })).toHaveTextContent(
+      "Kinh doanh (ngừng hoạt động)",
+    );
+    const titleField = within(dialog).getByLabelText("Chức danh");
+    await user.clear(titleField);
+    await user.type(titleField, "Trưởng nhóm");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+
+    expect(await screen.findByText("Đã cập nhật.")).toBeInTheDocument();
+    expect(patched).toMatchObject({ department_id: SALES.id, title: "Trưởng nhóm" });
+  });
+
+  test("AC-EMP-062 QLKT xem chi tiết: Phòng ban lấy tên từ API", async () => {
+    const tu = employee({
+      code: "NV030",
+      full_name: "Phạm Minh Tú",
+      department: TECHNICAL,
+      roles: ["TECHNICIAN"],
+    });
+    signedInAs(TUAN, () => HttpResponse.json(page([tu])));
+    renderApp("/employees");
+    await openMenu();
+    await userEvent.setup().click(await screen.findByText("Phạm Minh Tú"));
+    const dialog = await screen.findByRole("dialog", { name: "Chi tiết nhân viên" });
+
+    const row = within(dialog).getByText("Phòng ban").closest("div");
+    expect(row).not.toBeNull();
+    expect(within(row as HTMLElement).getByText("Kỹ thuật")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Bộ phận")).not.toBeInTheDocument();
+  });
+});
+
+const YEN = employee({
+  id: "e0000000-0000-4000-8000-000000000064",
+  code: "NV064",
+  full_name: "Nguyễn Lê Kim Yến",
+  email: null,
+  birth_date: "1985-07-30",
+  birth_place: "An Giang",
+  gender: "FEMALE",
+  address: "12 Trần Hưng Đạo, Long Xuyên",
+  id_number: "089185000565",
+  id_issued_date: "2018-10-08",
+  id_issued_place: "Cục Cảnh sát QLHC về TTXH",
+  marital_status: "MARRIED",
+});
+
+function detailValue(dialog: HTMLElement, label: string): string | null {
+  const row = within(dialog).getByText(label, { selector: "dt" }).closest("div");
+  return row?.querySelector("dd")?.textContent ?? null;
+}
+
+describe("M17-03a hồ sơ nhân viên", () => {
+  test("AC-EMP-069 QLKT xem chi tiết: đủ trường mới, ngày dd/MM/yyyy, nhãn tiếng Việt", async () => {
+    signedInAs(TUAN, () => HttpResponse.json(page([YEN])));
+    renderApp("/employees");
+    await openMenu();
+    await userEvent.setup().click(await screen.findByText("Nguyễn Lê Kim Yến"));
+    const dialog = await screen.findByRole("dialog", { name: "Chi tiết nhân viên" });
+
+    expect(detailValue(dialog, "Ngày sinh")).toBe("30/07/1985");
+    expect(detailValue(dialog, "Nơi sinh")).toBe("An Giang");
+    expect(detailValue(dialog, "Giới tính")).toBe("Nữ");
+    expect(detailValue(dialog, "Địa chỉ")).toBe("12 Trần Hưng Đạo, Long Xuyên");
+    expect(detailValue(dialog, "CMND/CCCD")).toBe("089185000565");
+    expect(detailValue(dialog, "Ngày cấp")).toBe("08/10/2018");
+    expect(detailValue(dialog, "Nơi cấp")).toBe("Cục Cảnh sát QLHC về TTXH");
+    expect(detailValue(dialog, "Tình trạng hôn nhân")).toBe("Đã kết hôn");
+    expect(detailValue(dialog, "Email")).toBe("—");
+  });
+
+  test("AC-EMP-069 trường trống hiện —", async () => {
+    signedInAs(TUAN, () => HttpResponse.json(page([employee()])));
+    renderApp("/employees");
+    await openMenu();
+    await userEvent.setup().click(await screen.findByText("Lê Thị Hoa"));
+    const dialog = await screen.findByRole("dialog", { name: "Chi tiết nhân viên" });
+
+    for (const label of ["Ngày sinh", "Giới tính", "CMND/CCCD", "Tình trạng hôn nhân"]) {
+      expect(detailValue(dialog, label)).toBe("—");
+    }
+  });
+
+  test("AC-EMP-070 form thêm: đúng thứ tự ô, select tiếng Việt, Email không bắt buộc", async () => {
+    let posted: Record<string, unknown> | null = null;
+    signedInAs(AN, () => HttpResponse.json(page([AN_ROW])));
+    server.use(
+      http.post("/api/v1/employees", async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          {
+            employee: employee({ full_name: "Trần Văn Lợi", email: null }),
+            temporary_password: "aB3dEfGh9k",
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    renderApp("/employees");
+    await openMenu();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Thêm nhân viên" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm nhân viên" });
+
+    const order = [
+      "Mã NV",
+      "Họ và tên",
+      "Ngày sinh",
+      "Nơi sinh",
+      "Giới tính",
+      "SĐT",
+      "Địa chỉ",
+      "Email",
+      "CMND/CCCD",
+      "Ngày cấp",
+      "Nơi cấp",
+      "Tình trạng hôn nhân",
+      "Phòng ban",
+      "Chức danh",
+    ];
+    const labels = Array.from(dialog.querySelectorAll("label"))
+      .map((l) => l.textContent.trim())
+      .filter((text) => order.includes(text));
+    expect(labels).toEqual(order);
+
+    const gender = within(dialog).getByLabelText("Giới tính");
+    expect(gender.tagName).toBe("SELECT");
+    expect(
+      within(gender)
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual(["—", "Nam", "Nữ", "Khác"]);
+    const marital = within(dialog).getByLabelText("Tình trạng hôn nhân");
+    expect(marital.tagName).toBe("SELECT");
+    expect(
+      within(marital)
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual(["—", "Độc thân", "Đã kết hôn", "Ly hôn", "Goá"]);
+    expect(within(dialog).getByLabelText("Ngày sinh")).toHaveAttribute("type", "date");
+    expect(within(dialog).getByLabelText("Ngày cấp")).toHaveAttribute("type", "date");
+
+    await user.type(within(dialog).getByLabelText("Họ và tên"), "Trần Văn Lợi");
+    await user.type(within(dialog).getByLabelText("CMND/CCCD"), "1234567890");
+    await user.selectOptions(within(dialog).getByLabelText("Phòng ban"), SALES.id);
+    await user.click(within(dialog).getByRole("checkbox", { name: "Nhân viên kinh doanh" }));
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+    expect(await within(dialog).findByText("CMND/CCCD gồm 9 hoặc 12 chữ số.")).toBeInTheDocument();
+    expect(posted).toBeNull();
+
+    await user.clear(within(dialog).getByLabelText("CMND/CCCD"));
+    await user.type(within(dialog).getByLabelText("CMND/CCCD"), "089185000565");
+    await user.type(within(dialog).getByLabelText("Ngày sinh"), "1985-07-30");
+    await user.selectOptions(gender, "FEMALE");
+    await user.selectOptions(marital, "MARRIED");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+
+    expect(await screen.findByRole("dialog", { name: "Mật khẩu tạm" })).toBeInTheDocument();
+    expect(posted).toMatchObject({
+      email: null,
+      id_number: "089185000565",
+      birth_date: "1985-07-30",
+      gender: "FEMALE",
+      marital_status: "MARRIED",
+      birth_place: null,
+      address: null,
+      id_issued_date: null,
+      id_issued_place: null,
     });
   });
 });

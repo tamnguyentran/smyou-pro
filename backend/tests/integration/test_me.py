@@ -80,7 +80,17 @@ def test_manager_sees_profile_roles_and_exactly_their_capabilities(api: TestClie
         "full_name": "Nguyễn Văn An",
         "email": "an.nguyen@smyou.vn",
         "title": None,
-        "department": "MANAGEMENT",
+        "department": {"id": "d1111111-1111-4111-8111-111111111111", "name": "Ban quản lý"},
+        # M17-03a: own profile fields (unset for An in the seed)
+        "phone": None,
+        "birth_date": None,
+        "birth_place": None,
+        "gender": None,
+        "address": None,
+        "id_number": None,
+        "id_issued_date": None,
+        "id_issued_place": None,
+        "marital_status": None,
     }
     assert body["roles"] == ["MANAGER"]
     assert body["capabilities"] == MANAGER_CAPABILITIES

@@ -72,7 +72,7 @@ def test_codes_sort_numerically(app: FastAPI, db: Connection, people: dict[str, 
         ({"full_name": "A" * 121}, "full_name", "Tối đa 120 ký tự."),
         ({"roles": []}, "roles", "Cần chọn ít nhất một mục."),
         ({"roles": ["BOSS"]}, "roles.0", "Giá trị không hợp lệ."),
-        ({"department": "HR"}, "department", "Giá trị không hợp lệ."),
+        ({"department_id": "HR"}, "department_id", "Giá trị không hợp lệ."),
     ],
 )
 def test_validation_messages_are_vietnamese(

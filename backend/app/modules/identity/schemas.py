@@ -1,7 +1,8 @@
 """Request/response bodies for /api/v1/auth. Never include password hashes or tokens."""
 
 import uuid
-from typing import Annotated
+from datetime import date
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, StringConstraints
 
@@ -54,13 +55,28 @@ class E2ELastMailResponse(BaseModel):
     body: str
 
 
+class MeDepartment(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
 class MeEmployee(BaseModel):
     id: uuid.UUID
     code: str
     full_name: str
-    email: str
+    email: str | None
     title: str | None
-    department: str
+    department: MeDepartment
+    # M17-03a: own profile, shown read-only on "Cá nhân".
+    phone: str | None
+    birth_date: date | None
+    birth_place: str | None
+    gender: Literal["MALE", "FEMALE", "OTHER"] | None
+    address: str | None
+    id_number: str | None
+    id_issued_date: date | None
+    id_issued_place: str | None
+    marital_status: Literal["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"] | None
 
 
 class MeResponse(BaseModel):

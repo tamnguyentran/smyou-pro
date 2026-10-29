@@ -13,7 +13,7 @@ CODE_PREFIX = "NV"
 _CODE = re.compile(rf"{CODE_PREFIX}(\d+)")
 
 
-def temporary_password(email: str) -> str:
+def temporary_password(email: str | None) -> str:
     """Random one-time password that already satisfies the password rules (Q21)."""
     while True:
         password = "".join(secrets.choice(TEMP_PASSWORD_ALPHABET) for _ in range(TEMP_PASSWORD_LENGTH))

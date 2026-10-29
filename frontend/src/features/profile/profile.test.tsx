@@ -204,3 +204,46 @@ describe("AC-UI-039 AC-UI-040 khung thẻ hồ sơ cá nhân bỏ viền", () =>
     expect(within(section).getByRole("button", { name: "Thử lại" })).toBeInTheDocument();
   });
 });
+
+describe("ProfilePage — thông tin cá nhân (M17-03a)", () => {
+  const profileEmployee = {
+    id,
+    code: "NV014",
+    full_name: "Trần Minh Khoa",
+    email: null,
+    title: null,
+    department: { id: "d1", name: "Kỹ thuật" },
+    phone: "0932068787",
+    birth_date: "1985-07-30",
+    birth_place: "An Giang",
+    gender: "FEMALE",
+    address: "12 Trần Hưng Đạo, Long Xuyên, An Giang",
+    id_number: "089185000565",
+    id_issued_date: "2018-10-08",
+    id_issued_place: null,
+    marital_status: "MARRIED",
+  };
+
+  function row(label: string): string {
+    const dt = screen.getByText(label, { selector: "dt" });
+    return dt.nextElementSibling?.textContent ?? "";
+  }
+
+  test("AC-EMP-073 trang Cá nhân hiện SĐT + 8 trường mới, trống → '—', chỉ xem", async () => {
+    signedInWithProfile({ employee: profileEmployee });
+    renderApp("/ca-nhan");
+    await screen.findByText("Ngày sinh", { selector: "dt" });
+
+    expect(row("SĐT")).toBe("0932068787");
+    expect(row("Ngày sinh")).toBe("30/07/1985");
+    expect(row("Nơi sinh")).toBe("An Giang");
+    expect(row("Giới tính")).toBe("Nữ");
+    expect(row("Địa chỉ")).toBe("12 Trần Hưng Đạo, Long Xuyên, An Giang");
+    expect(row("CMND/CCCD")).toBe("089185000565");
+    expect(row("Ngày cấp")).toBe("08/10/2018");
+    expect(row("Nơi cấp")).toBe("—");
+    expect(row("Tình trạng hôn nhân")).toBe("Đã kết hôn");
+    expect(row("Email")).toBe("—");
+    expect(screen.getByRole("main").querySelector("input, select, textarea")).toBeNull();
+  });
+});

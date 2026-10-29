@@ -70,7 +70,7 @@ test("AC-EMP-014 AC-EMP-018 @a11y @screenshot thêm nhân viên và mật khẩu
   const email = `qa.${info.project.name}.${String(Date.now())}@smyou.vn`;
   await form.getByLabel("Họ và tên").fill("QA Kiểm thử");
   await form.getByLabel("Email").fill(email);
-  await form.getByLabel("Bộ phận").selectOption("SALES");
+  await form.getByLabel("Phòng ban").selectOption({ label: "Kinh doanh" });
   await form.getByRole("checkbox", { name: "Nhân viên kinh doanh" }).check();
   await evidence(page, info, "employee-form.png");
 
@@ -110,7 +110,7 @@ test("AC-EMP-018 không cuộn ngang ở 360px (danh sách, form thêm, mật kh
   const email = `qa.360.${info.project.name}.${String(Date.now())}@smyou.vn`;
   await form.getByLabel("Họ và tên").fill("QA 360px");
   await form.getByLabel("Email").fill(email);
-  await form.getByLabel("Bộ phận").selectOption("SALES");
+  await form.getByLabel("Phòng ban").selectOption({ label: "Kinh doanh" });
   await form.getByRole("checkbox", { name: "Nhân viên kinh doanh" }).check();
   await noHorizontalScroll(); // form thêm nhân viên
 
@@ -132,7 +132,7 @@ test("AC-EMP-016 khoá tài khoản, cấp lại mật khẩu, mở khoá (backe
   const email = `qa.lock.${info.project.name}.${String(Date.now())}@smyou.vn`;
   await createForm.getByLabel("Họ và tên").fill(name);
   await createForm.getByLabel("Email").fill(email);
-  await createForm.getByLabel("Bộ phận").selectOption("TECHNICAL");
+  await createForm.getByLabel("Phòng ban").selectOption({ label: "Kỹ thuật" });
   await createForm.getByRole("checkbox", { name: "Nhân viên kỹ thuật" }).check();
   await createForm.getByRole("button", { name: "Lưu" }).click();
   await page
@@ -192,4 +192,82 @@ test("AC-EMP-018 vùng chạm ≥ 44px trên danh sách", async ({ page }) => {
     const box = await control.boundingBox();
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
   }
+});
+
+test("AC-EMP-063 @screenshot tạo nhân viên chọn phòng ban mới từ danh sách", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER);
+  await page.getByRole("button", { name: "Thêm nhân viên" }).click();
+  const form = page.getByRole("dialog", { name: "Thêm nhân viên" });
+  const name = "QA Phòng ban";
+  const email = `qa.dept.${info.project.name}.${String(Date.now())}@smyou.vn`;
+  await form.getByLabel("Họ và tên").fill(name);
+  await form.getByLabel("Email").fill(email);
+  await form.getByLabel("Phòng ban").selectOption({ label: "Nhân sự/marketing" });
+  await form.getByRole("checkbox", { name: "Nhân viên kinh doanh" }).check();
+  await evidence(page, info, "employee-department-form.png");
+  await form.getByRole("button", { name: "Lưu" }).click();
+  await page
+    .getByRole("dialog", { name: "Mật khẩu tạm" })
+    .getByRole("button", { name: "Đóng", exact: true })
+    .click();
+  await expect(page.getByText(`Đã thêm nhân viên ${name}.`)).toBeVisible();
+
+  await page.getByLabel("Tìm kiếm").fill(email);
+  const row = page.locator("li, tr").filter({ hasText: email });
+  await row.getByRole("button", { name: new RegExp(name) }).click();
+  const editDialog = page.getByRole("dialog", { name: "Sửa nhân viên" });
+  await expect(editDialog.getByLabel("Phòng ban").locator("option:checked")).toHaveText(
+    "Nhân sự/marketing",
+  );
+});
+
+test("AC-EMP-071 @screenshot tạo nhân viên đủ hồ sơ cá nhân, mở lại thấy đúng", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER);
+  await page.getByRole("button", { name: "Thêm nhân viên" }).click();
+  const form = page.getByRole("dialog", { name: "Thêm nhân viên" });
+  const name = `Kim Yến ${info.project.name} ${String(Date.now())}`;
+  await form.getByLabel("Họ và tên").fill(name);
+  await form.getByLabel("Ngày sinh").fill("1985-07-30");
+  await form.getByLabel("Nơi sinh").fill("An Giang");
+  await form.getByLabel("Giới tính").selectOption({ label: "Nữ" });
+  await form.getByLabel("SĐT").fill("0932068787");
+  await form.getByLabel("Địa chỉ").fill("12 Trần Hưng Đạo, Long Xuyên, An Giang");
+  await form.getByLabel("CMND/CCCD").fill("089185000565");
+  await form.getByLabel("Ngày cấp").fill("2018-10-08");
+  await form.getByLabel("Nơi cấp").fill("Cục Cảnh sát QLHC về TTXH");
+  await form.getByLabel("Tình trạng hôn nhân").selectOption({ label: "Đã kết hôn" });
+  await form.getByLabel("Phòng ban").selectOption({ label: "Kinh doanh" });
+  await form.getByRole("checkbox", { name: "Nhân viên kinh doanh" }).check();
+  await evidence(page, info, "employee-profile-form.png");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  await form.getByRole("button", { name: "Lưu" }).click();
+  await page
+    .getByRole("dialog", { name: "Mật khẩu tạm" })
+    .getByRole("button", { name: "Đóng", exact: true })
+    .click();
+  await expect(page.getByText(`Đã thêm nhân viên ${name}.`)).toBeVisible();
+
+  await page.getByLabel("Tìm kiếm").fill(name);
+  await page.getByRole("button", { name: new RegExp(name) }).click();
+  const edit = page.getByRole("dialog", { name: "Sửa nhân viên" });
+  await expect(edit.getByLabel("Ngày sinh")).toHaveValue("1985-07-30");
+  await expect(edit.getByLabel("Nơi sinh")).toHaveValue("An Giang");
+  await expect(edit.getByLabel("Giới tính").locator("option:checked")).toHaveText("Nữ");
+  await expect(edit.getByLabel("Địa chỉ")).toHaveValue("12 Trần Hưng Đạo, Long Xuyên, An Giang");
+  await expect(edit.getByLabel("Email")).toHaveValue("");
+  await expect(edit.getByLabel("CMND/CCCD")).toHaveValue("089185000565");
+  await expect(edit.getByLabel("Ngày cấp")).toHaveValue("2018-10-08");
+  await expect(edit.getByLabel("Nơi cấp")).toHaveValue("Cục Cảnh sát QLHC về TTXH");
+  await expect(edit.getByLabel("Tình trạng hôn nhân").locator("option:checked")).toHaveText(
+    "Đã kết hôn",
+  );
+  await evidence(page, info, "employee-profile-edit.png");
 });

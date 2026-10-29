@@ -16,6 +16,7 @@ from app.core.db import create_db_engine, create_session_factory
 from app.core.security import hash_password
 from app.modules.catalog.models import Product, Service
 from app.modules.customers.models import Customer
+from app.modules.departments.models import LEGACY_DEPARTMENT_IDS
 from app.modules.dispatch.models import Assignment, DefectRecord, Task
 from app.modules.files import service as files_service
 from app.modules.files.models import Attachment
@@ -169,7 +170,9 @@ def main() -> int:
         for email, code, name, roles, password, must_change in ACCOUNTS:
             employee = session.scalars(select(Employee).where(Employee.email == email)).one_or_none()
             if employee is None:
-                employee = Employee(email=email, code=code, full_name=name, department="TECHNICAL")
+                employee = Employee(
+                    email=email, code=code, full_name=name, department_id=LEGACY_DEPARTMENT_IDS["TECHNICAL"]
+                )
                 session.add(employee)
             employee.password_hash = hash_password(password)
             employee.must_change_password = must_change

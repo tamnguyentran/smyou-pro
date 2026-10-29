@@ -21,6 +21,7 @@ from pwdlib import PasswordHash
 from sqlalchemy import Connection, create_engine, text
 from sqlalchemy.orm import sessionmaker
 
+from app.modules.departments.models import LEGACY_DEPARTMENT_IDS
 from tests.conftest import TEST_DATABASE_URL
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -130,7 +131,7 @@ def seed(
     employee_id = uuid.uuid4()
     db.execute(
         text(
-            "INSERT INTO employees (id, code, full_name, email, department, password_hash,"
+            "INSERT INTO employees (id, code, full_name, email, department_id, password_hash,"
             " must_change_password, is_active, failed_login_count)"
             " VALUES (:id, :code, :name, :email, :dept, :hash, :must, :active, :failed)"
         ),
@@ -139,7 +140,7 @@ def seed(
             "code": person.code,
             "name": person.full_name,
             "email": person.email,
-            "dept": person.department,
+            "dept": LEGACY_DEPARTMENT_IDS[person.department],
             "hash": _HASHER.hash(person.password),
             "must": must_change_password,
             "active": is_active,

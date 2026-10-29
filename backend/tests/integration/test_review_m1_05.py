@@ -55,14 +55,19 @@ def test_changed_fields_lists_only_fields_whose_value_changed(app: FastAPI, db: 
 
     res = client.patch(
         f"/api/v1/employees/{hoa}",
-        json={"version": 1, "full_name": None, "phone": None, "department": "TECHNICAL"},
+        json={
+            "version": 1,
+            "full_name": None,
+            "phone": None,
+            "department_id": "d3333333-3333-4333-8333-333333333333",
+        },
     )
     assert res.status_code == 200, res.text
 
     data = db.execute(
         text("SELECT data FROM audit_events WHERE entity_id = :id AND action = 'update'"), {"id": hoa}
     ).scalar_one()
-    assert data == {"changed_fields": ["department"]}
+    assert data == {"changed_fields": ["department_id"]}
 
 
 @pytest.mark.ac("AC-SYS-057")
@@ -73,7 +78,7 @@ def test_create_audit_holds_only_roles_and_never_the_temporary_password(app: Fas
         json={
             "full_name": "Trần Thị Mai",
             "email": "mai.tran@smyou.vn",
-            "department": "SALES",
+            "department_id": "d2222222-2222-4222-8222-222222222222",
             "roles": ["SALE"],
         },
     )

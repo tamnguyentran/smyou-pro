@@ -24,6 +24,15 @@ ITEM_KEYS = {
     "full_name",
     "email",
     "phone",
+    # M17-03a personal profile
+    "birth_date",
+    "birth_place",
+    "gender",
+    "address",
+    "id_number",
+    "id_issued_date",
+    "id_issued_place",
+    "marital_status",
     "department",
     "title",
     "roles",
@@ -36,7 +45,7 @@ NEW_HOA = {
     "full_name": "Trần Thị Mai",
     "email": "mai.tran@smyou.vn",
     "phone": "0932 06 8787",
-    "department": "SALES",
+    "department_id": "d2222222-2222-4222-8222-222222222222",
     "title": "Nhân viên kinh doanh",
     "roles": ["SALE"],
 }
@@ -178,7 +187,7 @@ def test_create_generates_code_and_one_time_temporary_password(
         ({"roles": []}, "roles"),
         ({"roles": ["BOSS"]}, "roles.0"),
         ({"full_name": "   "}, "full_name"),
-        ({"department": "HR"}, "department"),
+        ({"department_id": "HR"}, "department_id"),
     ],
 )
 def test_create_validation(

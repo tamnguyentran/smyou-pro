@@ -86,8 +86,9 @@ def test_golive_check_passes_when_env_and_db_clean(
         container,
         user,
         db,
-        "INSERT INTO employees (code, full_name, email, department, password_hash) "
-        "VALUES ('MGR001','Real Manager','golive-manager@smyou.vn','MANAGEMENT','x');",
+        "INSERT INTO employees (code, full_name, email, department_id, password_hash) "
+        "VALUES ('MGR001','Real Manager','golive-manager@smyou.vn',"
+        "'d1111111-1111-4111-8111-111111111111','x');",
     )
 
     result = run_golive_check(monkeypatch, valid_env_file(tmp_path))
@@ -117,8 +118,8 @@ def test_golive_check_fails_when_e2e_data_present(
         container,
         user,
         db,
-        "INSERT INTO employees (code, full_name, email, department, password_hash) "
-        "VALUES ('E2E01','E2E Employee','golive-e2e@smyou.vn','MANAGEMENT','x');",
+        "INSERT INTO employees (code, full_name, email, department_id, password_hash) "
+        "VALUES ('E2E01','E2E Employee','golive-e2e@smyou.vn','d1111111-1111-4111-8111-111111111111','x');",
     )
     psql(
         container,

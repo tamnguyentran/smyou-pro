@@ -34,6 +34,7 @@ def test_menu_document_has_menu_bottom_nav_and_role_labels() -> None:
         "sales",
         "catalog",
         "employees",
+        "departments",
         "reports",
         "company",
         "audit",
