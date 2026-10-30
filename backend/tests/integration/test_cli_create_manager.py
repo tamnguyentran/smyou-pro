@@ -53,7 +53,7 @@ def test_creates_manager_who_can_log_in(
             "role": "MANAGER",
         }
     ]
-    assert login(TestClient(app), "an.nguyen@smyou.vn", "SmYou@2026").status_code == 200
+    assert login(TestClient(app), "an.nv", "SmYou@2026").status_code == 200
 
 
 @pytest.mark.ac("AC-AUTH-018")

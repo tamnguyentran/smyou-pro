@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { loginName } from "./loginName";
 
 // Accounts created by backend/scripts/seed_e2e.py (reset before every `make e2e`).
 const PASSWORD = "E2e@SmYou2026";
@@ -6,7 +7,7 @@ const MANAGER = "an.e2e@smyou.vn";
 
 async function openCustomerForm(page: Page) {
   await page.goto(`./dang-nhap?next=${encodeURIComponent("/customers")}`);
-  await page.getByLabel("Email").fill(MANAGER);
+  await page.getByLabel("Tên đăng nhập").fill(loginName(MANAGER));
   await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
   await page.getByRole("button", { name: "Thêm khách hàng" }).click();

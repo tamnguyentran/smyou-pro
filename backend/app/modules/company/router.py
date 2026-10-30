@@ -17,7 +17,7 @@ Manager = Annotated[Actor, Depends(require("company.manage"))]
 @router.get(
     "",
     operation_id="company_profile_get",
-    summary="Thông tin công ty",
+    summary="Thông tin Công ty",
     response_model=CompanyProfileOut,
 )
 def get_profile(session: DbSession, actor: Manager) -> CompanyProfileOut:
@@ -27,7 +27,7 @@ def get_profile(session: DbSession, actor: Manager) -> CompanyProfileOut:
 @router.patch(
     "",
     operation_id="company_profile_update",
-    summary="Sửa thông tin công ty",
+    summary="Sửa thông tin Công ty",
     response_model=CompanyProfileOut,
     responses={409: {"description": "problem+json — STALE_VERSION"}},
 )
@@ -40,7 +40,7 @@ def update_profile(
 @router.post(
     "/logo",
     operation_id="company_profile_upload_logo",
-    summary="Tải logo công ty (thay logo cũ)",
+    summary="Tải logo Công ty (thay logo cũ)",
     response_model=CompanyProfileOut,
     responses={
         409: {"description": "problem+json — STALE_VERSION"},

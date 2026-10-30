@@ -18,7 +18,7 @@ export function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
   const server = fieldErrors(login.error);
-  const formMessage = formError(login.error, ["email", "password"]);
+  const formMessage = formError(login.error, ["username", "password"]);
   useDocumentTitle("Đăng nhập");
   const onSubmit = handleSubmit((values) => {
     login.mutate(values);
@@ -32,12 +32,13 @@ export function LoginPage() {
         <form noValidate onSubmit={(e) => void onSubmit(e)} className="mt-4 space-y-4">
           {formMessage ? <Alert>{formMessage}</Alert> : null}
           <TextField
-            label="Email"
-            type="email"
+            label="Tên đăng nhập"
+            type="text"
             autoComplete="username"
-            inputMode="email"
-            error={formState.errors.email?.message ?? server.email}
-            {...register("email")}
+            autoCapitalize="none"
+            spellCheck={false}
+            error={formState.errors.username?.message ?? server.username}
+            {...register("username")}
           />
           <PasswordField
             label="Mật khẩu"

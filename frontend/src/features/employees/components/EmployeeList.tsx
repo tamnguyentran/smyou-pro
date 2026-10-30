@@ -66,8 +66,9 @@ export function EmployeeList({
                 >
                   {employee.full_name}
                 </button>
+                <p className="text-xs text-muted">{employee.username}</p>
               </td>
-              <td className="px-4 py-3 text-body">{employee.email}</td>
+              <td className="px-4 py-3 text-body">{employee.email ?? "—"}</td>
               <td className="px-4 py-3 text-body">{employee.phone ?? "—"}</td>
               <td className="px-4 py-3">
                 <RoleBadges roles={employee.roles} />
@@ -97,7 +98,8 @@ export function EmployeeList({
               <p className="font-semibold text-heading">{employee.full_name}</p>
               <span className="text-xs font-medium text-muted">{employee.code}</span>
             </div>
-            <p className="mt-1 text-sm text-body">{employee.email}</p>
+            <p className="text-xs text-muted">{employee.username}</p>
+            {employee.email ? <p className="mt-1 text-sm text-body">{employee.email}</p> : null}
             {employee.phone ? <p className="text-sm text-body">{employee.phone}</p> : null}
             <div className="mt-2 flex flex-wrap items-center gap-1">
               <RoleBadges roles={employee.roles} />

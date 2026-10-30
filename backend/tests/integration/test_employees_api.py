@@ -22,8 +22,18 @@ ITEM_KEYS = {
     "id",
     "code",
     "full_name",
+    "username",  # M17-03b
     "email",
     "phone",
+    # M17-03a personal profile
+    "birth_date",
+    "birth_place",
+    "gender",
+    "address",
+    "id_number",
+    "id_issued_date",
+    "id_issued_place",
+    "marital_status",
     "department",
     "title",
     "roles",
@@ -36,7 +46,7 @@ NEW_HOA = {
     "full_name": "Trần Thị Mai",
     "email": "mai.tran@smyou.vn",
     "phone": "0932 06 8787",
-    "department": "SALES",
+    "department_id": "d2222222-2222-4222-8222-222222222222",
     "title": "Nhân viên kinh doanh",
     "roles": ["SALE"],
 }
@@ -49,7 +59,7 @@ def people(db: Connection) -> dict[str, uuid.UUID]:
 
 def client_as(app: FastAPI, person: Person, password: str | None = None) -> TestClient:
     client = TestClient(app, raise_server_exceptions=False)
-    res = login(client, person.email, password or person.password)
+    res = login(client, person.username, password or person.password)
     assert res.status_code == 200, res.text
     return client
 
@@ -162,7 +172,7 @@ def test_create_generates_code_and_one_time_temporary_password(
     assert second.json()["employee"]["code"] == "NV016"
 
     mai = TestClient(app, raise_server_exceptions=False)
-    first_login = login(mai, "mai.tran@smyou.vn", temp)
+    first_login = login(mai, "mai.tt", temp)
     assert first_login.status_code == 200
     assert first_login.json()["must_change_password"] is True
     problem(mai.get("/api/v1/me"), 403, "PASSWORD_CHANGE_REQUIRED")
@@ -178,7 +188,7 @@ def test_create_generates_code_and_one_time_temporary_password(
         ({"roles": []}, "roles"),
         ({"roles": ["BOSS"]}, "roles.0"),
         ({"full_name": "   "}, "full_name"),
-        ({"department": "HR"}, "department"),
+        ({"department_id": "HR"}, "department_id"),
     ],
 )
 def test_create_validation(
@@ -454,7 +464,7 @@ def test_deactivate_signs_the_employee_out_everywhere(
     ).scalar_one()
     assert revoked == 0
     fresh = TestClient(app, raise_server_exceptions=False)
-    problem(login(fresh, KHOA.email, KHOA.password), 403, "ACCOUNT_DISABLED")
+    problem(login(fresh, KHOA.username, KHOA.password), 403, "ACCOUNT_DISABLED")
 
     body = problem(
         an.post(f"/api/v1/employees/{an_id}/deactivate", json={"version": 1}), 409, "CANNOT_DEACTIVATE_SELF"
@@ -501,11 +511,11 @@ def test_reset_password_clears_the_lockout_and_ends_sessions(
     assert (row["failed_login_count"], row["locked_until"], row["must_change_password"]) == (0, None, True)
     problem(khoa_phone.get("/api/v1/me"), 401, "UNAUTHENTICATED")
     problem(
-        login(TestClient(app, raise_server_exceptions=False), KHOA.email, KHOA.password),
+        login(TestClient(app, raise_server_exceptions=False), KHOA.username, KHOA.password),
         401,
         "INVALID_CREDENTIALS",
     )
-    again = login(TestClient(app, raise_server_exceptions=False), KHOA.email, temp)
+    again = login(TestClient(app, raise_server_exceptions=False), KHOA.username, temp)
     assert again.status_code == 200
     assert again.json()["must_change_password"] is True
 

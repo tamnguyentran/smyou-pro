@@ -72,7 +72,7 @@ describe("AC-AUTH-025 tự làm mới phiên khi gặp 401", () => {
       locks: null,
     });
 
-    await client.POST("/api/v1/auth/login", { body: { email: "an@smyou.vn", password: "x" } });
+    await client.POST("/api/v1/auth/login", { body: { username: "an.nv", password: "x" } });
 
     expect(calls).toEqual(["POST /api/v1/auth/login"]);
     expect(onSessionLost).not.toHaveBeenCalled();

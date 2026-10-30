@@ -7,7 +7,9 @@ import { usePageTitle } from "../../../app/shell/pageTitle";
 import { ForbiddenPage } from "../../../app/shell/StatusPage";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
+import { formatDate } from "../../../lib/format";
 import { useSignOut } from "../../auth/useSignOut";
+import { GENDER_LABELS, MARITAL_STATUS_LABELS } from "../../employees/schemas";
 import { useMe } from "../../me/api";
 import { PushSubscriptionToggle } from "../../notifications/components/PushSubscriptionToggle";
 
@@ -35,8 +37,31 @@ export function ProfilePage() {
       <dl className="divide-y divide-line">
         <Row label="Họ và tên" value={employee.full_name} />
         <Row label="Mã nhân viên" value={employee.code} />
-        <Row label="Email" value={employee.email} />
         <Row label="Vai trò" value={roleLabels(roles)} />
+        <Row
+          label="Ngày sinh"
+          value={employee.birth_date ? formatDate(employee.birth_date) : "—"}
+        />
+        <Row label="Nơi sinh" value={employee.birth_place ?? "—"} />
+        <Row
+          label="Giới tính"
+          value={employee.gender ? (GENDER_LABELS[employee.gender] ?? "—") : "—"}
+        />
+        <Row label="SĐT" value={employee.phone ?? "—"} />
+        <Row label="Địa chỉ" value={employee.address ?? "—"} />
+        <Row label="Email" value={employee.email ?? "—"} />
+        <Row label="CMND/CCCD" value={employee.id_number ?? "—"} />
+        <Row
+          label="Ngày cấp"
+          value={employee.id_issued_date ? formatDate(employee.id_issued_date) : "—"}
+        />
+        <Row label="Nơi cấp" value={employee.id_issued_place ?? "—"} />
+        <Row
+          label="Tình trạng hôn nhân"
+          value={
+            employee.marital_status ? (MARITAL_STATUS_LABELS[employee.marital_status] ?? "—") : "—"
+          }
+        />
       </dl>
     );
   } else if (me.isError) {

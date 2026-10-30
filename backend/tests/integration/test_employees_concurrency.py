@@ -48,14 +48,16 @@ def two_managers(engine: Engine) -> tuple[uuid.UUID, uuid.UUID]:
         for n, employee_id in enumerate(ids, start=1):
             conn.execute(
                 text(
-                    "INSERT INTO employees (id, code, full_name, email, department, password_hash)"
-                    " VALUES (:id, :code, :name, :email, 'MANAGEMENT', 'x')"
+                    "INSERT INTO employees (id, code, full_name, email, username, department_id,"
+                    " password_hash) VALUES (:id, :code, :name, :email, :username,"
+                    " 'd1111111-1111-4111-8111-111111111111', 'x')"
                 ),
                 {
                     "id": employee_id,
                     "code": f"RACE{n}",
                     "name": f"Manager {n}",
                     "email": f"m{n}@race.smyou.vn",
+                    "username": f"race{n}",
                 },
             )
             conn.execute(

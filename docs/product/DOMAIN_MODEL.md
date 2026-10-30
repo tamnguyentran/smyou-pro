@@ -28,9 +28,16 @@ erDiagram
 |---|---|---|
 | code | varchar(20) | unique, vd `NV001` |
 | full_name | varchar(120) | bắt buộc |
-| email | citext | unique, dùng đăng nhập |
+| username | citext | unique, bắt buộc — tên đăng nhập (M17-03b). Tự sinh từ họ tên: `<chữ cuối>.<chữ cái đầu các chữ còn lại>` không dấu (Nguyễn Trần Tâm → `tam.nt`), trùng (kể cả NV ngừng hoạt động) → `tam.nt2`, `tam.nt3`…; Manager sửa được (`^[a-z0-9]+(\.[a-z0-9]+)*$`, 3–50 ký tự); đổi họ tên không tự đổi. Mật khẩu tạm = ngày sinh `ddmmyyyy` nếu có (Q108) |
+| email | citext null | unique nếu có (nhiều `NULL` được). Tuỳ chọn từ M17-03a (Q105): không có email thì không dùng "Quên mật khẩu" |
 | phone | varchar(20) | chuẩn hoá chỉ chữ số, 10 số bắt đầu 0 |
-| department | enum `MANAGEMENT`, `SALES`, `TECHNICAL` | bộ phận (thông tin tổ chức, KHÔNG quyết định quyền) |
+| department_id | uuid FK → Department (§16), bắt buộc | phòng ban (thông tin tổ chức, KHÔNG quyết định quyền). M17-02b thay enum `MANAGEMENT`/`SALES`/`TECHNICAL` cũ; tạo mới/đổi phòng phải chọn phòng đang hoạt động, giữ nguyên phòng đã ngừng vẫn hợp lệ |
+| birth_date, id_issued_date | date null | M17-03a: ngày sinh, ngày cấp CMND/CCCD; không ở tương lai (giờ VN) |
+| birth_place, id_issued_place | varchar(120) null | nơi sinh, nơi cấp |
+| gender | `MALE`/`FEMALE`/`OTHER` null | Nam/Nữ/Khác (Q107) |
+| address | varchar(255) null | địa chỉ |
+| id_number | varchar(12) null, CHECK 9 hoặc 12 chữ số | CMND/CCCD, không bắt buộc duy nhất |
+| marital_status | `SINGLE`/`MARRIED`/`DIVORCED`/`WIDOWED` null | Độc thân/Đã kết hôn/Ly hôn/Goá (Q107) |
 | title | varchar(80) | chức danh hiển thị |
 | password_hash | text | argon2id |
 | must_change_password | bool | true khi Manager tạo/reset |
@@ -248,6 +255,16 @@ Chỉ nhận `image/jpeg`, `image/png`, `image/webp`, `image/heic` và `applicat
 | created_at/updated_at | timestamptz | |
 
 Chỉ `MANAGER` (`company.manage`). Mỗi lần sửa/đổi logo ghi `audit_events` (`entity_type=COMPANY_PROFILE`, `action=company_profile.update` kèm `{trường: {from, to}}` / `company_profile.logo_update`).
+
+## 16. Department (Phòng ban) — `departments` (M17-02a)
+| Trường | Kiểu | Ghi chú |
+|---|---|---|
+| name | varchar(100) | bắt buộc, trim; duy nhất (không phân biệt hoa/thường) trong các phòng **đang hoạt động** — unique index `lower(btrim(name)) WHERE is_active` |
+| is_active | bool, mặc định true | ngừng/mở lại qua command `deactivate`/`activate`; không xoá cứng |
+| version | int, mặc định 1 | optimistic lock |
+| created_at/updated_at | timestamptz | |
+
+Seed 6 phòng (UUID cố định `d1111111-…` → `d6666666-…`): "Ban quản lý"/"Kinh doanh"/"Kỹ thuật" (ứng với enum `employees.department` cũ, M17-02b đã map sang `employees.department_id`) + "Phát Triển Kinh Tế"/"Nhân sự/marketing"/"Kế Toán - tài chính". Xem: `employee.read`; thêm/sửa/ngừng: `employee.manage`. Mỗi thao tác ghi `audit_events` (`entity_type=DEPARTMENT`, `action=create|rename|deactivate|activate`; `rename` kèm `{name: {from, to}}`). Chỉ là thông tin tổ chức, không quyết định quyền.
 
 ## Quy tắc tính tiền (có test property-based)
 Giá và VAT **tách riêng**: đơn giá luôn lưu chưa VAT; % VAT gắn với từng sản phẩm/dịch vụ và được snapshot vào từng dòng, nên một đơn có thể có nhiều mức VAT.

@@ -67,7 +67,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 me_router = APIRouter(prefix="/api/v1", tags=["me"])
 
 _FAILURES: dict[Failure, tuple[int, str]] = {
-    Failure.INVALID_CREDENTIALS: (401, "Email hoặc mật khẩu không đúng."),
+    Failure.INVALID_CREDENTIALS: (401, "Tên đăng nhập hoặc mật khẩu không đúng."),
     Failure.ACCOUNT_LOCKED: (
         423,
         "Tài khoản tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút.",
@@ -158,7 +158,7 @@ def _body(issued: Issued) -> LoginResponse:
 @router.post(
     "/login",
     operation_id="auth_login",
-    summary="Đăng nhập bằng email và mật khẩu",
+    summary="Đăng nhập bằng tên đăng nhập và mật khẩu",
     response_model=LoginResponse,
     responses=_responses(Failure.INVALID_CREDENTIALS, Failure.ACCOUNT_DISABLED, Failure.ACCOUNT_LOCKED),
 )
@@ -168,7 +168,7 @@ def login(
     settings = _settings(request)
     result = service.login(
         session,
-        email=body.email,
+        username=body.username,
         password=body.password,
         now=_now(request),
         settings=settings,

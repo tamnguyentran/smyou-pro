@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { resolve } from "node:path";
+import { loginName } from "./loginName";
 
 // Accounts created by backend/scripts/seed_e2e.py (reset before every `make e2e`).
 const PASSWORD = "E2e@SmYou2026";
@@ -23,7 +24,7 @@ const isMobile = (info: TestInfo) => info.project.name === "mobile";
 
 async function signIn(page: Page, role: Role, path = "/") {
   await page.goto(`./dang-nhap?next=${encodeURIComponent(path)}`);
-  await page.getByLabel("Email").fill(ACCOUNTS[role]);
+  await page.getByLabel("Tên đăng nhập").fill(loginName(ACCOUNTS[role]));
   await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
 }

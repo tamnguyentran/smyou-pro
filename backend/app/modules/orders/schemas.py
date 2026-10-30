@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, Validation
 
 from app.modules.catalog.domain import vat_rate_problem
 from app.modules.catalog.schemas import ServiceUnit
+from app.modules.company.schemas import CompanyPrintHeader
 from app.modules.identity.schemas import Email
 
 Priority = Literal["LOW", "NORMAL", "HIGH", "URGENT"]
@@ -329,3 +330,12 @@ class OrderPage(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class OrderInvoicePrint(BaseModel):
+    """GET /orders/{id}/invoice-print (M17-04): what the printed sales invoice needs beyond OrderDetail."""
+
+    company: CompanyPrintHeader
+    issuer_name: str
+    printed_at: datetime
+    slip_no: str

@@ -5,13 +5,17 @@ Dùng đúng tên cột phải trong code, API, DB. Không tự đặt từ đ�
 | Tiếng Việt (UI) | Code / API | Ghi chú |
 |---|---|---|
 | Nhân viên | `employee` | cũng là user đăng nhập |
+| Tên đăng nhập | `username` | dùng để đăng nhập thay email (M17-03b), vd `tam.nt` |
 | Vai trò / nhóm quyền | `role` | MANAGER, SALE, TECH_LEAD, TECHNICIAN |
 | Quyền | `capability` | vd `order.submit` |
 | Quản lý chung | `MANAGER` | |
 | Nhân viên kinh doanh | `SALE` | |
 | Quản lý kỹ thuật (QLKT) | `TECH_LEAD` | |
 | Nhân viên kỹ thuật / Kỹ thuật viên (KTV) | `TECHNICIAN` | |
-| Bộ phận | `department` | chỉ để hiển thị, không phải quyền |
+| Phòng ban (trước M17-02b gọi "Bộ phận") | `department` / `department_id` | chỉ để hiển thị, không phải quyền |
+| Giới tính | `gender` | `MALE` Nam / `FEMALE` Nữ / `OTHER` Khác |
+| CMND/CCCD (ngày cấp, nơi cấp) | `id_number` (`id_issued_date`, `id_issued_place`) | 9 hoặc 12 chữ số |
+| Tình trạng hôn nhân | `marital_status` | `SINGLE` Độc thân / `MARRIED` Đã kết hôn / `DIVORCED` Ly hôn / `WIDOWED` Goá |
 | Sản phẩm | `product` | |
 | Dịch vụ | `service` | lắp đặt, sửa chữa, bơm mực… |
 | Mã hàng | `sku` | |

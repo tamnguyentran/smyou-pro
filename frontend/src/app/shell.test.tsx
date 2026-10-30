@@ -184,11 +184,13 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
     [
       "An (Manager)",
       AN,
-      ["Tổng quan", "Đơn hàng", "Danh mục", "Nhân sự & phân quyền", "Báo cáo", "Nhật ký hệ thống"],
+      ["Tổng quan", "Đơn hàng", "Danh mục", "Báo cáo", "Thông tin Công ty", "Nhật ký hệ thống"],
       {
         "Đơn hàng": ["Danh sách đơn", "Tạo đơn mới", "Khách hàng"],
         "Danh mục": ["Sản phẩm", "Dịch vụ", "Nhóm sản phẩm/dịch vụ"],
         "Báo cáo": ["Báo cáo KPI", "Doanh thu theo khách hàng", "Doanh thu theo nhân viên"],
+        // This AN fixture has no company.manage, so the group shows only its employee.manage children.
+        "Thông tin Công ty": ["Phòng ban", "Nhân sự & phân quyền"],
       },
     ],
     [

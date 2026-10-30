@@ -15,13 +15,14 @@ const ACTION_LABELS: Record<string, string> = {
   login_refused: "Từ chối đăng nhập",
   account_locked: "Tạm khoá",
   password_changed: "Đổi mật khẩu",
-  "company_profile.update": "Sửa thông tin công ty",
-  "company_profile.logo_update": "Đổi logo công ty",
+  "company_profile.update": "Sửa thông tin Công ty",
+  "company_profile.logo_update": "Đổi logo Công ty",
 };
 
 const ENTITY_TYPE_LABELS: Record<string, string> = {
   EMPLOYEE: "Nhân viên",
-  COMPANY_PROFILE: "Thông tin công ty",
+  COMPANY_PROFILE: "Thông tin Công ty",
+  DEPARTMENT: "Phòng ban",
 };
 
 // Same labels and tones as the employees list (EmployeeList StatusBadges).

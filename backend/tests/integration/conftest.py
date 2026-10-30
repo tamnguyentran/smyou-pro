@@ -21,6 +21,7 @@ from pwdlib import PasswordHash
 from sqlalchemy import Connection, create_engine, text
 from sqlalchemy.orm import sessionmaker
 
+from app.modules.departments.models import LEGACY_DEPARTMENT_IDS
 from tests.conftest import TEST_DATABASE_URL
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -48,6 +49,12 @@ class Person:
     code: str
     full_name: str
     department: str
+    # M17-03b: login name; defaults to the email's local part (unique like the email, valid format).
+    username: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.username:
+            object.__setattr__(self, "username", self.email.split("@", 1)[0].lower())
 
 
 AN = Person("an.nguyen@smyou.vn", "SmYou@2026", ("MANAGER",), "NV001", "Nguyễn Văn An", "MANAGEMENT")
@@ -130,16 +137,17 @@ def seed(
     employee_id = uuid.uuid4()
     db.execute(
         text(
-            "INSERT INTO employees (id, code, full_name, email, department, password_hash,"
+            "INSERT INTO employees (id, code, full_name, email, username, department_id, password_hash,"
             " must_change_password, is_active, failed_login_count)"
-            " VALUES (:id, :code, :name, :email, :dept, :hash, :must, :active, :failed)"
+            " VALUES (:id, :code, :name, :email, :username, :dept, :hash, :must, :active, :failed)"
         ),
         {
             "id": employee_id,
             "code": person.code,
             "name": person.full_name,
             "email": person.email,
-            "dept": person.department,
+            "username": person.username,
+            "dept": LEGACY_DEPARTMENT_IDS[person.department],
             "hash": _HASHER.hash(person.password),
             "must": must_change_password,
             "active": is_active,
@@ -154,8 +162,8 @@ def seed(
     return employee_id
 
 
-def login(client: TestClient, email: str, password: str) -> httpx.Response:
-    return client.post("/api/v1/auth/login", json={"email": email, "password": password})
+def login(client: TestClient, username: str, password: str) -> httpx.Response:
+    return client.post("/api/v1/auth/login", json={"username": username, "password": password})
 
 
 def forgot_password(client: TestClient, email: str) -> httpx.Response:

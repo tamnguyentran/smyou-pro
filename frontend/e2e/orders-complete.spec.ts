@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { resolve } from "node:path";
+import { loginName } from "./loginName";
 
 // M6-02: "Hoàn tất đơn" (AC-ORD-142/143). Accounts/orders created by backend/scripts/seed_e2e.py
 // (COMPLETE_ORDERS) — one order per Playwright project, same reason as myTasks.spec.ts's
@@ -46,7 +47,7 @@ async function evidence(page: Page, info: TestInfo, file: string) {
 async function signInAndOpenOrder(page: Page, info: TestInfo): Promise<string> {
   const code = orderCode(info);
   await page.goto("./dang-nhap");
-  await page.getByLabel("Email").fill(TECHNICIAN);
+  await page.getByLabel("Tên đăng nhập").fill(loginName(TECHNICIAN));
   await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
   await expect(page).not.toHaveURL(/dang-nhap/);

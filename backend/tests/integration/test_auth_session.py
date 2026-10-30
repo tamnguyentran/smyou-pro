@@ -49,7 +49,7 @@ def add_probe(app: FastAPI, capability: str) -> None:
 @pytest.mark.ac("AC-AUTH-008")
 def test_refresh_rotates_the_token(api: TestClient, db: Connection) -> None:
     seed(db, AN)
-    first = login(api, AN.email, AN.password)
+    first = login(api, AN.username, AN.password)
     r1 = first.cookies[REFRESH_COOKIE]
 
     res = refresh(api)
@@ -69,7 +69,7 @@ def test_reusing_a_rotated_token_revokes_the_whole_session(
     app: FastAPI, api: TestClient, db: Connection
 ) -> None:
     seed(db, AN)
-    r1 = login(api, AN.email, AN.password).cookies[REFRESH_COOKIE]
+    r1 = login(api, AN.username, AN.password).cookies[REFRESH_COOKIE]
     r2 = refresh(api).cookies[REFRESH_COOKIE]
 
     thief = TestClient(app, raise_server_exceptions=False, cookies={REFRESH_COOKIE: r1})
@@ -89,7 +89,7 @@ def test_missing_or_expired_refresh(api: TestClient, db: Connection, clock: Fake
     assert missing.json()["code"] == "UNAUTHENTICATED"
 
     seed(db, AN)
-    login(api, AN.email, AN.password)
+    login(api, AN.username, AN.password)
     clock.advance(days=7, seconds=1)
     expired = refresh(api)
     assert expired.status_code == 401
@@ -110,7 +110,7 @@ def test_refresh_refused_after_deactivation_or_password_change(
     api: TestClient, db: Connection, change: str
 ) -> None:
     an = seed(db, AN)
-    login(api, AN.email, AN.password)
+    login(api, AN.username, AN.password)
     db.execute(text(change), {"id": an})
 
     res = refresh(api)
@@ -122,7 +122,7 @@ def test_refresh_refused_after_deactivation_or_password_change(
 @pytest.mark.ac("AC-AUTH-012")
 def test_logout_revokes_and_clears(api: TestClient, db: Connection) -> None:
     seed(db, AN)
-    r1 = login(api, AN.email, AN.password).cookies[REFRESH_COOKIE]
+    r1 = login(api, AN.username, AN.password).cookies[REFRESH_COOKIE]
 
     res = api.post("/api/v1/auth/logout")
 
@@ -145,7 +145,7 @@ def test_require_authenticates_access_cookie(app: FastAPI, db: Connection, clock
     client = TestClient(app, raise_server_exceptions=False)
 
     assert client.get("/api/v1/probe").status_code == 401  # no cookie
-    login(client, AN.email, AN.password)
+    login(client, AN.username, AN.password)
     assert client.get("/api/v1/probe").status_code == 200
 
     token = client.cookies[ACCESS_COOKIE]
@@ -168,7 +168,7 @@ def test_logout_invalidates_access_token_immediately(app: FastAPI, db: Connectio
     seed(db, AN)
     add_probe(app, "order.read")
     client = TestClient(app, raise_server_exceptions=False)
-    login(client, AN.email, AN.password)
+    login(client, AN.username, AN.password)
     access = client.cookies[ACCESS_COOKIE]
 
     client.post("/api/v1/auth/logout")
@@ -182,7 +182,7 @@ def test_missing_capability_is_403(app: FastAPI, db: Connection) -> None:
     seed(db, KHOA)
     add_probe(app, "catalog.manage")
     client = TestClient(app, raise_server_exceptions=False)
-    login(client, KHOA.email, KHOA.password)
+    login(client, KHOA.username, KHOA.password)
 
     res = client.get("/api/v1/probe")
 

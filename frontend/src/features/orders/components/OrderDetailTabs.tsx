@@ -30,6 +30,7 @@ import { OrderHistoryTab } from "./OrderHistoryTab";
 import { OrderInfoTab } from "./OrderInfoTab";
 import { OrderLinesSection } from "./OrderLinesSection";
 import { OrderTotalsSection } from "./OrderTotalsSection";
+import { PrintInvoiceButton } from "./PrintInvoiceButton";
 import { ReviseOrderSheet } from "./ReviseOrderSheet";
 import type { RunOrderWrite } from "./writeQueue";
 
@@ -228,58 +229,63 @@ export function OrderDetailTabs({
           </div>
           <p className="text-sm text-body">{order.customer_name ?? "Khách lẻ"}</p>
         </div>
-        {canRecall || canCancel || canComplete || canRevise ? (
-          <div
-            data-testid="order-detail-actions"
-            className="sticky bottom-16 z-10 flex gap-3 bg-page py-3 lg:static lg:bottom-auto lg:bg-transparent lg:py-0"
-          >
-            {canRecall ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setRecallOpen(true);
-                }}
-              >
-                Thu hồi
-              </Button>
-            ) : null}
-            {canCancel ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setCancelOpen(true);
-                }}
-              >
-                Huỷ đơn
-              </Button>
-            ) : null}
-            {canComplete ? (
-              <Button
-                type="button"
-                onClick={() => {
-                  setCompleteOpen(true);
-                }}
-              >
-                <CheckCircle2 aria-hidden="true" className="size-4" />
-                Hoàn tất đơn
-              </Button>
-            ) : null}
-            {canRevise ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setReviseOpen(true);
-                }}
-              >
-                <RotateCcw aria-hidden="true" className="size-4" />
-                Chuyển Chỉnh sửa
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
+        {/* `contents` below lg keeps the mobile sticky action bar's own containing block unchanged;
+            "In" itself only renders at ≥ 1024px (M17-04). */}
+        <div className="contents lg:flex lg:items-center lg:gap-3">
+          <PrintInvoiceButton order={order} />
+          {canRecall || canCancel || canComplete || canRevise ? (
+            <div
+              data-testid="order-detail-actions"
+              className="sticky bottom-16 z-10 flex gap-3 bg-page py-3 lg:static lg:bottom-auto lg:bg-transparent lg:py-0"
+            >
+              {canRecall ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setRecallOpen(true);
+                  }}
+                >
+                  Thu hồi
+                </Button>
+              ) : null}
+              {canCancel ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setCancelOpen(true);
+                  }}
+                >
+                  Huỷ đơn
+                </Button>
+              ) : null}
+              {canComplete ? (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setCompleteOpen(true);
+                  }}
+                >
+                  <CheckCircle2 aria-hidden="true" className="size-4" />
+                  Hoàn tất đơn
+                </Button>
+              ) : null}
+              {canRevise ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setReviseOpen(true);
+                  }}
+                >
+                  <RotateCcw aria-hidden="true" className="size-4" />
+                  Chuyển Chỉnh sửa
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </header>
 
       <div role="tablist" aria-label="Chi tiết đơn" className="flex gap-2 overflow-x-auto">

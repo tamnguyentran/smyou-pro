@@ -34,7 +34,7 @@ def test_reset_changes_password_and_revokes_all_sessions(
     api: TestClient, db: Connection, mailer: FakeMailer
 ) -> None:
     an = seed(db, AN)
-    other_device = login(api, AN.email, AN.password)
+    other_device = login(api, AN.username, AN.password)
     assert other_device.status_code == 200
     token = issue_token(api, mailer, AN.email)
 
@@ -51,8 +51,8 @@ def test_reset_changes_password_and_revokes_all_sessions(
         {"id": an},
     ).scalar_one()
     assert sessions_live == 0
-    assert login(api, AN.email, AN.password).status_code == 401
-    assert login(api, AN.email, "SmYouMoi@9").status_code == 200
+    assert login(api, AN.username, AN.password).status_code == 401
+    assert login(api, AN.username, "SmYouMoi@9").status_code == 200
 
 
 @pytest.mark.ac("AC-AUTH-047")

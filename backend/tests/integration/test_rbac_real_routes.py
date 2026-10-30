@@ -37,7 +37,7 @@ def test_real_routes_deny_exactly_the_roles_without_the_capability(
     person = person_with(role)
     seed(db, person)
     api = TestClient(app, raise_server_exceptions=False)
-    assert login(api, person.email, person.password).status_code == 200
+    assert login(api, person.username, person.password).status_code == 200
 
     for method, path, capability in routes:
         res = api.request(method, concrete(path), json={})

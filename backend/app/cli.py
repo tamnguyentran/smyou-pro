@@ -68,6 +68,7 @@ def main(argv: list[str] | None = None, *, session_factory: sessionmaker[Session
         sys.stderr.write(f"{_DUPLICATES.get(result, 'Không tạo được tài khoản.')}\n")
         return 1
     sys.stdout.write(f"Đã tạo Quản lý chung {result.code} — {result.full_name}.\n")
+    sys.stdout.write(f"Tên đăng nhập: {result.username}\n")  # M17-03b: login is by username
     return 0
 
 

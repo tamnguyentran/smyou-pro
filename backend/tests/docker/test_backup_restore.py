@@ -59,8 +59,8 @@ def ensure_seed_employee(container: str, user: str, db: str) -> None:
         container,
         user,
         db,
-        "INSERT INTO employees (code, full_name, email, department, password_hash) "
-        "VALUES ('M902TST','Backup Test',:'email','MANAGEMENT','x') "
+        "INSERT INTO employees (code, full_name, email, username, department_id, password_hash) "
+        "VALUES ('M902TST','Backup Test',:'email','m902tst','d1111111-1111-4111-8111-111111111111','x') "
         "ON CONFLICT (email) DO NOTHING;",
         f"email={SEED_EMAIL}",
     )

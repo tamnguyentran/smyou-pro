@@ -11,7 +11,7 @@ const optionalPhone = z
   .refine((value) => value === "" || phoneValid(value), PHONE_MESSAGE);
 
 export const companyProfileSchema = z.object({
-  name: z.string().trim().min(1, "Vui lòng nhập tên công ty.").max(255, "Tối đa 255 ký tự."),
+  name: z.string().trim().min(1, "Vui lòng nhập tên Công ty.").max(255, "Tối đa 255 ký tự."),
   tax_code: z
     .string()
     .trim()
@@ -41,7 +41,7 @@ type Field = keyof CompanyProfileFormValues;
 
 /** Form order (spec §6): name and address span both columns from `md:`. */
 export const FIELDS: readonly { name: Field; label: string; wide?: boolean }[] = [
-  { name: "name", label: "Tên công ty *", wide: true },
+  { name: "name", label: "Tên Công ty *", wide: true },
   { name: "tax_code", label: "Mã số thuế *" },
   { name: "phone", label: "Điện thoại 1 *" },
   { name: "phone_secondary", label: "Điện thoại 2" },

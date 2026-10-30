@@ -18,7 +18,7 @@ HOA = Person("hoa.le@smyou.vn", "Hoa@SmYou26", ("SALE",), "NV005", "Lê Thị Ho
 
 def client_as(app: FastAPI, person: Person) -> TestClient:
     client = TestClient(app, raise_server_exceptions=False)
-    res = login(client, person.email, person.password)
+    res = login(client, person.username, person.password)
     assert res.status_code == 200, res.text
     return client
 
@@ -39,7 +39,7 @@ def test_events_of_one_request_are_listed_in_the_order_they_happened(app: FastAP
     ]
     anonymous = TestClient(app, raise_server_exceptions=False)
     for n in range(8):
-        assert login(anonymous, f"race{n}@smyou.vn", "sai-mat-khau").status_code == 401
+        assert login(anonymous, f"race{n}", "sai-mat-khau").status_code == 401
 
     items = client_as(app, BINH).get("/api/v1/audit-events", params={"limit": "100"}).json()["items"]
     for employee_id in people:
@@ -55,14 +55,19 @@ def test_changed_fields_lists_only_fields_whose_value_changed(app: FastAPI, db: 
 
     res = client.patch(
         f"/api/v1/employees/{hoa}",
-        json={"version": 1, "full_name": None, "phone": None, "department": "TECHNICAL"},
+        json={
+            "version": 1,
+            "full_name": None,
+            "phone": None,
+            "department_id": "d3333333-3333-4333-8333-333333333333",
+        },
     )
     assert res.status_code == 200, res.text
 
     data = db.execute(
         text("SELECT data FROM audit_events WHERE entity_id = :id AND action = 'update'"), {"id": hoa}
     ).scalar_one()
-    assert data == {"changed_fields": ["department"]}
+    assert data == {"changed_fields": ["department_id"]}
 
 
 @pytest.mark.ac("AC-SYS-057")
@@ -73,7 +78,7 @@ def test_create_audit_holds_only_roles_and_never_the_temporary_password(app: Fas
         json={
             "full_name": "Trần Thị Mai",
             "email": "mai.tran@smyou.vn",
-            "department": "SALES",
+            "department_id": "d2222222-2222-4222-8222-222222222222",
             "roles": ["SALE"],
         },
     )
@@ -89,7 +94,7 @@ def test_create_audit_holds_only_roles_and_never_the_temporary_password(app: Fas
 @pytest.mark.ac("AC-SYS-052")
 def test_absent_data_is_sql_null_not_json_null(api: TestClient, db: Connection) -> None:
     an = seed(db, AN)
-    assert login(api, AN.email, AN.password).status_code == 200
+    assert login(api, AN.username, AN.password).status_code == 200
     is_null = db.execute(
         text("SELECT data IS NULL FROM audit_events WHERE entity_id = :id AND action = 'login'"), {"id": an}
     ).scalar_one()

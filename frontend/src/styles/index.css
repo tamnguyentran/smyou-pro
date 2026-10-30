@@ -53,3 +53,36 @@
     transform: translateX(-100%);
   }
 }
+
+/* M17-04 — "Hoá đơn bán hàng" A5 ngang. The sheet is portalled to <body> (PrintInvoiceButton) and only
+   shows on paper; while it is mounted, printing hides everything else in <body> so only the sheet prints. */
+.invoice-print {
+  display: none;
+}
+
+@media print {
+  /* No top/bottom page margin: Chrome prints its own header/footer (tab title, date/time, URL) only
+     inside those margins, so this keeps them off the invoice. The vertical white space comes from the
+     sheet's padding instead, repeated on every page by box-decoration-break: clone. */
+  @page {
+    size: A5 landscape;
+    margin: 0 8mm;
+  }
+
+  body:has(> .invoice-print-root) {
+    background: white;
+  }
+
+  /* #root = the app shell; any other body child = portalled toasts/sheets. */
+  body:has(> .invoice-print-root) > #root,
+  body:has(> .invoice-print-root) > :not(.invoice-print-root) {
+    display: none !important;
+  }
+
+  .invoice-print {
+    display: block;
+    padding: 8mm 0;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+}

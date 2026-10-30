@@ -1,7 +1,8 @@
 """Request/response bodies for /api/v1/auth. Never include password hashes or tokens."""
 
 import uuid
-from typing import Annotated
+from datetime import date
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, StringConstraints
 
@@ -11,7 +12,9 @@ Password = Annotated[str, StringConstraints(min_length=1, max_length=128)]
 
 
 class LoginRequest(BaseModel):
-    email: Email
+    # M17-03b: login by username only. No format check — anything else (an email included) is a
+    # plain 401 INVALID_CREDENTIALS, not a 422 that would hint at what the field expects.
+    username: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=254)]
     password: Password
 
 
@@ -54,13 +57,29 @@ class E2ELastMailResponse(BaseModel):
     body: str
 
 
+class MeDepartment(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
 class MeEmployee(BaseModel):
     id: uuid.UUID
     code: str
     full_name: str
-    email: str
+    username: str
+    email: str | None
     title: str | None
-    department: str
+    department: MeDepartment
+    # M17-03a: own profile, shown read-only on "Cá nhân".
+    phone: str | None
+    birth_date: date | None
+    birth_place: str | None
+    gender: Literal["MALE", "FEMALE", "OTHER"] | None
+    address: str | None
+    id_number: str | None
+    id_issued_date: date | None
+    id_issued_place: str | None
+    marital_status: Literal["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"] | None
 
 
 class MeResponse(BaseModel):

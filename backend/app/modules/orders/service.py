@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import cast
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import ColumnElement, case, func, or_, select
+from sqlalchemy import ColumnElement, and_, case, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.authz import Actor, ScopeRules, apply_scope, effective_scopes, get_in_scope_or_404
@@ -18,6 +18,7 @@ from app.core.spec_loader import Specs
 from app.modules.audit import service as audit
 from app.modules.audit.schemas import AuditEventPage
 from app.modules.catalog.models import Product, ProductServiceGroup, Service
+from app.modules.company import service as company
 from app.modules.customers.models import Customer
 from app.modules.dispatch import domain as dispatch_domain
 from app.modules.dispatch.models import OPEN_TASK_STATUSES_EXCLUDE, Assignment, Task
@@ -37,6 +38,7 @@ from app.modules.orders.schemas import (
     OrderCreate,
     OrderCsatUpdate,
     OrderDetail,
+    OrderInvoicePrint,
     OrderLineCreate,
     OrderLineOut,
     OrderLineRemove,
@@ -605,6 +607,34 @@ def get_order(session: Session, actor: Actor, order_id: uuid.UUID, *, specs: Spe
     )
     order = get_in_scope_or_404(session, stmt, actor, RULES)
     return _out(session, order, actor, specs)
+
+
+def get_invoice_print(
+    session: Session, actor: Actor, order_id: uuid.UUID, *, now: datetime, settings: Settings
+) -> OrderInvoicePrint:
+    """M17-04: company header, issuer (= caller, Q112) and slip number `NN-XBHddmmyyyy` — NN ranks the
+    order among all orders (cancelled included) created the same VN day, by `created_at` then `code`,
+    so it is stable across reprints; the date part is the print day (Q111). Nothing is stored."""
+    order = get_in_scope_or_404(session, select(Order).where(Order.id == order_id), actor, RULES)
+    if order.status == "CANCELLED":
+        raise AppError(409, "INVALID_STATE", "Đơn đã huỷ, không thể in.")
+    day_start = _vn_day_start_utc(order.created_at.astimezone(VIETNAM).date())
+    rank = session.execute(
+        select(func.count()).where(
+            Order.created_at >= day_start,
+            or_(
+                Order.created_at < order.created_at,
+                and_(Order.created_at == order.created_at, Order.code <= order.code),
+            ),
+        )
+    ).scalar_one()
+    issuer = session.get_one(Employee, actor.id)
+    return OrderInvoicePrint(
+        company=company.get_print_header(session, settings),
+        issuer_name=issuer.full_name,
+        printed_at=now,
+        slip_no=domain.invoice_slip_no(rank, now.astimezone(VIETNAM).date()),
+    )
 
 
 def list_orders(

@@ -21,6 +21,7 @@ from app.modules.orders.schemas import (
     OrderCreate,
     OrderCsatUpdate,
     OrderDetail,
+    OrderInvoicePrint,
     OrderLineCreate,
     OrderLineRemove,
     OrderLineUpdate,
@@ -36,6 +37,7 @@ from app.modules.orders.schemas import (
 router = APIRouter(prefix="/api/v1/orders", tags=["orders"])
 Creator = Annotated[Actor, Depends(require("order.create"))]
 Reader = Annotated[Actor, Depends(require("order.read"))]
+Printer = Annotated[Actor, Depends(require("order.print"))]
 Editor = Annotated[Actor, Depends(require("order.edit_draft"))]
 Submitter = Annotated[Actor, Depends(require("order.submit"))]
 Canceler = Annotated[Actor, Depends(require("order.cancel"))]
@@ -183,6 +185,21 @@ def request_revision_from_customer_care(
 )
 def get_order(order_id: uuid.UUID, request: Request, session: DbSession, actor: Reader) -> OrderDetail:
     return service.get_order(session, actor, order_id, specs=request.app.state.specs)
+
+
+@router.get(
+    "/{order_id}/invoice-print",
+    operation_id="orders_invoice_print",
+    summary="Dữ liệu in Hoá đơn bán hàng (thông tin công ty, người lập, số phiếu)",
+    response_model=OrderInvoicePrint,
+    responses=_docs(NOT_FOUND, (409, "INVALID_STATE")),
+)
+def get_invoice_print(
+    order_id: uuid.UUID, request: Request, session: DbSession, actor: Printer
+) -> OrderInvoicePrint:
+    return service.get_invoice_print(
+        session, actor, order_id, now=request.app.state.clock(), settings=request.app.state.settings
+    )
 
 
 @router.get(

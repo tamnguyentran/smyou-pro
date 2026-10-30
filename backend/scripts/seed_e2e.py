@@ -16,6 +16,7 @@ from app.core.db import create_db_engine, create_session_factory
 from app.core.security import hash_password
 from app.modules.catalog.models import Product, Service
 from app.modules.customers.models import Customer
+from app.modules.departments.models import LEGACY_DEPARTMENT_IDS
 from app.modules.dispatch.models import Assignment, DefectRecord, Task
 from app.modules.files import service as files_service
 from app.modules.files.models import Attachment
@@ -34,6 +35,8 @@ JPEG_BYTES = b"\xff\xd8\xff\xe0\x00\x10JFIF" + b"\x00" * 200 + b"\xff\xd9"
 
 # (email, code, full name, roles, password, must change password) — one technician per Playwright
 # project so the mobile and desktop runs can each do the first-login password change in parallel.
+# M17-03b: each account's username is its email's local part (e2e/loginName.ts relies on it), not the
+# generated one — several seeded accounts share a full name.
 ACCOUNTS = [
     ("an.e2e@smyou.vn", "E2E01", "Nguyễn Văn An", ("MANAGER",), "E2e@SmYou2026", False),
     ("khoa.mobile@smyou.vn", "E2E02", "Trần Minh Khoa", ("TECHNICIAN",), "TamThoi#E2E1", True),
@@ -169,8 +172,11 @@ def main() -> int:
         for email, code, name, roles, password, must_change in ACCOUNTS:
             employee = session.scalars(select(Employee).where(Employee.email == email)).one_or_none()
             if employee is None:
-                employee = Employee(email=email, code=code, full_name=name, department="TECHNICAL")
+                employee = Employee(
+                    email=email, code=code, full_name=name, department_id=LEGACY_DEPARTMENT_IDS["TECHNICAL"]
+                )
                 session.add(employee)
+            employee.username = email.split("@", 1)[0]
             employee.password_hash = hash_password(password)
             employee.must_change_password = must_change
             employee.is_active = True

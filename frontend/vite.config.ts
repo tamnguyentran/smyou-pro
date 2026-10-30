@@ -42,6 +42,9 @@ export default defineConfig({
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}"],
     setupFiles: ["src/test/setup.ts"],
+    // Vitest blanks every CSS module by default — even `?raw` — so a test can't read the print rules
+    // (AC-ORD-215). Only the global stylesheet is let through; components still import no CSS.
+    css: { include: [/src\/styles\/index\.css/] },
     coverage: {
       provider: "v8",
       include: ["src/features/**", "src/lib/**"],

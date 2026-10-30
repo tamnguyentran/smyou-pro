@@ -183,7 +183,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Đăng nhập bằng email và mật khẩu */
+    /** Đăng nhập bằng tên đăng nhập và mật khẩu */
     post: operations["auth_login"];
     delete?: never;
     options?: never;
@@ -249,14 +249,14 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Thông tin công ty */
+    /** Thông tin Công ty */
     get: operations["company_profile_get"];
     put?: never;
     post?: never;
     delete?: never;
     options?: never;
     head?: never;
-    /** Sửa thông tin công ty */
+    /** Sửa thông tin Công ty */
     patch: operations["company_profile_update"];
     trace?: never;
   };
@@ -269,7 +269,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Tải logo công ty (thay logo cũ) */
+    /** Tải logo Công ty (thay logo cũ) */
     post: operations["company_profile_upload_logo"];
     delete?: never;
     options?: never;
@@ -378,6 +378,76 @@ export interface paths {
     get: operations["get_dashboard"];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/departments": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách phòng ban (tìm, lọc, phân trang) */
+    get: operations["departments_list"];
+    put?: never;
+    /** Thêm phòng ban */
+    post: operations["departments_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/departments/{department_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Chi tiết phòng ban */
+    get: operations["departments_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Đổi tên phòng ban */
+    patch: operations["departments_rename"];
+    trace?: never;
+  };
+  "/api/v1/departments/{department_id}/activate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Mở lại hoạt động phòng ban */
+    post: operations["departments_activate"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/departments/{department_id}/deactivate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Ngừng hoạt động phòng ban */
+    post: operations["departments_deactivate"];
     delete?: never;
     options?: never;
     head?: never;
@@ -840,6 +910,23 @@ export interface paths {
     };
     /** Lịch sử thay đổi trạng thái của đơn */
     get: operations["orders_history"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/invoice-print": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Dữ liệu in Hoá đơn bán hàng (thông tin công ty, người lập, số phiếu) */
+    get: operations["orders_invoice_print"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1611,7 +1698,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Bảng đầu việc toàn công ty (lọc trạng thái/ưu tiên/KTV/hạn) */
+    /** Bảng đầu việc toàn Công ty (lọc trạng thái/ưu tiên/KTV/hạn) */
     get: operations["tasks_board"];
     put?: never;
     post?: never;
@@ -1780,6 +1867,29 @@ export interface components {
       current_password: string;
       /** New Password */
       new_password: string;
+    };
+    /**
+     * CompanyPrintHeader
+     * @description Company block printed on the sales invoice (M17-04); readable by every `order.print` holder.
+     *     `logo_url` is a `data:` URL (see `service.get_print_header`).
+     */
+    CompanyPrintHeader: {
+      /** Address */
+      address: string;
+      /** Email */
+      email: string | null;
+      /** Fax */
+      fax: string | null;
+      /** Logo Url */
+      logo_url: string | null;
+      /** Name */
+      name: string;
+      /** Phone */
+      phone: string;
+      /** Tax Code */
+      tax_code: string;
+      /** Website */
+      website: string | null;
     };
     /** CompanyProfileOut */
     CompanyProfileOut: {
@@ -2253,6 +2363,58 @@ export interface components {
       /** Top Customers */
       top_customers?: components["schemas"]["TopCustomerOut"][] | null;
     };
+    /** DepartmentCreate */
+    DepartmentCreate: {
+      /** Name */
+      name: string;
+    };
+    /** DepartmentOut */
+    DepartmentOut: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Is Active */
+      is_active: boolean;
+      /** Name */
+      name: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Version */
+      version: number;
+    };
+    /** DepartmentPage */
+    DepartmentPage: {
+      /** Items */
+      items: components["schemas"]["DepartmentOut"][];
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+      /** Total */
+      total: number;
+    };
+    /** DepartmentUpdate */
+    DepartmentUpdate: {
+      /** Name */
+      name: string;
+      /** Version */
+      version: number;
+    };
+    /** DepartmentVersion */
+    DepartmentVersion: {
+      /** Version */
+      version: number;
+    };
     /** DispatchSummaryOut */
     DispatchSummaryOut: {
       /** In Progress Order Count */
@@ -2276,21 +2438,49 @@ export interface components {
     };
     /** EmployeeCreate */
     EmployeeCreate: {
+      /** Address */
+      address?: string | null;
+      /** Birth Date */
+      birth_date?: string | null;
+      /** Birth Place */
+      birth_place?: string | null;
       /**
-       * Department
-       * @enum {string}
+       * Department Id
+       * Format: uuid
        */
-      department: "MANAGEMENT" | "SALES" | "TECHNICAL";
+      department_id: string;
       /** Email */
-      email: string;
+      email?: string | null;
       /** Full Name */
       full_name: string;
+      /** Gender */
+      gender?: ("MALE" | "FEMALE" | "OTHER") | null;
+      /** Id Issued Date */
+      id_issued_date?: string | null;
+      /** Id Issued Place */
+      id_issued_place?: string | null;
+      /** Id Number */
+      id_number?: string | null;
+      /** Marital Status */
+      marital_status?: ("SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED") | null;
       /** Phone */
       phone?: string | null;
       /** Roles */
       roles: ("MANAGER" | "SALE" | "CUSTOMER_CARE" | "TECH_LEAD" | "TECHNICIAN")[];
       /** Title */
       title?: string | null;
+    };
+    /** EmployeeDepartment */
+    EmployeeDepartment: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Is Active */
+      is_active: boolean;
+      /** Name */
+      name: string;
     };
     /**
      * EmployeeLookupOut
@@ -2313,23 +2503,38 @@ export interface components {
     };
     /** EmployeeOut */
     EmployeeOut: {
+      /** Address */
+      address: string | null;
+      /** Birth Date */
+      birth_date: string | null;
+      /** Birth Place */
+      birth_place: string | null;
       /** Code */
       code: string;
-      /** Department */
-      department: string;
+      department: components["schemas"]["EmployeeDepartment"];
       /** Email */
-      email: string;
+      email: string | null;
       /** Full Name */
       full_name: string;
+      /** Gender */
+      gender: ("MALE" | "FEMALE" | "OTHER") | null;
       /**
        * Id
        * Format: uuid
        */
       id: string;
+      /** Id Issued Date */
+      id_issued_date: string | null;
+      /** Id Issued Place */
+      id_issued_place: string | null;
+      /** Id Number */
+      id_number: string | null;
       /** Is Active */
       is_active: boolean;
       /** Is Locked */
       is_locked: boolean;
+      /** Marital Status */
+      marital_status: ("SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED") | null;
       /** Must Change Password */
       must_change_password: boolean;
       /** Phone */
@@ -2338,6 +2543,8 @@ export interface components {
       roles: string[];
       /** Title */
       title: string | null;
+      /** Username */
+      username: string;
       /** Version */
       version: number;
     };
@@ -2417,16 +2624,34 @@ export interface components {
     };
     /** EmployeeUpdate */
     EmployeeUpdate: {
-      /** Department */
-      department?: ("MANAGEMENT" | "SALES" | "TECHNICAL") | null;
+      /** Address */
+      address?: string | null;
+      /** Birth Date */
+      birth_date?: string | null;
+      /** Birth Place */
+      birth_place?: string | null;
+      /** Department Id */
+      department_id?: string | null;
       /** Email */
       email?: string | null;
       /** Full Name */
       full_name?: string | null;
+      /** Gender */
+      gender?: ("MALE" | "FEMALE" | "OTHER") | null;
+      /** Id Issued Date */
+      id_issued_date?: string | null;
+      /** Id Issued Place */
+      id_issued_place?: string | null;
+      /** Id Number */
+      id_number?: string | null;
+      /** Marital Status */
+      marital_status?: ("SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED") | null;
       /** Phone */
       phone?: string | null;
       /** Title */
       title?: string | null;
+      /** Username */
+      username?: string | null;
       /** Version */
       version: number;
     };
@@ -2472,7 +2697,8 @@ export interface components {
       | "TASK"
       | "ASSIGNMENT"
       | "CUSTOMER_GIFT"
-      | "COMPANY_PROFILE";
+      | "COMPANY_PROFILE"
+      | "DEPARTMENT";
     /** ForgotPasswordRequest */
     ForgotPasswordRequest: {
       /** Email */
@@ -2624,10 +2850,10 @@ export interface components {
     };
     /** LoginRequest */
     LoginRequest: {
-      /** Email */
-      email: string;
       /** Password */
       password: string;
+      /** Username */
+      username: string;
     };
     /** LoginResponse */
     LoginResponse: {
@@ -2640,23 +2866,52 @@ export interface components {
       /** Count */
       count: number;
     };
-    /** MeEmployee */
-    MeEmployee: {
-      /** Code */
-      code: string;
-      /** Department */
-      department: string;
-      /** Email */
-      email: string;
-      /** Full Name */
-      full_name: string;
+    /** MeDepartment */
+    MeDepartment: {
       /**
        * Id
        * Format: uuid
        */
       id: string;
+      /** Name */
+      name: string;
+    };
+    /** MeEmployee */
+    MeEmployee: {
+      /** Address */
+      address: string | null;
+      /** Birth Date */
+      birth_date: string | null;
+      /** Birth Place */
+      birth_place: string | null;
+      /** Code */
+      code: string;
+      department: components["schemas"]["MeDepartment"];
+      /** Email */
+      email: string | null;
+      /** Full Name */
+      full_name: string;
+      /** Gender */
+      gender: ("MALE" | "FEMALE" | "OTHER") | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Id Issued Date */
+      id_issued_date: string | null;
+      /** Id Issued Place */
+      id_issued_place: string | null;
+      /** Id Number */
+      id_number: string | null;
+      /** Marital Status */
+      marital_status: ("SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED") | null;
+      /** Phone */
+      phone: string | null;
       /** Title */
       title: string | null;
+      /** Username */
+      username: string;
     };
     /** MeResponse */
     MeResponse: {
@@ -2949,6 +3204,22 @@ export interface components {
       version: number;
       /** Work Description */
       work_description: string;
+    };
+    /**
+     * OrderInvoicePrint
+     * @description GET /orders/{id}/invoice-print (M17-04): what the printed sales invoice needs beyond OrderDetail.
+     */
+    OrderInvoicePrint: {
+      company: components["schemas"]["CompanyPrintHeader"];
+      /** Issuer Name */
+      issuer_name: string;
+      /**
+       * Printed At
+       * Format: date-time
+       */
+      printed_at: string;
+      /** Slip No */
+      slip_no: string;
     };
     /** OrderLineCreate */
     OrderLineCreate: {
@@ -4378,7 +4649,7 @@ export interface operations {
           "application/json": components["schemas"]["LoginResponse"];
         };
       };
-      /** @description problem+json — INVALID_CREDENTIALS: Email hoặc mật khẩu không đúng. */
+      /** @description problem+json — INVALID_CREDENTIALS: Tên đăng nhập hoặc mật khẩu không đúng. */
       401: {
         headers: {
           [name: string]: unknown;
@@ -4992,6 +5263,265 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["DashboardOut"];
+        };
+      };
+    };
+  };
+  departments_list: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        is_active?: boolean | null;
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DepartmentPage"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  departments_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DepartmentCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DepartmentOut"];
+        };
+      };
+      /** @description problem+json — DUPLICATE_NAME */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  departments_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        department_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DepartmentOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  departments_rename: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        department_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DepartmentUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DepartmentOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | DUPLICATE_NAME | INVALID_STATE */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  departments_activate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        department_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DepartmentVersion"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DepartmentOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | DUPLICATE_NAME | INVALID_STATE */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  departments_deactivate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        department_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DepartmentVersion"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DepartmentOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | DUPLICATE_NAME | INVALID_STATE */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
@@ -6240,6 +6770,51 @@ export interface operations {
       };
       /** @description problem+json — NOT_FOUND */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_invoice_print: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderInvoicePrint"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — INVALID_STATE */
+      409: {
         headers: {
           [name: string]: unknown;
         };

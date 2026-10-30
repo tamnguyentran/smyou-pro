@@ -14,7 +14,7 @@ from tests.integration.conftest import ACCESS_COOKIE, AN, KHOA, REFRESH_COOKIE, 
 @pytest.mark.ac("AC-AUTH-019")
 def test_passwords_are_argon2id(db: Connection, api: TestClient) -> None:
     khoa = seed(db, KHOA, must_change_password=True)
-    login(api, KHOA.email, KHOA.password)
+    login(api, KHOA.username, KHOA.password)
     api.post(
         "/api/v1/auth/change-password",
         json={"current_password": KHOA.password, "new_password": "Khoa@SmYou9"},
@@ -26,7 +26,7 @@ def test_passwords_are_argon2id(db: Connection, api: TestClient) -> None:
 @pytest.mark.ac("AC-AUTH-019")
 def test_refresh_tokens_stored_only_as_sha256(db: Connection, api: TestClient) -> None:
     seed(db, AN)
-    raw = login(api, AN.email, AN.password).cookies[REFRESH_COOKIE]
+    raw = login(api, AN.username, AN.password).cookies[REFRESH_COOKIE]
 
     stored = db.execute(text("SELECT token_hash FROM auth_sessions")).scalars().all()
 
@@ -41,10 +41,10 @@ def test_no_secret_in_logs_or_error_bodies(
     caplog.set_level(logging.DEBUG)
     seed(db, AN)
     bodies = [
-        login(api, AN.email, "sai-mat-khau-bi-mat").text,
-        api.post("/api/v1/auth/login", json={"email": AN.email, "password": "p" * 129 + "LEAK"}).text,
+        login(api, AN.username, "sai-mat-khau-bi-mat").text,
+        api.post("/api/v1/auth/login", json={"username": AN.username, "password": "p" * 129 + "LEAK"}).text,
     ]
-    ok = login(api, AN.email, AN.password)
+    ok = login(api, AN.username, AN.password)
     secrets = [
         "sai-mat-khau-bi-mat",
         "LEAK",

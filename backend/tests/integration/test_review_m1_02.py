@@ -28,7 +28,7 @@ def test_real_routes_matrix_uses_yaml_roles_and_holders_reach_the_handler(
     )
     seed(db, person)
     api = TestClient(app, raise_server_exceptions=False)
-    assert login(api, person.email, person.password).status_code == 200
+    assert login(api, person.username, person.password).status_code == 200
 
     routes = declared_routes(app)
     assert routes
@@ -73,7 +73,7 @@ def test_unsupported_scope_warning_names_the_exact_scope(caplog: pytest.LogCaptu
 @pytest.mark.ac("AC-AUTH-031")
 def test_employee_without_roles_is_forbidden_on_me(api: TestClient, db: Connection) -> None:
     an_id = seed(db, AN)
-    assert login(api, AN.email, AN.password).status_code == 200
+    assert login(api, AN.username, AN.password).status_code == 200
     db.execute(text("DELETE FROM employee_roles WHERE employee_id = :id"), {"id": an_id})
     res = api.get("/api/v1/me")
     assert res.status_code == 403

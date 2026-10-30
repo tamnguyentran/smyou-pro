@@ -3,8 +3,9 @@
 import re
 import secrets
 import string
+from datetime import date
 
-from app.modules.identity.domain import password_problems
+from app.modules.identity.domain import birth_date_password, password_problems
 
 # No look-alikes (0/O, 1/l/I): the Manager reads the password out or retypes it for the employee.
 TEMP_PASSWORD_ALPHABET = "".join(c for c in string.ascii_letters + string.digits if c not in "0O1lIoi")
@@ -13,8 +14,11 @@ CODE_PREFIX = "NV"
 _CODE = re.compile(rf"{CODE_PREFIX}(\d+)")
 
 
-def temporary_password(email: str) -> str:
-    """Random one-time password that already satisfies the password rules (Q21)."""
+def temporary_password(email: str | None, birth_date: date | None = None) -> str:
+    """The birth date as `ddmmyyyy` when known (M17-03b, Q108); otherwise a random one-time password
+    that already satisfies the password rules (Q21). Either way it must be changed at first login."""
+    if birth_date is not None:
+        return birth_date_password(birth_date)
     while True:
         password = "".join(secrets.choice(TEMP_PASSWORD_ALPHABET) for _ in range(TEMP_PASSWORD_LENGTH))
         if not password_problems(password, current_password="", email=email):

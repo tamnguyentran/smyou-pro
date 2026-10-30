@@ -1,11 +1,12 @@
 """Employees (who can log in), their roles, and refresh-token sessions (DOMAIN_MODEL §1)."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -20,9 +21,11 @@ from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
+from app.modules.departments.models import Department
 
 ROLES = ("MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD", "TECHNICIAN")
-DEPARTMENTS = ("MANAGEMENT", "SALES", "TECHNICAL")
+GENDERS = ("MALE", "FEMALE", "OTHER")
+MARITAL_STATUSES = ("SINGLE", "MARRIED", "DIVORCED", "WIDOWED")
 
 
 def _in(column: str, values: tuple[str, ...]) -> str:
@@ -32,16 +35,29 @@ def _in(column: str, values: tuple[str, ...]) -> str:
 class Employee(Base):
     __tablename__ = "employees"
     __table_args__ = (
-        CheckConstraint(_in("department", DEPARTMENTS), name="department"),
         CheckConstraint("phone ~ '^0[0-9]{9}$'", name="phone"),
+        CheckConstraint(_in("gender", GENDERS), name="gender"),
+        CheckConstraint(_in("marital_status", MARITAL_STATUSES), name="marital_status"),
+        CheckConstraint("id_number ~ '^([0-9]{9}|[0-9]{12})$'", name="id_number"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     code: Mapped[str] = mapped_column(String(20), unique=True)
     full_name: Mapped[str] = mapped_column(String(120))
-    email: Mapped[str] = mapped_column(CITEXT, unique=True)
+    username: Mapped[str] = mapped_column(CITEXT, unique=True)  # login name, M17-03b
+    email: Mapped[str | None] = mapped_column(CITEXT, unique=True)  # optional since M17-03a (Q105)
     phone: Mapped[str | None] = mapped_column(String(20))
-    department: Mapped[str] = mapped_column(String(20))
+    birth_date: Mapped[date | None] = mapped_column(Date)
+    birth_place: Mapped[str | None] = mapped_column(String(120))
+    gender: Mapped[str | None] = mapped_column(String(10))
+    address: Mapped[str | None] = mapped_column(String(255))
+    id_number: Mapped[str | None] = mapped_column(String(12))  # CMND (9) / CCCD (12), not unique
+    id_issued_date: Mapped[date | None] = mapped_column(Date)
+    id_issued_place: Mapped[str | None] = mapped_column(String(120))
+    marital_status: Mapped[str | None] = mapped_column(String(10))
+    department_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("departments.id", ondelete="RESTRICT"), index=True
+    )
     title: Mapped[str | None] = mapped_column(String(80))
     password_hash: Mapped[str] = mapped_column(Text)
     must_change_password: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
@@ -55,6 +71,8 @@ class Employee(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
+    # selectin, not joined: `_locked` takes FOR UPDATE on employees and must not lock the department row.
+    department: Mapped[Department] = relationship(lazy="selectin")
     roles: Mapped[list["EmployeeRole"]] = relationship(lazy="selectin", cascade="all, delete-orphan")
 
 

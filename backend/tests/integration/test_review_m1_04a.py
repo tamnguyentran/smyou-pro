@@ -72,7 +72,7 @@ def test_codes_sort_numerically(app: FastAPI, db: Connection, people: dict[str, 
         ({"full_name": "A" * 121}, "full_name", "Tối đa 120 ký tự."),
         ({"roles": []}, "roles", "Cần chọn ít nhất một mục."),
         ({"roles": ["BOSS"]}, "roles.0", "Giá trị không hợp lệ."),
-        ({"department": "HR"}, "department", "Giá trị không hợp lệ."),
+        ({"department_id": "HR"}, "department_id", "Giá trị không hợp lệ."),
     ],
 )
 def test_validation_messages_are_vietnamese(
@@ -196,7 +196,7 @@ def test_new_routes_require_a_session(app: FastAPI, db: Connection, people: dict
     anonymous = TestClient(app, raise_server_exceptions=False)
     problem(anonymous.get("/api/v1/employees"), 401, "UNAUTHENTICATED")
     problem(anonymous.post("/api/v1/employees", json=NEW_HOA), 401, "UNAUTHENTICATED")
-    assert login(anonymous, HOA.email, HOA.password).status_code == 200
+    assert login(anonymous, HOA.username, HOA.password).status_code == 200
     assert TUAN.code == "NV010"
 
 

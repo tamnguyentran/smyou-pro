@@ -17,6 +17,7 @@
 | Quản lý nhân viên & vai trò | ✅ | — | xem | — |
 | Khách hàng | ✅ | ✅ | xem | — |
 | Xem đơn | tất cả | tất cả | tất cả | đơn có task được giao |
+| In "Hoá đơn bán hàng" A5 (`order.print`, M17-04 · Q109; CSKH cũng in được) | tất cả | tất cả | tất cả | đơn có task được giao |
 | Xem giá tiền | ✅ | ✅ | ✅ | đơn được giao (Q03) |
 | Sửa đơn giá dòng khi tạo/sửa đơn | chỉ dòng **không** cố định giá | chỉ dòng **không** cố định giá | — | — |
 | Tạo/sửa nháp/gửi/huỷ đơn chưa điều phối | ✅ | đơn của mình | — | — |
@@ -28,7 +29,8 @@
 | Sửa dòng hàng/giá sau khi gửi (tới trước Hoàn tất/Huỷ, có audit) | ✅ | đơn của mình (Q09) | — | — |
 | Nhận/từ chối/bắt đầu/xong task | — | — | — | của mình |
 | KPI | tất cả | — | tất cả | của mình |
-| Thông tin công ty (xem/sửa, logo — M17-01) | ✅ | — | — | — |
+| Thông tin Công ty (xem/sửa, logo — M17-01) | ✅ | — | — | — |
+| Phòng ban (thêm/sửa/ngừng — M17-02a; QLKT chỉ xem qua API) | ✅ | — | — | — |
 | Nhật ký hệ thống | ✅ | — | — | — |
 
 ## Menu theo vai trò (desktop sidebar 2 cấp)
@@ -39,9 +41,8 @@
 | 🔧 Điều phối kỹ thuật → Đơn chờ điều phối · Bảng đầu việc · Lịch & tải việc · Đơn cần chỉnh sửa | TECH_LEAD |
 | 🛍️ Đơn hàng → Danh sách đơn · Tạo đơn mới · Khách hàng | SALE, MANAGER |
 | 📦 Danh mục → Sản phẩm · Dịch vụ | MANAGER |
-| 👤 Nhân sự & phân quyền | MANAGER |
 | 📈 Báo cáo KPI | MANAGER, TECH_LEAD, TECHNICIAN (của mình) |
-| 🏢 Thông tin công ty | MANAGER |
+| 🏢 Thông tin Công ty → Thông tin Công ty · Phòng ban · Nhân sự & phân quyền | MANAGER |
 | 🕘 Nhật ký hệ thống | MANAGER |
 
 Mobile: xem `docs/design/UI_GUIDELINES.md` §4.

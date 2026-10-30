@@ -1,5 +1,6 @@
 """Company profile use cases (M17-01). Callers own the transaction; this never commits."""
 
+import base64
 from datetime import datetime
 
 from sqlalchemy import select
@@ -11,7 +12,7 @@ from app.core.errors import AppError
 from app.modules.audit import service as audit
 from app.modules.company.domain import COMPANY_PROFILE_ID
 from app.modules.company.models import CompanyProfile
-from app.modules.company.schemas import CompanyProfileOut, CompanyProfileUpdate
+from app.modules.company.schemas import CompanyPrintHeader, CompanyProfileOut, CompanyProfileUpdate
 from app.modules.files import service as files
 
 
@@ -38,6 +39,27 @@ def _record(
 
 def get_profile(session: Session) -> CompanyProfileOut:
     return CompanyProfileOut.model_validate(session.scalars(select(CompanyProfile)).one())
+
+
+def get_print_header(session: Session, settings: Settings) -> CompanyPrintHeader:
+    """M17-04: the logo is inlined as a data URL — every `order.print` holder must see it on paper, but the
+    attachment itself stays `company.manage`-only (AC-SYS-132)."""
+    profile = session.scalars(select(CompanyProfile)).one()
+    logo_url = None
+    if profile.logo_attachment_id:
+        logo = files.get_or_404(session, profile.logo_attachment_id)
+        encoded = base64.b64encode(files.read_bytes(logo, settings)).decode("ascii")
+        logo_url = f"data:{logo.mime_type};base64,{encoded}"
+    return CompanyPrintHeader(
+        name=profile.name,
+        tax_code=profile.tax_code,
+        address=profile.address,
+        phone=profile.phone,
+        fax=profile.fax,
+        email=profile.email,
+        website=profile.website,
+        logo_url=logo_url,
+    )
 
 
 def update_profile(

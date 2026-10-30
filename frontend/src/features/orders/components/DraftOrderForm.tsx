@@ -40,6 +40,7 @@ import { CustomerPicker } from "./CustomerPicker";
 import { OrderDetailTabs } from "./OrderDetailTabs";
 import { OrderLinesSection } from "./OrderLinesSection";
 import { OrderTotalsSection } from "./OrderTotalsSection";
+import { PrintInvoiceButton } from "./PrintInvoiceButton";
 import { ReadOnlyField } from "./ReadOnlyField";
 import { useOrderWriteQueue } from "./writeQueue";
 
@@ -171,7 +172,8 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
         : !hasLine
           ? "Cần thêm ít nhất 1 dòng hàng."
           : null;
-  const canCancel = openedExistingOrder || savedOnce;
+  const hasSaved = openedExistingOrder || savedOnce;
+  const canCancel = hasSaved;
 
   const loadedOrderId = order?.id;
   useEffect(() => {
@@ -490,6 +492,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
             >
               Lưu nháp
             </Button>
+            <PrintInvoiceButton order={hasSaved ? order : undefined} unsaved={isDirty} />
             {order?.allowed_commands.includes("submit") ? (
               <Button
                 type="button"

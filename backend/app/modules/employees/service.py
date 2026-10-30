@@ -16,17 +16,20 @@ from app.core.errors import AppError
 from app.core.security import hash_password
 from app.core.sequences import next_value
 from app.modules.audit import service as audit
+from app.modules.departments.models import Department
 from app.modules.employees.domain import employee_code, last_code_number, temporary_password
 from app.modules.employees.schemas import (
     EmployeeCreate,
+    EmployeeDepartment,
     EmployeeLookupOut,
     EmployeeOut,
     EmployeePage,
+    EmployeeProfile,
     EmployeeUpdate,
     EmployeeWithPassword,
 )
 from app.modules.identity.models import ROLES, Employee, EmployeeRole
-from app.modules.identity.service import revoke_all_sessions
+from app.modules.identity.service import generate_username, revoke_all_sessions
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +37,11 @@ logger = logging.getLogger(__name__)
 # count then always sees the other request's committed result (AC-EMP-008).
 _MANAGER_LOCK = 20260926_01
 EMAIL_TAKEN = "Email đã được dùng cho nhân viên khác."
+USERNAME_TAKEN = "Tên đăng nhập đã được dùng cho nhân viên khác."
 # employee.read / employee.manage are `all` for every role holding them today; any narrower scope
 # added to permissions.yaml later fails closed (no rule → no rows) until a rule is written here.
 RULES: ScopeRules = {}
+PROFILE_FIELDS = tuple(EmployeeProfile.model_fields)  # M17-03a
 # M15-01: a Manager always also holds Sale/CSKH/QLKT (so they never lose dispatch/order/customer-care
 # capabilities just because nobody separately ticked those boxes) but can never be a Technician too.
 _MANAGER_BUNDLE = frozenset({"MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD"})
@@ -63,9 +68,11 @@ def _out(employee: Employee, now: datetime) -> EmployeeOut:
         id=employee.id,
         code=employee.code,
         full_name=employee.full_name,
+        username=employee.username,
         email=employee.email,
         phone=employee.phone,
-        department=employee.department,
+        **{field: getattr(employee, field) for field in PROFILE_FIELDS},
+        department=EmployeeDepartment.model_validate(employee.department),
         title=employee.title,
         roles=[role for role in ROLES if role in held],
         is_active=employee.is_active,
@@ -85,12 +92,45 @@ def _email_taken() -> AppError:
     )
 
 
+def _username_taken() -> AppError:
+    return AppError(
+        409,
+        "USERNAME_TAKEN",
+        USERNAME_TAKEN,
+        errors=[{"field": "username", "code": "taken", "message": USERNAME_TAKEN}],
+    )
+
+
+def _department_error(status_code: str, message: str) -> AppError:
+    return AppError(
+        422,
+        status_code,
+        message,
+        errors=[{"field": "department_id", "code": status_code.lower(), "message": message}],
+    )
+
+
+def _ensure_department_assignable(session: Session, department_id: uuid.UUID) -> None:
+    """New or changed department must exist and be active; keeping an inactive one is fine (§2)."""
+    is_active = session.scalar(select(Department.is_active).where(Department.id == department_id))
+    if is_active is None:
+        raise _department_error("DEPARTMENT_NOT_FOUND", "Không tìm thấy phòng ban.")
+    if not is_active:
+        raise _department_error("DEPARTMENT_INACTIVE", "Phòng ban đã ngừng hoạt động.")
+
+
 def _ensure_email_free(session: Session, email: str, *, except_id: uuid.UUID | None = None) -> None:
     query = select(Employee.id).where(Employee.email == email)  # citext: case-insensitive
     if except_id is not None:
         query = query.where(Employee.id != except_id)
     if session.scalar(query) is not None:
         raise _email_taken()
+
+
+def _ensure_username_free(session: Session, username: str, *, except_id: uuid.UUID) -> None:
+    query = select(Employee.id).where(Employee.username == username, Employee.id != except_id)  # citext
+    if session.scalar(query) is not None:
+        raise _username_taken()
 
 
 def _flush(session: Session) -> None:
@@ -100,6 +140,8 @@ def _flush(session: Session) -> None:
         constraint = getattr(getattr(exc.orig, "diag", None), "constraint_name", None)
         if constraint == "uq_employees_email":  # a concurrent request took the email meanwhile
             raise _email_taken() from exc
+        if constraint == "uq_employees_username":
+            raise _username_taken() from exc
         raise
 
 
@@ -203,17 +245,21 @@ def get_employee(session: Session, actor: Actor, employee_id: uuid.UUID, *, now:
 def create_employee(
     session: Session, actor: Actor, body: EmployeeCreate, *, now: datetime, request_id: str | None = None
 ) -> EmployeeWithPassword:
-    _ensure_email_free(session, body.email)
+    if body.email is not None:
+        _ensure_email_free(session, body.email)
+    _ensure_department_assignable(session, body.department_id)
     roles = _resolve_roles(set(body.roles))
     codes = list(session.scalars(select(Employee.code)))
     number = next_value(session, "employee", at_least_after=last_code_number(codes))
-    password = temporary_password(body.email)
+    password = temporary_password(body.email, body.birth_date)
     employee = Employee(
         code=employee_code(number),
         full_name=body.full_name,
+        username=generate_username(session, body.full_name),
         email=body.email,
         phone=body.phone,
-        department=body.department,
+        **{field: getattr(body, field) for field in PROFILE_FIELDS},
+        department_id=body.department_id,
         title=body.title or None,
         password_hash=hash_password(password),
         must_change_password=True,
@@ -251,14 +297,20 @@ def update_employee(
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
     if "email" in changes and changes["email"] is not None:
         _ensure_email_free(session, changes["email"], except_id=employee.id)
+    if changes.get("username") is not None:
+        _ensure_username_free(session, changes["username"], except_id=employee.id)
+    department_id = changes.get("department_id")
+    if department_id is not None and department_id != employee.department_id:
+        _ensure_department_assignable(session, department_id)
     # Required fields sent as null are ignored; optional ones sent empty are cleared.
-    wanted = {f: changes[f] for f in ("full_name", "email", "department") if changes.get(f) is not None}
-    wanted |= {f: changes[f] or None for f in ("phone", "title") if f in changes}
+    wanted = {f: changes[f] for f in ("full_name", "username", "department_id") if changes.get(f) is not None}
+    wanted |= {f: changes[f] or None for f in ("email", "phone", "title", *PROFILE_FIELDS) if f in changes}
     changed_fields = sorted(f for f, value in wanted.items() if getattr(employee, f) != value)
     for field in changed_fields:
         setattr(employee, field, wanted[field])
     employee.version += 1
     _flush(session)
+    session.expire(employee, ["department"])  # reload the relationship after a department_id change
     _log("update", employee, actor)
     audit.record(
         session,
@@ -379,7 +431,7 @@ def reset_password(
     request_id: str | None = None,
 ) -> EmployeeWithPassword:
     employee = _locked(session, actor, employee_id, version)
-    password = temporary_password(employee.email)
+    password = temporary_password(employee.email, employee.birth_date)
     employee.password_hash = hash_password(password)
     employee.must_change_password = True
     employee.password_changed_at = now  # also invalidates access tokens already issued

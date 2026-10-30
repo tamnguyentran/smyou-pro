@@ -41,7 +41,7 @@ def insert_event(
 
 
 def login_as(client: TestClient, person: Person) -> None:
-    res = login(client, person.email, person.password)
+    res = login(client, person.username, person.password)
     assert res.status_code == 200, res.text
 
 
@@ -137,7 +137,7 @@ def test_non_manager_roles_get_403(app: FastAPI, db: Connection) -> None:
 
     for person in (TUAN, HOA, KHOA):
         client = TestClient(app, raise_server_exceptions=False)
-        login(client, person.email, person.password)
+        login(client, person.username, person.password)
         res = client.get("/api/v1/audit-events")
         assert res.status_code == 403, (person.code, res.text)
         assert res.json()["code"] == "FORBIDDEN"

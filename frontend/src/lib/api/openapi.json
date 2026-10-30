@@ -340,6 +340,74 @@
         "title": "ChangePasswordRequest",
         "type": "object"
       },
+      "CompanyPrintHeader": {
+        "description": "Company block printed on the sales invoice (M17-04); readable by every `order.print` holder.\n`logo_url` is a `data:` URL (see `service.get_print_header`).",
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "fax": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fax"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          },
+          "tax_code": {
+            "title": "Tax Code",
+            "type": "string"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          }
+        },
+        "required": ["name", "tax_code", "address", "phone", "fax", "email", "website", "logo_url"],
+        "title": "CompanyPrintHeader",
+        "type": "object"
+      },
       "CompanyProfileOut": {
         "properties": {
           "address": {
@@ -2007,6 +2075,110 @@
         "title": "DashboardOut",
         "type": "object"
       },
+      "DepartmentCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": ["name"],
+        "title": "DepartmentCreate",
+        "type": "object"
+      },
+      "DepartmentOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["id", "name", "is_active", "version", "created_at", "updated_at"],
+        "title": "DepartmentOut",
+        "type": "object"
+      },
+      "DepartmentPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DepartmentOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": ["items", "total", "limit", "offset"],
+        "title": "DepartmentPage",
+        "type": "object"
+      },
+      "DepartmentUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["version", "name"],
+        "title": "DepartmentUpdate",
+        "type": "object"
+      },
+      "DepartmentVersion": {
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": ["version"],
+        "title": "DepartmentVersion",
+        "type": "object"
+      },
       "DispatchSummaryOut": {
         "properties": {
           "in_progress_order_count": {
@@ -2054,22 +2226,125 @@
       "EmployeeCreate": {
         "additionalProperties": false,
         "properties": {
-          "department": {
-            "enum": ["MANAGEMENT", "SALES", "TECHNICAL"],
-            "title": "Department",
+          "address": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "birth_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Date"
+          },
+          "birth_place": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Place"
+          },
+          "department_id": {
+            "format": "uuid",
+            "title": "Department Id",
             "type": "string"
           },
           "email": {
-            "maxLength": 254,
-            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
-            "title": "Email",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 254,
+                "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
           },
           "full_name": {
             "maxLength": 120,
             "minLength": 1,
             "title": "Full Name",
             "type": "string"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "enum": ["MALE", "FEMALE", "OTHER"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "id_issued_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Issued Date"
+          },
+          "id_issued_place": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Issued Place"
+          },
+          "id_number": {
+            "anyOf": [
+              {
+                "pattern": "^([0-9]{9}|[0-9]{12})$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Number"
+          },
+          "marital_status": {
+            "anyOf": [
+              {
+                "enum": ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marital Status"
           },
           "phone": {
             "anyOf": [
@@ -2104,8 +2379,28 @@
             "title": "Title"
           }
         },
-        "required": ["full_name", "email", "department", "roles"],
+        "required": ["full_name", "department_id", "roles"],
         "title": "EmployeeCreate",
+        "type": "object"
+      },
+      "EmployeeDepartment": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": ["id", "name", "is_active"],
+        "title": "EmployeeDepartment",
         "type": "object"
       },
       "EmployeeLookupOut": {
@@ -2146,26 +2441,112 @@
       },
       "EmployeeOut": {
         "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "birth_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Date"
+          },
+          "birth_place": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Place"
+          },
           "code": {
             "title": "Code",
             "type": "string"
           },
           "department": {
-            "title": "Department",
-            "type": "string"
+            "$ref": "#/components/schemas/EmployeeDepartment"
           },
           "email": {
-            "title": "Email",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
           },
           "full_name": {
             "title": "Full Name",
             "type": "string"
           },
+          "gender": {
+            "anyOf": [
+              {
+                "enum": ["MALE", "FEMALE", "OTHER"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "id_issued_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Issued Date"
+          },
+          "id_issued_place": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Issued Place"
+          },
+          "id_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Number"
           },
           "is_active": {
             "title": "Is Active",
@@ -2174,6 +2555,18 @@
           "is_locked": {
             "title": "Is Locked",
             "type": "boolean"
+          },
+          "marital_status": {
+            "anyOf": [
+              {
+                "enum": ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marital Status"
           },
           "must_change_password": {
             "title": "Must Change Password",
@@ -2208,6 +2601,10 @@
             ],
             "title": "Title"
           },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          },
           "version": {
             "title": "Version",
             "type": "integer"
@@ -2217,8 +2614,17 @@
           "id",
           "code",
           "full_name",
+          "username",
           "email",
           "phone",
+          "birth_date",
+          "birth_place",
+          "gender",
+          "address",
+          "id_number",
+          "id_issued_date",
+          "id_issued_place",
+          "marital_status",
           "department",
           "title",
           "roles",
@@ -2406,17 +2812,53 @@
       "EmployeeUpdate": {
         "additionalProperties": false,
         "properties": {
-          "department": {
+          "address": {
             "anyOf": [
               {
-                "enum": ["MANAGEMENT", "SALES", "TECHNICAL"],
+                "maxLength": 255,
                 "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Department"
+            "title": "Address"
+          },
+          "birth_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Date"
+          },
+          "birth_place": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Place"
+          },
+          "department_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Id"
           },
           "email": {
             "anyOf": [
@@ -2444,6 +2886,66 @@
             ],
             "title": "Full Name"
           },
+          "gender": {
+            "anyOf": [
+              {
+                "enum": ["MALE", "FEMALE", "OTHER"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "id_issued_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Issued Date"
+          },
+          "id_issued_place": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Issued Place"
+          },
+          "id_number": {
+            "anyOf": [
+              {
+                "pattern": "^([0-9]{9}|[0-9]{12})$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Number"
+          },
+          "marital_status": {
+            "anyOf": [
+              {
+                "enum": ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marital Status"
+          },
           "phone": {
             "anyOf": [
               {
@@ -2466,6 +2968,20 @@
               }
             ],
             "title": "Title"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 3,
+                "pattern": "^[a-z0-9]+(\\.[a-z0-9]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
           },
           "version": {
             "title": "Version",
@@ -2562,7 +3078,8 @@
           "TASK",
           "ASSIGNMENT",
           "CUSTOMER_GIFT",
-          "COMPANY_PROFILE"
+          "COMPANY_PROFILE",
+          "DEPARTMENT"
         ],
         "title": "EntityType",
         "type": "string"
@@ -2886,20 +3403,20 @@
       },
       "LoginRequest": {
         "properties": {
-          "email": {
-            "maxLength": 254,
-            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
-            "title": "Email",
-            "type": "string"
-          },
           "password": {
             "maxLength": 128,
             "minLength": 1,
             "title": "Password",
             "type": "string"
+          },
+          "username": {
+            "maxLength": 254,
+            "minLength": 1,
+            "title": "Username",
+            "type": "string"
           }
         },
-        "required": ["email", "password"],
+        "required": ["username", "password"],
         "title": "LoginRequest",
         "type": "object"
       },
@@ -2928,28 +3445,153 @@
         "title": "MarkAllReadResult",
         "type": "object"
       },
+      "MeDepartment": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": ["id", "name"],
+        "title": "MeDepartment",
+        "type": "object"
+      },
       "MeEmployee": {
         "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "birth_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Date"
+          },
+          "birth_place": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Place"
+          },
           "code": {
             "title": "Code",
             "type": "string"
           },
           "department": {
-            "title": "Department",
-            "type": "string"
+            "$ref": "#/components/schemas/MeDepartment"
           },
           "email": {
-            "title": "Email",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
           },
           "full_name": {
             "title": "Full Name",
             "type": "string"
           },
+          "gender": {
+            "anyOf": [
+              {
+                "enum": ["MALE", "FEMALE", "OTHER"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "id_issued_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Issued Date"
+          },
+          "id_issued_place": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Issued Place"
+          },
+          "id_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Number"
+          },
+          "marital_status": {
+            "anyOf": [
+              {
+                "enum": ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marital Status"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
           },
           "title": {
             "anyOf": [
@@ -2961,9 +3603,30 @@
               }
             ],
             "title": "Title"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
           }
         },
-        "required": ["id", "code", "full_name", "email", "title", "department"],
+        "required": [
+          "id",
+          "code",
+          "full_name",
+          "username",
+          "email",
+          "title",
+          "department",
+          "phone",
+          "birth_date",
+          "birth_place",
+          "gender",
+          "address",
+          "id_number",
+          "id_issued_date",
+          "id_issued_place",
+          "marital_status"
+        ],
         "title": "MeEmployee",
         "type": "object"
       },
@@ -3890,6 +4553,30 @@
           "has_pending_revision_request"
         ],
         "title": "OrderDetail",
+        "type": "object"
+      },
+      "OrderInvoicePrint": {
+        "description": "GET /orders/{id}/invoice-print (M17-04): what the printed sales invoice needs beyond OrderDetail.",
+        "properties": {
+          "company": {
+            "$ref": "#/components/schemas/CompanyPrintHeader"
+          },
+          "issuer_name": {
+            "title": "Issuer Name",
+            "type": "string"
+          },
+          "printed_at": {
+            "format": "date-time",
+            "title": "Printed At",
+            "type": "string"
+          },
+          "slip_no": {
+            "title": "Slip No",
+            "type": "string"
+          }
+        },
+        "required": ["company", "issuer_name", "printed_at", "slip_no"],
+        "title": "OrderInvoicePrint",
         "type": "object"
       },
       "OrderLineCreate": {
@@ -7241,7 +7928,7 @@
             "description": "Successful Response"
           },
           "401": {
-            "description": "problem+json — INVALID_CREDENTIALS: Email hoặc mật khẩu không đúng."
+            "description": "problem+json — INVALID_CREDENTIALS: Tên đăng nhập hoặc mật khẩu không đúng."
           },
           "403": {
             "description": "problem+json — ACCOUNT_DISABLED: Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản lý."
@@ -7260,7 +7947,7 @@
             "description": "problem+json — ACCOUNT_LOCKED: Tài khoản tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút."
           }
         },
-        "summary": "Đăng nhập bằng email và mật khẩu",
+        "summary": "Đăng nhập bằng tên đăng nhập và mật khẩu",
         "tags": ["auth"]
       }
     },
@@ -7338,7 +8025,7 @@
             "description": "Successful Response"
           }
         },
-        "summary": "Thông tin công ty",
+        "summary": "Thông tin Công ty",
         "tags": ["company-profile"]
       },
       "patch": {
@@ -7378,7 +8065,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Sửa thông tin công ty",
+        "summary": "Sửa thông tin Công ty",
         "tags": ["company-profile"]
       }
     },
@@ -7424,7 +8111,7 @@
             "description": "problem+json — INVALID_FILE_TYPE | FILE_TOO_LARGE | UNSUPPORTED_MEDIA_TYPE"
           }
         },
-        "summary": "Tải logo công ty (thay logo cũ)",
+        "summary": "Tải logo Công ty (thay logo cũ)",
         "tags": ["company-profile"]
       }
     },
@@ -7961,6 +8648,346 @@
         },
         "summary": "Tổng quan theo vai trò",
         "tags": ["dashboard"]
+      }
+    },
+    "/api/v1/departments": {
+      "get": {
+        "operationId": "departments_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "is_active",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Active"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Danh sách phòng ban (tìm, lọc, phân trang)",
+        "tags": ["departments"]
+      },
+      "post": {
+        "operationId": "departments_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "problem+json — DUPLICATE_NAME"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Thêm phòng ban",
+        "tags": ["departments"]
+      }
+    },
+    "/api/v1/departments/{department_id}": {
+      "get": {
+        "operationId": "departments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "department_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Department Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chi tiết phòng ban",
+        "tags": ["departments"]
+      },
+      "patch": {
+        "operationId": "departments_rename",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "department_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Department Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | DUPLICATE_NAME | INVALID_STATE"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Đổi tên phòng ban",
+        "tags": ["departments"]
+      }
+    },
+    "/api/v1/departments/{department_id}/activate": {
+      "post": {
+        "operationId": "departments_activate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "department_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Department Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentVersion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | DUPLICATE_NAME | INVALID_STATE"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mở lại hoạt động phòng ban",
+        "tags": ["departments"]
+      }
+    },
+    "/api/v1/departments/{department_id}/deactivate": {
+      "post": {
+        "operationId": "departments_deactivate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "department_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Department Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentVersion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | DUPLICATE_NAME | INVALID_STATE"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ngừng hoạt động phòng ban",
+        "tags": ["departments"]
       }
     },
     "/api/v1/employees": {
@@ -9745,6 +10772,53 @@
           }
         },
         "summary": "Lịch sử thay đổi trạng thái của đơn",
+        "tags": ["orders"]
+      }
+    },
+    "/api/v1/orders/{order_id}/invoice-print": {
+      "get": {
+        "operationId": "orders_invoice_print",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderInvoicePrint"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — INVALID_STATE"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Dữ liệu in Hoá đơn bán hàng (thông tin công ty, người lập, số phiếu)",
         "tags": ["orders"]
       }
     },
@@ -13202,7 +14276,7 @@
             "description": "problem+json — VALIDATION_ERROR"
           }
         },
-        "summary": "Bảng đầu việc toàn công ty (lọc trạng thái/ưu tiên/KTV/hạn)",
+        "summary": "Bảng đầu việc toàn Công ty (lọc trạng thái/ưu tiên/KTV/hạn)",
         "tags": ["dispatch"]
       }
     },
