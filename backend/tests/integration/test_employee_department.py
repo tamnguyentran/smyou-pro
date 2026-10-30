@@ -29,7 +29,7 @@ NEW = {"full_name": "Trần Thị Mai", "email": "mai.tran@smyou.vn", "roles": [
 
 def client_as(app: FastAPI, person: Person) -> TestClient:
     client = TestClient(app, raise_server_exceptions=False)
-    res = login(client, person.email, person.password)
+    res = login(client, person.username, person.password)
     assert res.status_code == 200, res.text
     return client
 

@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { resolve } from "node:path";
+import { loginName } from "./loginName";
 
 // M6-04 golden path (AC-SYS-096/097): tạo đơn → điều phối → từ chối/giao lại → hoàn thành →
 // khách xác nhận → hoàn tất → Chỉnh sửa → mở lại → hoàn tất lần 2. Mỗi project (mobile/desktop)
@@ -22,7 +23,7 @@ const JPEG_BASE64 =
 async function signIn(page: Page, email: string, path: string) {
   await page.context().clearCookies();
   await page.goto(`./dang-nhap?next=${encodeURIComponent(path)}`);
-  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Tên đăng nhập").fill(loginName(email));
   await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
   await expect(page).not.toHaveURL(/dang-nhap/);

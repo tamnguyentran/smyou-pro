@@ -22,7 +22,7 @@ from tests.integration.conftest import (
     set_cookies,
 )
 
-INVALID = {"code": "INVALID_CREDENTIALS", "detail": "Email hoặc mật khẩu không đúng."}
+INVALID = {"code": "INVALID_CREDENTIALS", "detail": "Tên đăng nhập hoặc mật khẩu không đúng."}
 
 
 def problem(body: dict[str, object]) -> dict[str, object]:
@@ -33,7 +33,7 @@ def problem(body: dict[str, object]) -> dict[str, object]:
 def test_login_success_sets_session_cookies(api: TestClient, db: Connection) -> None:
     an = seed(db, AN, failed_login_count=2)
 
-    res = login(api, AN.email, AN.password)
+    res = login(api, AN.username, AN.password)
 
     assert res.status_code == 200
     body = res.json()
@@ -60,7 +60,7 @@ def test_cookies_follow_base_path_and_secure_flag(auth_app: Callable[..., FastAP
     seed(db, AN)
     client = TestClient(auth_app(base_path="/smyoutask", cookie_secure="true"), base_url="https://testserver")
 
-    res = login(client, AN.email, AN.password)
+    res = login(client, AN.username, AN.password)
 
     cookies = set_cookies(res)
     access, refresh = cookie_attrs(cookies[ACCESS_COOKIE]), cookie_attrs(cookies[REFRESH_COOKIE])
@@ -74,7 +74,7 @@ def test_cookies_follow_base_path_and_secure_flag(auth_app: Callable[..., FastAP
 def test_wrong_password_is_rejected_and_counted(api: TestClient, db: Connection) -> None:
     an = seed(db, AN)
 
-    res = login(api, AN.email, "sai-mat-khau")
+    res = login(api, AN.username, "sai-mat-khau")
 
     assert res.status_code == 401
     assert problem(res.json()) == {"status": 401, **INVALID}
@@ -94,7 +94,7 @@ def test_unknown_email_looks_exactly_like_wrong_password(
         calls.append("verify")
         return original(self, hash_, password)
 
-    wrong = login(api, AN.email, "sai-mat-khau")
+    wrong = login(api, AN.username, "sai-mat-khau")
     monkeypatch.setattr(argon2.PasswordHasher, "verify", spy)
     unknown = login(api, "ai.do@smyou.vn", "sai-mat-khau")
 
@@ -108,12 +108,12 @@ def test_unknown_email_looks_exactly_like_wrong_password(
 def test_fifth_failure_locks_for_15_minutes(api: TestClient, db: Connection, clock: FakeClock) -> None:
     an = seed(db, AN, failed_login_count=4)
 
-    fifth = login(api, AN.email, "sai-mat-khau")
+    fifth = login(api, AN.username, "sai-mat-khau")
     assert fifth.status_code == 401
     assert employee_row(db, an)["locked_until"] == clock.now + timedelta(minutes=15)
 
     clock.advance(minutes=14, seconds=59)
-    locked = login(api, AN.email, AN.password)
+    locked = login(api, AN.username, AN.password)
     assert locked.status_code == 423
     assert problem(locked.json()) == {
         "status": 423,
@@ -123,7 +123,7 @@ def test_fifth_failure_locks_for_15_minutes(api: TestClient, db: Connection, clo
     assert "set-cookie" not in locked.headers
 
     clock.advance(seconds=2)
-    ok = login(api, AN.email, AN.password)
+    ok = login(api, AN.username, AN.password)
     assert ok.status_code == 200
     assert employee_row(db, an)["failed_login_count"] == 0
 
@@ -132,7 +132,7 @@ def test_fifth_failure_locks_for_15_minutes(api: TestClient, db: Connection, clo
 def test_disabled_account(api: TestClient, db: Connection) -> None:
     seed(db, KHOA, is_active=False)
 
-    right = login(api, KHOA.email, KHOA.password)
+    right = login(api, KHOA.username, KHOA.password)
     assert right.status_code == 403
     assert problem(right.json()) == {
         "status": 403,
@@ -141,25 +141,26 @@ def test_disabled_account(api: TestClient, db: Connection) -> None:
     }
     assert "set-cookie" not in right.headers
 
-    wrong = login(api, KHOA.email, "sai-mat-khau")
+    wrong = login(api, KHOA.username, "sai-mat-khau")
     assert wrong.status_code == 401
     assert problem(wrong.json()) == {"status": 401, **INVALID}
 
 
 @pytest.mark.ac("AC-AUTH-006")
-def test_email_is_case_insensitive_and_trimmed(api: TestClient, db: Connection) -> None:
+def test_username_is_case_insensitive_and_trimmed(api: TestClient, db: Connection) -> None:
+    # M17-03b: login is by username now (was email) — same case/whitespace tolerance.
     seed(db, AN)
-    assert login(api, "  An.Nguyen@SMYOU.vn ", AN.password).status_code == 200
+    assert login(api, "  An.Nguyen ", AN.password).status_code == 200
 
 
 @pytest.mark.ac("AC-AUTH-007")
 @pytest.mark.parametrize(
     ("payload", "field"),
     [
-        ({"password": "SmYou@2026"}, "email"),
-        ({"email": "an.nguyen@smyou.vn"}, "password"),
-        ({"email": "khong-phai-email", "password": "SmYou@2026"}, "email"),
-        ({"email": "an.nguyen@smyou.vn", "password": "x" * 129}, "password"),
+        ({"password": "SmYou@2026"}, "username"),
+        ({"username": "an.nguyen"}, "password"),
+        ({"username": "   ", "password": "SmYou@2026"}, "username"),
+        ({"username": "an.nguyen", "password": "x" * 129}, "password"),
     ],
 )
 def test_invalid_payload_is_422_and_not_counted(

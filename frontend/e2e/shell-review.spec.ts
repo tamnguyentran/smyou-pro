@@ -1,5 +1,6 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { resolve } from "node:path";
+import { loginName } from "./loginName";
 
 // Review M1-03a (round 1): touch targets in the real shell, and evidence for the non-default states.
 const PASSWORD = "E2e@SmYou2026";
@@ -9,7 +10,7 @@ const isMobile = (info: TestInfo) => info.project.name === "mobile";
 
 async function signIn(page: Page, email: string, path: string) {
   await page.goto(`./dang-nhap?next=${encodeURIComponent(path)}`);
-  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Tên đăng nhập").fill(loginName(email));
   await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
 }

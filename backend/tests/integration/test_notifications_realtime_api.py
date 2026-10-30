@@ -45,11 +45,11 @@ def test_ws_receives_notify_order_submitted_realtime(
 ) -> None:
     order_id = insert_order(db, created_by=people["NV005"], status="DRAFT", code="DH2610-R001")
 
-    login(client, HOA.email, HOA.password)
+    login(client, HOA.username, HOA.password)
     hoa_token = client.cookies.get("smyou_access")
     assert hoa_token is not None
 
-    login(client, TUAN.email, TUAN.password)  # overwrites the jar; the WS connects as TUAN below
+    login(client, TUAN.username, TUAN.password)  # overwrites the jar; the WS connects as TUAN below
 
     with client.websocket_connect("/api/v1/notifications/ws") as ws:
         res = client.post(

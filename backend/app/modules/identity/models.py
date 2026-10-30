@@ -44,6 +44,7 @@ class Employee(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     code: Mapped[str] = mapped_column(String(20), unique=True)
     full_name: Mapped[str] = mapped_column(String(120))
+    username: Mapped[str] = mapped_column(CITEXT, unique=True)  # login name, M17-03b
     email: Mapped[str | None] = mapped_column(CITEXT, unique=True)  # optional since M17-03a (Q105)
     phone: Mapped[str | None] = mapped_column(String(20))
     birth_date: Mapped[date | None] = mapped_column(Date)

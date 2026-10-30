@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { resolve } from "node:path";
+import { loginName } from "./loginName";
 
 // Accounts created by backend/scripts/seed_e2e.py (reset before every `make e2e`).
 const PASSWORD = "E2e@SmYou2026";
@@ -10,7 +11,7 @@ const SALE = "hoa.e2e@smyou.vn";
 
 async function signIn(page: Page, email: string, path = "/employees") {
   await page.goto(`./dang-nhap?next=${encodeURIComponent(path)}`);
-  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Tên đăng nhập").fill(loginName(email));
   await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
 }
@@ -270,4 +271,34 @@ test("AC-EMP-071 @screenshot tạo nhân viên đủ hồ sơ cá nhân, mở l�
     "Đã kết hôn",
   );
   await evidence(page, info, "employee-profile-edit.png");
+});
+
+test("AC-AUTH-074 @screenshot tạo NV có ngày sinh → đăng nhập bằng tên đăng nhập + ngày sinh → bắt đổi mật khẩu", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER);
+  await page.getByRole("button", { name: "Thêm nhân viên" }).click();
+  const form = page.getByRole("dialog", { name: "Thêm nhân viên" });
+  await form.getByLabel("Họ và tên").fill("Nguyễn Lê Kim Yến");
+  await form.getByLabel("Ngày sinh").fill("1985-07-30");
+  await form.getByLabel("Phòng ban").selectOption({ label: "Kinh doanh" });
+  await form.getByRole("checkbox", { name: "Nhân viên kinh doanh" }).check();
+  await form.getByRole("button", { name: "Lưu" }).click();
+
+  const done = page.getByRole("dialog", { name: "Mật khẩu tạm" });
+  await expect(done.getByText("30071985")).toBeVisible();
+  // yen.nlk on a fresh database; earlier `make e2e` runs already took it → yen.nlk2, yen.nlk3…
+  const shown = await done.getByText(/^Tên đăng nhập: /).textContent();
+  const username = (shown ?? "").replace("Tên đăng nhập: ", "");
+  expect(username).toMatch(/^yen\.nlk\d*$/);
+  await page.screenshot({ path: shot(info, "employee-username-created.png"), fullPage: true });
+  await done.getByRole("button", { name: "Đóng", exact: true }).click();
+
+  await page.context().clearCookies(); // signed out
+  await page.goto("./dang-nhap");
+  await page.getByLabel("Tên đăng nhập").fill(username);
+  await page.getByLabel("Mật khẩu", { exact: true }).fill("30071985");
+  await page.getByRole("button", { name: "Đăng nhập" }).click();
+  await expect(page).toHaveURL(/\/smyoutask\/doi-mat-khau$/);
+  await page.screenshot({ path: shot(info, "login-username-first-change.png"), fullPage: true });
 });

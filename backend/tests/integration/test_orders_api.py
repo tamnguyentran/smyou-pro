@@ -154,7 +154,7 @@ def insert_order(
 
 def client_as(app: FastAPI, person: Person) -> TestClient:
     client = TestClient(app, raise_server_exceptions=False)
-    res = login(client, person.email, person.password)
+    res = login(client, person.username, person.password)
     assert res.status_code == 200, res.text
     return client
 
@@ -1286,6 +1286,7 @@ def test_routes_declare_capability(app: FastAPI) -> None:
         ("POST", "/api/v1/orders/{order_id}/complete", "order.complete"),
         ("POST", "/api/v1/orders/{order_id}/revise", "order.revise"),
         ("GET", "/api/v1/orders/{order_id}/history", "order.read"),
+        ("GET", "/api/v1/orders/{order_id}/invoice-print", "order.print"),
         ("PATCH", "/api/v1/orders/{order_id}/contact", "order.edit_contact"),
         ("POST", "/api/v1/orders/{order_id}/confirmation-attachments", "order.upload_confirmation"),
         ("GET", "/api/v1/orders/{order_id}/confirmation-attachments", "order.read"),

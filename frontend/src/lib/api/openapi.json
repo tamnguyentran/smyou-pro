@@ -340,6 +340,74 @@
         "title": "ChangePasswordRequest",
         "type": "object"
       },
+      "CompanyPrintHeader": {
+        "description": "Company block printed on the sales invoice (M17-04); readable by every `order.print` holder.\n`logo_url` is a `data:` URL (see `service.get_print_header`).",
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "fax": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fax"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          },
+          "tax_code": {
+            "title": "Tax Code",
+            "type": "string"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          }
+        },
+        "required": ["name", "tax_code", "address", "phone", "fax", "email", "website", "logo_url"],
+        "title": "CompanyPrintHeader",
+        "type": "object"
+      },
       "CompanyProfileOut": {
         "properties": {
           "address": {
@@ -2533,6 +2601,10 @@
             ],
             "title": "Title"
           },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          },
           "version": {
             "title": "Version",
             "type": "integer"
@@ -2542,6 +2614,7 @@
           "id",
           "code",
           "full_name",
+          "username",
           "email",
           "phone",
           "birth_date",
@@ -2895,6 +2968,20 @@
               }
             ],
             "title": "Title"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 3,
+                "pattern": "^[a-z0-9]+(\\.[a-z0-9]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
           },
           "version": {
             "title": "Version",
@@ -3316,20 +3403,20 @@
       },
       "LoginRequest": {
         "properties": {
-          "email": {
-            "maxLength": 254,
-            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
-            "title": "Email",
-            "type": "string"
-          },
           "password": {
             "maxLength": 128,
             "minLength": 1,
             "title": "Password",
             "type": "string"
+          },
+          "username": {
+            "maxLength": 254,
+            "minLength": 1,
+            "title": "Username",
+            "type": "string"
           }
         },
-        "required": ["email", "password"],
+        "required": ["username", "password"],
         "title": "LoginRequest",
         "type": "object"
       },
@@ -3516,12 +3603,17 @@
               }
             ],
             "title": "Title"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "code",
           "full_name",
+          "username",
           "email",
           "title",
           "department",
@@ -4461,6 +4553,30 @@
           "has_pending_revision_request"
         ],
         "title": "OrderDetail",
+        "type": "object"
+      },
+      "OrderInvoicePrint": {
+        "description": "GET /orders/{id}/invoice-print (M17-04): what the printed sales invoice needs beyond OrderDetail.",
+        "properties": {
+          "company": {
+            "$ref": "#/components/schemas/CompanyPrintHeader"
+          },
+          "issuer_name": {
+            "title": "Issuer Name",
+            "type": "string"
+          },
+          "printed_at": {
+            "format": "date-time",
+            "title": "Printed At",
+            "type": "string"
+          },
+          "slip_no": {
+            "title": "Slip No",
+            "type": "string"
+          }
+        },
+        "required": ["company", "issuer_name", "printed_at", "slip_no"],
+        "title": "OrderInvoicePrint",
         "type": "object"
       },
       "OrderLineCreate": {
@@ -7812,7 +7928,7 @@
             "description": "Successful Response"
           },
           "401": {
-            "description": "problem+json — INVALID_CREDENTIALS: Email hoặc mật khẩu không đúng."
+            "description": "problem+json — INVALID_CREDENTIALS: Tên đăng nhập hoặc mật khẩu không đúng."
           },
           "403": {
             "description": "problem+json — ACCOUNT_DISABLED: Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản lý."
@@ -7831,7 +7947,7 @@
             "description": "problem+json — ACCOUNT_LOCKED: Tài khoản tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút."
           }
         },
-        "summary": "Đăng nhập bằng email và mật khẩu",
+        "summary": "Đăng nhập bằng tên đăng nhập và mật khẩu",
         "tags": ["auth"]
       }
     },
@@ -7909,7 +8025,7 @@
             "description": "Successful Response"
           }
         },
-        "summary": "Thông tin công ty",
+        "summary": "Thông tin Công ty",
         "tags": ["company-profile"]
       },
       "patch": {
@@ -7949,7 +8065,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Sửa thông tin công ty",
+        "summary": "Sửa thông tin Công ty",
         "tags": ["company-profile"]
       }
     },
@@ -7995,7 +8111,7 @@
             "description": "problem+json — INVALID_FILE_TYPE | FILE_TOO_LARGE | UNSUPPORTED_MEDIA_TYPE"
           }
         },
-        "summary": "Tải logo công ty (thay logo cũ)",
+        "summary": "Tải logo Công ty (thay logo cũ)",
         "tags": ["company-profile"]
       }
     },
@@ -10656,6 +10772,53 @@
           }
         },
         "summary": "Lịch sử thay đổi trạng thái của đơn",
+        "tags": ["orders"]
+      }
+    },
+    "/api/v1/orders/{order_id}/invoice-print": {
+      "get": {
+        "operationId": "orders_invoice_print",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderInvoicePrint"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — INVALID_STATE"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Dữ liệu in Hoá đơn bán hàng (thông tin công ty, người lập, số phiếu)",
         "tags": ["orders"]
       }
     },
@@ -14113,7 +14276,7 @@
             "description": "problem+json — VALIDATION_ERROR"
           }
         },
-        "summary": "Bảng đầu việc toàn công ty (lọc trạng thái/ưu tiên/KTV/hạn)",
+        "summary": "Bảng đầu việc toàn Công ty (lọc trạng thái/ưu tiên/KTV/hạn)",
         "tags": ["dispatch"]
       }
     },

@@ -29,7 +29,7 @@ from app.modules.employees.schemas import (
     EmployeeWithPassword,
 )
 from app.modules.identity.models import ROLES, Employee, EmployeeRole
-from app.modules.identity.service import revoke_all_sessions
+from app.modules.identity.service import generate_username, revoke_all_sessions
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 # count then always sees the other request's committed result (AC-EMP-008).
 _MANAGER_LOCK = 20260926_01
 EMAIL_TAKEN = "Email đã được dùng cho nhân viên khác."
+USERNAME_TAKEN = "Tên đăng nhập đã được dùng cho nhân viên khác."
 # employee.read / employee.manage are `all` for every role holding them today; any narrower scope
 # added to permissions.yaml later fails closed (no rule → no rows) until a rule is written here.
 RULES: ScopeRules = {}
@@ -67,6 +68,7 @@ def _out(employee: Employee, now: datetime) -> EmployeeOut:
         id=employee.id,
         code=employee.code,
         full_name=employee.full_name,
+        username=employee.username,
         email=employee.email,
         phone=employee.phone,
         **{field: getattr(employee, field) for field in PROFILE_FIELDS},
@@ -87,6 +89,15 @@ def _log(action: str, employee: Employee, actor: Actor) -> None:
 def _email_taken() -> AppError:
     return AppError(
         409, "CONFLICT", EMAIL_TAKEN, errors=[{"field": "email", "code": "taken", "message": EMAIL_TAKEN}]
+    )
+
+
+def _username_taken() -> AppError:
+    return AppError(
+        409,
+        "USERNAME_TAKEN",
+        USERNAME_TAKEN,
+        errors=[{"field": "username", "code": "taken", "message": USERNAME_TAKEN}],
     )
 
 
@@ -116,6 +127,12 @@ def _ensure_email_free(session: Session, email: str, *, except_id: uuid.UUID | N
         raise _email_taken()
 
 
+def _ensure_username_free(session: Session, username: str, *, except_id: uuid.UUID) -> None:
+    query = select(Employee.id).where(Employee.username == username, Employee.id != except_id)  # citext
+    if session.scalar(query) is not None:
+        raise _username_taken()
+
+
 def _flush(session: Session) -> None:
     try:
         session.flush()
@@ -123,6 +140,8 @@ def _flush(session: Session) -> None:
         constraint = getattr(getattr(exc.orig, "diag", None), "constraint_name", None)
         if constraint == "uq_employees_email":  # a concurrent request took the email meanwhile
             raise _email_taken() from exc
+        if constraint == "uq_employees_username":
+            raise _username_taken() from exc
         raise
 
 
@@ -232,10 +251,11 @@ def create_employee(
     roles = _resolve_roles(set(body.roles))
     codes = list(session.scalars(select(Employee.code)))
     number = next_value(session, "employee", at_least_after=last_code_number(codes))
-    password = temporary_password(body.email)
+    password = temporary_password(body.email, body.birth_date)
     employee = Employee(
         code=employee_code(number),
         full_name=body.full_name,
+        username=generate_username(session, body.full_name),
         email=body.email,
         phone=body.phone,
         **{field: getattr(body, field) for field in PROFILE_FIELDS},
@@ -277,11 +297,13 @@ def update_employee(
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
     if "email" in changes and changes["email"] is not None:
         _ensure_email_free(session, changes["email"], except_id=employee.id)
+    if changes.get("username") is not None:
+        _ensure_username_free(session, changes["username"], except_id=employee.id)
     department_id = changes.get("department_id")
     if department_id is not None and department_id != employee.department_id:
         _ensure_department_assignable(session, department_id)
     # Required fields sent as null are ignored; optional ones sent empty are cleared.
-    wanted = {f: changes[f] for f in ("full_name", "department_id") if changes.get(f) is not None}
+    wanted = {f: changes[f] for f in ("full_name", "username", "department_id") if changes.get(f) is not None}
     wanted |= {f: changes[f] or None for f in ("email", "phone", "title", *PROFILE_FIELDS) if f in changes}
     changed_fields = sorted(f for f, value in wanted.items() if getattr(employee, f) != value)
     for field in changed_fields:
@@ -409,7 +431,7 @@ def reset_password(
     request_id: str | None = None,
 ) -> EmployeeWithPassword:
     employee = _locked(session, actor, employee_id, version)
-    password = temporary_password(employee.email)
+    password = temporary_password(employee.email, employee.birth_date)
     employee.password_hash = hash_password(password)
     employee.must_change_password = True
     employee.password_changed_at = now  # also invalidates access tokens already issued

@@ -40,7 +40,7 @@ function mockDashboardApis() {
 
 async function fillLogin(email: string, password: string) {
   const user = userEvent.setup();
-  await user.type(await screen.findByLabelText("Email"), email);
+  await user.type(await screen.findByLabelText("Tên đăng nhập"), email);
   await user.type(screen.getByLabelText("Mật khẩu"), password);
   return user;
 }
@@ -136,7 +136,7 @@ describe("Review M1-01b — đăng nhập", () => {
         await delay(50);
         return problem(422, "VALIDATION_ERROR", "Dữ liệu không hợp lệ.", [
           {
-            field: "email",
+            field: "username",
             code: "string_pattern_mismatch",
             message: "String should match pattern",
           },
@@ -150,7 +150,7 @@ describe("Review M1-01b — đăng nhập", () => {
     await user.dblClick(button);
     await user.keyboard("{Enter}");
 
-    const email = screen.getByLabelText("Email");
+    const email = screen.getByLabelText("Tên đăng nhập");
     await waitFor(() => {
       expect(email).toHaveAccessibleDescription("Giá trị không hợp lệ.");
     });

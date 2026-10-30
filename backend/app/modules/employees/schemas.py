@@ -18,11 +18,18 @@ from pydantic import (
 
 from app.modules.employees.domain import normalize_phone
 from app.modules.identity.schemas import Email
+from app.modules.identity.usernames import USERNAME_MAX_LENGTH, USERNAME_PATTERN
 
 Role = Literal["MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD", "TECHNICIAN"]
 FullName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 Title = Annotated[str, StringConstraints(strip_whitespace=True, max_length=80)]
 Roles = Annotated[list[Role], Field(min_length=1)]
+Username = Annotated[
+    str,
+    StringConstraints(min_length=3, max_length=USERNAME_MAX_LENGTH, pattern=USERNAME_PATTERN),
+    # before the pattern: "Binh.Le" is accepted as "binh.le" (citext compares case-insensitively anyway)
+    BeforeValidator(lambda v: v.strip().lower() if isinstance(v, str) else v),
+]
 PHONE = re.compile(r"0\d{9}")
 VIETNAM = ZoneInfo("Asia/Ho_Chi_Minh")
 Gender = Literal["MALE", "FEMALE", "OTHER"]
@@ -92,6 +99,7 @@ class EmployeeUpdate(EmployeeProfile):
 
     version: int
     full_name: FullName | None = None
+    username: Username | None = None  # M17-03b (Q106); generated on create, never sent there
     email: OptionalEmail = None
     phone: str | None = None
     department_id: uuid.UUID | None = None
@@ -121,6 +129,7 @@ class EmployeeOut(BaseModel):
     id: uuid.UUID
     code: str
     full_name: str
+    username: str
     email: str | None
     phone: str | None
     birth_date: date | None

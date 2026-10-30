@@ -234,7 +234,7 @@ VALIDATION_ERROR = (422, "VALIDATION_ERROR")
 @tasks_router.get(
     "",
     operation_id="tasks_board",
-    summary="Bảng đầu việc toàn công ty (lọc trạng thái/ưu tiên/KTV/hạn)",
+    summary="Bảng đầu việc toàn Công ty (lọc trạng thái/ưu tiên/KTV/hạn)",
     response_model=TaskBoardOut,
     responses=_docs(VALIDATION_ERROR),
 )

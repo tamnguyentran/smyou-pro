@@ -33,10 +33,8 @@ def test_menu_document_has_menu_bottom_nav_and_role_labels() -> None:
         "dispatch",
         "sales",
         "catalog",
-        "employees",
-        "departments",
         "reports",
-        "company",
+        "organization",
         "audit",
     ]
     dispatch = doc["menu"][2]
@@ -68,4 +66,18 @@ def test_reports_menu_group_has_no_capability_of_its_own() -> None:
         "report.revenue.read",
         "report.revenue.read",
         "report.customer_gift.read",
+    ]
+
+
+@pytest.mark.ac("AC-SYS-034")
+def test_organization_menu_group_holds_company_departments_employees() -> None:
+    """Parent stays capability-less: company.manage and employee.manage are checked per child."""
+    doc = menu_document(load_specs(REPO_SPEC_DIR).permissions)
+    group = next(item for item in doc["menu"] if item["id"] == "organization")
+    assert group["label"] == "Thông tin Công ty"
+    assert group["capability"] is None
+    assert [(c["id"], c["path"], c["capability"]) for c in group["children"]] == [
+        ("company", "/settings/company", "company.manage"),
+        ("departments", "/settings/departments", "employee.manage"),
+        ("employees", "/employees", "employee.manage"),
     ]

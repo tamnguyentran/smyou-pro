@@ -38,7 +38,7 @@ def guess_current_password(client: TestClient, current: str) -> int:
 def test_login_success_audits_login(api: TestClient, db: Connection) -> None:
     an = seed(db, AN)
 
-    res = login(api, AN.email, AN.password)
+    res = login(api, AN.username, AN.password)
     assert res.status_code == 200, res.text
 
     [row] = audit_rows(db, an)
@@ -50,7 +50,7 @@ def test_login_success_audits_login(api: TestClient, db: Connection) -> None:
 def test_wrong_password_audits_login_failed_with_null_actor(api: TestClient, db: Connection) -> None:
     an = seed(db, AN)
 
-    res = login(api, AN.email, "sai-mat-khau")
+    res = login(api, AN.username, "sai-mat-khau")
     assert res.status_code == 401, res.text
 
     [row] = audit_rows(db, an)
@@ -63,7 +63,7 @@ def test_wrong_password_audits_login_failed_with_null_actor(api: TestClient, db:
 def test_unknown_email_writes_no_audit_row(api: TestClient, db: Connection) -> None:
     seed(db, AN)
 
-    res = login(api, "khong-ton-tai@smyou.vn", "bat-ky")
+    res = login(api, "khong.ton.tai", "bat-ky")
     assert res.status_code == 401, res.text
 
     assert audit_count(db) == 0
@@ -73,7 +73,7 @@ def test_unknown_email_writes_no_audit_row(api: TestClient, db: Connection) -> N
 def test_fifth_login_failure_audits_account_locked_with_login_source(api: TestClient, db: Connection) -> None:
     an = seed(db, AN, failed_login_count=4)
 
-    res = login(api, AN.email, "sai-mat-khau")
+    res = login(api, AN.username, "sai-mat-khau")
     assert res.status_code == 401, res.text
 
     rows = audit_rows(db, an)
@@ -88,7 +88,7 @@ def test_fifth_wrong_current_password_audits_account_locked_with_change_password
 ) -> None:
     khoa = seed(db, KHOA)
     client = TestClient(app, raise_server_exceptions=False)
-    login(client, KHOA.email, KHOA.password)
+    login(client, KHOA.username, KHOA.password)
 
     statuses = [guess_current_password(client, f"doan-{i}") for i in range(4)]
     assert statuses == [422, 422, 422, 422]
@@ -104,7 +104,7 @@ def test_fifth_wrong_current_password_audits_account_locked_with_change_password
 def test_login_to_disabled_account_audits_login_refused(api: TestClient, db: Connection) -> None:
     khoa = seed(db, KHOA, is_active=False)
 
-    res = login(api, KHOA.email, KHOA.password)
+    res = login(api, KHOA.username, KHOA.password)
     assert res.status_code == 403, res.text
 
     [row] = audit_rows(db, khoa)
@@ -116,7 +116,7 @@ def test_login_to_disabled_account_audits_login_refused(api: TestClient, db: Con
 def test_change_password_success_audits_password_changed(app: FastAPI, db: Connection) -> None:
     khoa = seed(db, KHOA)
     client = TestClient(app, raise_server_exceptions=False)
-    login(client, KHOA.email, KHOA.password)
+    login(client, KHOA.username, KHOA.password)
 
     res = client.post(
         "/api/v1/auth/change-password",

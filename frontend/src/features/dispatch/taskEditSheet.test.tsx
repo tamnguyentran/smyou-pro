@@ -115,6 +115,7 @@ function technician(id: string, code: string, full_name: string): EmployeeOut {
     id,
     code,
     full_name,
+    username: code.toLowerCase(),
     email: `${code.toLowerCase()}@smyou.vn`,
     phone: null,
     title: null,

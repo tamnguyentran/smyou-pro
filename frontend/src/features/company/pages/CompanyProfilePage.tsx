@@ -28,14 +28,14 @@ import {
   type CompanyProfileFormValues,
 } from "../schemas";
 
-const FORM_TITLE = "Thông tin công ty";
+const FORM_TITLE = "Thông tin Công ty";
 
 function Waiting() {
   return (
     <div
       role="group"
       aria-busy="true"
-      aria-label="Đang tải thông tin công ty"
+      aria-label="Đang tải thông tin Công ty"
       className="h-96 animate-pulse rounded-2xl bg-sidebar-sub"
     />
   );
@@ -71,7 +71,7 @@ function LogoCard({ profile }: { profile: CompanyProfile }) {
         {profile.logo_attachment_id ? (
           <img
             src={companyLogoUrl(profile.logo_attachment_id)}
-            alt="Logo công ty"
+            alt="Logo Công ty"
             className="max-h-[120px] w-auto max-w-full self-start object-contain bg-red-500"
           />
         ) : (
@@ -133,7 +133,7 @@ function ProfileForm({
         toUpdateBody(values, formState.dirtyFields, profile.version),
       );
       reset(toFormValues(saved));
-      toast("Đã lưu thông tin công ty");
+      toast("Đã lưu thông tin Công ty");
     } catch (error) {
       if (error instanceof ApiError && error.problem.code === "STALE_VERSION") setShowReload(true);
       setFormMessage(errorMessage(error));
@@ -194,7 +194,7 @@ function ProfileForm({
   );
 }
 
-/** Thông tin công ty (M17-01): the single company record, Manager-only. */
+/** Thông tin Công ty (M17-01): the single company record, Manager-only. */
 export function CompanyProfilePage() {
   usePageTitle(FORM_TITLE);
   const me = useMe();
@@ -215,7 +215,7 @@ export function CompanyProfilePage() {
   if (profile.isError && !profile.data) {
     return (
       <div className="space-y-3 rounded-2xl bg-card p-5 shadow-card md:p-7">
-        <Alert>Không tải được thông tin công ty.</Alert>
+        <Alert>Không tải được thông tin Công ty.</Alert>
         <Button
           type="button"
           variant="secondary"

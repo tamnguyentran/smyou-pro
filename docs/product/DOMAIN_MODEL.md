@@ -28,6 +28,7 @@ erDiagram
 |---|---|---|
 | code | varchar(20) | unique, vd `NV001` |
 | full_name | varchar(120) | bắt buộc |
+| username | citext | unique, bắt buộc — tên đăng nhập (M17-03b). Tự sinh từ họ tên: `<chữ cuối>.<chữ cái đầu các chữ còn lại>` không dấu (Nguyễn Trần Tâm → `tam.nt`), trùng (kể cả NV ngừng hoạt động) → `tam.nt2`, `tam.nt3`…; Manager sửa được (`^[a-z0-9]+(\.[a-z0-9]+)*$`, 3–50 ký tự); đổi họ tên không tự đổi. Mật khẩu tạm = ngày sinh `ddmmyyyy` nếu có (Q108) |
 | email | citext null | unique nếu có (nhiều `NULL` được). Tuỳ chọn từ M17-03a (Q105): không có email thì không dùng "Quên mật khẩu" |
 | phone | varchar(20) | chuẩn hoá chỉ chữ số, 10 số bắt đầu 0 |
 | department_id | uuid FK → Department (§16), bắt buộc | phòng ban (thông tin tổ chức, KHÔNG quyết định quyền). M17-02b thay enum `MANAGEMENT`/`SALES`/`TECHNICAL` cũ; tạo mới/đổi phòng phải chọn phòng đang hoạt động, giữ nguyên phòng đã ngừng vẫn hợp lệ |

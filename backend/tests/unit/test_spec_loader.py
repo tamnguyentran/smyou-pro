@@ -27,7 +27,7 @@ def test_repo_specs_load() -> None:
     assert len(sm.guards) == 23
     perm = specs.permissions
     assert set(perm.roles) == {"MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD", "TECHNICIAN"}
-    assert len(perm.capabilities) == 35
+    assert len(perm.capabilities) == 36  # M17-04: + order.print
     assert perm.capabilities["order.read"] == {
         "MANAGER": "all",
         "SALE": "all",
@@ -50,7 +50,7 @@ def test_repo_specs_load() -> None:
 @pytest.mark.ac("AC-SYS-024")
 def test_app_exposes_loaded_specs(make_app: Callable[..., FastAPI]) -> None:
     app = make_app()
-    assert len(app.state.specs.permissions.capabilities) == 35
+    assert len(app.state.specs.permissions.capabilities) == 36
 
 
 BROKEN = [

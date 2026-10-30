@@ -4,6 +4,8 @@ import { z } from "zod";
  * plain text field — see EmployeeFormSheet). Email is optional since M17-03a (Q105). */
 export const employeeFormSchema = z.object({
   full_name: z.string().trim().min(1, "Vui lòng nhập họ tên."),
+  // M17-03b: edit form only, checked in EmployeeFormSheet when "Thay đổi thông tin đăng nhập" is ticked.
+  username: z.string(),
   email: z.union([z.literal(""), z.string().trim().pipe(z.email("Email không hợp lệ."))]),
   phone: z.string().trim().optional(),
   department_id: z.string().min(1, "Vui lòng chọn phòng ban."),
@@ -21,6 +23,10 @@ export const employeeFormSchema = z.object({
   marital_status: z.string(),
 });
 export type EmployeeFormValues = z.infer<typeof employeeFormSchema>;
+
+/** Same rule as the server (M17-03b §2): lowercase, digits, dots between parts, 3–50 chars. */
+export const USERNAME_PATTERN = /^(?=.{3,50}$)[a-z0-9]+(\.[a-z0-9]+)*$/;
+export const USERNAME_MESSAGE = "Chỉ gồm chữ thường không dấu, số và dấu chấm (3–50 ký tự).";
 
 export const ROLE_ORDER = ["MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD", "TECHNICIAN"] as const;
 

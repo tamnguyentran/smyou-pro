@@ -162,6 +162,17 @@ export function useConfirmationAttachments(orderId: string | undefined) {
   });
 }
 
+export type InvoicePrintData = components["schemas"]["OrderInvoicePrint"];
+
+/** M17-04: fetched on click only (never cached) — `printed_at`/`slip_no` are per print. */
+export async function fetchInvoicePrint(orderId: string): Promise<InvoicePrintData> {
+  const { data, error, response } = await api.GET("/api/v1/orders/{order_id}/invoice-print", {
+    params: { path: { order_id: orderId } },
+  });
+  if (!data) throw toApiError(response, error);
+  return data;
+}
+
 export function attachmentUrl(attachmentId: string): string {
   return `${resolveBasePath(import.meta.env.BASE_URL).apiPrefix}/api/v1/attachments/${attachmentId}`;
 }

@@ -16,7 +16,7 @@ HOA = Person("hoa.le@smyou.vn", "Hoa@SmYou26", ("SALE",), "NV005", "Lê Thị Ho
 
 def client_as(app: FastAPI, person: Person) -> TestClient:
     client = TestClient(app, raise_server_exceptions=False)
-    res = login(client, person.email, person.password)
+    res = login(client, person.username, person.password)
     assert res.status_code == 200, res.text
     return client
 

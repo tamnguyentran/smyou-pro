@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { resolve } from "node:path";
+import { loginName } from "./loginName";
 
 // Dedicated accounts (backend/scripts/seed_e2e.py) — not shared with other auth e2e tests, since
 // this flow actually changes the account's password and must stay idempotent across `make e2e` runs
@@ -85,7 +86,7 @@ test("AC-AUTH-059 AC-AUTH-063 @a11y @screenshot luồng đầy đủ quên/đặ
   await expect(page.getByRole("status")).toHaveText("Đã đặt lại mật khẩu. Vui lòng đăng nhập lại.");
   await expect(page).toHaveURL(/\/smyoutask\/dang-nhap/);
 
-  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Tên đăng nhập").fill(loginName(email));
   await page.getByLabel("Mật khẩu", { exact: true }).fill(newPassword);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
   await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();

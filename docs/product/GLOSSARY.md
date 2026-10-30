@@ -5,6 +5,7 @@ Dùng đúng tên cột phải trong code, API, DB. Không tự đặt từ đ�
 | Tiếng Việt (UI) | Code / API | Ghi chú |
 |---|---|---|
 | Nhân viên | `employee` | cũng là user đăng nhập |
+| Tên đăng nhập | `username` | dùng để đăng nhập thay email (M17-03b), vd `tam.nt` |
 | Vai trò / nhóm quyền | `role` | MANAGER, SALE, TECH_LEAD, TECHNICIAN |
 | Quyền | `capability` | vd `order.submit` |
 | Quản lý chung | `MANAGER` | |

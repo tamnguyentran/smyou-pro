@@ -26,6 +26,7 @@ MANAGER_CAPABILITIES = {
     "customer_gift.read": ["all"],
     "customer_gift.manage": ["all"],
     "order.read": ["all"],
+    "order.print": ["all"],
     "order.read_prices": ["all"],
     "order.create": ["all"],
     "order.edit_draft": ["all"],
@@ -48,6 +49,7 @@ MANAGER_CAPABILITIES = {
 TECHNICIAN_CAPABILITIES = {
     "profile.manage": ["self"],
     "order.read": ["assigned"],
+    "order.print": ["assigned"],
     "order.read_prices": ["assigned"],
     "order.upload_confirmation": ["assigned"],
     "order.complete": ["assigned"],
@@ -61,7 +63,7 @@ TECHNICIAN_CAPABILITIES = {
 
 
 def me_as(api: TestClient, person: Person) -> dict[str, object]:
-    assert login(api, person.email, person.password).status_code == 200
+    assert login(api, person.username, person.password).status_code == 200
     res = api.get("/api/v1/me")
     assert res.status_code == 200, res.text
     body: dict[str, object] = res.json()
@@ -78,6 +80,7 @@ def test_manager_sees_profile_roles_and_exactly_their_capabilities(api: TestClie
         "id": str(an_id),
         "code": "NV001",
         "full_name": "Nguyễn Văn An",
+        "username": "an.nguyen",  # M17-03b
         "email": "an.nguyen@smyou.vn",
         "title": None,
         "department": {"id": "d1111111-1111-4111-8111-111111111111", "name": "Ban quản lý"},
@@ -94,7 +97,7 @@ def test_manager_sees_profile_roles_and_exactly_their_capabilities(api: TestClie
     }
     assert body["roles"] == ["MANAGER"]
     assert body["capabilities"] == MANAGER_CAPABILITIES
-    assert len(MANAGER_CAPABILITIES) == 28
+    assert len(MANAGER_CAPABILITIES) == 29  # M17-04: + order.print
     assert "task.manage" not in MANAGER_CAPABILITIES
     assert "assignment.respond" not in MANAGER_CAPABILITIES
     assert body["counters"] == {}
@@ -142,7 +145,7 @@ def test_me_requires_an_active_session_and_a_changed_password(
     assert api.get("/api/v1/me").json()["code"] == "UNAUTHENTICATED"
 
     an_id = seed(db, AN)
-    assert login(api, AN.email, AN.password).status_code == 200
+    assert login(api, AN.username, AN.password).status_code == 200
     db.execute(text("UPDATE employees SET is_active = false WHERE id = :id"), {"id": an_id})
     disabled = api.get("/api/v1/me")
     assert disabled.status_code == 401
@@ -150,7 +153,7 @@ def test_me_requires_an_active_session_and_a_changed_password(
 
     tuan_client = TestClient(app, raise_server_exceptions=False)
     seed(db, TUAN, must_change_password=True)
-    assert login(tuan_client, TUAN.email, TUAN.password).status_code == 200
+    assert login(tuan_client, TUAN.username, TUAN.password).status_code == 200
     pending = tuan_client.get("/api/v1/me")
     assert pending.status_code == 403
     assert pending.json()["code"] == "PASSWORD_CHANGE_REQUIRED"

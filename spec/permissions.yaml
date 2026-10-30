@@ -36,6 +36,7 @@ capabilities:
   customer_gift.manage:  { MANAGER: all, SALE: all, CUSTOMER_CARE: all }    # create + edit, no delete (Q97)
   # --- Đơn hàng ---
   order.read:            { MANAGER: all, SALE: all, CUSTOMER_CARE: all, TECH_LEAD: all, TECHNICIAN: assigned }
+  order.print:           { MANAGER: all, SALE: all, CUSTOMER_CARE: all, TECH_LEAD: all, TECHNICIAN: assigned }   # M17-04 (Q109): same as order.read
   order.read_prices:     { MANAGER: all, SALE: all, TECH_LEAD: all, TECHNICIAN: assigned }  # Q03: technicians see prices of their orders
   order.create:          { MANAGER: all, SALE: all, CUSTOMER_CARE: all }
   order.edit_draft:      { MANAGER: all, SALE: own, CUSTOMER_CARE: own }
@@ -127,16 +128,6 @@ menu:
       - { id: products, label: Sản phẩm, icon: Monitor,  path: /catalog/products }
       - { id: services, label: Dịch vụ,  icon: Hammer,   path: /catalog/services }
       - { id: product-service-groups, label: Nhóm sản phẩm/dịch vụ, icon: Tags, path: /catalog/groups }
-  - id: employees
-    label: Nhân sự & phân quyền
-    icon: UserCog
-    path: /employees
-    capability: employee.manage
-  - id: departments
-    label: Phòng ban
-    icon: Network
-    path: /settings/departments
-    capability: employee.manage
   - id: reports
     label: Báo cáo
     icon: BarChart3
@@ -145,11 +136,15 @@ menu:
       - { id: reports-revenue-customer, label: Doanh thu theo khách hàng,  icon: Users,     path: /reports/revenue-by-customer, capability: report.revenue.read }
       - { id: reports-revenue-employee, label: Doanh thu theo nhân viên,   icon: UserCog,   path: /reports/revenue-by-employee, capability: report.revenue.read }
       - { id: reports-customer-gift,    label: Chi phí quà tặng KH,        icon: Gift,      path: /reports/customer-gifts,      capability: report.customer_gift.read }
-  - id: company
-    label: Thông tin công ty
+  # Group without a capability of its own (like reports): each child carries its own, so the group
+  # shows to whoever holds at least one of them.
+  - id: organization
+    label: Thông tin Công ty
     icon: Building2
-    path: /settings/company
-    capability: company.manage
+    children:
+      - { id: company,     label: Thông tin Công ty,    icon: Info,    path: /settings/company,     capability: company.manage }
+      - { id: departments, label: Phòng ban,            icon: Network, path: /settings/departments, capability: employee.manage }
+      - { id: employees,   label: Nhân sự & phân quyền, icon: UserCog, path: /employees,            capability: employee.manage }
   - id: audit
     label: Nhật ký hệ thống
     icon: History

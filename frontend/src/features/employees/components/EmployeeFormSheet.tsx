@@ -31,6 +31,8 @@ import {
   GENDER_LABELS,
   MARITAL_STATUS_LABELS,
   PROFILE_FIELDS,
+  USERNAME_MESSAGE,
+  USERNAME_PATTERN,
   ROLE_ORDER,
   employeeFormSchema,
   type EmployeeFormValues,
@@ -176,13 +178,19 @@ export function EmployeeFormSheet({
   const [showReload, setShowReload] = useState(false);
   const [confirming, setConfirming] = useState<ConfirmKind>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
-  const [tempPassword, setTempPassword] = useState<{ name: string; password: string } | null>(null);
+  const [tempPassword, setTempPassword] = useState<{
+    name: string;
+    username: string;
+    password: string;
+  } | null>(null);
+  const [changeLogin, setChangeLogin] = useState(false);
   const [resetPasswordValue, setResetPasswordValue] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState } = useForm<EmployeeFormValues>({
+  const { register, handleSubmit, formState, setValue } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: {
       full_name: employee?.full_name ?? "",
+      username: employee?.username ?? "",
       email: employee?.email ?? "",
       phone: employee?.phone ?? "",
       department_id: employee?.department.id ?? "",
@@ -240,11 +248,23 @@ export function EmployeeFormSheet({
           title: values.title || null,
           roles,
         });
-        setTempPassword({ name: created.employee.full_name, password: created.temporary_password });
+        setTempPassword({
+          name: created.employee.full_name,
+          username: created.employee.username,
+          password: created.temporary_password,
+        });
         return;
       }
       let version = employee.version;
+      const username = values.username.trim().toLowerCase();
+      const usernameChanged = changeLogin && username !== employee.username;
+      // Only a new value is validated: generated usernames may be shorter than 3 chars.
+      if (usernameChanged && !USERNAME_PATTERN.test(username)) {
+        setServerErrors({ username: USERNAME_MESSAGE });
+        return;
+      }
       const infoChanged =
+        usernameChanged ||
         values.full_name !== employee.full_name ||
         (values.email || "") !== (employee.email ?? "") ||
         (values.phone || "") !== (employee.phone ?? "") ||
@@ -257,6 +277,7 @@ export function EmployeeFormSheet({
           body: {
             version,
             full_name: values.full_name,
+            ...(usernameChanged ? { username } : {}),
             email: values.email || null,
             phone: values.phone || null,
             ...profileBody(values),
@@ -320,6 +341,7 @@ export function EmployeeFormSheet({
     return (
       <TemporaryPasswordDialog
         open
+        username={tempPassword.username}
         password={tempPassword.password}
         onClose={() => {
           const name = tempPassword.name;
@@ -500,6 +522,43 @@ export function EmployeeFormSheet({
               </Select>
               <TextField label="Chức danh" error={serverErrors.title} {...register("title")} />
             </div>
+            {employee ? (
+              <fieldset className="space-y-3 border-t border-line pt-4">
+                <legend className="text-sm font-semibold text-heading">Thông tin đăng nhập</legend>
+                <label className="flex min-h-11 items-center gap-2 text-sm text-body">
+                  <input
+                    type="checkbox"
+                    checked={changeLogin}
+                    onChange={(e) => {
+                      setChangeLogin(e.target.checked);
+                      if (!e.target.checked) {
+                        setValue("username", employee.username);
+                        setServerErrors((prev) =>
+                          Object.fromEntries(
+                            Object.entries(prev).filter(([k]) => k !== "username"),
+                          ),
+                        );
+                      }
+                    }}
+                    className="size-5 rounded border-line text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  />
+                  Thay đổi thông tin đăng nhập
+                </label>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <TextField
+                    label="Tên đăng nhập"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    disabled={!changeLogin}
+                    error={fieldError("username")}
+                    {...register("username")}
+                  />
+                  <p className="flex min-h-11 items-center text-sm text-body md:mt-6">
+                    {`Trạng thái: ${employee.is_active ? "Đang hoạt động" : "Đã khoá"}`}
+                  </p>
+                </div>
+              </fieldset>
+            ) : null}
             <RoleField
               selected={selectedRoles}
               onToggle={toggleRole}
@@ -584,6 +643,7 @@ export function EmployeeFormSheet({
       {resetPasswordValue ? (
         <TemporaryPasswordDialog
           open
+          username={employee?.username}
           password={resetPasswordValue}
           onClose={() => {
             setResetPasswordValue(null);

@@ -92,11 +92,11 @@ afterEach(() => {
 });
 
 async function openPage() {
-  await screen.findByRole("heading", { level: 1, name: "Thông tin công ty" });
-  return screen.findByRole("form", { name: "Thông tin công ty" });
+  await screen.findByRole("heading", { level: 1, name: "Thông tin Công ty" });
+  return screen.findByRole("form", { name: "Thông tin Công ty" });
 }
 
-describe("AC-SYS-133 màn Thông tin công ty", () => {
+describe("AC-SYS-133 màn Thông tin Công ty", () => {
   test("form điền sẵn, 2 cột từ md:, chưa có logo; sửa địa chỉ → Lưu → toast", async () => {
     desktop();
     signedInAs(AN);
@@ -133,7 +133,7 @@ describe("AC-SYS-133 màn Thông tin công ty", () => {
     });
     await user.click(save);
 
-    expect(await screen.findByText("Đã lưu thông tin công ty")).toBeInTheDocument();
+    expect(await screen.findByText("Đã lưu thông tin Công ty")).toBeInTheDocument();
     expect(patched).toEqual({ address: "KP1, Trung Mỹ Tây", version: 1 });
   });
 
@@ -151,7 +151,7 @@ describe("AC-SYS-133 màn Thông tin công ty", () => {
     renderApp("/settings/company");
     await openPage();
 
-    const logo = await screen.findByRole("img", { name: "Logo công ty" });
+    const logo = await screen.findByRole("img", { name: "Logo Công ty" });
     expect(logo.getAttribute("src")).toContain(
       "/api/v1/attachments/f0000000-0000-4000-8000-000000000001",
     );
@@ -160,7 +160,7 @@ describe("AC-SYS-133 màn Thông tin công ty", () => {
 });
 
 describe("AC-SYS-135 lỗi nhập liệu hiện ngay dưới ô", () => {
-  test("xoá tên công ty hoặc nhập email sai → lỗi tiếng Việt, nút Lưu bị vô hiệu", async () => {
+  test("xoá tên Công ty hoặc nhập email sai → lỗi tiếng Việt, nút Lưu bị vô hiệu", async () => {
     desktop();
     signedInAs(AN);
     server.use(http.get("/api/v1/company-profile", () => HttpResponse.json(PROFILE)));
@@ -170,11 +170,11 @@ describe("AC-SYS-135 lỗi nhập liệu hiện ngay dưới ô", () => {
     const user = userEvent.setup();
     const save = within(form).getByRole("button", { name: "Lưu" });
 
-    await user.clear(within(form).getByLabelText(/Tên công ty/));
-    expect(await within(form).findByText(/Vui lòng nhập tên công ty/)).toBeInTheDocument();
+    await user.clear(within(form).getByLabelText(/Tên Công ty/));
+    expect(await within(form).findByText(/Vui lòng nhập tên Công ty/)).toBeInTheDocument();
     expect(save).toBeDisabled();
 
-    await user.type(within(form).getByLabelText(/Tên công ty/), "CÔNG TY TNHH SMYOU MỚI");
+    await user.type(within(form).getByLabelText(/Tên Công ty/), "CÔNG TY TNHH SMYOU MỚI");
     const email = within(form).getByLabelText(/Email/);
     await user.clear(email);
     await user.type(email, "kimyen");
@@ -229,13 +229,13 @@ describe("AC-SYS-136 409 STALE_VERSION", () => {
 });
 
 describe("AC-SYS-137 chỉ Manager", () => {
-  test("Manager thấy mục menu Thông tin công ty", async () => {
+  test("Manager thấy mục menu Thông tin Công ty", async () => {
     desktop();
     signedInAs(AN);
     server.use(http.get("/api/v1/company-profile", () => HttpResponse.json(PROFILE)));
     renderApp("/settings/company");
     const nav = await screen.findByRole("navigation", { name: "Menu chính" });
-    expect(within(nav).getByRole("link", { name: "Thông tin công ty" })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Thông tin Công ty" })).toBeInTheDocument();
   });
 
   test("Sale không thấy mục menu; mở URL trực tiếp → trang không có quyền", async () => {
@@ -244,6 +244,6 @@ describe("AC-SYS-137 chỉ Manager", () => {
     renderApp("/settings/company");
     expect(await screen.findByText("Bạn không có quyền truy cập trang này.")).toBeInTheDocument();
     const nav = await screen.findByRole("navigation", { name: "Menu chính" });
-    expect(within(nav).queryByRole("link", { name: "Thông tin công ty" })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: "Thông tin Công ty" })).not.toBeInTheDocument();
   });
 });

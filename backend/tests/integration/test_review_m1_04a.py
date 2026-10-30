@@ -196,7 +196,7 @@ def test_new_routes_require_a_session(app: FastAPI, db: Connection, people: dict
     anonymous = TestClient(app, raise_server_exceptions=False)
     problem(anonymous.get("/api/v1/employees"), 401, "UNAUTHENTICATED")
     problem(anonymous.post("/api/v1/employees", json=NEW_HOA), 401, "UNAUTHENTICATED")
-    assert login(anonymous, HOA.email, HOA.password).status_code == 200
+    assert login(anonymous, HOA.username, HOA.password).status_code == 200
     assert TUAN.code == "NV010"
 
 

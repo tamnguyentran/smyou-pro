@@ -44,9 +44,9 @@ function mockDashboardApis() {
   );
 }
 
-async function fillLogin(email: string, password: string) {
+async function fillLogin(username: string, password: string) {
   const user = userEvent.setup();
-  await user.type(await screen.findByLabelText("Email"), email);
+  await user.type(await screen.findByLabelText("Tên đăng nhập"), username);
   await user.type(screen.getByLabelText("Mật khẩu"), password);
   return user;
 }
@@ -58,7 +58,7 @@ describe("Trang đăng nhập", () => {
     expect(await screen.findByRole("heading", { name: "Đăng nhập" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/dang-nhap");
     expect(new URLSearchParams(router.state.location.search).get("next")).toBe("/");
-    expect(screen.getByLabelText("Email")).toHaveAttribute("type", "email");
+    expect(screen.getByLabelText("Tên đăng nhập")).toHaveAttribute("type", "text");
     const password = screen.getByLabelText("Mật khẩu");
     expect(password).toHaveAttribute("type", "password");
 
@@ -70,7 +70,7 @@ describe("Trang đăng nhập", () => {
   });
 
   test.each([
-    [401, "INVALID_CREDENTIALS", "Email hoặc mật khẩu không đúng."],
+    [401, "INVALID_CREDENTIALS", "Tên đăng nhập hoặc mật khẩu không đúng."],
     [
       423,
       "ACCOUNT_LOCKED",
@@ -91,8 +91,12 @@ describe("Trang đăng nhập", () => {
 
       const button = screen.getByRole("button", { name: "Đăng nhập" });
       await user.click(button);
-      await waitFor(() => expect(button).toBeDisabled());
-      expect(button).toHaveAttribute("aria-busy", "true");
+      // Both attributes come from the same render; check them together so the
+      // mocked response cannot re-enable the button between the two asserts.
+      await waitFor(() => {
+        expect(button).toBeDisabled();
+        expect(button).toHaveAttribute("aria-busy", "true");
+      });
 
       expect(await screen.findByRole("alert")).toHaveTextContent(detail);
       expect(button).toBeEnabled();
@@ -106,9 +110,9 @@ describe("Trang đăng nhập", () => {
         requests += 1;
         return problem(422, "VALIDATION_ERROR", "Dữ liệu không hợp lệ.", [
           {
-            field: "email",
-            code: "string_pattern_mismatch",
-            message: "String should match pattern",
+            field: "username",
+            code: "string_too_long",
+            message: "String should have at most 254 characters",
           },
         ]);
       }),
@@ -116,16 +120,14 @@ describe("Trang đăng nhập", () => {
     renderApp("/dang-nhap");
     const user = userEvent.setup();
 
-    await user.type(await screen.findByLabelText("Email"), "khong-phai-email");
-    await user.click(screen.getByRole("button", { name: "Đăng nhập" }));
-    const email = screen.getByLabelText("Email");
-    expect(await screen.findByText("Email không hợp lệ.")).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Đăng nhập" }));
+    const email = screen.getByLabelText("Tên đăng nhập");
+    expect(await screen.findByText("Vui lòng nhập tên đăng nhập.")).toBeInTheDocument();
     expect(screen.getByText("Vui lòng nhập mật khẩu.")).toBeInTheDocument();
     expect(email).toHaveAttribute("aria-invalid", "true");
     expect(requests).toBe(0);
 
-    await user.clear(email);
-    await user.type(email, "an.nguyen@smyou.vn");
+    await user.type(email, "an.nv");
     await user.type(screen.getByLabelText("Mật khẩu"), "SmYou@2026");
     await user.click(screen.getByRole("button", { name: "Đăng nhập" }));
     expect(await screen.findByText("Giá trị không hợp lệ.")).toBeInTheDocument();
@@ -273,12 +275,12 @@ describe("AC-UI-037 khung thẻ đăng nhập bỏ viền", () => {
     );
     renderApp("/dang-nhap");
 
-    await screen.findByLabelText("Email");
+    await screen.findByLabelText("Tên đăng nhập");
     const section = screen.getByRole("main").querySelector("section") as HTMLElement;
     expect(section.className).toContain("shadow-card");
     expect(section.className).toContain("p-7");
     expect(section.className).not.toMatch(/\bborder\b/);
-    expect(screen.getByLabelText("Email").className).toContain("border-line");
+    expect(screen.getByLabelText("Tên đăng nhập").className).toContain("border-line");
     expect(screen.getByLabelText("Mật khẩu").className).toContain("border-line");
 
     const user = await fillLogin("an.nguyen@smyou.vn", "SmYou@2026");
@@ -523,5 +525,36 @@ describe("Trang Đặt lại mật khẩu", () => {
       await screen.findByText("Mật khẩu mới phải khác mật khẩu hiện tại."),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Mật khẩu mới")).toBeInTheDocument();
+  });
+});
+
+describe("M17-03b đăng nhập bằng tên đăng nhập", () => {
+  test("AC-AUTH-072 ô Tên đăng nhập thay Email, autocomplete=username, bỏ trống → báo lỗi, gửi username", async () => {
+    let body: Record<string, unknown> | null = null;
+    mockDashboardApis();
+    server.use(
+      http.post("/api/v1/auth/login", async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ employee: AN, must_change_password: false });
+      }),
+    );
+    renderApp("/dang-nhap");
+
+    const username = await screen.findByLabelText("Tên đăng nhập");
+    expect(username).toHaveAttribute("autocomplete", "username");
+    expect(username).not.toHaveAttribute("type", "email");
+    expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Mật khẩu"), "SmYou@2026");
+    await user.click(screen.getByRole("button", { name: "Đăng nhập" }));
+    expect(await screen.findByText("Vui lòng nhập tên đăng nhập.")).toBeInTheDocument();
+    expect(body).toBeNull();
+
+    await user.type(username, "an.nv");
+    await user.click(screen.getByRole("button", { name: "Đăng nhập" }));
+    await waitFor(() => {
+      expect(body).toEqual({ username: "an.nv", password: "SmYou@2026" });
+    });
   });
 });

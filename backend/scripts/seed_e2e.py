@@ -35,6 +35,8 @@ JPEG_BYTES = b"\xff\xd8\xff\xe0\x00\x10JFIF" + b"\x00" * 200 + b"\xff\xd9"
 
 # (email, code, full name, roles, password, must change password) — one technician per Playwright
 # project so the mobile and desktop runs can each do the first-login password change in parallel.
+# M17-03b: each account's username is its email's local part (e2e/loginName.ts relies on it), not the
+# generated one — several seeded accounts share a full name.
 ACCOUNTS = [
     ("an.e2e@smyou.vn", "E2E01", "Nguyễn Văn An", ("MANAGER",), "E2e@SmYou2026", False),
     ("khoa.mobile@smyou.vn", "E2E02", "Trần Minh Khoa", ("TECHNICIAN",), "TamThoi#E2E1", True),
@@ -174,6 +176,7 @@ def main() -> int:
                     email=email, code=code, full_name=name, department_id=LEGACY_DEPARTMENT_IDS["TECHNICAL"]
                 )
                 session.add(employee)
+            employee.username = email.split("@", 1)[0]
             employee.password_hash = hash_password(password)
             employee.must_change_password = must_change
             employee.is_active = True

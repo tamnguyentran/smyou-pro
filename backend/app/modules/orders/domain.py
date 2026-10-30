@@ -2,6 +2,7 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
 from app.core.spec_loader import Machine, Transition
@@ -52,3 +53,9 @@ def sum_order(lines: Sequence[LineTotals]) -> OrderTotals:
 
 def order_code(period: str, number: int) -> str:
     return f"DH{period}-{number:04d}"
+
+
+def invoice_slip_no(seq: int, printed_on: date) -> str:
+    """M17-04: `NN-XBHddmmyyyy` — `seq` = rank among orders created the same VN day (≥ 2 digits, never
+    truncated), date part = print day."""
+    return f"{seq:02d}-XBH{printed_on:%d%m%Y}"

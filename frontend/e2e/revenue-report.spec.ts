@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { resolve } from "node:path";
+import { loginName } from "./loginName";
 
 // Accounts/data created by backend/scripts/seed_e2e.py (reset before every `make e2e`).
 // E2E-DH-M1504A: COMPLETED, customer E2E-KH-001, completed_at=now, created_by=MANAGER AN.
@@ -9,7 +10,7 @@ const MANAGER = "an.e2e@smyou.vn";
 
 async function signIn(page: Page, email: string, path = "/reports/revenue-by-customer") {
   await page.goto(`./dang-nhap?next=${encodeURIComponent(path)}`);
-  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Tên đăng nhập").fill(loginName(email));
   await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
 }

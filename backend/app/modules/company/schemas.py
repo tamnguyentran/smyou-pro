@@ -41,7 +41,7 @@ class CompanyProfileUpdate(BaseModel):
     @field_validator("name")
     @classmethod
     def _name(cls, value: str | None) -> str:
-        return _required_text(value, missing="Vui lòng nhập tên công ty.", max_length=255)
+        return _required_text(value, missing="Vui lòng nhập tên Công ty.", max_length=255)
 
     @field_validator("address")
     @classmethod
@@ -88,3 +88,17 @@ class CompanyProfileOut(BaseModel):
     logo_attachment_id: uuid.UUID | None
     version: int
     updated_at: datetime
+
+
+class CompanyPrintHeader(BaseModel):
+    """Company block printed on the sales invoice (M17-04); readable by every `order.print` holder.
+    `logo_url` is a `data:` URL (see `service.get_print_header`)."""
+
+    name: str
+    tax_code: str
+    address: str
+    phone: str
+    fax: str | None
+    email: str | None
+    website: str | None
+    logo_url: str | None

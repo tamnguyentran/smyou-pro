@@ -33,7 +33,7 @@ SEED = {
 
 def client_as(app: FastAPI, person: Person) -> TestClient:
     client = TestClient(app, raise_server_exceptions=False)
-    res = login(client, person.email, person.password)
+    res = login(client, person.username, person.password)
     assert res.status_code == 200, res.text
     return client
 
@@ -165,7 +165,7 @@ def test_patch_rejects_invalid_values(an: TestClient, db: Connection, field: str
 @pytest.mark.ac("AC-SYS-125")
 def test_patch_error_messages_are_vietnamese(an: TestClient) -> None:
     expected = {
-        "name": ("  ", "Vui lòng nhập tên công ty"),
+        "name": ("  ", "Vui lòng nhập tên Công ty"),
         "tax_code": ("03093907", "Mã số thuế gồm 10 hoặc 13 chữ số"),
         "email": ("kimyen", "Email không hợp lệ"),
         "website": ("smyou.vn", "Website phải bắt đầu bằng http:// hoặc https://"),

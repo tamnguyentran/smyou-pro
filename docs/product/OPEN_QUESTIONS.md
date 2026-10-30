@@ -26,3 +26,9 @@ Câu hỏi đã chốt (✅): xem `OPEN_QUESTIONS_ARCHIVE.md` (Q01–Q64, Q67–
 | Q106 | (`M17-03b`) Manager có được sửa tên đăng nhập đã sinh không? | Có (tick "Thay đổi thông tin đăng nhập" như ảnh mẫu), phải duy nhất, đúng định dạng `a-z0-9.`; đổi họ tên không tự đổi tên đăng nhập | Đồng ý giả định mặc định (2026-10-29) | ✅ |
 | Q107 | (`M17-03a`) Giá trị Giới tính / Tình trạng hôn nhân? | Nam/Nữ/Khác; Độc thân/Đã kết hôn/Ly hôn/Goá | Đồng ý giả định mặc định (2026-10-29) | ✅ |
 | Q108 | (`M17-03b`) Ô "Mật khẩu" trong ảnh mẫu — Manager có tự đặt mật khẩu cho nhân viên? | Không; giữ mật khẩu tạm tự sinh + bắt đổi lần đầu như hiện tại | Mật khẩu tạm = ngày sinh ddmmyyyy (vd 30071985), bắt đổi lần đầu (2026-10-29) | ✅ |
+| Q109 | (`M17-04`) Vai trò nào được in hoá đơn bán hàng? | Manager, Sale, Quản lý kỹ thuật (capability mới `order.print`); KTV và CSKH không in | Ai vào được trang đơn hàng thì được in (chỉ đơn đã lưu) — cùng vai trò/scope `order.read` (2026-10-29) | ✅ |
+| Q110 | (`M17-04`) Trạng thái đơn nào được in? | Mọi trạng thái trừ `CANCELLED`, kể cả `DRAFT` đã lưu | Đúng (2026-10-29) | ✅ |
+| Q111 | (`M17-04`) "Ngày xuất" trên hoá đơn lấy ngày nào? | Ngày bấm in (giờ VN) | Ngày bấm in (2026-10-29) | ✅ |
+| Q112 | (`M17-04`) "Người lập" là ai? | Người đang bấm in | Họ tên user bấm in (2026-10-29) | ✅ |
+| Q113 | (`M17-04`) A5 dọc hay ngang? | Ngang (theo ảnh mẫu) | A5 dọc (2026-10-29) | ✅ |
+| Q114 | (`M17-04`) Đơn có VAT/chiết khấu in thế nào? | Thành tiền dòng chưa VAT; thêm dòng Chiết khấu/Thuế GTGT/Tổng thanh toán khi > 0; tiền bằng chữ theo Tổng thanh toán, dùng "ngàn" | Đồng ý đề xuất (2026-10-29) | ✅ |

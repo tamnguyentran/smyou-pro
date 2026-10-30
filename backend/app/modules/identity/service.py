@@ -4,13 +4,14 @@ Security events are logged by employee id only — never email, password or toke
 """
 
 import logging
+import re
 import uuid
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 
-from sqlalchemy import ColumnElement, exists, func, select, update
+from sqlalchemy import ColumnElement, exists, func, select, text, update
 from sqlalchemy.orm import Session
 from starlette.requests import HTTPConnection
 
@@ -40,6 +41,7 @@ from app.modules.identity.models import (
     PasswordResetToken,
 )
 from app.modules.identity.schemas import MeDepartment, MeEmployee, MeResponse
+from app.modules.identity.usernames import base_username, unique_username
 from app.modules.notifications import service as notifications
 
 logger = logging.getLogger(__name__)
@@ -54,6 +56,9 @@ FORGOT_DETAIL = (
 )
 
 Mailer = Callable[[Settings, str, str, str], None]
+# Serializes username generation: two employees with the same name created at once must not both
+# pick the same next number (the unique constraint would turn the loser into a 500).
+_USERNAME_LOCK = 20261029_01
 
 
 class Failure(StrEnum):
@@ -125,10 +130,20 @@ def _session_live(session: Session, family_id: uuid.UUID | None, now: datetime) 
     )
 
 
+def generate_username(session: Session, full_name: str) -> str:
+    """M17-03b: `tam.nt`, or the next free `tam.nt2`, `tam.nt3`… — inactive employees count too."""
+    session.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": _USERNAME_LOCK})
+    base = base_username(full_name)
+    taken = session.scalars(
+        select(Employee.username).where(Employee.username.op("~*")(f"^{re.escape(base)}[0-9]*$"))
+    )
+    return unique_username(base, set(taken))
+
+
 def login(
     session: Session,
     *,
-    email: str,
+    username: str,
     password: str,
     now: datetime,
     settings: Settings,
@@ -136,7 +151,7 @@ def login(
     request_id: str | None = None,
 ) -> Issued | Failure:
     employee = session.scalars(
-        select(Employee).where(Employee.email == email).with_for_update()
+        select(Employee).where(Employee.username == username).with_for_update()
     ).one_or_none()
     if employee is None:
         verify_dummy(password)
@@ -292,7 +307,9 @@ def change_password(
             )
             return Failure.ACCOUNT_LOCKED
         return [("current_password", "Mật khẩu hiện tại không đúng.")]
-    problems = password_problems(new_password, current_password=current_password, email=employee.email)
+    problems = password_problems(
+        new_password, current_password=current_password, email=employee.email, birth_date=employee.birth_date
+    )
     if problems:
         return problems
     employee.password_hash = hash_password(new_password)
@@ -378,7 +395,9 @@ def reset_password(
         return Failure.INVALID_RESET
     if verify_password(new_password, employee.password_hash):
         return [("new_password", "Mật khẩu mới phải khác mật khẩu hiện tại.")]
-    problems = password_problems(new_password, current_password=None, email=employee.email)
+    problems = password_problems(
+        new_password, current_password=None, email=employee.email, birth_date=employee.birth_date
+    )
     if problems:
         return problems
     employee.password_hash = hash_password(new_password)
@@ -402,6 +421,7 @@ def create_manager(
     employee = Employee(
         email=email,
         full_name=full_name,
+        username=generate_username(session, full_name),
         code=code,
         department_id=LEGACY_DEPARTMENT_IDS["MANAGEMENT"],
         password_hash=hash_password(password),
@@ -448,6 +468,7 @@ def authenticate(request: HTTPConnection, session: Session) -> Actor | None:
 _ME_COLUMNS = (
     "code",
     "full_name",
+    "username",
     "email",
     "title",
     "phone",

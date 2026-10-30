@@ -155,24 +155,6 @@
       ]
     },
     {
-      "id": "employees",
-      "label": "Nhân sự & phân quyền",
-      "icon": "UserCog",
-      "path": "/employees",
-      "capability": "employee.manage",
-      "badge": null,
-      "children": []
-    },
-    {
-      "id": "departments",
-      "label": "Phòng ban",
-      "icon": "Network",
-      "path": "/settings/departments",
-      "capability": "employee.manage",
-      "badge": null,
-      "children": []
-    },
-    {
       "id": "reports",
       "label": "Báo cáo",
       "icon": "BarChart3",
@@ -219,13 +201,41 @@
       ]
     },
     {
-      "id": "company",
-      "label": "Thông tin công ty",
+      "id": "organization",
+      "label": "Thông tin Công ty",
       "icon": "Building2",
-      "path": "/settings/company",
-      "capability": "company.manage",
+      "path": null,
+      "capability": null,
       "badge": null,
-      "children": []
+      "children": [
+        {
+          "id": "company",
+          "label": "Thông tin Công ty",
+          "icon": "Info",
+          "path": "/settings/company",
+          "capability": "company.manage",
+          "badge": null,
+          "children": []
+        },
+        {
+          "id": "departments",
+          "label": "Phòng ban",
+          "icon": "Network",
+          "path": "/settings/departments",
+          "capability": "employee.manage",
+          "badge": null,
+          "children": []
+        },
+        {
+          "id": "employees",
+          "label": "Nhân sự & phân quyền",
+          "icon": "UserCog",
+          "path": "/employees",
+          "capability": "employee.manage",
+          "badge": null,
+          "children": []
+        }
+      ]
     },
     {
       "id": "audit",

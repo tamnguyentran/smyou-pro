@@ -65,6 +65,7 @@ function employee(overrides: Partial<Employee> = {}): Employee {
     id: "e0000000-0000-4000-8000-000000000005",
     code: "NV005",
     full_name: "Lê Thị Hoa",
+    username: "hoa.lt",
     email: "hoa.le@smyou.vn",
     phone: "0932068787",
     department: SALES,
@@ -903,5 +904,85 @@ describe("M17-03a hồ sơ nhân viên", () => {
       id_issued_date: null,
       id_issued_place: null,
     });
+  });
+});
+
+describe("M17-03b tên đăng nhập", () => {
+  test("AC-AUTH-073 tạo xong hiện tên đăng nhập + mật khẩu tạm; form sửa khoá ô Tên đăng nhập đến khi tick", async () => {
+    let patched: Record<string, unknown> | null = null;
+    const yen = employee({ ...YEN, username: "yen.nlk" });
+    signedInAs(AN, () => HttpResponse.json(page([yen])));
+    server.use(
+      http.post("/api/v1/employees", () =>
+        HttpResponse.json({ employee: yen, temporary_password: "30071985" }, { status: 201 }),
+      ),
+      http.patch("/api/v1/employees/:id", async ({ request }) => {
+        patched = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...yen, username: "kimyen", version: 2 });
+      }),
+    );
+    renderApp("/employees");
+    await openMenu();
+    const user = userEvent.setup();
+
+    // list: username under the full name
+    expect(await screen.findByText("yen.nlk")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Thêm nhân viên" }));
+    const create = await screen.findByRole("dialog", { name: "Thêm nhân viên" });
+    expect(within(create).queryByLabelText("Tên đăng nhập")).not.toBeInTheDocument();
+    await user.type(within(create).getByLabelText("Họ và tên"), "Nguyễn Lê Kim Yến");
+    await user.selectOptions(within(create).getByLabelText("Phòng ban"), SALES.id);
+    await user.click(within(create).getByRole("checkbox", { name: "Nhân viên kinh doanh" }));
+    await user.click(within(create).getByRole("button", { name: "Lưu" }));
+
+    const done = await screen.findByRole("dialog", { name: "Mật khẩu tạm" });
+    expect(within(done).getByText("Tên đăng nhập: yen.nlk")).toBeInTheDocument();
+    expect(within(done).getByText("30071985")).toBeInTheDocument();
+    await user.click(within(done).getByRole("button", { name: "Đóng" }));
+
+    await user.click(await screen.findByText("Nguyễn Lê Kim Yến"));
+    const edit = await screen.findByRole("dialog", { name: "Sửa nhân viên" });
+    const username = within(edit).getByLabelText("Tên đăng nhập");
+    expect(username).toHaveValue("yen.nlk");
+    expect(username).toBeDisabled();
+    await user.click(within(edit).getByRole("checkbox", { name: "Thay đổi thông tin đăng nhập" }));
+    expect(username).toBeEnabled();
+    await user.clear(username);
+    await user.type(username, "Kim Yen");
+    await user.click(within(edit).getByRole("button", { name: "Lưu" }));
+    expect(
+      await within(edit).findByText("Chỉ gồm chữ thường không dấu, số và dấu chấm (3–50 ký tự)."),
+    ).toBeInTheDocument();
+    expect(patched).toBeNull();
+
+    await user.clear(username);
+    await user.type(username, "kimyen");
+    await user.click(within(edit).getByRole("button", { name: "Lưu" }));
+    expect(await screen.findByText("Đã cập nhật.")).toBeInTheDocument();
+    expect(patched).toMatchObject({ username: "kimyen" });
+  });
+
+  test("AC-AUTH-073 không tick → không gửi username", async () => {
+    let patched: Record<string, unknown> | null = null;
+    signedInAs(AN, () => HttpResponse.json(page([employee()])));
+    server.use(
+      http.patch("/api/v1/employees/:id", async ({ request }) => {
+        patched = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(employee({ title: "Trưởng nhóm", version: 2 }));
+      }),
+    );
+    renderApp("/employees");
+    await openMenu();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("Lê Thị Hoa"));
+    const edit = await screen.findByRole("dialog", { name: "Sửa nhân viên" });
+    const titleField = within(edit).getByLabelText("Chức danh");
+    await user.clear(titleField);
+    await user.type(titleField, "Trưởng nhóm");
+    await user.click(within(edit).getByRole("button", { name: "Lưu" }));
+
+    expect(await screen.findByText("Đã cập nhật.")).toBeInTheDocument();
+    expect(patched).not.toHaveProperty("username");
   });
 });

@@ -12,7 +12,9 @@ Password = Annotated[str, StringConstraints(min_length=1, max_length=128)]
 
 
 class LoginRequest(BaseModel):
-    email: Email
+    # M17-03b: login by username only. No format check — anything else (an email included) is a
+    # plain 401 INVALID_CREDENTIALS, not a 422 that would hint at what the field expects.
+    username: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=254)]
     password: Password
 
 
@@ -64,6 +66,7 @@ class MeEmployee(BaseModel):
     id: uuid.UUID
     code: str
     full_name: str
+    username: str
     email: str | None
     title: str | None
     department: MeDepartment

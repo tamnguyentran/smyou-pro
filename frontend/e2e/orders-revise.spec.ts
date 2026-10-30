@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { resolve } from "node:path";
+import { loginName } from "./loginName";
 
 // M6-03b: "Chuyển Chỉnh sửa" (AC-ORD-156/157). Accounts/orders created by backend/scripts/seed_e2e.py
 // (REVISE_ORDERS) — one order per Playwright project, same reason as orders-complete.spec.ts's
@@ -46,7 +47,7 @@ async function evidence(page: Page, info: TestInfo, file: string) {
 async function signInAndOpenOrder(page: Page, info: TestInfo): Promise<string> {
   const code = orderCode(info);
   await page.goto("./dang-nhap");
-  await page.getByLabel("Email").fill(TECH_LEAD);
+  await page.getByLabel("Tên đăng nhập").fill(loginName(TECH_LEAD));
   await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
   await expect(page).not.toHaveURL(/dang-nhap/);
@@ -87,7 +88,7 @@ function cskRevisionOrderCode(info: TestInfo) {
 async function signInAsCustomerCareAndOpenOrder(page: Page, info: TestInfo): Promise<string> {
   const code = cskRevisionOrderCode(info);
   await page.goto("./dang-nhap");
-  await page.getByLabel("Email").fill(CUSTOMER_CARE);
+  await page.getByLabel("Tên đăng nhập").fill(loginName(CUSTOMER_CARE));
   await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
   await expect(page).not.toHaveURL(/dang-nhap/);

@@ -80,6 +80,7 @@ function employee(overrides: Partial<Employee> = {}): Employee {
     id: hoaId,
     code: "NV005",
     full_name: "Nguyễn Thị Hoa",
+    username: "hoa.nt",
     email: "hoa.nguyen@smyou.vn",
     phone: null,
     title: null,

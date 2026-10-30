@@ -7,10 +7,13 @@ import { Sheet } from "../../../components/ui/Sheet";
  * to the employee through a separate channel (there is no email to send it to, PRD §5). */
 export function TemporaryPasswordDialog({
   open,
+  username,
   password,
   onClose,
 }: {
   open: boolean;
+  /** M17-03b: generated login name, shown with the password so the Manager can pass both on. */
+  username?: string;
   password: string;
   onClose: () => void;
 }) {
@@ -57,6 +60,9 @@ export function TemporaryPasswordDialog({
         </div>
       }
     >
+      {username ? (
+        <p className="mb-3 text-center text-sm text-body">{`Tên đăng nhập: ${username}`}</p>
+      ) : null}
       <p className="rounded-xl border border-line bg-sidebar-sub px-4 py-3 text-center font-mono text-lg tracking-wide text-heading">
         {password}
       </p>

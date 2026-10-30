@@ -183,7 +183,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Đăng nhập bằng email và mật khẩu */
+    /** Đăng nhập bằng tên đăng nhập và mật khẩu */
     post: operations["auth_login"];
     delete?: never;
     options?: never;
@@ -249,14 +249,14 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Thông tin công ty */
+    /** Thông tin Công ty */
     get: operations["company_profile_get"];
     put?: never;
     post?: never;
     delete?: never;
     options?: never;
     head?: never;
-    /** Sửa thông tin công ty */
+    /** Sửa thông tin Công ty */
     patch: operations["company_profile_update"];
     trace?: never;
   };
@@ -269,7 +269,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Tải logo công ty (thay logo cũ) */
+    /** Tải logo Công ty (thay logo cũ) */
     post: operations["company_profile_upload_logo"];
     delete?: never;
     options?: never;
@@ -910,6 +910,23 @@ export interface paths {
     };
     /** Lịch sử thay đổi trạng thái của đơn */
     get: operations["orders_history"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/invoice-print": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Dữ liệu in Hoá đơn bán hàng (thông tin công ty, người lập, số phiếu) */
+    get: operations["orders_invoice_print"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1681,7 +1698,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Bảng đầu việc toàn công ty (lọc trạng thái/ưu tiên/KTV/hạn) */
+    /** Bảng đầu việc toàn Công ty (lọc trạng thái/ưu tiên/KTV/hạn) */
     get: operations["tasks_board"];
     put?: never;
     post?: never;
@@ -1850,6 +1867,29 @@ export interface components {
       current_password: string;
       /** New Password */
       new_password: string;
+    };
+    /**
+     * CompanyPrintHeader
+     * @description Company block printed on the sales invoice (M17-04); readable by every `order.print` holder.
+     *     `logo_url` is a `data:` URL (see `service.get_print_header`).
+     */
+    CompanyPrintHeader: {
+      /** Address */
+      address: string;
+      /** Email */
+      email: string | null;
+      /** Fax */
+      fax: string | null;
+      /** Logo Url */
+      logo_url: string | null;
+      /** Name */
+      name: string;
+      /** Phone */
+      phone: string;
+      /** Tax Code */
+      tax_code: string;
+      /** Website */
+      website: string | null;
     };
     /** CompanyProfileOut */
     CompanyProfileOut: {
@@ -2503,6 +2543,8 @@ export interface components {
       roles: string[];
       /** Title */
       title: string | null;
+      /** Username */
+      username: string;
       /** Version */
       version: number;
     };
@@ -2608,6 +2650,8 @@ export interface components {
       phone?: string | null;
       /** Title */
       title?: string | null;
+      /** Username */
+      username?: string | null;
       /** Version */
       version: number;
     };
@@ -2806,10 +2850,10 @@ export interface components {
     };
     /** LoginRequest */
     LoginRequest: {
-      /** Email */
-      email: string;
       /** Password */
       password: string;
+      /** Username */
+      username: string;
     };
     /** LoginResponse */
     LoginResponse: {
@@ -2866,6 +2910,8 @@ export interface components {
       phone: string | null;
       /** Title */
       title: string | null;
+      /** Username */
+      username: string;
     };
     /** MeResponse */
     MeResponse: {
@@ -3158,6 +3204,22 @@ export interface components {
       version: number;
       /** Work Description */
       work_description: string;
+    };
+    /**
+     * OrderInvoicePrint
+     * @description GET /orders/{id}/invoice-print (M17-04): what the printed sales invoice needs beyond OrderDetail.
+     */
+    OrderInvoicePrint: {
+      company: components["schemas"]["CompanyPrintHeader"];
+      /** Issuer Name */
+      issuer_name: string;
+      /**
+       * Printed At
+       * Format: date-time
+       */
+      printed_at: string;
+      /** Slip No */
+      slip_no: string;
     };
     /** OrderLineCreate */
     OrderLineCreate: {
@@ -4587,7 +4649,7 @@ export interface operations {
           "application/json": components["schemas"]["LoginResponse"];
         };
       };
-      /** @description problem+json — INVALID_CREDENTIALS: Email hoặc mật khẩu không đúng. */
+      /** @description problem+json — INVALID_CREDENTIALS: Tên đăng nhập hoặc mật khẩu không đúng. */
       401: {
         headers: {
           [name: string]: unknown;
@@ -6708,6 +6770,51 @@ export interface operations {
       };
       /** @description problem+json — NOT_FOUND */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_invoice_print: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderInvoicePrint"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — INVALID_STATE */
+      409: {
         headers: {
           [name: string]: unknown;
         };

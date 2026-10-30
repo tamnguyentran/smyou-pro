@@ -30,7 +30,7 @@ def test_pending_password_change_blocks_other_routes(app: FastAPI, db: Connectio
     add_probe(app)
     client = TestClient(app, raise_server_exceptions=False)
 
-    res = login(client, KHOA.email, KHOA.password)
+    res = login(client, KHOA.username, KHOA.password)
     assert res.status_code == 200
     assert res.json()["must_change_password"] is True
 
@@ -46,8 +46,8 @@ def test_change_password_unlocks_and_signs_out_other_sessions(app: FastAPI, db: 
     add_probe(app)
     phone = TestClient(app, raise_server_exceptions=False)
     laptop = TestClient(app, raise_server_exceptions=False)
-    login(phone, KHOA.email, KHOA.password)
-    login(laptop, KHOA.email, KHOA.password)
+    login(phone, KHOA.username, KHOA.password)
+    login(laptop, KHOA.username, KHOA.password)
 
     res = change(phone, KHOA.password, NEW)
 
@@ -59,8 +59,8 @@ def test_change_password_unlocks_and_signs_out_other_sessions(app: FastAPI, db: 
     assert laptop.post("/api/v1/auth/refresh").status_code == 401
     assert laptop.get("/api/v1/probe").status_code == 401
     fresh = TestClient(app, raise_server_exceptions=False)
-    assert login(fresh, KHOA.email, KHOA.password).status_code == 401
-    assert login(fresh, KHOA.email, NEW).status_code == 200
+    assert login(fresh, KHOA.username, KHOA.password).status_code == 401
+    assert login(fresh, KHOA.username, NEW).status_code == 200
 
 
 @pytest.mark.ac("AC-AUTH-017")
@@ -79,7 +79,7 @@ def test_change_password_rules(
 ) -> None:
     khoa = seed(db, KHOA, must_change_password=True)
     client = TestClient(app, raise_server_exceptions=False)
-    login(client, KHOA.email, KHOA.password)
+    login(client, KHOA.username, KHOA.password)
 
     res = change(client, current, new)
 
