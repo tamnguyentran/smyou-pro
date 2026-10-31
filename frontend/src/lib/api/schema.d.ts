@@ -1037,6 +1037,57 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/orders/{order_id}/lines-on-site": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** KTV thêm dòng hàng tại hiện trường */
+    post: operations["orders_add_line_on_site"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/lines-on-site/{line_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** KTV sửa dòng hàng mình thêm tại hiện trường */
+    patch: operations["orders_update_line_on_site"];
+    trace?: never;
+  };
+  "/api/v1/orders/{order_id}/lines-on-site/{line_id}/remove": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** KTV xoá dòng hàng mình thêm tại hiện trường */
+    post: operations["orders_remove_line_on_site"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/orders/{order_id}/lines/{line_id}": {
     parameters: {
       query?: never;
@@ -3325,6 +3376,8 @@ export interface components {
     OrderDetail: {
       /** Allowed Commands */
       allowed_commands: string[];
+      /** Can Add Lines On Site */
+      can_add_lines_on_site: boolean;
       /** Can Complete */
       can_complete: boolean;
       /** Can Edit Contact */
@@ -3461,6 +3514,14 @@ export interface components {
     };
     /** OrderLineOut */
     OrderLineOut: {
+      /** Added By Id */
+      added_by_id: string | null;
+      /** Added By Name */
+      added_by_name: string | null;
+      /** Added On Site */
+      added_on_site: boolean;
+      /** Can Edit On Site */
+      can_edit_on_site: boolean;
       /** Catalog Price Snapshot */
       catalog_price_snapshot: number | null;
       /** Cost Price Snapshot */
@@ -7272,6 +7333,169 @@ export interface operations {
         content?: never;
       };
       /** @description problem+json — STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_add_line_on_site: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderLineCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED | GUARD_FAILED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_update_line_on_site: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+        line_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderLineUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description problem+json — LINE_NOT_EDITABLE */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED | GUARD_FAILED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  orders_remove_line_on_site: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+        line_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrderLineRemove"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderDetail"];
+        };
+      };
+      /** @description problem+json — LINE_NOT_EDITABLE */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description problem+json — STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED | GUARD_FAILED */
       409: {
         headers: {
           [name: string]: unknown;

@@ -67,6 +67,8 @@ PRICE_FIXED = "Đơn giá của dòng này cố định theo danh mục."
 DISCOUNT_EXCEEDS_GROSS = "Giảm giá không được lớn hơn tiền hàng của dòng."
 ITEM_INACTIVE = "Sản phẩm/dịch vụ này đã ngừng kinh doanh."
 CUSTOM_LINE_DISABLED = "Chỉ được chọn Sản phẩm hoặc Dịch vụ."
+LINE_NOT_EDITABLE = "Bạn chỉ sửa/xoá được dòng hàng do chính mình thêm."
+SELF_CREDIT_ONLY = "Dòng hàng do kỹ thuật viên thêm chỉ ghi doanh số cho chính bạn."
 
 CUSTOMER_FIELDS = ("customer_id", "customer_name", "customer_phone", "customer_email", "customer_tax_code")
 HEADER_FIELDS = (
@@ -100,6 +102,10 @@ CONTACT_FIELDS = (
 EDITABLE_AFTER_SUBMIT_STATUSES = frozenset(
     {"PENDING_DISPATCH", "IN_PROGRESS", "AWAITING_CONFIRMATION", "REVISION"}
 )
+# M19-01a (Q123): technicians may only add lines on site while work is actually going on.
+EDITABLE_ON_SITE_STATUSES = frozenset({"IN_PROGRESS", "REVISION"})
+# Q126: "đang thực hiện" = accepted or started, not merely offered (PENDING) or finished (DONE).
+ON_SITE_ASSIGNMENT_STATUSES = ("ACCEPTED", "IN_PROGRESS")
 
 
 # order.edit_draft genuinely grants SALE only `own` (unlike customers/audit's empty `{}`, which is
@@ -132,6 +138,9 @@ _GUARD_MESSAGES = {
     "confirmation_attachment_not_uploaded": "Đơn đã có ảnh khách ký xác nhận, không thể huỷ.",
     "signer_name_present": "Vui lòng nhập tên người ký.",
     "order_completed": "Chỉ ghi phản hồi khách hàng khi đơn đã Hoàn tất.",
+    "actor_has_active_work_on_order": (
+        "Bạn chỉ thêm/sửa dòng hàng khi đang nhận hoặc thực hiện đầu việc của đơn này."
+    ),
 }
 
 
@@ -229,6 +238,44 @@ def _require_editable_after_submit(order: Order) -> None:
         raise _order_locked()
 
 
+def _has_active_work(session: Session, order_id: uuid.UUID, actor_id: uuid.UUID) -> bool:
+    """`actor_has_active_work_on_order` input: an ACCEPTED/IN_PROGRESS assignment of the actor in
+    its task's current cycle, on a non-cancelled task of the order (spec/state_machines.yaml)."""
+    stmt = (
+        select(Assignment.id)
+        .join(Task, Task.id == Assignment.task_id)
+        .where(
+            Task.order_id == order_id,
+            Task.status != "CANCELLED",
+            Assignment.cycle == Task.cycle,
+            Assignment.employee_id == actor_id,
+            Assignment.status.in_(ON_SITE_ASSIGNMENT_STATUSES),
+        )
+        .limit(1)
+    )
+    return session.scalar(stmt) is not None
+
+
+def _require_editable_on_site(session: Session, order: Order, actor: Actor) -> None:
+    _require_editable_after_submit(order)
+    if order.status not in EDITABLE_ON_SITE_STATUSES:
+        raise _order_locked()
+    guard = "actor_has_active_work_on_order"
+    if not GUARDS[guard](_has_active_work(session, order.id, actor.id)):
+        raise AppError(409, "GUARD_FAILED", _GUARD_MESSAGES[guard], extra={"guard": guard})
+
+
+def _require_own_on_site_line(line: OrderLine, actor: Actor) -> None:
+    if not (line.added_on_site and line.added_by_id == actor.id):
+        raise AppError(403, "LINE_NOT_EDITABLE", LINE_NOT_EDITABLE)
+
+
+def _require_self_credit(credited_employee_id: uuid.UUID | None, actor: Actor) -> None:
+    """Q124: a technician's on-site line is always credited to them; null/self are both accepted."""
+    if credited_employee_id is not None and credited_employee_id != actor.id:
+        raise _field_error("credited_employee_id", SELF_CREDIT_ONLY, code="invalid")
+
+
 def _require_completed(order: Order) -> None:
     """`AC-CSK-003`: CSAT can only be recorded while the order's *current* status is `COMPLETED` —
     a `REVISION`'d order can't, even though it was completed before (Q89, 2026-10-21 default)."""
@@ -269,7 +316,7 @@ def _recompute_order_totals(order: Order) -> None:
     order.total = totals.total
 
 
-def _line_out(line: OrderLine) -> OrderLineOut:
+def _line_out(line: OrderLine, *, can_edit_on_site: bool = False) -> OrderLineOut:
     return OrderLineOut(
         id=line.id,
         position=line.position,
@@ -295,6 +342,10 @@ def _line_out(line: OrderLine) -> OrderLineOut:
         note=line.note,
         credited_employee_id=line.credited_employee_id,
         credited_employee_name=line.credited_employee.full_name if line.credited_employee else None,
+        added_by_id=line.added_by_id,
+        added_by_name=line.added_by.full_name if line.added_by else None,
+        added_on_site=line.added_on_site,
+        can_edit_on_site=can_edit_on_site,
     )
 
 
@@ -329,6 +380,16 @@ def _can_edit_after_submit(order: Order, actor: Actor, specs: Specs, capability:
         return False
     scopes = effective_scopes(specs.permissions, actor.roles, capability)
     return "all" in scopes or ("own" in scopes and order.created_by == actor.id)
+
+
+def _can_add_lines_on_site(session: Session, order: Order, actor: Actor, specs: Specs) -> bool:
+    """M19-01a: same checks as `_require_editable_on_site`, as a flag for the frontend. The query
+    only runs for a holder of `order.edit_lines_on_site` on an order in the right status."""
+    if order.status not in EDITABLE_ON_SITE_STATUSES:
+        return False
+    if "assigned" not in effective_scopes(specs.permissions, actor.roles, "order.edit_lines_on_site"):
+        return False
+    return _has_active_work(session, order.id, actor.id)
 
 
 def _can_upload_confirmation(order: Order, actor: Actor, specs: Specs) -> bool:
@@ -372,6 +433,7 @@ def _has_pending_revision_request(session: Session, order: Order) -> bool:
 
 def _out(session: Session, order: Order, actor: Actor, specs: Specs) -> OrderDetail:
     lines = sorted(order.lines, key=lambda line: line.position)
+    on_site = _can_add_lines_on_site(session, order, actor, specs)
     return OrderDetail(
         id=order.id,
         code=order.code,
@@ -400,12 +462,16 @@ def _out(session: Session, order: Order, actor: Actor, specs: Specs) -> OrderDet
         revision_no=order.revision_no,
         created_by=order.created_by,
         version=order.version,
-        lines=[_line_out(line) for line in lines],
+        lines=[
+            _line_out(line, can_edit_on_site=on_site and line.added_on_site and line.added_by_id == actor.id)
+            for line in lines
+        ],
         allowed_commands=_allowed_commands(order, actor, specs),
         can_edit_contact=_can_edit_after_submit(order, actor, specs, "order.edit_contact"),
         can_edit_lines_after_submit=_can_edit_after_submit(
             order, actor, specs, "order.edit_lines_after_submit"
         ),
+        can_add_lines_on_site=on_site,
         can_upload_confirmation=_can_upload_confirmation(order, actor, specs),
         can_complete=_can_complete(order, actor, specs),
         can_revise=_can_revise(order, actor, specs),
@@ -1324,7 +1390,9 @@ def _check_credited_employee_exists(session: Session, employee_id: uuid.UUID | N
         raise _field_error("credited_employee_id", NOT_FOUND_EMPLOYEE)
 
 
-def _build_line(session: Session, order: Order, body: OrderLineCreate) -> OrderLine:
+def _build_line(
+    session: Session, order: Order, body: OrderLineCreate, *, actor: Actor, on_site: bool = False
+) -> OrderLine:
     # M15-06: dòng hàng mới chỉ được chọn từ danh mục; dòng CUSTOM lịch sử vẫn đọc/sửa được
     # qua `_apply_line_changes`, chỉ `_build_line` (tạo mới) chặn ở đây.
     if body.item_type == "CUSTOM":
@@ -1365,6 +1433,8 @@ def _build_line(session: Session, order: Order, body: OrderLineCreate) -> OrderL
         line_total=totals.line_total,
         note=body.note,
         credited_employee_id=body.credited_employee_id,
+        added_by_id=actor.id,
+        added_on_site=on_site,
     )
 
 
@@ -1437,7 +1507,7 @@ def add_line(
 ) -> OrderDetail:
     order = lock_order(session, actor, order_id, body.version)
     _require_draft(order)
-    line = _build_line(session, order, body)
+    line = _build_line(session, order, body, actor=actor)
     order.lines.append(line)
     _recompute_order_totals(order)
     _bump(order)
@@ -1562,7 +1632,7 @@ def add_line_after_submit(
 ) -> OrderDetail:
     order = lock_order(session, actor, order_id, body.version)
     _require_editable_after_submit(order)
-    line = _build_line(session, order, body)
+    line = _build_line(session, order, body, actor=actor)
     order.lines.append(line)
     _recompute_order_totals(order)
     _bump(order)
@@ -1637,4 +1707,121 @@ def remove_line_after_submit(
         data={"line_id": str(line_id), "item": removed_item, "line_total": removed_total},
         request_id=request_id,
     )
+    return _out(session, order, actor, specs)
+
+
+# ---------------- M19-01a: KTV thêm/sửa/xoá dòng hàng tại hiện trường ----------------
+
+
+MULTIPLICATION_SIGN = "\u00d7"
+
+
+def _format_quantity(quantity: Decimal) -> str:
+    return format(quantity.normalize(), "f")
+
+
+def _notify_on_site(session: Session, order: Order, actor: Actor, summary: str) -> None:
+    actor_name = session.scalar(select(Employee.full_name).where(Employee.id == actor.id))
+    notifications.notify_order_lines_changed_on_site(
+        session, order, actor.id, f"Đơn {order.code}: {actor_name} {summary}"
+    )
+
+
+def add_line_on_site(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    body: OrderLineCreate,
+    *,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = lock_order(session, actor, order_id, body.version)
+    _require_editable_on_site(session, order, actor)
+    _require_self_credit(body.credited_employee_id, actor)
+    body = body.model_copy(update={"credited_employee_id": actor.id})
+    line = _build_line(session, order, body, actor=actor, on_site=True)
+    order.lines.append(line)
+    _recompute_order_totals(order)
+    _bump(order)
+    session.flush()
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ORDER",
+        entity_id=order.id,
+        action="add_line_on_site",
+        data={"line_id": str(line.id), "item": line.name_snapshot, "line_total": line.line_total},
+        request_id=request_id,
+    )
+    quantity = _format_quantity(line.quantity)
+    _notify_on_site(session, order, actor, f"thêm {line.name_snapshot} {MULTIPLICATION_SIGN} {quantity}")
+    return _out(session, order, actor, specs)
+
+
+def update_line_on_site(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    line_id: uuid.UUID,
+    body: OrderLineUpdate,
+    *,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = lock_order(session, actor, order_id, body.version)
+    _require_editable_on_site(session, order, actor)
+    line = _find_line(order, line_id)
+    _require_own_on_site_line(line, actor)
+    if "credited_employee_id" in body.model_fields_set:
+        _require_self_credit(body.credited_employee_id, actor)
+        body = body.model_copy(update={"credited_employee_id": actor.id})
+    diff = _apply_line_changes(session, line, body)
+
+    _recompute_order_totals(order)
+    _bump(order)
+    session.flush()
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ORDER",
+        entity_id=order.id,
+        action="update_line_on_site",
+        data={"line_id": str(line.id), "item": line.name_snapshot, "changes": diff},
+        request_id=request_id,
+    )
+    _notify_on_site(session, order, actor, f"sửa {line.name_snapshot}")
+    return _out(session, order, actor, specs)
+
+
+def remove_line_on_site(
+    session: Session,
+    actor: Actor,
+    order_id: uuid.UUID,
+    line_id: uuid.UUID,
+    body: OrderLineRemove,
+    *,
+    specs: Specs,
+    request_id: str | None = None,
+) -> OrderDetail:
+    order = lock_order(session, actor, order_id, body.version)
+    _require_editable_on_site(session, order, actor)
+    line = _find_line(order, line_id)
+    _require_own_on_site_line(line, actor)
+    removed_item, removed_total = line.name_snapshot, line.line_total
+
+    order.lines.remove(line)
+    _recompute_order_totals(order)
+    _bump(order)
+    session.flush()
+    audit.record(
+        session,
+        actor_id=actor.id,
+        entity_type="ORDER",
+        entity_id=order.id,
+        action="remove_line_on_site",
+        data={"line_id": str(line_id), "item": removed_item, "line_total": removed_total},
+        request_id=request_id,
+    )
+    _notify_on_site(session, order, actor, f"xoá {removed_item}")
     return _out(session, order, actor, specs)

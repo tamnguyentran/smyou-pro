@@ -2,6 +2,7 @@
  * spec/permissions.yaml needs a label here too — permissionLabels.test.ts fails until it has one. */
 export const CAPABILITY_LABELS: Record<string, string> = {
   "catalog.read": "Xem danh mục sản phẩm/dịch vụ",
+  "catalog.read_cost": "Xem giá vốn trong danh mục",
   "catalog.manage": "Thêm/sửa danh mục sản phẩm/dịch vụ",
   "employee.read": "Xem danh sách nhân viên",
   "employee.manage": "Quản lý nhân viên, phòng ban, vai trò",
@@ -18,6 +19,7 @@ export const CAPABILITY_LABELS: Record<string, string> = {
   "order.edit_draft": "Sửa đơn nháp",
   "order.edit_contact": "Sửa SĐT/địa chỉ/ghi chú đơn sau khi gửi",
   "order.edit_lines_after_submit": "Sửa dòng hàng sau khi gửi",
+  "order.edit_lines_on_site": "Thêm/sửa dòng hàng tại hiện trường",
   "order.submit": "Gửi đơn cho kỹ thuật",
   "order.cancel": "Huỷ đơn nháp/chờ điều phối",
   "order.cancel_active": "Huỷ đơn đang thực hiện",

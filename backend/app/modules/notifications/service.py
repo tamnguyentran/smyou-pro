@@ -161,6 +161,22 @@ def notify_order_revision_requested(session: Session, order: Order, reason: str)
     )
 
 
+def notify_order_lines_changed_on_site(
+    session: Session, order: Order, actor_id: uuid.UUID, body: str
+) -> None:
+    """M19-01a (Q127): order owner + every active TECH_LEAD, never the technician who did it."""
+    recipients = [order.created_by, *_active_tech_lead_ids(session)]
+    _notify_many(
+        session,
+        [recipient for recipient in recipients if recipient != actor_id],
+        type="ORDER_LINES_CHANGED_ON_SITE",
+        title="KTV thay đổi dòng hàng",
+        body=body,
+        entity_type="ORDER",
+        entity_id=order.id,
+    )
+
+
 def notify_order_csk_revision_requested(session: Session, order: Order, note: str) -> None:
     """M15-03: CSKH gửi yêu cầu chỉnh sửa (chưa đổi trạng thái đơn) — báo mọi TECH_LEAD đang
     hoạt động, khác với notify_order_revision_requested (báo người tạo đơn khi QLKT đã thực sự

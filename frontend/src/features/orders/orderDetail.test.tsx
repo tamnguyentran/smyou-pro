@@ -42,6 +42,7 @@ const HOA: Person = {
     "order.edit_draft": own,
     "customer.read": all,
     "catalog.read": all,
+    "catalog.read_cost": all,
     "profile.manage": self,
   },
 };
@@ -57,6 +58,7 @@ const HA: Person = {
     "order.edit_draft": own,
     "customer.read": all,
     "catalog.read": all,
+    "catalog.read_cost": all,
     "profile.manage": self,
   },
 };
@@ -85,6 +87,7 @@ const AN: Person = {
     "order.edit_lines_after_submit": all,
     "customer.read": all,
     "catalog.read": all,
+    "catalog.read_cost": all,
     "profile.manage": self,
   },
 };
@@ -98,6 +101,7 @@ const TUAN: Person = {
     "order.read": all,
     "customer.read": all,
     "catalog.read": all,
+    "catalog.read_cost": all,
     "profile.manage": self,
   },
 };
@@ -113,6 +117,7 @@ const LAN: Person = {
     "customer_care.manage_feedback": all,
     "customer.read": all,
     "catalog.read": all,
+    "catalog.read_cost": all,
     "profile.manage": self,
   },
 };
@@ -150,6 +155,7 @@ function order(overrides: Partial<Order> = {}): Order {
     allowed_commands: [],
     can_edit_contact: false,
     can_edit_lines_after_submit: false,
+    can_add_lines_on_site: false,
     can_upload_confirmation: false,
     can_complete: false,
     can_revise: false,
@@ -174,6 +180,10 @@ function line(overrides: Partial<OrderLine> = {}): OrderLine {
     cost_price_snapshot: null,
     credited_employee_id: null,
     credited_employee_name: null,
+    added_by_id: null,
+    added_by_name: null,
+    added_on_site: false,
+    can_edit_on_site: false,
     price_fixed: true,
     quantity: "1",
     unit_price: 3000000,

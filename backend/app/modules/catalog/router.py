@@ -9,7 +9,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 
-from app.core.authz import Actor, require
+from app.core.authz import Actor, effective_scopes, require
 from app.core.db import DbSession
 from app.core.request_id import get_request_id
 from app.modules.catalog import service
@@ -47,6 +47,13 @@ NOT_FOUND = (404, "NOT_FOUND")
 CONFLICTS = (409, "STALE_VERSION | CONFLICT (sku/code/name) | INVALID_TRANSITION")
 
 
+def _hide_cost[T: (ProductOut, ServiceOut)](request: Request, actor: Actor, item: T) -> T:
+    """M19-01a (Q125): `catalog.read` without `catalog.read_cost` (TECHNICIAN) sees no cost price."""
+    if effective_scopes(request.app.state.specs.permissions, actor.roles, "catalog.read_cost"):
+        return item
+    return item.model_copy(update={"cost_price": None})
+
+
 def _now(request: Request) -> datetime:
     now: datetime = request.app.state.clock()
     return now
@@ -59,6 +66,7 @@ def _now(request: Request) -> datetime:
     response_model=ProductPage,
 )
 def list_products(
+    request: Request,
     session: DbSession,
     actor: Reader,
     q: Annotated[str | None, Query(max_length=100)] = None,
@@ -68,9 +76,10 @@ def list_products(
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> ProductPage:
-    return service.list_products(
+    page = service.list_products(
         session, actor, q=q, category=category, brand=brand, is_active=is_active, limit=limit, offset=offset
     )
+    return page.model_copy(update={"items": [_hide_cost(request, actor, item) for item in page.items]})
 
 
 @router.get(
@@ -80,8 +89,8 @@ def list_products(
     response_model=ProductOut,
     responses=_docs(NOT_FOUND),
 )
-def get_product(product_id: uuid.UUID, session: DbSession, actor: Reader) -> ProductOut:
-    return service.get_product(session, actor, product_id)
+def get_product(product_id: uuid.UUID, request: Request, session: DbSession, actor: Reader) -> ProductOut:
+    return _hide_cost(request, actor, service.get_product(session, actor, product_id))
 
 
 @router.get(
@@ -221,6 +230,7 @@ def import_products_commit(
     response_model=ServicePage,
 )
 def list_services(
+    request: Request,
     session: DbSession,
     actor: Reader,
     q: Annotated[str | None, Query(max_length=100)] = None,
@@ -230,9 +240,10 @@ def list_services(
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> ServicePage:
-    return service.list_services(
+    page = service.list_services(
         session, actor, q=q, category=category, unit=unit, is_active=is_active, limit=limit, offset=offset
     )
+    return page.model_copy(update={"items": [_hide_cost(request, actor, item) for item in page.items]})
 
 
 @services_router.get(
@@ -242,8 +253,8 @@ def list_services(
     response_model=ServiceOut,
     responses=_docs(NOT_FOUND),
 )
-def get_service(service_id: uuid.UUID, session: DbSession, actor: Reader) -> ServiceOut:
-    return service.get_service(session, actor, service_id)
+def get_service(service_id: uuid.UUID, request: Request, session: DbSession, actor: Reader) -> ServiceOut:
+    return _hide_cost(request, actor, service.get_service(session, actor, service_id))
 
 
 @services_router.get(

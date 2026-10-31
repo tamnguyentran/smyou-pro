@@ -13,7 +13,8 @@
 ## Ma trận tóm tắt
 | Capability | MANAGER | SALE | TECH_LEAD | TECHNICIAN |
 |---|---|---|---|---|
-| Xem danh mục | ✅ | ✅ | ✅ | — |
+| Xem danh mục | ✅ | ✅ | ✅ | ✅ (để chọn hàng tại hiện trường — M19-01a) |
+| Xem giá vốn trong danh mục (`catalog.read_cost`, Q125; CSKH cũng xem được) | ✅ | ✅ | ✅ | — |
 | Quản lý danh mục (SP, DV, giá) | ✅ | — | — | — |
 | Quản lý nhân viên & vai trò | ✅ | — | xem | — |
 | Khách hàng | ✅ | ✅ | xem | — |
@@ -28,6 +29,7 @@
 | Tải ảnh phiếu xác nhận | — | — | ✅ | đơn được giao |
 | Hoàn tất đơn | — | — | ✅ | đơn được giao (Q04) |
 | Sửa dòng hàng/giá sau khi gửi (tới trước Hoàn tất/Huỷ, có audit) | ✅ | đơn của mình (Q09) | — | — |
+| Thêm dòng hàng tại hiện trường; sửa/xoá dòng mình thêm (`order.edit_lines_on_site`, M19-01a: đơn Đang thực hiện/Chỉnh sửa, phân công đã nhận/đang làm; doanh số luôn ghi cho chính KTV) | — | — | — | đơn được giao |
 | Nhận/từ chối/bắt đầu/xong task | — | — | — | của mình |
 | KPI | tất cả | — | tất cả | của mình |
 | Thông tin Công ty (xem/sửa, logo — M17-01) | ✅ | — | — | — |

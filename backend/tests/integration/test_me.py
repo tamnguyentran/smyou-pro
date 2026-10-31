@@ -16,6 +16,7 @@ TUAN = Person("tuan.le@smyou.vn", "TamThoi#15", ("TECHNICIAN",), "NV015", "Lê A
 
 MANAGER_CAPABILITIES = {
     "catalog.read": ["all"],
+    "catalog.read_cost": ["all"],  # M19-01a
     "catalog.manage": ["all"],
     "employee.read": ["all"],
     "employee.manage": ["all"],
@@ -47,12 +48,14 @@ MANAGER_CAPABILITIES = {
 }
 
 TECHNICIAN_CAPABILITIES = {
+    "catalog.read": ["all"],  # M19-01a: pick items when adding lines on site
     "profile.manage": ["self"],
     "order.read": ["assigned"],
     "order.print": ["assigned"],
     "order.read_prices": ["assigned"],
     "order.upload_confirmation": ["assigned"],
     "order.complete": ["assigned"],
+    "order.edit_lines_on_site": ["assigned"],  # M19-01a
     "task.read": ["assigned"],
     "assignment.respond": ["self"],
     "task.upload_photo": ["assigned"],
@@ -97,7 +100,7 @@ def test_manager_sees_profile_roles_and_exactly_their_capabilities(api: TestClie
     }
     assert body["roles"] == ["MANAGER"]
     assert body["capabilities"] == MANAGER_CAPABILITIES
-    assert len(MANAGER_CAPABILITIES) == 29  # M17-04: + order.print
+    assert len(MANAGER_CAPABILITIES) == 30  # M17-04: + order.print; M19-01a: + catalog.read_cost
     assert "task.manage" not in MANAGER_CAPABILITIES
     assert "assignment.respond" not in MANAGER_CAPABILITIES
     assert body["counters"] == {}
@@ -117,7 +120,7 @@ def test_technician_sees_assigned_and_self_scopes(api: TestClient, db: Connectio
     capabilities = body["capabilities"]
     assert isinstance(capabilities, dict)
     assert "order.create" not in capabilities
-    assert "catalog.read" not in capabilities
+    assert "catalog.read_cost" not in capabilities  # M19-01a: catalog.read now granted, cost still hidden
 
 
 @pytest.mark.ac("AC-AUTH-030")

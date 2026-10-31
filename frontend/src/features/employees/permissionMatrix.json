@@ -17,6 +17,16 @@
             "MANAGER": "all",
             "SALE": "all",
             "CUSTOMER_CARE": "all",
+            "TECH_LEAD": "all",
+            "TECHNICIAN": "all"
+          }
+        },
+        {
+          "id": "catalog.read_cost",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "all",
+            "CUSTOMER_CARE": "all",
             "TECH_LEAD": "all"
           }
         },
@@ -163,6 +173,12 @@
           "roles": {
             "MANAGER": "all",
             "SALE": "own"
+          }
+        },
+        {
+          "id": "order.edit_lines_on_site",
+          "roles": {
+            "TECHNICIAN": "assigned"
           }
         },
         {

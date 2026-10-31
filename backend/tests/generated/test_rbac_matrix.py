@@ -95,4 +95,5 @@ def test_every_capability_for_every_role_and_pair(
             assert body["code"] == "FORBIDDEN"
             assert body["detail"] == "Bạn không có quyền thực hiện thao tác này."
         checked += 1
-    assert checked == len(PERMISSIONS.capabilities) == 36  # M17-04: + order.print
+    # M17-04: + order.print; M19-01a: + catalog.read_cost, order.edit_lines_on_site
+    assert checked == len(PERMISSIONS.capabilities) == 38

@@ -4697,6 +4697,10 @@
             "title": "Allowed Commands",
             "type": "array"
           },
+          "can_add_lines_on_site": {
+            "title": "Can Add Lines On Site",
+            "type": "boolean"
+          },
           "can_complete": {
             "title": "Can Complete",
             "type": "boolean"
@@ -4967,6 +4971,7 @@
           "allowed_commands",
           "can_edit_contact",
           "can_edit_lines_after_submit",
+          "can_add_lines_on_site",
           "can_upload_confirmation",
           "can_complete",
           "can_revise",
@@ -5157,6 +5162,37 @@
       },
       "OrderLineOut": {
         "properties": {
+          "added_by_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Added By Id"
+          },
+          "added_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Added By Name"
+          },
+          "added_on_site": {
+            "title": "Added On Site",
+            "type": "boolean"
+          },
+          "can_edit_on_site": {
+            "title": "Can Edit On Site",
+            "type": "boolean"
+          },
           "catalog_price_snapshot": {
             "anyOf": [
               {
@@ -5354,7 +5390,11 @@
           "line_total",
           "note",
           "credited_employee_id",
-          "credited_employee_name"
+          "credited_employee_name",
+          "added_by_id",
+          "added_by_name",
+          "added_on_site",
+          "can_edit_on_site"
         ],
         "title": "OrderLineOut",
         "type": "object"
@@ -11588,6 +11628,203 @@
           }
         },
         "summary": "Xoá dòng hàng sau khi gửi",
+        "tags": ["orders"]
+      }
+    },
+    "/api/v1/orders/{order_id}/lines-on-site": {
+      "post": {
+        "operationId": "orders_add_line_on_site",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderLineCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED | GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "KTV thêm dòng hàng tại hiện trường",
+        "tags": ["orders"]
+      }
+    },
+    "/api/v1/orders/{order_id}/lines-on-site/{line_id}": {
+      "patch": {
+        "operationId": "orders_update_line_on_site",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "line_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Line Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderLineUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "problem+json — LINE_NOT_EDITABLE"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED | GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "KTV sửa dòng hàng mình thêm tại hiện trường",
+        "tags": ["orders"]
+      }
+    },
+    "/api/v1/orders/{order_id}/lines-on-site/{line_id}/remove": {
+      "post": {
+        "operationId": "orders_remove_line_on_site",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "line_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Line Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderLineRemove"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "problem+json — LINE_NOT_EDITABLE"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED | GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "KTV xoá dòng hàng mình thêm tại hiện trường",
         "tags": ["orders"]
       }
     },
