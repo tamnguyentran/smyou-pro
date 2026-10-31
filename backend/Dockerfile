@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Targets: dev (compose.dev.yml, source mounted, --reload) and prod (compose.prod.yml, built for linux/amd64).
-FROM python:3.12-slim AS base
+FROM python:3.15-slim AS base
 COPY --from=ghcr.io/astral-sh/uv:0.12.18 /uv /usr/local/bin/uv
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -24,7 +24,7 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
 
 # ---------- prod ----------
-FROM python:3.12-slim AS prod
+FROM python:3.15-slim AS prod
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH=/opt/venv/bin:$PATH
