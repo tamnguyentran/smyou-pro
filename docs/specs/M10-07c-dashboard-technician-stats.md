@@ -26,11 +26,11 @@ Là Kỹ thuật viên (KTV), tôi muốn trang "Tổng quan" thêm thống kê 
 | AC-DASH-043 | Đức (TECHNICIAN) có 3 đầu việc đang mở: 1 `ACCEPTED` chưa bắt đầu, 1 `IN_PROGRESS`, 1 `PENDING` | Đức `GET /api/v1/dashboard` | `my_task_summary.not_started_count == 1` (chỉ cái `ACCEPTED`) | integration |
 | AC-DASH-044 | Đức có: A1 `ACCEPTED` quá hạn (`due_at` hôm qua), A2 `IN_PROGRESS` quá hạn, A3 `PENDING` quá hạn (không tính — xem §8), A4 `ACCEPTED` chưa quá hạn | Đức `GET /api/v1/dashboard` | `my_task_summary.overdue_count == 2` (A1, A2) | integration |
 | AC-DASH-045 | Đức có đầu việc trong đơn X (`AWAITING_CONFIRMATION`, assignment của Đức đã `DONE`) và đơn Y (`AWAITING_CONFIRMATION`, không có assignment nào của Đức) | Đức `GET /api/v1/dashboard` | `my_task_summary.awaiting_confirmation_count == 1` (chỉ đơn X) | integration |
-| AC-DASH-046 | Đức ở Tổng quan, `awaiting_confirmation_count=1` | Bấm thẻ "Chưa hoàn tất, cần KH xác nhận" | Điều hướng `/orders?status=AWAITING_CONFIRMATION`; danh sách chỉ gồm đơn Đức có liên quan (scope `assigned` của `order.read`) | component + e2e |
-| AC-DASH-047 | Đức ở Tổng quan, `not_started_count=1` | Bấm thẻ "Chưa thực hiện" | Điều hướng `/my-tasks?focus=not_started`; trang tải với tab "Đang làm" đã chọn, chỉ hiện đúng 1 phân công `ACCEPTED` (ẩn `IN_PROGRESS` cùng tab) | component + e2e |
+| ~~AC-DASH-046~~ (→ M18-01b: thẻ mở popup) | Đức ở Tổng quan, `awaiting_confirmation_count=1` | Bấm thẻ "Chưa hoàn tất, cần KH xác nhận" | Điều hướng `/orders?status=AWAITING_CONFIRMATION`; danh sách chỉ gồm đơn Đức có liên quan (scope `assigned` của `order.read`) | component + e2e |
+| ~~AC-DASH-047~~ (→ M18-01b: thẻ mở popup) | Đức ở Tổng quan, `not_started_count=1` | Bấm thẻ "Chưa thực hiện" | Điều hướng `/my-tasks?focus=not_started`; trang tải với tab "Đang làm" đã chọn, chỉ hiện đúng 1 phân công `ACCEPTED` (ẩn `IN_PROGRESS` cùng tab) | component + e2e |
 | AC-DASH-048 | Đức mở `/my-tasks?focus=overdue` | render | Tab "Đang làm" đã chọn, chỉ hiện phân công có `due_at` đã qua trong số `ACCEPTED`/`IN_PROGRESS` | component |
 | AC-DASH-049 | Đức mở `/my-tasks` trực tiếp (không `focus`) | render | Tab "Đang làm" hiện đầy đủ `ACCEPTED`+`IN_PROGRESS` như hiện tại — không hồi quy | component |
-| AC-DASH-052 | Bất kỳ 1 trong 3 trường mới của `my_task_summary` = 0 | render thẻ tương ứng | Thẻ số 0 vẫn hiện, vẫn bấm được (không vô hiệu hoá) — nhất quán `AC-DASH-026` | component |
+| AC-DASH-052 | Bất kỳ 1 trong 3 trường mới của `my_task_summary` = 0 | render thẻ tương ứng | Thẻ số 0 vẫn hiện, vẫn bấm được (không vô hiệu hoá) — nhất quán ~~AC-DASH-026~~ (→ M18-01a) | component |
 
 ## 4. API
 

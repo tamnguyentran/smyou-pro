@@ -29,7 +29,7 @@ function boardItem(overrides: Partial<TaskBoardItem> = {}): TaskBoardItem {
   };
 }
 
-/** AC-DASH-040 (M10-07b): drill-down từ Tổng quan tới `/dispatch/board?status=...` chỉ hoạt động
+/** M10-07b (drill-down cũ, nay thẻ mở popup — M18-01b): URL tới `/dispatch/board?status=...` chỉ hoạt động
  * đúng nếu trang đọc `status` từ URL lúc mount, giống `OrdersListPage` (M10-03). */
 describe("/dispatch/board đọc status từ URL lúc tải", () => {
   test("?status=PENDING_ACCEPTANCE: request gửi status=PENDING_ACCEPTANCE, chỉ cột đó có item", async () => {

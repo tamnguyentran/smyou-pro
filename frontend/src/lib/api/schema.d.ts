@@ -384,6 +384,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/dashboard/cards/{card}/export": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Xuất CSV toàn bộ danh sách của 1 thẻ Tổng quan */
+    get: operations["export_dashboard_card_items"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/dashboard/cards/{card}/items": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách chi tiết tạo nên số trên 1 thẻ Tổng quan */
+    get: operations["get_dashboard_card_items"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/departments": {
     parameters: {
       query?: never;
@@ -2342,6 +2376,114 @@ export interface components {
       /** Version */
       version: number;
     };
+    /**
+     * DashboardCardItemsOut
+     * @description `GET /api/v1/dashboard/cards/{card}/items` (M18-01a/b/c): đúng 1 danh sách theo `kind`.
+     */
+    DashboardCardItemsOut: {
+      /** Card */
+      card: string;
+      /** Care Staff Items */
+      care_staff_items?: components["schemas"]["DashboardCareStaffRow"][] | null;
+      /** Feedback Items */
+      feedback_items?: components["schemas"]["DashboardFeedbackRow"][] | null;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "order" | "task" | "staff" | "feedback" | "care_staff";
+      /** Label */
+      label: string;
+      /** Order Items */
+      order_items?: components["schemas"]["DashboardOrderRow"][] | null;
+      /** Page */
+      page: number;
+      /** Page Size */
+      page_size: number;
+      /** Staff Items */
+      staff_items?: components["schemas"]["DashboardStaffRow"][] | null;
+      /** Task Items */
+      task_items?: components["schemas"]["DashboardTaskRow"][] | null;
+      /** Total */
+      total: number;
+    };
+    /**
+     * DashboardCareStaffRow
+     * @description M18-01c: 1 nhân viên đã ghi phản hồi trong tháng — popup "NV đã gọi điện CSKH".
+     */
+    DashboardCareStaffRow: {
+      /** Care Count */
+      care_count: number;
+      /** Employee Code */
+      employee_code: string;
+      /**
+       * Employee Id
+       * Format: uuid
+       */
+      employee_id: string;
+      /** Full Name */
+      full_name: string;
+      /**
+       * Last Recorded At
+       * Format: date-time
+       */
+      last_recorded_at: string;
+    };
+    /**
+     * DashboardFeedbackRow
+     * @description M18-01c: 1 đơn đã ghi phản hồi — popup "Khách hàng đã chăm sóc" và thẻ n★.
+     */
+    DashboardFeedbackRow: {
+      /** Completed At */
+      completed_at: string | null;
+      /** Csat Comment */
+      csat_comment: string | null;
+      /** Csat Rating */
+      csat_rating: number;
+      /** Customer Name */
+      customer_name: string | null;
+      /** Customer Phone */
+      customer_phone: string | null;
+      /** Order Code */
+      order_code: string;
+      /**
+       * Order Id
+       * Format: uuid
+       */
+      order_id: string;
+      /**
+       * Recorded At
+       * Format: date-time
+       */
+      recorded_at: string;
+      /** Recorded By Name */
+      recorded_by_name: string | null;
+    };
+    /** DashboardOrderRow */
+    DashboardOrderRow: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Created By Name */
+      created_by_name: string;
+      /** Customer Name */
+      customer_name: string | null;
+      /** Customer Phone */
+      customer_phone: string | null;
+      /** Order Code */
+      order_code: string;
+      /**
+       * Order Id
+       * Format: uuid
+       */
+      order_id: string;
+      /** Status */
+      status: string;
+      /** Total */
+      total: number | null;
+    };
     /** DashboardOut */
     DashboardOut: {
       /** Care Staff Count */
@@ -2362,6 +2504,59 @@ export interface components {
       today_tasks?: components["schemas"]["MyAssignmentOut"][] | null;
       /** Top Customers */
       top_customers?: components["schemas"]["TopCustomerOut"][] | null;
+    };
+    /**
+     * DashboardStaffRow
+     * @description M18-01b: 1 KTV trong popup 3 thẻ nhóm của khối "Nhân sự kỹ thuật".
+     */
+    DashboardStaffRow: {
+      /** Employee Code */
+      employee_code: string;
+      /**
+       * Employee Id
+       * Format: uuid
+       */
+      employee_id: string;
+      /** Full Name */
+      full_name: string;
+      /** In Progress Assignment Count */
+      in_progress_assignment_count: number;
+      /** Open Assignment Count */
+      open_assignment_count: number;
+      /** Phone */
+      phone: string | null;
+    };
+    /** DashboardTaskRow */
+    DashboardTaskRow: {
+      /** Assignee Names */
+      assignee_names: string[];
+      /** Assignment Status */
+      assignment_status?: string | null;
+      /** Customer Name */
+      customer_name: string | null;
+      /**
+       * Due At
+       * Format: date-time
+       */
+      due_at: string;
+      /** Order Code */
+      order_code: string;
+      /**
+       * Order Id
+       * Format: uuid
+       */
+      order_id: string;
+      /** Status */
+      status: string;
+      /** Task Code */
+      task_code: string;
+      /**
+       * Task Id
+       * Format: uuid
+       */
+      task_id: string;
+      /** Task Title */
+      task_title: string;
     };
     /** DepartmentCreate */
     DepartmentCreate: {
@@ -5263,6 +5458,71 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["DashboardOut"];
+        };
+      };
+    };
+  };
+  export_dashboard_card_items: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        card: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_dashboard_card_items: {
+    parameters: {
+      query?: {
+        page?: number;
+        page_size?: number;
+      };
+      header?: never;
+      path: {
+        card: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DashboardCardItemsOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

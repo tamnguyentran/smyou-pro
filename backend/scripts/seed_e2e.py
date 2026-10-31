@@ -261,13 +261,15 @@ def main() -> int:
             assignment_status: str,
             hours: str,
             due_offset_days: int,
+            employee_id: uuid.UUID | None = None,
+            title: str | None = None,
         ) -> None:
             task = session.scalars(select(Task).where(Task.code == task_code)).one_or_none()
             if task is None:
                 task = Task(
                     order_id=order.id,
                     code=task_code,
-                    title=f"Lắp đặt camera E2E ({task_code})",
+                    title=title or f"Lắp đặt camera E2E ({task_code})",
                     origin="INITIAL",
                     created_in_revision=0,
                     status=task_status,
@@ -284,6 +286,7 @@ def main() -> int:
                 # cycle) — reset both back to the seed's intended baseline, or the assignment
                 # lookup below finds 2 rows for `khoa_id` and `.one_or_none()` blows up.
                 task.status = task_status
+                task.title = title or task.title
                 task.due_at = now + timedelta(days=due_offset_days)
                 task.cycle = 1
                 task.reopen_count = 0
@@ -297,7 +300,7 @@ def main() -> int:
                 Assignment(
                     id=uuid.uuid4(),
                     task_id=task.id,
-                    employee_id=khoa_id,
+                    employee_id=employee_id or khoa_id,
                     cycle=1,
                     status=assignment_status,
                     assigned_by=creator_id,
@@ -449,6 +452,55 @@ def main() -> int:
                     credited_employee_id=creator_id,
                 )
             )
+
+        # M18-01a: popup thẻ Tổng quan cần dòng thật ở CẢ 2 project (mobile + desktop chạy song song),
+        # không dựa vào đơn do test khác tạo qua UI. Đơn Chờ điều phối của Hoa (SALE) + 1 đầu việc
+        # quá hạn chưa giao ai (NEEDS_ASSIGNEE → không lọt vào "Việc của tôi" của KTV nào).
+        hoa_id = session.scalars(select(Employee.id).where(Employee.email == "hoa.e2e@smyou.vn")).one()
+        pending_order = session.scalars(select(Order).where(Order.code == "E2E-DH-M1801A")).one_or_none()
+        if pending_order is None:
+            pending_order = Order(
+                code="E2E-DH-M1801A",
+                status="PENDING_DISPATCH",
+                customer_name="Cty Ánh Dương E2E",
+                customer_phone="0911222333",
+                service_address="12 Lê Lợi, P. Bến Nghé, Q.1, TP.HCM",
+                created_by=hoa_id,
+            )
+            session.add(pending_order)
+        pending_order.status = "PENDING_DISPATCH"
+        overdue_order = upsert_order("E2E-DH-M1801B")
+        overdue_order.status = "IN_PROGRESS"
+        overdue_task = session.scalars(select(Task).where(Task.code == "E2E-DH-M1801B-T1")).one_or_none()
+        if overdue_task is None:
+            overdue_task = Task(
+                order_id=overdue_order.id,
+                code="E2E-DH-M1801B-T1",
+                title="Bảo trì máy in E2E (quá hạn)",
+                origin="INITIAL",
+                created_in_revision=0,
+                status="NEEDS_ASSIGNEE",
+                estimated_hours="1.0",
+                due_at=now - timedelta(days=1),
+                priority="NORMAL",
+                created_by=creator_id,
+            )
+            session.add(overdue_task)
+        overdue_task.status = "NEEDS_ASSIGNEE"
+        overdue_task.due_at = now - timedelta(days=1)
+
+        # M18-01b (AC-DASH-100): Đức có 1 việc đã nhận nhưng quá hạn → thẻ "Quá hạn chưa hoàn thành".
+        duc_id = session.scalars(select(Employee.id).where(Employee.email == "duc.ktv3@smyou.vn")).one()
+        upsert_task_assignment(
+            upsert_order("E2E-DH-M1801C"),
+            "E2E-DH-M1801C-T1",
+            "ACCEPTED",
+            "ACCEPTED",
+            "1.0",
+            -1,
+            duc_id,
+            title="Bảo trì camera E2E (quá hạn, của Đức)",
+        )
     sys.stdout.write(
         f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products, {len(SERVICES)} E2E services,"
         f" {len(CUSTOMERS)} E2E customers, {len(MY_TASKS)} E2E my-tasks assignments\n"

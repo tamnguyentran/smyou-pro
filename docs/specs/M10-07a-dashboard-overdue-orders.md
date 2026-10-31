@@ -21,9 +21,9 @@ Là Sale, tôi muốn trang "Tổng quan" thêm thống kê "đơn quá hạn ch
 | AC-DASH-032 | Hoa (SALE); đơn A: `IN_PROGRESS`, có task quá hạn (`due_at` hôm qua, status `ACCEPTED`); đơn B: `IN_PROGRESS`, có task **không** quá hạn; đơn C: `COMPLETED`, có task quá hạn (đã hoàn tất, không tính); đơn D: `IN_PROGRESS`, task quá hạn nhưng task đã `DONE` (không tính) | Hoa `GET /api/v1/dashboard` | `order_summary.overdue_count == 1` (chỉ đơn A) | integration |
 | AC-DASH-033 | Hoa (SALE) có 2 đơn quá hạn của mình; công ty có thêm 3 đơn quá hạn của An (SALE khác) | Hoa `GET /api/v1/orders?overdue=true&mine=true` | 200; chỉ trả 2 đơn của Hoa | integration |
 | AC-DASH-034 | Như AC-DASH-033, không truyền `mine` | Hoa `GET /api/v1/orders?overdue=true` | 200; trả cả đơn của Hoa lẫn của An (scope `order.read` của SALE là `all`, không đổi) | integration |
-| AC-DASH-035 | Hoa (SALE) ở Tổng quan, `order_summary.scope="own"`, `overdue_count=2` | Hoa bấm thẻ "Quá hạn" | Điều hướng `/orders?overdue=1&mine=1`; trang tải với chip "Quá hạn" đang chọn (không chip trạng thái nào khác), checkbox "Chỉ đơn của tôi" đã tick | component + e2e |
+| ~~AC-DASH-035~~ (→ M18-01a: thẻ mở popup) | Hoa (SALE) ở Tổng quan, `order_summary.scope="own"`, `overdue_count=2` | Hoa bấm thẻ "Quá hạn" | Điều hướng `/orders?overdue=1&mine=1`; trang tải với chip "Quá hạn" đang chọn (không chip trạng thái nào khác), checkbox "Chỉ đơn của tôi" đã tick | component + e2e |
 | AC-DASH-036 | Người dùng ở `/orders`, chip "Quá hạn" đang chọn | Bấm chip "Chờ điều phối" | Bỏ chọn "Quá hạn" (bật `status=PENDING_DISPATCH`, `overdue` tắt) — 2 chip loại trừ lẫn nhau | component |
-| AC-DASH-050 | Bất kỳ vai trò thấy `order_summary`, `overdue_count = 0` | render thẻ "Quá hạn" | Thẻ số 0 vẫn hiện, vẫn bấm được (không vô hiệu hoá) — nhất quán `AC-DASH-026` | component |
+| ~~AC-DASH-050~~ (→ M18-01a: thẻ mở popup) | Bất kỳ vai trò thấy `order_summary`, `overdue_count = 0` | render thẻ "Quá hạn" | Thẻ số 0 vẫn hiện, vẫn bấm được (không vô hiệu hoá) — nhất quán ~~AC-DASH-026~~ (→ M18-01a) | component |
 
 ## 4. API
 

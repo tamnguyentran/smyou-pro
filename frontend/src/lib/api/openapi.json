@@ -1945,6 +1945,302 @@
         "title": "CustomerWritten",
         "type": "object"
       },
+      "DashboardCardItemsOut": {
+        "description": "`GET /api/v1/dashboard/cards/{card}/items` (M18-01a/b/c): đúng 1 danh sách theo `kind`.",
+        "properties": {
+          "card": {
+            "title": "Card",
+            "type": "string"
+          },
+          "care_staff_items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DashboardCareStaffRow"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Care Staff Items"
+          },
+          "feedback_items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DashboardFeedbackRow"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback Items"
+          },
+          "kind": {
+            "enum": ["order", "task", "staff", "feedback", "care_staff"],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "order_items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DashboardOrderRow"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Items"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "staff_items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DashboardStaffRow"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Staff Items"
+          },
+          "task_items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DashboardTaskRow"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Items"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": ["card", "label", "kind", "total", "page", "page_size"],
+        "title": "DashboardCardItemsOut",
+        "type": "object"
+      },
+      "DashboardCareStaffRow": {
+        "description": "M18-01c: 1 nhân viên đã ghi phản hồi trong tháng — popup \"NV đã gọi điện CSKH\".",
+        "properties": {
+          "care_count": {
+            "title": "Care Count",
+            "type": "integer"
+          },
+          "employee_code": {
+            "title": "Employee Code",
+            "type": "string"
+          },
+          "employee_id": {
+            "format": "uuid",
+            "title": "Employee Id",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "last_recorded_at": {
+            "format": "date-time",
+            "title": "Last Recorded At",
+            "type": "string"
+          }
+        },
+        "required": ["employee_id", "employee_code", "full_name", "care_count", "last_recorded_at"],
+        "title": "DashboardCareStaffRow",
+        "type": "object"
+      },
+      "DashboardFeedbackRow": {
+        "description": "M18-01c: 1 đơn đã ghi phản hồi — popup \"Khách hàng đã chăm sóc\" và thẻ n★.",
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "csat_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Csat Comment"
+          },
+          "csat_rating": {
+            "title": "Csat Rating",
+            "type": "integer"
+          },
+          "customer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Name"
+          },
+          "customer_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Phone"
+          },
+          "order_code": {
+            "title": "Order Code",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "recorded_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded By Name"
+          }
+        },
+        "required": [
+          "order_id",
+          "order_code",
+          "customer_name",
+          "customer_phone",
+          "csat_rating",
+          "csat_comment",
+          "recorded_by_name",
+          "recorded_at",
+          "completed_at"
+        ],
+        "title": "DashboardFeedbackRow",
+        "type": "object"
+      },
+      "DashboardOrderRow": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_name": {
+            "title": "Created By Name",
+            "type": "string"
+          },
+          "customer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Name"
+          },
+          "customer_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Phone"
+          },
+          "order_code": {
+            "title": "Order Code",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "order_id",
+          "order_code",
+          "customer_name",
+          "customer_phone",
+          "created_by_name",
+          "status",
+          "created_at",
+          "total"
+        ],
+        "title": "DashboardOrderRow",
+        "type": "object"
+      },
       "DashboardOut": {
         "properties": {
           "care_staff_count": {
@@ -2073,6 +2369,130 @@
           }
         },
         "title": "DashboardOut",
+        "type": "object"
+      },
+      "DashboardStaffRow": {
+        "description": "M18-01b: 1 KTV trong popup 3 thẻ nhóm của khối \"Nhân sự kỹ thuật\".",
+        "properties": {
+          "employee_code": {
+            "title": "Employee Code",
+            "type": "string"
+          },
+          "employee_id": {
+            "format": "uuid",
+            "title": "Employee Id",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "in_progress_assignment_count": {
+            "title": "In Progress Assignment Count",
+            "type": "integer"
+          },
+          "open_assignment_count": {
+            "title": "Open Assignment Count",
+            "type": "integer"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          }
+        },
+        "required": [
+          "employee_id",
+          "employee_code",
+          "full_name",
+          "phone",
+          "open_assignment_count",
+          "in_progress_assignment_count"
+        ],
+        "title": "DashboardStaffRow",
+        "type": "object"
+      },
+      "DashboardTaskRow": {
+        "properties": {
+          "assignee_names": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assignee Names",
+            "type": "array"
+          },
+          "assignment_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignment Status"
+          },
+          "customer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Name"
+          },
+          "due_at": {
+            "format": "date-time",
+            "title": "Due At",
+            "type": "string"
+          },
+          "order_code": {
+            "title": "Order Code",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "task_code": {
+            "title": "Task Code",
+            "type": "string"
+          },
+          "task_id": {
+            "format": "uuid",
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_title": {
+            "title": "Task Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "task_code",
+          "task_title",
+          "order_id",
+          "order_code",
+          "customer_name",
+          "assignee_names",
+          "due_at",
+          "status"
+        ],
+        "title": "DashboardTaskRow",
         "type": "object"
       },
       "DepartmentCreate": {
@@ -8647,6 +9067,107 @@
           }
         },
         "summary": "Tổng quan theo vai trò",
+        "tags": ["dashboard"]
+      }
+    },
+    "/api/v1/dashboard/cards/{card}/export": {
+      "get": {
+        "operationId": "export_dashboard_card_items",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "card",
+            "required": true,
+            "schema": {
+              "title": "Card",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Xuất CSV toàn bộ danh sách của 1 thẻ Tổng quan",
+        "tags": ["dashboard"]
+      }
+    },
+    "/api/v1/dashboard/cards/{card}/items": {
+      "get": {
+        "operationId": "get_dashboard_card_items",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "card",
+            "required": true,
+            "schema": {
+              "title": "Card",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardCardItemsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Danh sách chi tiết tạo nên số trên 1 thẻ Tổng quan",
         "tags": ["dashboard"]
       }
     },

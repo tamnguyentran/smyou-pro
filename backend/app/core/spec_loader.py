@@ -6,7 +6,7 @@ and create_app() lets it propagate so the app never starts on a broken spec.
 """
 
 import re
-from collections.abc import Hashable, Iterable
+from collections.abc import Collection, Hashable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -305,4 +305,45 @@ def menu_document(permissions: PermissionsSpec) -> dict[str, Any]:
         "roles": {role: spec.label for role, spec in permissions.roles.items()},
         "menu": [item.model_dump(mode="json") for item in permissions.menu],
         "mobile_bottom_nav": permissions.mobile_bottom_nav.model_dump(mode="json"),
+    }
+
+
+_GROUP_COMMENT = re.compile(r"^\s+# --- (.+?) ---\s*$")
+_CAPABILITY_KEY = re.compile(r"^\s+([a-z_.]+):")
+
+
+def permission_matrix_document(
+    permissions: PermissionsSpec, source: str, manager_bundle: Collection[str]
+) -> dict[str, Any]:
+    """Capability-by-role table for the "Cách phân quyền hoạt động" guide (permissionMatrix.json,
+    AC-EMP-080), grouped by the `# --- <group> ---` comments of the YAML `capabilities:` block.
+    `manager_bundle` is the server's Manager role bundle (M15-01), listed for the guide's union."""
+    group_of: dict[str, str] = {}
+    group: str | None = None
+    in_block = False
+    for line in source.splitlines():
+        if not line.strip():
+            continue
+        if not line[0].isspace():
+            in_block = line.startswith("capabilities:")
+            continue
+        if not in_block:
+            continue
+        if heading := _GROUP_COMMENT.match(line):
+            group = heading.group(1)
+        elif (key := _CAPABILITY_KEY.match(line)) and key.group(1) in permissions.capabilities:
+            if group is None:
+                raise SpecError(f"{PERMISSIONS_FILE}: {key.group(1)} is not under a '# --- group ---'")
+            group_of[key.group(1)] = group
+    if missing := [c for c in permissions.capabilities if c not in group_of]:
+        raise SpecError(f"{PERMISSIONS_FILE}: capabilities without a group: {', '.join(missing)}")
+
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for capability, roles in permissions.capabilities.items():
+        groups.setdefault(group_of[capability], []).append({"id": capability, "roles": roles})
+    return {
+        "roles": {role: spec.label for role, spec in permissions.roles.items()},
+        "scopes": permissions.scopes,
+        "groups": [{"label": label, "capabilities": caps} for label, caps in groups.items()],
+        "manager_bundle": [r for r in permissions.roles if r in manager_bundle and r != "MANAGER"],
     }

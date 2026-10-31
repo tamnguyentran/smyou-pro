@@ -88,7 +88,7 @@ afterEach(() => {
 });
 
 describe("/my-tasks đọc `focus` từ URL lúc tải (M10-07c)", () => {
-  test("AC-DASH-047 ?focus=not_started: tab Đang làm đã chọn, chỉ hiện ACCEPTED (ẩn IN_PROGRESS)", async () => {
+  test("(M10-07c, URL gõ tay — thẻ Tổng quan nay mở popup, M18-01b) ?focus=not_started: tab Đang làm đã chọn, chỉ hiện ACCEPTED (ẩn IN_PROGRESS)", async () => {
     signedInAs(khoaId, KHOA);
     mockAssignments([
       assignment({ assignment_id: "a1", assignment_status: "ACCEPTED", task_code: "ACC1" }),
@@ -218,7 +218,7 @@ describe("/my-tasks đọc `focus` từ URL lúc tải (M10-07c)", () => {
     expect(screen.getByText("PROG1")).toBeInTheDocument();
   });
 
-  test("AC-DASH-047 ?focus=not_started: chuyển tab thủ công rồi quay lại Đang làm thì hết lọc focus (không còn ẩn IN_PROGRESS)", async () => {
+  test("(M10-07c, URL gõ tay — thẻ Tổng quan nay mở popup, M18-01b) ?focus=not_started: chuyển tab thủ công rồi quay lại Đang làm thì hết lọc focus (không còn ẩn IN_PROGRESS)", async () => {
     signedInAs(khoaId, KHOA);
     mockAssignments([
       assignment({ assignment_id: "a1", assignment_status: "PENDING", task_code: "PENDING1" }),

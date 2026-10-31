@@ -1,5 +1,5 @@
-import { Search, UserPlus, Users } from "lucide-react";
-import { useState } from "react";
+import { Search, ShieldQuestion, UserPlus, Users } from "lucide-react";
+import { useId, useState } from "react";
 import { ROLE_LABELS } from "../../../app/menu";
 import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
@@ -14,6 +14,7 @@ import { useMe } from "../../me/api";
 import { useEmployees, type Employee, type EmployeeFilters } from "../api";
 import { EmployeeFormSheet } from "../components/EmployeeFormSheet";
 import { EmployeeList } from "../components/EmployeeList";
+import { PermissionGuide } from "../components/PermissionGuide";
 
 const PAGE_SIZE = 20;
 
@@ -38,6 +39,8 @@ export function EmployeesPage() {
   const [isActive, setIsActive] = useState<EmployeeFilters["is_active"]>("");
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<Employee | "new" | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const guideId = useId();
   const debouncedQ = useDebouncedValue(q, 300);
 
   const filters: EmployeeFilters = {
@@ -112,17 +115,32 @@ export function EmployeesPage() {
             <option value="false">Đã khoá</option>
           </Select>
         </div>
-        {canManage ? (
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Button
-            icon={<UserPlus aria-hidden="true" className="size-4" />}
+            variant="secondary"
+            icon={<ShieldQuestion aria-hidden="true" className="size-4" />}
+            aria-expanded={guideOpen}
+            aria-controls={guideOpen ? guideId : undefined}
             onClick={() => {
-              setSelected("new");
+              setGuideOpen((open) => !open);
             }}
           >
-            Thêm nhân viên
+            Cách phân quyền hoạt động
           </Button>
-        ) : null}
+          {canManage ? (
+            <Button
+              icon={<UserPlus aria-hidden="true" className="size-4" />}
+              onClick={() => {
+                setSelected("new");
+              }}
+            >
+              Thêm nhân viên
+            </Button>
+          ) : null}
+        </div>
       </div>
+
+      {guideOpen ? <PermissionGuide id={guideId} /> : null}
 
       {employees.isPending ? (
         <Waiting />

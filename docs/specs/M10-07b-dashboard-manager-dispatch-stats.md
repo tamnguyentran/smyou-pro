@@ -22,12 +22,12 @@ Là Quản lý/Quản lý kỹ thuật (QLKT), tôi muốn trang "Tổng quan" t
 | ID | Given | When | Then | Lớp test |
 |---|---|---|---|---|
 | AC-DASH-037 | Toàn công ty có 3 đơn `IN_PROGRESS`, còn lại trạng thái khác | Tuấn (TECH_LEAD) `GET /api/v1/dashboard` | `dispatch_summary.in_progress_order_count == 3` | integration |
-| AC-DASH-038 | Tuấn (TECH_LEAD) ở Tổng quan | Bấm thẻ "Đang thực hiện" | Điều hướng `/orders?status=IN_PROGRESS` (không `mine`); danh sách khớp số đã đếm | component + e2e |
+| ~~AC-DASH-038~~ (→ M18-01a: thẻ mở popup) | Tuấn (TECH_LEAD) ở Tổng quan | Bấm thẻ "Đang thực hiện" | Điều hướng `/orders?status=IN_PROGRESS` (không `mine`); danh sách khớp số đã đếm | component + e2e |
 | AC-DASH-039 | 4 task ở `PENDING_ACCEPTANCE` (3 task 1 KTV mỗi task, 1 task 2 KTV cùng `PENDING`, tổng 5 assignment `PENDING`), còn lại trạng thái khác | Tuấn (TECH_LEAD) `GET /api/v1/dashboard` | `staff_summary.pending_acceptance_count == 4` (đếm theo task, không theo assignment — Q85) | integration |
-| AC-DASH-040 | Tuấn (TECH_LEAD, có `task.manage`) ở Tổng quan | Bấm thẻ "Chưa tiếp nhận" (khối Nhân sự kỹ thuật) | Điều hướng `/dispatch/board?status=PENDING_ACCEPTANCE`; bảng đầu việc hiện đúng cột/lọc "Chờ tiếp nhận" | component + e2e |
-| AC-DASH-041 | An (MANAGER, không có `task.manage`) ở Tổng quan, `staff_summary.pending_acceptance_count=4` | render | Thẻ "Chưa tiếp nhận" hiện số 4 nhưng là `<div>` thường — không `href`, bấm vào không điều hướng (giống `needs_assignee_count` ở `M10-03`) | component |
+| ~~AC-DASH-040~~ (→ M18-01b: thẻ mở popup) | Tuấn (TECH_LEAD, có `task.manage`) ở Tổng quan | Bấm thẻ "Chưa tiếp nhận" (khối Nhân sự kỹ thuật) | Điều hướng `/dispatch/board?status=PENDING_ACCEPTANCE`; bảng đầu việc hiện đúng cột/lọc "Chờ tiếp nhận" | component + e2e |
+| ~~AC-DASH-041~~ (→ M18-01b: thẻ mở popup) | An (MANAGER, không có `task.manage`) ở Tổng quan, `staff_summary.pending_acceptance_count=4` | render | Thẻ "Chưa tiếp nhận" hiện số 4 nhưng là `<div>` thường — không `href`, bấm vào không điều hướng (giống `needs_assignee_count` ở `M10-03`) | component |
 | AC-DASH-042 | Bất kỳ vai trò thấy `staff_summary` | render | Thứ tự 4 thẻ: "Đang làm", "Chưa tiếp nhận", "Chưa thực hiện", "Chờ giao việc" (nhãn mới thay "Chưa có đầu việc") | component |
-| AC-DASH-051 | Bất kỳ vai trò thấy `dispatch_summary`/`staff_summary`, 1 trong 2 trường mới = 0 | render thẻ tương ứng | Thẻ số 0 vẫn hiện, vẫn bấm được khi có `to` (không vô hiệu hoá) — nhất quán `AC-DASH-026` | component |
+| AC-DASH-051 | Bất kỳ vai trò thấy `dispatch_summary`/`staff_summary`, 1 trong 2 trường mới = 0 | render thẻ tương ứng | Thẻ số 0 vẫn hiện, vẫn bấm được khi có `to` (không vô hiệu hoá) — nhất quán ~~AC-DASH-026~~ (→ M18-01a) | component |
 
 ## 4. API
 

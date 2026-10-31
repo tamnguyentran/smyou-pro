@@ -4,6 +4,11 @@ Trạng thái: `[ ]` chưa làm · `[S]` spec đang viết · `[A]` spec Approve
 Mỗi item là **lát cắt dọc** (DB → API → UI → test) giao được trong 1 phiên. Làm theo thứ tự; item sau phụ thuộc item trước.
 Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatch), `ASG`, `CMP` (completion/revision), `NTF`, `DASH` (dashboard), `KPI`, `UI` (style thuần, xuyên module, không đổi API/quyền).
 
+## M18 — Tổng quan: bấm thẻ mở popup danh sách chi tiết + xuất Excel (2026-10-30)
+- `[x]` M18-01a — Khung popup + endpoint `/dashboard/cards/{card}/items|export` (CSV BOM, nút Excel chỉ desktop), áp cho khối "Đơn theo trạng thái" + "Điều phối"; bấm thẻ chỉ mở popup, bỏ chuyển trang. `docs/specs/M18-01a-dashboard-card-detail-popup.md`
+- `[x]` M18-01b — Như trên cho khối "Đầu việc theo trạng thái", "Nhân sự kỹ thuật", "Việc của tôi" (KTV). `docs/specs/M18-01b-dashboard-card-popup-tasks-staff-mine.md`
+- `[x]` M18-01c — Như trên cho khối "Chăm sóc khách hàng", "Phản hồi – đánh giá", "Top 10 khách hàng". `docs/specs/M18-01c-dashboard-card-popup-care-feedback-top.md`
+
 ## M17 — Thông tin công ty & phòng ban (2026-10-28)
 - `[x]` M17-01 — Thông tin công ty: 1 bản ghi (tên, MST, địa chỉ, ĐT, fax, email, website, logo), seed từ hoá đơn, màn cài đặt chỉ Manager. `docs/specs/M17-01-company-profile.md`
 - `[x]` M17-02a — Phòng ban: danh sách quản lý được (thêm/sửa/ngừng hoạt động), seed 3 phòng mới + 3 phòng cũ (Q102). `docs/specs/M17-02a-departments.md`
@@ -11,6 +16,7 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - `[x]` M17-03a — Hồ sơ nhân viên: ngày sinh, nơi sinh, giới tính, địa chỉ, CMND/CCCD (ngày/nơi cấp), tình trạng hôn nhân; email tuỳ chọn (spec Approved). `docs/specs/M17-03a-employee-profile-fields.md`
 - `[x]` M17-03b — Tên đăng nhập tự sinh (`tam.nt`, trùng → `tam.nt2`), đăng nhập bằng tên đăng nhập thay email (spec Approved). `docs/specs/M17-03b-employee-username-login.md`
 - `[x]` M17-04 — In "Hoá đơn bán hàng" khổ A5 theo mẫu giấy, nút "In" chỉ hiện trên desktop (≥1024px) ở chi tiết đơn + màn sửa đơn nháp. `docs/specs/M17-04-order-invoice-print-a5.md`
+- `[x]` M17-05 — Trang Nhân sự & phân quyền: khối "Cách phân quyền hoạt động" (nguyên tắc, luồng, màn hình + thao tác theo vai trò sinh từ `permissions.yaml`/`menu.json`). `docs/specs/M17-05-permission-guide.md`
 
 ## M15 — Giai đoạn 2: CSKH, vai trò kết hợp, giá vốn, báo cáo doanh thu (spec Draft, 2026-10-21)
 - `[x]` M15-01 — Vai trò CSKH (`CUSTOMER_CARE`) + ràng buộc gán vai trò: Manager ⇒ tự có Sale/CSKH/QLKT (không bao giờ cùng Kỹ thuật viên); nhân viên khác gán tự do. `docs/specs/M15-01-customer-care-role.md` (PR #126)

@@ -7,6 +7,10 @@ from datetime import date
 
 from app.modules.identity.domain import birth_date_password, password_problems
 
+# M15-01: a Manager always also holds Sale/CSKH/QLKT (so they never lose dispatch/order/customer-care
+# capabilities just because nobody separately ticked those boxes) but can never be a Technician too.
+# Also exported to permissionMatrix.json for the "Cách phân quyền hoạt động" guide (M17-05).
+MANAGER_BUNDLE = frozenset({"MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD"})
 # No look-alikes (0/O, 1/l/I): the Manager reads the password out or retypes it for the employee.
 TEMP_PASSWORD_ALPHABET = "".join(c for c in string.ascii_letters + string.digits if c not in "0O1lIoi")
 TEMP_PASSWORD_LENGTH = 10

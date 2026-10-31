@@ -17,7 +17,12 @@ from app.core.security import hash_password
 from app.core.sequences import next_value
 from app.modules.audit import service as audit
 from app.modules.departments.models import Department
-from app.modules.employees.domain import employee_code, last_code_number, temporary_password
+from app.modules.employees.domain import (
+    MANAGER_BUNDLE,
+    employee_code,
+    last_code_number,
+    temporary_password,
+)
 from app.modules.employees.schemas import (
     EmployeeCreate,
     EmployeeDepartment,
@@ -42,9 +47,6 @@ USERNAME_TAKEN = "Tên đăng nhập đã được dùng cho nhân viên khác."
 # added to permissions.yaml later fails closed (no rule → no rows) until a rule is written here.
 RULES: ScopeRules = {}
 PROFILE_FIELDS = tuple(EmployeeProfile.model_fields)  # M17-03a
-# M15-01: a Manager always also holds Sale/CSKH/QLKT (so they never lose dispatch/order/customer-care
-# capabilities just because nobody separately ticked those boxes) but can never be a Technician too.
-_MANAGER_BUNDLE = frozenset({"MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD"})
 ROLE_CONFLICT = "Quản lý chung không thể đồng thời là Nhân viên kỹ thuật."
 
 
@@ -59,7 +61,7 @@ def _resolve_roles(roles: set[str]) -> set[str]:
             ROLE_CONFLICT,
             errors=[{"field": "roles", "code": "manager_technician", "message": ROLE_CONFLICT}],
         )
-    return roles | _MANAGER_BUNDLE
+    return roles | MANAGER_BUNDLE
 
 
 def _out(employee: Employee, now: datetime) -> EmployeeOut:

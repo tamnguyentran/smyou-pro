@@ -77,24 +77,9 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       {data.order_summary ? <OrderSummarySection summary={data.order_summary} /> : null}
-      {data.dispatch_summary ? (
-        <DispatchSummarySection
-          summary={data.dispatch_summary}
-          canViewTaskBoard={"task.manage" in me.data.capabilities}
-        />
-      ) : null}
-      {data.task_summary ? (
-        <TaskSummarySection
-          summary={data.task_summary}
-          canViewTaskBoard={"task.manage" in me.data.capabilities}
-        />
-      ) : null}
-      {data.staff_summary ? (
-        <StaffSummarySection
-          summary={data.staff_summary}
-          canViewTaskBoard={"task.manage" in me.data.capabilities}
-        />
-      ) : null}
+      {data.dispatch_summary ? <DispatchSummarySection summary={data.dispatch_summary} /> : null}
+      {data.task_summary ? <TaskSummarySection summary={data.task_summary} /> : null}
+      {data.staff_summary ? <StaffSummarySection summary={data.staff_summary} /> : null}
       {data.my_task_summary ? <MyTaskSummarySection summary={data.my_task_summary} /> : null}
       {data.care_summary != null &&
       data.care_staff_count != null &&

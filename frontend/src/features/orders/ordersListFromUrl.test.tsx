@@ -57,7 +57,7 @@ afterEach(() => {
 });
 
 describe("/orders đọc status/mine từ URL lúc tải", () => {
-  test("AC-DASH-022 ?status=PENDING_DISPATCH&mine=1: chip + checkbox khớp URL, request gửi mine=true", async () => {
+  test("M10-03 (URL /orders, giữ sau M18-01a) ?status=PENDING_DISPATCH&mine=1: chip + checkbox khớp URL, request gửi mine=true", async () => {
     signedInAs(hoaId, HOA);
     let lastQuery = "";
     server.use(
@@ -80,7 +80,7 @@ describe("/orders đọc status/mine từ URL lúc tải", () => {
     expect(screen.getByRole("checkbox", { name: "Chỉ đơn của tôi" })).toBeChecked();
   });
 
-  test("AC-DASH-023 ?status=COMPLETED (không mine): checkbox không tick, request không có mine", async () => {
+  test("M10-03 (URL /orders, giữ sau M18-01a) ?status=COMPLETED (không mine): checkbox không tick, request không có mine", async () => {
     signedInAs(hoaId, HOA);
     let lastQuery = "";
     server.use(
@@ -103,7 +103,7 @@ describe("/orders đọc status/mine từ URL lúc tải", () => {
     expect(screen.getByRole("checkbox", { name: "Chỉ đơn của tôi" })).not.toBeChecked();
   });
 
-  test("AC-DASH-026 ?status=DRAFT&mine=1 trả về rỗng: không lỗi, chip vẫn chọn 'Nháp'", async () => {
+  test("M10-03 (URL /orders, giữ sau M18-01a) ?status=DRAFT&mine=1 trả về rỗng: không lỗi, chip vẫn chọn 'Nháp'", async () => {
     signedInAs(hoaId, HOA);
     server.use(
       http.get("/api/v1/orders", () =>
