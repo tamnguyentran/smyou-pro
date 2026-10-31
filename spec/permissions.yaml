@@ -22,7 +22,8 @@ scopes: [all, own, assigned, self]
 
 capabilities:
   # --- Danh mục ---
-  catalog.read:          { MANAGER: all, SALE: all, CUSTOMER_CARE: all, TECH_LEAD: all }
+  catalog.read:          { MANAGER: all, SALE: all, CUSTOMER_CARE: all, TECH_LEAD: all, TECHNICIAN: all }  # M19-01a: KTV chọn hàng khi thêm dòng tại hiện trường
+  catalog.read_cost:     { MANAGER: all, SALE: all, CUSTOMER_CARE: all, TECH_LEAD: all }  # M19-01a (Q125): giá vốn trong danh mục; giữ nguyên ai đang thấy
   catalog.manage:        { MANAGER: all }
   # --- Nhân sự ---
   employee.read:         { MANAGER: all, TECH_LEAD: all }
@@ -42,6 +43,7 @@ capabilities:
   order.edit_draft:      { MANAGER: all, SALE: own, CUSTOMER_CARE: own }
   order.edit_contact:    { MANAGER: all, SALE: own }  # phone/address/notes after submit, until COMPLETED
   order.edit_lines_after_submit: { MANAGER: all, SALE: own }  # Q09: until COMPLETED/CANCELLED, audited
+  order.edit_lines_on_site: { TECHNICIAN: assigned }  # M19-01a: chỉ dòng mình thêm, đơn IN_PROGRESS/REVISION, phân công ACCEPTED/IN_PROGRESS
   order.submit:          { MANAGER: all, SALE: own }
   order.cancel:          { MANAGER: all, SALE: own }
   order.cancel_active:   { MANAGER: all }

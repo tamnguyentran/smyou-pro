@@ -1068,7 +1068,12 @@ describe("AC-EMP-085 điện thoại: chọn vai trò", () => {
     expect(texts).toContain("Nhận/từ chối/bắt đầu/xong việc được giao — Bản thân");
     expect(texts.some((t) => t.startsWith("Tạo đơn"))).toBe(false);
     expect(within(region).getByRole("heading", { name: "Đầu việc" })).toBeInTheDocument();
-    expect(within(region).queryByRole("heading", { name: "Danh mục" })).not.toBeInTheDocument();
+    // M19-01a (Q125): KTV xem được danh mục để thêm dòng tại hiện trường, nhưng không thấy giá vốn.
+    expect(within(region).getByRole("heading", { name: "Danh mục" })).toBeInTheDocument();
+    expect(texts).toContain("Xem danh mục sản phẩm/dịch vụ — Tất cả");
+    expect(texts.some((t) => t.startsWith("Xem giá vốn"))).toBe(false);
+    expect(texts.some((t) => t.startsWith("Thêm/sửa danh mục"))).toBe(false);
+    expect(texts).toContain("Thêm/sửa dòng hàng tại hiện trường — Được giao");
   });
 });
 

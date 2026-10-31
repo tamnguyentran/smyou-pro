@@ -253,6 +253,10 @@ class OrderLineOut(BaseModel):
     note: str | None
     credited_employee_id: uuid.UUID | None
     credited_employee_name: str | None
+    added_by_id: uuid.UUID | None
+    added_by_name: str | None
+    added_on_site: bool
+    can_edit_on_site: bool
 
 
 class OrderDetail(BaseModel):
@@ -287,6 +291,7 @@ class OrderDetail(BaseModel):
     allowed_commands: list[str]
     can_edit_contact: bool
     can_edit_lines_after_submit: bool
+    can_add_lines_on_site: bool
     can_upload_confirmation: bool
     can_complete: bool
     can_revise: bool

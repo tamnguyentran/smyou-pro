@@ -201,6 +201,7 @@ guards:
   order_in_revision: order status == REVISION
   has_active_assignment: order has ≥1 assignment with status in [PENDING, ACCEPTED, IN_PROGRESS, DONE]
   no_active_assignment: not has_active_assignment
+  actor_has_active_work_on_order: actor has an assignment in status [ACCEPTED, IN_PROGRESS] in the current cycle on a non-cancelled task of the order
   at_least_one_assignee: ≥1 assignee given
   assignees_are_active_technicians: every assignee is active and has role TECHNICIAN
   not_already_active_assignee: employee has no active assignment on this task in the current cycle

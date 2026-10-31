@@ -37,6 +37,7 @@ const AN: Person = {
   capabilities: {
     "dashboard.read": all,
     "catalog.read": all,
+    "catalog.read_cost": all,
     "catalog.manage": all,
     "profile.manage": self,
   },
@@ -46,7 +47,12 @@ const HOA: Person = {
   full_name: "Lê Thị Hoa",
   email: "hoa.le@smyou.vn",
   roles: ["SALE"],
-  capabilities: { "dashboard.read": ["own"], "catalog.read": all, "profile.manage": self },
+  capabilities: {
+    "dashboard.read": ["own"],
+    "catalog.read": all,
+    "catalog.read_cost": all,
+    "profile.manage": self,
+  },
 };
 const KHOA: Person = {
   code: "NV014",

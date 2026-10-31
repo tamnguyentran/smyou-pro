@@ -4,6 +4,10 @@ Trạng thái: `[ ]` chưa làm · `[S]` spec đang viết · `[A]` spec Approve
 Mỗi item là **lát cắt dọc** (DB → API → UI → test) giao được trong 1 phiên. Làm theo thứ tự; item sau phụ thuộc item trước.
 Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatch), `ASG`, `CMP` (completion/revision), `NTF`, `DASH` (dashboard), `KPI`, `UI` (style thuần, xuyên module, không đổi API/quyền).
 
+## M19 — Kỹ thuật viên thêm dòng hàng tại hiện trường (2026-10-31)
+- `[x]` M19-01a — API: KTV (phân công ACCEPTED/IN_PROGRESS, đơn IN_PROGRESS/REVISION) thêm/sửa/xoá dòng mình thêm qua `lines-on-site`, ghi doanh số cho chính KTV, báo Sale chủ đơn + QLKT; KTV được đọc danh mục (ẩn giá vốn). `docs/specs/M19-01a-technician-on-site-lines-api.md`
+- `[A]` M19-01b — UI: nút "Thêm dòng hàng" + sửa/xoá dòng của mình ở tab Dòng hàng, huy hiệu "KTV thêm". Phụ thuộc M19-01a. `docs/specs/M19-01b-technician-on-site-lines-ui.md`
+
 ## M18 — Tổng quan: bấm thẻ mở popup danh sách chi tiết + xuất Excel (2026-10-30)
 - `[x]` M18-01a — Khung popup + endpoint `/dashboard/cards/{card}/items|export` (CSV BOM, nút Excel chỉ desktop), áp cho khối "Đơn theo trạng thái" + "Điều phối"; bấm thẻ chỉ mở popup, bỏ chuyển trang. `docs/specs/M18-01a-dashboard-card-detail-popup.md`
 - `[x]` M18-01b — Như trên cho khối "Đầu việc theo trạng thái", "Nhân sự kỹ thuật", "Việc của tôi" (KTV). `docs/specs/M18-01b-dashboard-card-popup-tasks-staff-mine.md`

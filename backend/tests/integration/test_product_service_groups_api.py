@@ -149,5 +149,7 @@ def test_sale_read_only_write_forbidden(app: FastAPI, db: Connection, people: di
         "FORBIDDEN",
     )
 
+    # M19-01a: TECHNICIAN now holds `catalog.read` (read-only), so the list is visible but not writable.
     khoa = client_as(app, KHOA)
-    problem(khoa.get("/api/v1/product-service-groups"), 403, "FORBIDDEN")
+    assert khoa.get("/api/v1/product-service-groups").status_code == 200
+    problem(khoa.post("/api/v1/product-service-groups", json={"name": "Thiết bị mạng"}), 403, "FORBIDDEN")

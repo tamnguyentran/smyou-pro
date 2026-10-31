@@ -153,6 +153,8 @@ Tổng tiền **luôn tính ở server** từ dòng hàng; client gửi lên ch�
 | line_vat | bigint | round_half_up((line_gross − line_discount) × vat_rate / 100) |
 | line_total | bigint | line_gross − line_discount + line_vat |
 | note | text | |
+| added_by_id | uuid FK employees, null | M19-01a: người thêm dòng; null với dòng có trước cột này |
+| added_on_site | bool, default false | M19-01a: KTV thêm tại hiện trường (`lines-on-site`); chỉ dòng này KTV đó mới sửa/xoá được |
 
 ## 6b. CatalogPriceHistory — `catalog_price_history` (M15-08)
 Ghi mỗi lần `price`/`cost_price` của Product/Service thực sự đổi khi sửa (`catalog.manage`); không ghi nếu giá không đổi.

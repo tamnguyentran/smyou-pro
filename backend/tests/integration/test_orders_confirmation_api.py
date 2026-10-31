@@ -252,7 +252,7 @@ def test_serve_confirmation_attachment_outside_scope_is_404(
 
 
 @pytest.mark.ac("AC-CMP-009")
-def test_serve_product_image_regression_forbidden_without_catalog_read(
+def test_serve_product_image_follows_catalog_read(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
     an = client_as(app, AN)
@@ -269,8 +269,10 @@ def test_serve_product_image_regression_forbidden_without_catalog_read(
         f"/api/v1/products/{product_id}/image", files={"file": ("photo.jpg", JPEG_BYTES, "image/jpeg")}
     ).json()["image_attachment_id"]
 
+    # M19-01a: TECHNICIAN now holds `catalog.read` (AC-CAT-098), so the image follows that
+    # capability and is served — the original 403 expectation no longer applies.
     khoa = client_as(app, KHOA)
-    problem(khoa.get(f"/api/v1/attachments/{attachment_id}"), 403, "FORBIDDEN")
+    assert khoa.get(f"/api/v1/attachments/{attachment_id}").status_code == 200
 
 
 @pytest.mark.ac("AC-CMP-010")

@@ -114,6 +114,10 @@ def revision_has_work_if_revision(order_status: str, has_matching_task: bool) ->
     return order_status != "REVISION" or has_matching_task
 
 
+def actor_has_active_work_on_order(has_active_work: bool) -> bool:
+    return has_active_work
+
+
 GUARDS: dict[str, Callable[..., bool]] = {
     "customer_present": customer_present,
     "has_lines_or_description": has_lines_or_description,
@@ -138,6 +142,7 @@ GUARDS: dict[str, Callable[..., bool]] = {
     "revision_has_work_if_revision": revision_has_work_if_revision,
     "has_active_assignment": has_active_assignment,
     "no_active_assignment": no_active_assignment,
+    "actor_has_active_work_on_order": actor_has_active_work_on_order,
 }
 
 PENDING_GUARDS: dict[str, str] = {}

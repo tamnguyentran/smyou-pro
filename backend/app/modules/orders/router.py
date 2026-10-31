@@ -46,6 +46,7 @@ Completer = Annotated[Actor, Depends(require("order.complete"))]
 Reviser = Annotated[Actor, Depends(require("order.revise"))]
 ContactEditor = Annotated[Actor, Depends(require("order.edit_contact"))]
 AfterSubmitLineEditor = Annotated[Actor, Depends(require("order.edit_lines_after_submit"))]
+OnSiteLineEditor = Annotated[Actor, Depends(require("order.edit_lines_on_site"))]
 ConfirmationUploader = Annotated[Actor, Depends(require("order.upload_confirmation"))]
 CsatRecorder = Annotated[Actor, Depends(require("customer_care.manage_feedback"))]
 
@@ -59,6 +60,8 @@ CONFLICTS = (409, "STALE_VERSION | ORDER_NOT_DRAFT")
 TRANSITION_CONFLICTS = (409, "STALE_VERSION | INVALID_TRANSITION | GUARD_FAILED")
 AFTER_SUBMIT_CONFLICTS = (409, "STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED")
 GUARD_CONFLICTS = (409, "GUARD_FAILED")
+ON_SITE_CONFLICTS = (409, "STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED | GUARD_FAILED")
+LINE_NOT_EDITABLE = (403, "LINE_NOT_EDITABLE")
 
 
 @router.post(
@@ -559,6 +562,78 @@ def remove_line_after_submit(
     actor: AfterSubmitLineEditor,
 ) -> OrderDetail:
     return service.remove_line_after_submit(
+        session,
+        actor,
+        order_id,
+        line_id,
+        body,
+        specs=request.app.state.specs,
+        request_id=get_request_id(request),
+    )
+
+
+@router.post(
+    "/{order_id}/lines-on-site",
+    operation_id="orders_add_line_on_site",
+    summary="KTV thêm dòng hàng tại hiện trường",
+    status_code=201,
+    response_model=OrderDetail,
+    responses=_docs(NOT_FOUND, ON_SITE_CONFLICTS),
+)
+def add_line_on_site(
+    order_id: uuid.UUID,
+    body: OrderLineCreate,
+    request: Request,
+    session: DbSession,
+    actor: OnSiteLineEditor,
+) -> OrderDetail:
+    return service.add_line_on_site(
+        session, actor, order_id, body, specs=request.app.state.specs, request_id=get_request_id(request)
+    )
+
+
+@router.patch(
+    "/{order_id}/lines-on-site/{line_id}",
+    operation_id="orders_update_line_on_site",
+    summary="KTV sửa dòng hàng mình thêm tại hiện trường",
+    response_model=OrderDetail,
+    responses=_docs(LINE_NOT_EDITABLE, NOT_FOUND, ON_SITE_CONFLICTS),
+)
+def update_line_on_site(
+    order_id: uuid.UUID,
+    line_id: uuid.UUID,
+    body: OrderLineUpdate,
+    request: Request,
+    session: DbSession,
+    actor: OnSiteLineEditor,
+) -> OrderDetail:
+    return service.update_line_on_site(
+        session,
+        actor,
+        order_id,
+        line_id,
+        body,
+        specs=request.app.state.specs,
+        request_id=get_request_id(request),
+    )
+
+
+@router.post(
+    "/{order_id}/lines-on-site/{line_id}/remove",
+    operation_id="orders_remove_line_on_site",
+    summary="KTV xoá dòng hàng mình thêm tại hiện trường",
+    response_model=OrderDetail,
+    responses=_docs(LINE_NOT_EDITABLE, NOT_FOUND, ON_SITE_CONFLICTS),
+)
+def remove_line_on_site(
+    order_id: uuid.UUID,
+    line_id: uuid.UUID,
+    body: OrderLineRemove,
+    request: Request,
+    session: DbSession,
+    actor: OnSiteLineEditor,
+) -> OrderDetail:
+    return service.remove_line_on_site(
         session,
         actor,
         order_id,

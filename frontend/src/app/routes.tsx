@@ -36,7 +36,8 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/employees" is real (M1-04b) and checks employee.read itself — narrower than the menu entry's
 // employee.manage (Q36: TECH_LEAD reads it without seeing the menu item), so it is excluded here.
 // "/audit" is real (M1-05) and checks audit.read itself, same as "/employees" above.
-// "/catalog/products" is real (M2-01b) and checks catalog.read itself — narrower than the menu
+// "/catalog/products" is real (M2-01b) and checks catalog.read_cost itself (M19-01a: was catalog.read,
+// which TECHNICIAN now also holds for on-site lines) — narrower than the menu
 // entry's catalog.manage (AC-CAT-017: Sale reads it without seeing the "Danh mục" menu item).
 // "/catalog/services" is real (M2-02), same reasoning (AC-CAT-031).
 // "/customers" is real (M3-01) and checks customer.read itself — narrower than the menu entry's
@@ -56,7 +57,7 @@ import { NotFoundPage } from "./shell/StatusPage";
 // menu entry added in M15-11.
 // "/reports/revenue-by-employee" is real (M15-10b), same reasoning as above.
 // "/catalog/groups" is real (M16-07), same capability (catalog.manage on the menu entry,
-// catalog.read on the route) as "/catalog/products"/"/catalog/services".
+// catalog.read_cost on the route) as "/catalog/products"/"/catalog/services".
 // "/reports/customer-gifts" is real (M16-02b), same capability (report.customer_gift.read) as the
 // menu entry added alongside M16-02a's capability.
 // "/settings/company" is real (M17-01) and checks company.manage itself, same as the menu entry.
