@@ -986,3 +986,176 @@ describe("M17-03b tên đăng nhập", () => {
     expect(patched).not.toHaveProperty("username");
   });
 });
+
+// ---------------- M17-05: khối "Cách phân quyền hoạt động" ----------------
+const GUIDE = "Cách phân quyền hoạt động";
+
+async function openGuide(person: Person = AN) {
+  signedInAs(person, () => HttpResponse.json(page([AN_ROW, employee()])));
+  renderApp("/employees");
+  await openMenu();
+  await userEvent.setup().click(await screen.findByRole("button", { name: GUIDE }));
+  return screen.findByRole("region", { name: GUIDE });
+}
+
+const itemTexts = (container: HTMLElement) =>
+  within(container)
+    .getAllByRole("listitem")
+    .map((li) => li.textContent);
+
+describe("AC-EMP-082 nút giải thích, mặc định đóng", () => {
+  test("AC-EMP-082 Manager mở /employees: thấy nút (aria-expanded=false), khối chưa hiện", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([AN_ROW])));
+    renderApp("/employees");
+    await openMenu();
+    const toggle = await screen.findByRole("button", { name: GUIDE });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("region", { name: GUIDE })).not.toBeInTheDocument();
+  });
+});
+
+describe("AC-EMP-083 mở/đóng khối giải thích", () => {
+  test("AC-EMP-083 bấm nút → 3 tiêu đề, aria-expanded=true; bấm lại → ẩn", async () => {
+    const region = await openGuide();
+    for (const name of ["Nguyên tắc", "Luồng phân quyền", "Quyền theo vai trò"]) {
+      expect(within(region).getByRole("heading", { name })).toBeInTheDocument();
+    }
+    const toggle = screen.getByRole("button", { name: GUIDE });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await userEvent.setup().click(toggle);
+    expect(screen.queryByRole("region", { name: GUIDE })).not.toBeInTheDocument();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+  });
+});
+
+describe("AC-EMP-084 bảng quyền trên máy tính", () => {
+  test("AC-EMP-084 ≥1024px: cột quyền + 5 vai trò, hàng Sửa đơn nháp đúng phạm vi", async () => {
+    mockViewport(true);
+    const region = await openGuide();
+    const table = within(region).getByRole("table");
+    const headers = within(table)
+      .getAllByRole("columnheader")
+      .map((th) => th.textContent);
+    expect(headers.slice(0, 6)).toEqual([
+      "Quyền",
+      "Quản lý chung",
+      "Nhân viên kinh doanh",
+      "Chăm sóc khách hàng",
+      "Quản lý kỹ thuật",
+      "Nhân viên kỹ thuật",
+    ]);
+    expect(within(table).getByRole("rowheader", { name: "Đơn hàng" })).toBeInTheDocument();
+    const row = within(table).getByRole("row", { name: /^Sửa đơn nháp/ });
+    const cells = within(row)
+      .getAllByRole("cell")
+      .map((td) => td.textContent);
+    expect(cells).toEqual(["Tất cả", "Của mình", "Của mình", "—", "—"]);
+    expect(within(region).queryByLabelText("Vai trò")).not.toBeInTheDocument();
+  });
+});
+
+describe("AC-EMP-085 điện thoại: chọn vai trò", () => {
+  test("AC-EMP-085 390px: ô Vai trò mặc định Quản lý chung; đổi sang KTV → danh sách đổi", async () => {
+    mockViewport(false);
+    const region = await openGuide();
+    expect(within(region).queryByRole("table")).not.toBeInTheDocument();
+    const select = within(region).getByLabelText("Vai trò");
+    expect(select).toHaveValue("MANAGER");
+    expect(itemTexts(region)).toContain("Tạo đơn — Tất cả");
+
+    await userEvent.setup().selectOptions(select, "TECHNICIAN");
+    const texts = itemTexts(region);
+    expect(texts).toContain("Nhận/từ chối/bắt đầu/xong việc được giao — Bản thân");
+    expect(texts.some((t) => t.startsWith("Tạo đơn"))).toBe(false);
+    expect(within(region).getByRole("heading", { name: "Đầu việc" })).toBeInTheDocument();
+    expect(within(region).queryByRole("heading", { name: "Danh mục" })).not.toBeInTheDocument();
+  });
+});
+
+describe("AC-EMP-086 QLKT cũng xem được giải thích", () => {
+  test("AC-EMP-086 TECH_LEAD (chỉ employee.read): mở được khối, vẫn không có Thêm nhân viên", async () => {
+    const region = await openGuide(TUAN);
+    expect(within(region).getByRole("heading", { name: "Nguyên tắc" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Thêm nhân viên" })).not.toBeInTheDocument();
+  });
+});
+
+describe("AC-EMP-087 nguyên tắc Quản lý chung", () => {
+  test("AC-EMP-087 có câu luật tự kèm vai trò", async () => {
+    const region = await openGuide();
+    expect(
+      within(region).getByText(
+        "Tick Quản lý chung sẽ tự kèm Nhân viên kinh doanh, Chăm sóc khách hàng, Quản lý kỹ thuật và không thể đồng thời là Nhân viên kỹ thuật.",
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("AC-EMP-088 màn hình được vào theo menu.json", () => {
+  test("AC-EMP-088 KTV: Tổng quan, Việc của tôi, Báo cáo › Báo cáo KPI; Sale có Khách hàng, không có Danh mục", async () => {
+    mockViewport(false);
+    const region = await openGuide();
+    const user = userEvent.setup();
+    await user.selectOptions(within(region).getByLabelText("Vai trò"), "TECHNICIAN");
+    const screens = () =>
+      within(within(region).getByRole("list", { name: "Màn hình được vào" }))
+        .getAllByRole("listitem")
+        .map((li) => li.textContent);
+    expect(screens()).toEqual(["Tổng quan", "Việc của tôi", "Báo cáo › Báo cáo KPI"]);
+
+    await user.selectOptions(within(region).getByLabelText("Vai trò"), "SALE");
+    expect(screens()).toContain("Đơn hàng › Khách hàng");
+    expect(screens().some((t) => t.startsWith("Danh mục"))).toBe(false);
+    expect(screens().some((t) => t.startsWith("Điều phối kỹ thuật"))).toBe(false);
+  });
+
+  test("AC-EMP-088 máy tính: hàng Màn hình được vào đúng theo từng cột vai trò", async () => {
+    mockViewport(true);
+    const region = await openGuide();
+    const row = within(region).getByRole("row", { name: /^Màn hình được vào/ });
+    const columns = within(row)
+      .getAllByRole("cell")
+      .map((td) =>
+        within(td)
+          .getAllByRole("listitem")
+          .map((li) => li.textContent),
+      );
+    // Columns follow the header order: Quản lý chung, Kinh doanh, CSKH, QLKT, Kỹ thuật.
+    expect(columns[4]).toEqual(["Tổng quan", "Việc của tôi", "Báo cáo › Báo cáo KPI"]);
+    expect(columns[0]).toContain("Điều phối kỹ thuật › Đơn chờ điều phối");
+    expect(columns[1]).toContain("Đơn hàng › Khách hàng");
+    expect(columns[1]?.some((t) => t.startsWith("Điều phối kỹ thuật"))).toBe(false);
+  });
+});
+
+describe("AC-EMP-089 Quản lý chung = hợp quyền vai trò tự kèm", () => {
+  test("AC-EMP-089 điện thoại: có ghi chú tự kèm, màn hình có Điều phối kỹ thuật, quyền có giao việc", async () => {
+    mockViewport(false);
+    const region = await openGuide();
+    expect(
+      within(region).getByText(
+        "Gồm cả quyền của Nhân viên kinh doanh, Chăm sóc khách hàng, Quản lý kỹ thuật (tự kèm)",
+      ),
+    ).toBeInTheDocument();
+    const screens = within(within(region).getByRole("list", { name: "Màn hình được vào" }))
+      .getAllByRole("listitem")
+      .map((li) => li.textContent);
+    expect(screens).toContain("Điều phối kỹ thuật › Đơn chờ điều phối");
+    expect(itemTexts(region)).toContain("Tạo, giao, sửa, huỷ đầu việc — Tất cả");
+  });
+
+  test("AC-EMP-089 máy tính: cột Quản lý chung gồm quyền QLKT, có ghi chú", async () => {
+    mockViewport(true);
+    const region = await openGuide();
+    const row = within(region).getByRole("row", { name: /^Tạo, giao, sửa, huỷ đầu việc/ });
+    const cells = within(row)
+      .getAllByRole("cell")
+      .map((td) => td.textContent);
+    expect(cells).toEqual(["Tất cả", "—", "—", "Tất cả", "—"]);
+    expect(
+      within(region).getByText(
+        /Gồm cả quyền của Nhân viên kinh doanh, Chăm sóc khách hàng, Quản lý kỹ thuật \(tự kèm\)/,
+      ),
+    ).toBeInTheDocument();
+  });
+});

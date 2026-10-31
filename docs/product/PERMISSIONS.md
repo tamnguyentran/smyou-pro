@@ -1,6 +1,7 @@
 # Phân quyền & Menu — giải thích
 
 > Nguồn sự thật: `spec/permissions.yaml`. File này tóm tắt dạng bảng cho người đọc.
+> Người dùng xem bản luôn-cập-nhật ở trang **Nhân sự & phân quyền → "Cách phân quyền hoạt động"** (M17-05). Đổi logic phân quyền thì phải cập nhật cả khối đó trong cùng thay đổi (`CLAUDE.md` quy tắc 13).
 
 ## Nguyên tắc
 1. **Role → Capability → Scope.** Mỗi endpoint khai báo đúng 1 capability qua `Depends(require("order.submit"))`. Scope (`all`/`own`/`assigned`/`self`) lọc dữ liệu ở tầng query, không phải ở frontend.

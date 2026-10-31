@@ -9,6 +9,7 @@ const SALE = "hoa.e2e@smyou.vn";
 const TECH_LEAD = "tuan.lead@smyou.vn";
 const TECHNICIAN = "duc.ktv3@smyou.vn";
 const MANAGER = "an.e2e@smyou.vn";
+const CUSTOMER_CARE = "lan.cskh@smyou.vn";
 
 async function signIn(page: Page, email: string, path: string) {
   await page.goto(`./dang-nhap?next=${encodeURIComponent(path)}`);
@@ -39,120 +40,138 @@ async function evidence(page: Page, info: TestInfo, file: string) {
   await page.screenshot({ path: shot(info, file), fullPage: true });
 }
 
-test("AC-DASH-022 AC-DASH-023 AC-DASH-026 AC-DASH-031 @a11y @screenshot Hoa (SALE) bấm thẻ đơn → /orders đã lọc sẵn, checkbox 'Chỉ đơn của tôi' đã tick", async ({
+test("AC-DASH-077 AC-DASH-078 AC-DASH-085 AC-DASH-031 @a11y @screenshot Hoa (SALE) bấm thẻ 'Chờ điều phối' → popup danh sách, URL không đổi; Excel chỉ desktop", async ({
   page,
 }, info) => {
   await signIn(page, SALE, "/");
   await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
-  const tile = page.getByText("Nháp").locator("xpath=ancestor::a[1]");
-  await evidence(page, info, "dashboard-drilldown-overview.png");
-
-  await tile.click();
-  await expect(page).toHaveURL(/\/orders\?status=DRAFT&mine=1$/);
-  await expect(page.getByRole("checkbox", { name: "Chỉ đơn của tôi" })).toBeChecked();
-  await expect(
-    page.getByRole("radiogroup", { name: "Trạng thái" }).getByRole("radio", { name: "Nháp" }),
-  ).toHaveAttribute("aria-checked", "true");
-  await evidence(page, info, "dashboard-drilldown-orders-filtered.png");
-});
-
-test("AC-DASH-035 (M10-07a) @screenshot Hoa (SALE) bấm thẻ 'Quá hạn' → /orders?overdue=1&mine=1", async ({
-  page,
-}) => {
-  await signIn(page, SALE, "/");
-  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
-  const tile = page.getByText("Quá hạn").locator("xpath=ancestor::a[1]");
-
-  await tile.click();
-  await expect(page).toHaveURL(/\/orders\?overdue=1&mine=1$/);
-  await expect(page.getByRole("checkbox", { name: "Chỉ đơn của tôi" })).toBeChecked();
-  await expect(
-    page.getByRole("radiogroup", { name: "Trạng thái" }).getByRole("radio", { name: "Quá hạn" }),
-  ).toHaveAttribute("aria-checked", "true");
-});
-
-test("AC-DASH-027 AC-DASH-028 @a11y @screenshot Tuấn (TECH_LEAD) bấm 'Chờ điều phối' → /dispatch/queue; 'Cần giao lại'/'Quá hạn' (khối Điều phối) drill-down tới /dispatch/board đúng filter", async ({
-  page,
-}, info) => {
-  await signIn(page, TECH_LEAD, "/");
-  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
-
-  const dispatchSection = page.locator("section", {
-    has: page.getByRole("heading", { name: "Điều phối" }),
+  const orderSection = page.locator("section", {
+    has: page.getByRole("heading", { name: "Đơn theo trạng thái" }),
   });
-  await expect(
-    dispatchSection.getByText("Cần giao lại").locator("xpath=ancestor::a[1]"),
-  ).toHaveAttribute("href", /\/dispatch\/board\?status=NEEDS_ASSIGNEE$/);
-  await expect(
-    dispatchSection.getByText("Quá hạn").locator("xpath=ancestor::a[1]"),
-  ).toHaveAttribute("href", /\/dispatch\/board\?overdue=1$/);
-
-  const pendingDispatchTile = page.getByText("Chờ điều phối").locator("xpath=ancestor::a[1]");
-  await pendingDispatchTile.click();
-  await expect(page).toHaveURL(/\/dispatch\/queue$/);
-  await evidence(page, info, "dashboard-drilldown-dispatch-queue.png");
-});
-
-test("AC-DASH-038 (M10-07b) @screenshot Tuấn (TECH_LEAD) bấm 'Đang thực hiện' (khối Điều phối) → /orders?status=IN_PROGRESS (không mine)", async ({
-  page,
-}, info) => {
-  await signIn(page, TECH_LEAD, "/");
-  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
-  const dispatchSection = page.locator("section", {
-    has: page.getByRole("heading", { name: "Điều phối" }),
-  });
-  const tile = dispatchSection.getByText("Đang thực hiện").locator("xpath=ancestor::a[1]");
+  const tile = orderSection.getByRole("button", { name: /Chờ điều phối/ });
+  const count = (await tile.locator("p").nth(1).textContent())?.trim() ?? "";
+  await evidence(page, info, "dashboard-card-tiles.png");
 
   await tile.click();
-  await expect(page).toHaveURL(/\/orders\?status=IN_PROGRESS$/);
-  await expect(page.getByRole("checkbox", { name: "Chỉ đơn của tôi" })).not.toBeChecked();
-  await expect(
-    page
-      .getByRole("radiogroup", { name: "Trạng thái" })
-      .getByRole("radio", { name: "Đang thực hiện" }),
-  ).toHaveAttribute("aria-checked", "true");
-  await evidence(page, info, "dashboard-drilldown-orders-in-progress.png");
-});
+  const dialog = page.getByRole("dialog", { name: `Chờ điều phối (${count})` });
+  await expect(dialog).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(dialog).toHaveAttribute("aria-modal", "true");
+  const labelledBy = await dialog.getAttribute("aria-labelledby");
+  expect(labelledBy).toBeTruthy();
+  await expect(page.locator(`[id="${labelledBy ?? ""}"]`)).toHaveText(`Chờ điều phối (${count})`);
 
-test("AC-DASH-040 (M10-07b) @screenshot Tuấn (TECH_LEAD, có task.manage) bấm 'Chưa tiếp nhận' (khối Nhân sự kỹ thuật) → /dispatch/board?status=PENDING_ACCEPTANCE", async ({
-  page,
-}, info) => {
-  await signIn(page, TECH_LEAD, "/");
-  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
-  const tile = page.getByText("Chưa tiếp nhận").locator("xpath=ancestor::a[1]");
+  // Bằng chứng ảnh phải có dòng thật (seed có đơn Chờ điều phối của Hoa), không phải trạng thái rỗng.
+  expect(count).not.toBe("0");
+  await expect(dialog.getByRole("link").first()).toBeVisible();
 
-  await tile.click();
-  await expect(page).toHaveURL(/\/dispatch\/board\?status=PENDING_ACCEPTANCE$/);
-  await expect(page.getByRole("heading", { name: "Bảng đầu việc", level: 1 })).toBeVisible();
-  await evidence(page, info, "dashboard-drilldown-task-board.png");
-});
-
-test("AC-DASH-046 (M10-07c) @screenshot Đức (TECHNICIAN) bấm 'Chờ KH xác nhận' → /orders?status=AWAITING_CONFIRMATION", async ({
-  page,
-}, info) => {
-  await signIn(page, TECHNICIAN, "/");
-  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
-  const tile = page.getByText("Chờ KH xác nhận").locator("xpath=ancestor::a[1]");
-
-  await tile.click();
-  await expect(page).toHaveURL(/\/orders\?status=AWAITING_CONFIRMATION$/);
-  await evidence(page, info, "dashboard-drilldown-orders-awaiting-confirmation.png");
-});
-
-test("AC-DASH-047 (M10-07c) @screenshot Đức (TECHNICIAN) bấm 'Chưa thực hiện' → /my-tasks?focus=not_started, tab Đang làm đã chọn", async ({
-  page,
-}, info) => {
-  await signIn(page, TECHNICIAN, "/");
-  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
-  const tile = page.getByText("Chưa thực hiện").locator("xpath=ancestor::a[1]");
-
-  await tile.click();
-  await expect(page).toHaveURL(/\/my-tasks\?focus=not_started$/);
-  await expect(page.getByRole("tab", { name: /Đang làm/ })).toHaveAttribute(
-    "aria-selected",
-    "true",
+  const size = page.viewportSize();
+  const desktop = (size?.width ?? 0) >= 1024;
+  if (desktop) {
+    await expect(dialog.getByRole("columnheader", { name: "Mã đơn" })).toBeVisible();
+    if (count !== "0") {
+      await expect(dialog.getByRole("button", { name: /Xuất Excel/ })).toBeVisible();
+    }
+  } else {
+    await expect(dialog.getByTestId("sheet-panel")).toHaveClass(/bottom-0/);
+    await expect(dialog.getByRole("table")).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: /Xuất Excel/ })).toHaveCount(0);
+  }
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
   );
-  await evidence(page, info, "dashboard-drilldown-my-tasks-not-started.png");
+  expect(overflow).toBe(true);
+  await evidence(page, info, "dashboard-card-popup-pending-dispatch.png");
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(tile).toBeFocused();
+});
+
+test("AC-DASH-079 AC-DASH-085 @a11y @screenshot Tuấn (TECH_LEAD) bấm 'Quá hạn' (khối Điều phối) → popup 'Đầu việc quá hạn'", async ({
+  page,
+}, info) => {
+  await signIn(page, TECH_LEAD, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+  const dispatchSection = page.locator("section", {
+    has: page.getByRole("heading", { name: "Điều phối" }),
+  });
+  await dispatchSection.getByRole("button", { name: /Quá hạn/ }).click();
+  const dialog = page.getByRole("dialog", { name: /^Đầu việc quá hạn \([1-9]\d*\)$/ });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute("aria-modal", "true");
+  await expect(dialog.getByRole("link").first()).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  await evidence(page, info, "dashboard-card-popup-overdue-tasks.png");
+});
+
+async function openPopup(page: Page, section: string, tile: RegExp) {
+  const block = page.locator("section", { has: page.getByRole("heading", { name: section }) });
+  const button = block.getByRole("button", { name: tile });
+  await expect(button).toHaveAttribute("aria-haspopup", "dialog");
+  await button.click();
+  return button;
+}
+
+async function noHorizontalScroll(page: Page) {
+  const fits = await page.evaluate(
+    () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+  );
+  expect(fits).toBe(true);
+}
+
+test("AC-DASH-098 AC-DASH-103 @a11y @screenshot Tuấn (TECH_LEAD) bấm thẻ khối Đầu việc + Nhân sự → popup, URL không đổi", async ({
+  page,
+}, info) => {
+  await signIn(page, TECH_LEAD, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+
+  await openPopup(page, "Đầu việc theo trạng thái", /Cần giao lại/);
+  const tasks = page.getByRole("dialog", { name: /^Cần giao lại \([1-9]\d*\)$/ });
+  await expect(tasks).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(tasks.getByRole("link").first()).toHaveAttribute("href", /\/orders\//);
+  const desktop = (page.viewportSize()?.width ?? 0) >= 1024;
+  if (desktop) {
+    await expect(tasks.getByRole("columnheader", { name: "KTV" })).toBeVisible();
+    await expect(tasks.getByRole("button", { name: /Xuất Excel/ })).toBeVisible();
+  }
+  await page.keyboard.press("Escape");
+  await expect(tasks).toHaveCount(0);
+
+  const tile = await openPopup(page, "Nhân sự kỹ thuật", /Chờ giao việc/);
+  const staff = page.getByRole("dialog", { name: /^Chờ giao việc \(\d+\)$/ });
+  await expect(staff).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  await noHorizontalScroll(page);
+  await evidence(page, info, "dashboard-card-popup-staff.png");
+  await page.keyboard.press("Escape");
+  await expect(staff).toHaveCount(0);
+  await expect(tile).toBeFocused();
+});
+
+test("AC-DASH-100 AC-DASH-103 @a11y @screenshot Đức (TECHNICIAN) bấm 'Quá hạn chưa hoàn thành' → chỉ việc của Đức; mobile là sheet, không Excel", async ({
+  page,
+}, info) => {
+  await signIn(page, TECHNICIAN, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+
+  await openPopup(page, "Đầu việc của tôi", /Quá hạn chưa hoàn thành/);
+  const dialog = page.getByRole("dialog", { name: /^Quá hạn chưa hoàn thành \([1-9]\d*\)$/ });
+  await expect(dialog).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(dialog.getByText("E2E-DH-M1801C-T1")).toBeVisible();
+  await expect(dialog.getByText("Đã nhận")).toBeVisible();
+  const desktop = (page.viewportSize()?.width ?? 0) >= 1024;
+  if (desktop) {
+    await expect(dialog.getByRole("columnheader", { name: "Trạng thái" })).toBeVisible();
+    await expect(dialog.getByRole("columnheader", { name: "KTV" })).toHaveCount(0);
+  } else {
+    await expect(dialog.getByTestId("sheet-panel")).toHaveClass(/bottom-0/);
+    await expect(dialog.getByRole("button", { name: /Xuất Excel/ })).toHaveCount(0);
+  }
+  await noHorizontalScroll(page);
+  await evidence(page, info, "dashboard-card-popup-my-overdue.png");
 });
 
 test("AC-DASH-054 AC-DASH-056 AC-DASH-058 AC-DASH-059 @a11y @screenshot An (MANAGER) thấy Top 10 khách hàng + tổng hợp đánh giá trên Tổng quan", async ({
@@ -167,4 +186,57 @@ test("AC-DASH-054 AC-DASH-056 AC-DASH-058 AC-DASH-059 @a11y @screenshot An (MANA
   await expect(page.getByText("5★")).toBeVisible();
 
   await evidence(page, info, "dashboard-top-customers-feedback-summary.png");
+});
+
+test("AC-DASH-116 AC-DASH-120 AC-DASH-122 @a11y @screenshot Lan (CSKH) bấm 'Khách hàng đã chăm sóc' + '2★' → popup phản hồi; mobile là sheet, không Excel", async ({
+  page,
+}, info) => {
+  await signIn(page, CUSTOMER_CARE, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+  const desktop = (page.viewportSize()?.width ?? 0) >= 1024;
+
+  const tile = await openPopup(page, "Chăm sóc khách hàng (tháng này)", /Khách hàng đã chăm sóc/);
+  const care = page.getByRole("dialog", { name: /^Khách hàng đã chăm sóc \([1-9]\d*\)$/ });
+  await expect(care).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(care.getByRole("link").first()).toHaveAttribute("href", /\/orders\//);
+  if (desktop) {
+    await expect(care.getByRole("columnheader", { name: "Số sao" })).toBeVisible();
+    await expect(care.getByRole("button", { name: /Xuất Excel/ })).toBeVisible();
+  } else {
+    await expect(care.getByTestId("sheet-panel")).toHaveClass(/bottom-0/);
+    await expect(care.getByRole("button", { name: /Xuất Excel/ })).toHaveCount(0);
+  }
+  await noHorizontalScroll(page);
+  await evidence(page, info, "dashboard-card-popup-care-customers.png");
+  await page.keyboard.press("Escape");
+  await expect(care).toHaveCount(0);
+  await expect(tile).toBeFocused();
+
+  await openPopup(page, "Phản hồi – đánh giá từ khách hàng (tháng này)", /^2★/);
+  const twoStars = page.getByRole("dialog", { name: /^Đánh giá 2★ \([1-9]\d*\)$/ });
+  await expect(twoStars).toBeVisible();
+  await expect(twoStars.getByText("2★").first()).toBeVisible();
+  await noHorizontalScroll(page);
+  await evidence(page, info, "dashboard-card-popup-feedback.png");
+});
+
+test("AC-DASH-119 AC-DASH-120 AC-DASH-122 @a11y @screenshot An (MANAGER) bấm khách E2E-KH-001 trong Top 10 → popup đơn hoàn tất của khách", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+
+  await openPopup(page, "Top 10 khách hàng (tháng này)", /E2E-KH-001/);
+  const dialog = page.getByRole("dialog", { name: /\(E2E-KH-001\) \([1-9]\d*\)$/ });
+  await expect(dialog).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(dialog.getByRole("link", { name: "E2E-DH-M1504A" })).toBeVisible();
+  if ((page.viewportSize()?.width ?? 0) >= 1024) {
+    await expect(dialog.getByRole("button", { name: /Xuất Excel/ })).toBeVisible();
+  } else {
+    await expect(dialog.getByRole("button", { name: /Xuất Excel/ })).toHaveCount(0);
+  }
+  await noHorizontalScroll(page);
+  await evidence(page, info, "dashboard-card-popup-top-customer.png");
 });

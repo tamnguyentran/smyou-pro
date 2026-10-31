@@ -1,6 +1,7 @@
-"""Response body for `GET /api/v1/dashboard` (M7-02)."""
+"""Response bodies for `GET /api/v1/dashboard` (M7-02) and its card drill-down (M18-01a)."""
 
 import uuid
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel
@@ -94,3 +95,80 @@ class DashboardOut(BaseModel):
     care_summary: CareSummaryOut | None = None
     care_staff_count: int | None = None
     orders_needing_revision_count: int | None = None
+
+
+class DashboardOrderRow(BaseModel):
+    order_id: uuid.UUID
+    order_code: str
+    customer_name: str | None
+    customer_phone: str | None
+    created_by_name: str
+    status: str
+    created_at: datetime
+    # M18-01a: `None` khi actor không có `order.read_prices` (scope "all").
+    total: int | None
+
+
+class DashboardTaskRow(BaseModel):
+    task_id: uuid.UUID
+    task_code: str
+    task_title: str
+    order_id: uuid.UUID
+    order_code: str
+    customer_name: str | None
+    assignee_names: list[str]
+    due_at: datetime
+    status: str
+    # M18-01b: trạng thái phân công của chính người gọi — chỉ thẻ `mine.*`, `None` với thẻ khác.
+    assignment_status: str | None = None
+
+
+class DashboardStaffRow(BaseModel):
+    """M18-01b: 1 KTV trong popup 3 thẻ nhóm của khối "Nhân sự kỹ thuật"."""
+
+    employee_id: uuid.UUID
+    employee_code: str
+    full_name: str
+    phone: str | None
+    open_assignment_count: int
+    in_progress_assignment_count: int
+
+
+class DashboardFeedbackRow(BaseModel):
+    """M18-01c: 1 đơn đã ghi phản hồi — popup "Khách hàng đã chăm sóc" và thẻ n★."""
+
+    order_id: uuid.UUID
+    order_code: str
+    customer_name: str | None
+    customer_phone: str | None
+    csat_rating: int
+    csat_comment: str | None
+    recorded_by_name: str | None
+    recorded_at: datetime
+    completed_at: datetime | None
+
+
+class DashboardCareStaffRow(BaseModel):
+    """M18-01c: 1 nhân viên đã ghi phản hồi trong tháng — popup "NV đã gọi điện CSKH"."""
+
+    employee_id: uuid.UUID
+    employee_code: str
+    full_name: str
+    care_count: int
+    last_recorded_at: datetime
+
+
+class DashboardCardItemsOut(BaseModel):
+    """`GET /api/v1/dashboard/cards/{card}/items` (M18-01a/b/c): đúng 1 danh sách theo `kind`."""
+
+    card: str
+    label: str
+    kind: Literal["order", "task", "staff", "feedback", "care_staff"]
+    total: int
+    page: int
+    page_size: int
+    order_items: list[DashboardOrderRow] | None = None
+    task_items: list[DashboardTaskRow] | None = None
+    staff_items: list[DashboardStaffRow] | None = None
+    feedback_items: list[DashboardFeedbackRow] | None = None
+    care_staff_items: list[DashboardCareStaffRow] | None = None

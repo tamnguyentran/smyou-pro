@@ -45,6 +45,7 @@ Nếu tài liệu mâu thuẫn: `spec/*.yaml` > `docs/specs/<feature>.md` đã A
 10. Code, tên biến, commit message: tiếng Anh. Chuỗi hiển thị UI, thông báo lỗi cho người dùng: tiếng Việt có dấu.
 11. Mobile-first: thiết kế cho 390px trước, rồi `md:`/`lg:`. Vùng chạm ≥ 44px. Dùng icon `lucide-react`.
 12. Làm theo lát cắt dọc nhỏ (1 backlog item/phiên). Diff lớn hơn ~400 dòng code (không tính test) → tách nhỏ.
+13. **Mọi thay đổi logic phân quyền phải hiện cho người dùng trong cùng thay đổi** (M17-05): sửa `spec/permissions.yaml`, luật gán vai trò, hay luật phạm vi → chạy `make contract` (sinh lại `menu.json` + `permissionMatrix.json`), thêm/sửa nhãn ở `frontend/src/features/employees/permissionLabels.ts`, cập nhật câu chữ "Nguyên tắc/Luồng" trong khối "Cách phân quyền hoạt động" (trang Nhân sự) và `docs/product/PERMISSIONS.md` nếu luật đổi.
 
 ## Định nghĩa "Xong" (Definition of Done)
 - [ ] Mọi AC trong spec có ít nhất 1 test và đều xanh (`make ac` pass)

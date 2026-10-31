@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { cn } from "../../lib/cn";
 
 const FOCUSABLE =
@@ -15,6 +15,7 @@ export function Sheet({
   footer,
   dismissible = true,
   wide = false,
+  bodyFocusable = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -27,10 +28,16 @@ export function Sheet({
    * (review round 1 — the mutation still completes and its result would surprise a "cancelled" user). */
   dismissible?: boolean;
   /** true widens the desktop panel (`max-w-2xl` instead of `max-w-lg`) for forms that lay fields
-   * out in 2 columns above `lg` — otherwise the grid has no room and looks no wider than 1 column. */
-  wide?: boolean;
+   * out in 2 columns above `lg` — otherwise the grid has no room and looks no wider than 1 column.
+   * "4xl" (`max-w-4xl`) fits a 6-column table (M18-01a dashboard card popup). */
+  wide?: boolean | "4xl";
+  /** Read-only lists that may contain no focusable element (M18-01b staff popup): make the scroll
+   * body itself a Tab stop so keyboard users can scroll it (axe `scrollable-region-focusable`). */
+  bodyFocusable?: boolean;
 }) {
   const panel = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const bodyTabIndex = bodyFocusable ? 0 : undefined;
   const opener = useRef<Element | null>(null);
 
   // Split from the keydown-listener effect below: this one must depend only on `open`, not on
@@ -76,7 +83,7 @@ export function Sheet({
   return (
     // z-[60] > Toast's z-50 (review M4-02b): a sheet that stays open after a save (AC-DSP-059)
     // must keep its footer above the success toast, not hidden behind it for 4s.
-    <div role="dialog" aria-modal="true" aria-label={title} className="fixed inset-0 z-[60]">
+    <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="fixed inset-0 z-[60]">
       <div
         data-testid="sheet-overlay"
         aria-hidden="true"
@@ -89,14 +96,16 @@ export function Sheet({
         className={cn(
           "absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col rounded-t-2xl bg-card shadow-card-hover",
           "lg:inset-0 lg:m-auto lg:h-fit lg:max-h-[85vh] lg:w-full lg:rounded-2xl",
-          wide ? "lg:max-w-2xl" : "lg:max-w-lg",
+          wide === "4xl" ? "lg:max-w-4xl" : wide ? "lg:max-w-2xl" : "lg:max-w-lg",
         )}
       >
         <div
           data-testid="sheet-header"
           className="flex shrink-0 items-center justify-between gap-4 px-4 pt-4 pb-4 lg:px-6 lg:pt-6"
         >
-          <h2 className="text-lg font-semibold text-heading">{title}</h2>
+          <h2 id={titleId} className="text-lg font-semibold text-heading">
+            {title}
+          </h2>
           <button
             type="button"
             aria-label="Đóng hộp thoại"
@@ -109,7 +118,10 @@ export function Sheet({
         </div>
         <div
           data-testid="sheet-body"
-          className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 lg:px-6 lg:pb-6"
+          tabIndex={bodyTabIndex}
+          role={bodyFocusable ? "region" : undefined}
+          aria-labelledby={bodyFocusable ? titleId : undefined}
+          className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand lg:px-6 lg:pb-6"
         >
           {children}
         </div>

@@ -302,3 +302,32 @@ test("AC-AUTH-074 @screenshot tạo NV có ngày sinh → đăng nhập bằng t
   await expect(page).toHaveURL(/\/smyoutask\/doi-mat-khau$/);
   await page.screenshot({ path: shot(info, "login-username-first-change.png"), fullPage: true });
 });
+
+test("AC-EMP-085 AC-EMP-083 @a11y @screenshot khối Cách phân quyền hoạt động (mobile: chọn vai trò, desktop: bảng)", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER);
+  const toggle = page.getByRole("button", { name: "Cách phân quyền hoạt động" });
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect((await toggle.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await toggle.click();
+  const guide = page.getByRole("region", { name: "Cách phân quyền hoạt động" });
+  await expect(guide.getByRole("heading", { name: "Quyền theo vai trò" })).toBeVisible();
+  if (info.project.name === "mobile") {
+    const role = guide.getByLabel("Vai trò");
+    await expect(role).toHaveValue("MANAGER");
+    await role.selectOption("TECHNICIAN");
+    await expect(
+      guide.getByText("Nhận/từ chối/bắt đầu/xong việc được giao — Bản thân"),
+    ).toBeVisible();
+    await expect(guide.getByText(/^Tạo đơn —/)).toHaveCount(0);
+  } else {
+    const row = guide.getByRole("row", { name: /^Sửa đơn nháp/ });
+    await expect(row.getByRole("cell")).toHaveText(["Tất cả", "Của mình", "Của mình", "—", "—"]);
+  }
+  // 390→360 crosses no breakpoint, so the open guide survives the overflow check on mobile; on
+  // desktop the resize would cross 1024px and remount the page, so it is skipped there
+  await evidence(page, info, "employees-permission-guide.png", {
+    checkOverflow: info.project.name === "mobile",
+  });
+});

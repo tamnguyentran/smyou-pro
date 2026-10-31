@@ -29,6 +29,7 @@ import { formatDate } from "../../../lib/format";
 import { useActiveDepartments } from "../../departments/api";
 import {
   GENDER_LABELS,
+  MANAGER_BUNDLE,
   MARITAL_STATUS_LABELS,
   PROFILE_FIELDS,
   USERNAME_MESSAGE,
@@ -42,8 +43,6 @@ import { TemporaryPasswordDialog } from "./TemporaryPasswordDialog";
 
 type ConfirmKind = "deactivate" | "activate" | "reset" | null;
 const ROLES_FIELD = "roles";
-// M15-01: Manager always comes bundled with Sale/CSKH/QLKT, and can never be Technician too.
-const MANAGER_BUNDLE: Role[] = ["SALE", "CUSTOMER_CARE", "TECH_LEAD"];
 
 function rolesErrorFrom(errors: Record<string, string>): string | null {
   const entry = Object.entries(errors).find(

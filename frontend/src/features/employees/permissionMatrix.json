@@ -1,0 +1,323 @@
+{
+  "roles": {
+    "MANAGER": "Quản lý chung",
+    "SALE": "Nhân viên kinh doanh",
+    "CUSTOMER_CARE": "Chăm sóc khách hàng",
+    "TECH_LEAD": "Quản lý kỹ thuật",
+    "TECHNICIAN": "Nhân viên kỹ thuật"
+  },
+  "scopes": ["all", "own", "assigned", "self"],
+  "groups": [
+    {
+      "label": "Danh mục",
+      "capabilities": [
+        {
+          "id": "catalog.read",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "all",
+            "CUSTOMER_CARE": "all",
+            "TECH_LEAD": "all"
+          }
+        },
+        {
+          "id": "catalog.manage",
+          "roles": {
+            "MANAGER": "all"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Nhân sự",
+      "capabilities": [
+        {
+          "id": "employee.read",
+          "roles": {
+            "MANAGER": "all",
+            "TECH_LEAD": "all"
+          }
+        },
+        {
+          "id": "employee.manage",
+          "roles": {
+            "MANAGER": "all"
+          }
+        },
+        {
+          "id": "employee.lookup",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "all",
+            "CUSTOMER_CARE": "all",
+            "TECH_LEAD": "all"
+          }
+        },
+        {
+          "id": "profile.manage",
+          "roles": {
+            "MANAGER": "self",
+            "SALE": "self",
+            "CUSTOMER_CARE": "self",
+            "TECH_LEAD": "self",
+            "TECHNICIAN": "self"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Khách hàng",
+      "capabilities": [
+        {
+          "id": "customer.read",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "all",
+            "CUSTOMER_CARE": "all",
+            "TECH_LEAD": "all"
+          }
+        },
+        {
+          "id": "customer.manage",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "all",
+            "CUSTOMER_CARE": "all"
+          }
+        },
+        {
+          "id": "customer_gift.read",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "all",
+            "CUSTOMER_CARE": "all"
+          }
+        },
+        {
+          "id": "customer_gift.manage",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "all",
+            "CUSTOMER_CARE": "all"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Đơn hàng",
+      "capabilities": [
+        {
+          "id": "order.read",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "all",
+            "CUSTOMER_CARE": "all",
+            "TECH_LEAD": "all",
+            "TECHNICIAN": "assigned"
+          }
+        },
+        {
+          "id": "order.print",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "all",
+            "CUSTOMER_CARE": "all",
+            "TECH_LEAD": "all",
+            "TECHNICIAN": "assigned"
+          }
+        },
+        {
+          "id": "order.read_prices",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "all",
+            "TECH_LEAD": "all",
+            "TECHNICIAN": "assigned"
+          }
+        },
+        {
+          "id": "order.create",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "all",
+            "CUSTOMER_CARE": "all"
+          }
+        },
+        {
+          "id": "order.edit_draft",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "own",
+            "CUSTOMER_CARE": "own"
+          }
+        },
+        {
+          "id": "order.edit_contact",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "own"
+          }
+        },
+        {
+          "id": "order.edit_lines_after_submit",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "own"
+          }
+        },
+        {
+          "id": "order.submit",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "own"
+          }
+        },
+        {
+          "id": "order.cancel",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "own"
+          }
+        },
+        {
+          "id": "order.cancel_active",
+          "roles": {
+            "MANAGER": "all"
+          }
+        },
+        {
+          "id": "order.upload_confirmation",
+          "roles": {
+            "TECH_LEAD": "all",
+            "TECHNICIAN": "assigned"
+          }
+        },
+        {
+          "id": "order.complete",
+          "roles": {
+            "TECH_LEAD": "all",
+            "TECHNICIAN": "assigned"
+          }
+        },
+        {
+          "id": "order.revise",
+          "roles": {
+            "TECH_LEAD": "all"
+          }
+        },
+        {
+          "id": "customer_care.manage_feedback",
+          "roles": {
+            "MANAGER": "all",
+            "CUSTOMER_CARE": "all"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Đầu việc",
+      "capabilities": [
+        {
+          "id": "task.read",
+          "roles": {
+            "MANAGER": "all",
+            "TECH_LEAD": "all",
+            "TECHNICIAN": "assigned"
+          }
+        },
+        {
+          "id": "task.manage",
+          "roles": {
+            "TECH_LEAD": "all"
+          }
+        },
+        {
+          "id": "task.reopen",
+          "roles": {
+            "TECH_LEAD": "all"
+          }
+        },
+        {
+          "id": "assignment.respond",
+          "roles": {
+            "TECHNICIAN": "self"
+          }
+        },
+        {
+          "id": "task.upload_photo",
+          "roles": {
+            "TECH_LEAD": "all",
+            "TECHNICIAN": "assigned"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Báo cáo",
+      "capabilities": [
+        {
+          "id": "dashboard.read",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "own",
+            "TECH_LEAD": "all",
+            "TECHNICIAN": "self",
+            "CUSTOMER_CARE": "all"
+          }
+        },
+        {
+          "id": "kpi.read",
+          "roles": {
+            "MANAGER": "all",
+            "TECH_LEAD": "all",
+            "TECHNICIAN": "self"
+          }
+        },
+        {
+          "id": "report.revenue.read",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "own",
+            "TECH_LEAD": "all",
+            "CUSTOMER_CARE": "own"
+          }
+        },
+        {
+          "id": "report.customer_gift.read",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "all",
+            "CUSTOMER_CARE": "all"
+          }
+        },
+        {
+          "id": "audit.read",
+          "roles": {
+            "MANAGER": "all"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Hệ thống",
+      "capabilities": [
+        {
+          "id": "company.manage",
+          "roles": {
+            "MANAGER": "all"
+          }
+        },
+        {
+          "id": "notification.read",
+          "roles": {
+            "MANAGER": "self",
+            "SALE": "self",
+            "TECH_LEAD": "self",
+            "TECHNICIAN": "self"
+          }
+        }
+      ]
+    }
+  ],
+  "manager_bundle": ["SALE", "CUSTOMER_CARE", "TECH_LEAD"]
+}
