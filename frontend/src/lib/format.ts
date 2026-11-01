@@ -16,6 +16,12 @@ export function formatDateTime(iso: string): string {
   return `${part.day}/${part.month}/${part.year} ${part.hour}:${part.minute}`;
 }
 
+/** ISO timestamp (UTC) → `HH:mm dd/MM/yyyy` in Asia/Ho_Chi_Minh — time first, for "hết hạn lúc …". */
+export function formatTimeDate(iso: string): string {
+  const [date, time] = formatDateTime(iso).split(" ");
+  return `${time ?? ""} ${date ?? ""}`;
+}
+
 const DATE_ONLY = new Intl.DateTimeFormat("vi-VN", {
   timeZone: "Asia/Ho_Chi_Minh",
   day: "2-digit",

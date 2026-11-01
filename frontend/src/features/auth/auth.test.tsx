@@ -558,3 +558,20 @@ describe("M17-03b đăng nhập bằng tên đăng nhập", () => {
     });
   });
 });
+
+describe("M20-09 mật khẩu tạm hết hạn", () => {
+  test("AC-AUTH-086 401 TEMP_PASSWORD_EXPIRED → hiện đúng thông báo hết hạn, không dùng lỗi sai mật khẩu", async () => {
+    const detail = "Mật khẩu tạm đã hết hạn. Vui lòng liên hệ Quản lý để được cấp lại.";
+    server.use(
+      http.post("/api/v1/auth/login", () => problem(401, "TEMP_PASSWORD_EXPIRED", detail)),
+    );
+    renderApp("/dang-nhap");
+    const user = await fillLogin("khoa.tran", "14031995");
+
+    await user.click(screen.getByRole("button", { name: "Đăng nhập" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(detail);
+    expect(screen.queryByText("Tên đăng nhập hoặc mật khẩu không đúng.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Đăng nhập" })).toBeEnabled();
+  });
+});

@@ -135,7 +135,7 @@ class DashboardStaffRow(BaseModel):
 
 
 class DashboardFeedbackRow(BaseModel):
-    """M18-01c: 1 đơn đã ghi phản hồi — popup "Khách hàng đã chăm sóc" và thẻ n★."""
+    """M18-01c: 1 đơn đã ghi phản hồi — popup "KH đã gọi" và thẻ n★."""
 
     order_id: uuid.UUID
     order_code: str

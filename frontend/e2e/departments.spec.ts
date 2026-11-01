@@ -51,10 +51,10 @@ test("AC-EMP-047 AC-EMP-048 @a11y @screenshot Phòng ban: bảng (desktop) / th�
       "Trạng thái",
       "Thao tác",
     ]);
-    await expect(table.getByRole("row", { name: /Kế Toán - tài chính/ })).toBeVisible();
+    await expect(table.getByRole("row", { name: /Kế Toán - Tài chính/ })).toBeVisible();
   } else {
     await expect(page.getByRole("table")).toHaveCount(0);
-    const card = page.getByRole("listitem").filter({ hasText: "Kế Toán - tài chính" });
+    const card = page.getByRole("listitem").filter({ hasText: "Kế Toán - Tài chính" });
     await expect(card).toBeVisible();
     await expect(card.getByText(/hoạt động/)).toBeVisible();
   }

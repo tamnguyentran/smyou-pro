@@ -74,6 +74,7 @@ function employee(overrides: Partial<Employee> = {}): Employee {
     is_active: true,
     is_locked: false,
     must_change_password: false,
+    temp_password_expires_at: null,
     version: 1,
     birth_date: null,
     birth_place: null,
@@ -1162,5 +1163,269 @@ describe("AC-EMP-089 Quản lý chung = hợp quyền vai trò tự kèm", () =>
         /Gồm cả quyền của Nhân viên kinh doanh, Chăm sóc khách hàng, Quản lý kỹ thuật \(tự kèm\)/,
       ),
     ).toBeInTheDocument();
+  });
+});
+
+const KHOA_PV = employee({
+  id: "e0000000-0000-4000-8000-000000000007",
+  code: "NV0007",
+  full_name: "Phạm Văn Khoa",
+  username: "khoapv",
+  email: "khoa.pv@smyou.vn",
+  phone: "0912345678",
+  birth_date: "1995-04-20",
+  roles: ["TECHNICIAN"],
+});
+const HOA_LT = employee({
+  id: "e0000000-0000-4000-8000-000000000008",
+  code: "NV0008",
+  full_name: "Lê Thị Hoa",
+  username: "hoalt",
+  phone: null,
+  birth_date: null,
+});
+
+describe("M20-08 cột tài khoản, SĐT, ngày sinh", () => {
+  test("AC-EMP-105 desktop: thứ tự cột, username ở cột riêng, ngày sinh dd/MM/yyyy, trống → —", async () => {
+    mockViewport(true);
+    signedInAs(AN, () => HttpResponse.json(page([KHOA_PV, HOA_LT])));
+    renderApp("/employees");
+    await openMenu();
+
+    const table = await screen.findByRole("table");
+    expect(
+      within(table)
+        .getAllByRole("columnheader")
+        .map((th) => th.textContent),
+    ).toEqual([
+      "Mã",
+      "Họ tên",
+      "Tài khoản đăng nhập",
+      "Email",
+      "SĐT",
+      "Ngày sinh",
+      "Vai trò",
+      "Trạng thái",
+    ]);
+    const [, khoaRow, hoaRow] = within(table).getAllByRole("row");
+    const khoa = within(khoaRow as HTMLElement).getAllByRole("cell");
+    expect(khoa[1]).toHaveTextContent(/^Phạm Văn Khoa$/);
+    expect(khoa[2]).toHaveTextContent(/^khoapv$/);
+    expect(khoa[4]).toHaveTextContent(/^0912345678$/);
+    expect(khoa[5]).toHaveTextContent(/^20\/04\/1995$/);
+    const hoa = within(hoaRow as HTMLElement).getAllByRole("cell");
+    expect(hoa[4]).toHaveTextContent(/^—$/);
+    expect(hoa[5]).toHaveTextContent(/^—$/);
+  });
+
+  test("AC-EMP-106 điện thoại: thẻ có nhãn Tài khoản, SĐT, Ngày sinh; dòng trống thì ẩn", async () => {
+    mockViewport(false);
+    signedInAs(AN, () => HttpResponse.json(page([KHOA_PV, HOA_LT])));
+    renderApp("/employees");
+    await openMenu();
+
+    const khoa = (await screen.findByText("Phạm Văn Khoa")).closest("button") as HTMLElement;
+    expect(within(khoa).getByText("Tài khoản: khoapv")).toBeInTheDocument();
+    expect(within(khoa).getByText("0912345678")).toBeInTheDocument();
+    expect(within(khoa).getByText("Ngày sinh: 20/04/1995")).toBeInTheDocument();
+    expect(khoa.className).toContain("w-full");
+
+    const hoa = screen.getByText("Lê Thị Hoa").closest("button") as HTMLElement;
+    expect(within(hoa).getByText("Tài khoản: hoalt")).toBeInTheDocument();
+    expect(within(hoa).queryByText(/^Ngày sinh:/)).toBeNull();
+    expect(within(hoa).queryByText(/^0\d{9}$/)).toBeNull();
+
+    await userEvent.setup().click(khoa);
+    expect(await screen.findByRole("dialog", { name: "Sửa nhân viên" })).toBeInTheDocument();
+  });
+});
+
+describe("M20-08 nút Xuất Excel", () => {
+  test("AC-EMP-116 href theo bộ lọc đang chọn, không kèm limit/offset; bỏ lọc → URL gốc", async () => {
+    mockViewport(true);
+    signedInAs(AN, () => HttpResponse.json(page([KHOA_PV], 25)));
+    const user = userEvent.setup();
+    renderApp("/employees");
+    await openMenu();
+    await screen.findByRole("table");
+
+    await user.type(screen.getByLabelText("Tìm kiếm"), "Minh");
+    await user.selectOptions(screen.getByLabelText("Vai trò"), "SALE");
+    await user.selectOptions(screen.getByLabelText("Trạng thái"), "true");
+    await user.click(await screen.findByRole("button", { name: "Trang sau" }));
+
+    const link = screen.getByRole("link", { name: "Xuất Excel" });
+    await waitFor(() => {
+      expect(link).toHaveAttribute(
+        "href",
+        "/api/v1/employees/export?q=Minh&role=SALE&is_active=true",
+      );
+    });
+    expect(link.querySelector("svg")).not.toBeNull();
+    expect(link).toHaveClass("min-h-11");
+    // next to "Thêm nhân viên"
+    expect(link.parentElement).toContainElement(
+      screen.getByRole("button", { name: "Thêm nhân viên" }),
+    );
+
+    await user.clear(screen.getByLabelText("Tìm kiếm"));
+    await user.selectOptions(screen.getByLabelText("Vai trò"), "");
+    await user.selectOptions(screen.getByLabelText("Trạng thái"), "");
+    await waitFor(() => {
+      expect(link).toHaveAttribute("href", "/api/v1/employees/export");
+    });
+  });
+
+  test("AC-EMP-117 (a) nút chỉ hiện từ lg (ẩn trên điện thoại)", async () => {
+    mockViewport(false);
+    signedInAs(AN, () => HttpResponse.json(page([KHOA_PV])));
+    renderApp("/employees");
+    await openMenu();
+
+    const link = await screen.findByRole("link", { name: "Xuất Excel" });
+    expect(link).toHaveClass("hidden", "lg:inline-flex");
+  });
+
+  test("AC-EMP-117 (b) TECH_LEAD (không có employee.manage) không thấy nút", async () => {
+    mockViewport(true);
+    signedInAs(TUAN, () => HttpResponse.json(page([KHOA_PV])));
+    renderApp("/employees");
+    await openMenu();
+    await screen.findByRole("table");
+
+    expect(screen.queryByRole("link", { name: "Xuất Excel" })).toBeNull();
+  });
+});
+
+describe("M20-09 mật khẩu tạm hết hạn sau 24 giờ", () => {
+  const KHOA_TT = employee({
+    id: "e0000000-0000-4000-8000-000000000014",
+    code: "NV014",
+    full_name: "Trần Văn Khoa",
+    username: "khoa.tran",
+    email: "khoa.tran@smyou.vn",
+    roles: ["TECHNICIAN"],
+    department: TECHNICAL,
+    version: 3,
+  });
+  const EXPIRES = "2026-11-03T01:00:00Z";
+  const EXPIRY_LINE =
+    "Hết hạn lúc 08:00 03/11/2026. Nhân viên phải đổi mật khẩu ở lần đăng nhập đầu.";
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function openKhoa(row: Employee) {
+    signedInAs(AN, () => HttpResponse.json(page([row])));
+    renderApp("/employees");
+    await openMenu();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("Trần Văn Khoa"));
+    return { user, dialog: await screen.findByRole("dialog", { name: "Sửa nhân viên" }) };
+  }
+
+  test("AC-EMP-123 cấp lại mật khẩu: hộp thoại hiện tên đăng nhập, mật khẩu, nút Sao chép và giờ hết hạn", async () => {
+    server.use(
+      http.post("/api/v1/employees/:id/reset-password", () =>
+        HttpResponse.json({
+          employee: {
+            ...KHOA_TT,
+            version: 4,
+            must_change_password: true,
+            temp_password_expires_at: EXPIRES,
+          },
+          temporary_password: "14031995",
+          temporary_password_expires_at: EXPIRES,
+        }),
+      ),
+    );
+    const { user, dialog } = await openKhoa(KHOA_TT);
+    await user.click(within(dialog).getByRole("button", { name: "Cấp lại mật khẩu" }));
+    const confirm = await screen.findByRole("dialog", { name: "Cấp lại mật khẩu" });
+    await user.click(within(confirm).getByRole("button", { name: "Cấp lại mật khẩu" }));
+
+    const passwordDialog = await screen.findByRole("dialog", { name: "Mật khẩu tạm" });
+    expect(within(passwordDialog).getByText("Tên đăng nhập: khoa.tran")).toBeInTheDocument();
+    expect(within(passwordDialog).getByText("14031995")).toBeInTheDocument();
+    expect(within(passwordDialog).getByText(EXPIRY_LINE)).toBeInTheDocument();
+    expect(
+      within(passwordDialog).getByText(
+        "Mật khẩu chỉ hiện một lần. Hãy gửi cho nhân viên qua kênh riêng.",
+      ),
+    ).toBeInTheDocument();
+    // userEvent.setup() installs a Clipboard stub on navigator.
+    const writeText = vi.spyOn(navigator.clipboard, "writeText");
+    await user.click(within(passwordDialog).getByRole("button", { name: "Sao chép" }));
+    expect(writeText).toHaveBeenCalledWith("14031995");
+    expect(
+      await within(passwordDialog).findByRole("button", { name: "Đã sao chép" }),
+    ).toBeInTheDocument();
+  });
+
+  test("AC-EMP-123 tạo nhân viên: hộp thoại mật khẩu tạm cũng hiện giờ hết hạn", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([AN_ROW])));
+    server.use(
+      http.post("/api/v1/employees", () =>
+        HttpResponse.json(
+          {
+            employee: employee({ must_change_password: true, temp_password_expires_at: EXPIRES }),
+            temporary_password: "aB3dEfGh9k",
+            temporary_password_expires_at: EXPIRES,
+          },
+          { status: 201 },
+        ),
+      ),
+    );
+    renderApp("/employees");
+    await openMenu();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Thêm nhân viên" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm nhân viên" });
+    await user.type(within(dialog).getByLabelText("Họ và tên"), "Lê Thị Hoa");
+    await user.selectOptions(within(dialog).getByLabelText("Phòng ban"), SALES.id);
+    await user.click(within(dialog).getByRole("checkbox", { name: "Nhân viên kinh doanh" }));
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+
+    const passwordDialog = await screen.findByRole("dialog", { name: "Mật khẩu tạm" });
+    expect(within(passwordDialog).getByText("aB3dEfGh9k")).toBeInTheDocument();
+    expect(within(passwordDialog).getByText(EXPIRY_LINE)).toBeInTheDocument();
+  });
+
+  test("AC-EMP-124 còn hạn → hiện giờ hết hạn của mật khẩu tạm", async () => {
+    vi.setSystemTime(new Date("2026-11-02T05:00:00Z"));
+    const { dialog } = await openKhoa({
+      ...KHOA_TT,
+      must_change_password: true,
+      temp_password_expires_at: EXPIRES,
+    });
+    expect(
+      within(dialog).getByText("Mật khẩu tạm — hết hạn lúc 08:00 03/11/2026"),
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByText(/đã hết hạn/)).not.toBeInTheDocument();
+  });
+
+  test("AC-EMP-124 đã quá hạn (giờ client) → nhãn cảnh báo bấm Cấp lại mật khẩu", async () => {
+    vi.setSystemTime(new Date("2026-11-03T01:00:00Z"));
+    const { dialog } = await openKhoa({
+      ...KHOA_TT,
+      must_change_password: true,
+      temp_password_expires_at: EXPIRES,
+    });
+    expect(
+      within(dialog).getByText("Mật khẩu tạm đã hết hạn — bấm Cấp lại mật khẩu"),
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByText(/hết hạn lúc/)).not.toBeInTheDocument();
+  });
+
+  test.each([
+    [
+      "must_change_password=false",
+      { must_change_password: false, temp_password_expires_at: EXPIRES },
+    ],
+    ["hạn null", { must_change_password: true, temp_password_expires_at: null }],
+  ])("AC-EMP-124 %s → không hiện dòng mật khẩu tạm", async (_label, overrides) => {
+    const { dialog } = await openKhoa({ ...KHOA_TT, ...overrides });
+    expect(within(dialog).queryByText(/Mật khẩu tạm/)).not.toBeInTheDocument();
   });
 });

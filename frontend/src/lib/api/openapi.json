@@ -2079,7 +2079,7 @@
         "type": "object"
       },
       "DashboardFeedbackRow": {
-        "description": "M18-01c: 1 đơn đã ghi phản hồi — popup \"Khách hàng đã chăm sóc\" và thẻ n★.",
+        "description": "M18-01c: 1 đơn đã ghi phản hồi — popup \"KH đã gọi\" và thẻ n★.",
         "properties": {
           "completed_at": {
             "anyOf": [
@@ -3010,6 +3010,18 @@
             "title": "Roles",
             "type": "array"
           },
+          "temp_password_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temp Password Expires At"
+          },
           "title": {
             "anyOf": [
               {
@@ -3051,6 +3063,7 @@
           "is_active",
           "is_locked",
           "must_change_password",
+          "temp_password_expires_at",
           "version"
         ],
         "title": "EmployeeOut",
@@ -3420,9 +3433,14 @@
           "temporary_password": {
             "title": "Temporary Password",
             "type": "string"
+          },
+          "temporary_password_expires_at": {
+            "format": "date-time",
+            "title": "Temporary Password Expires At",
+            "type": "string"
           }
         },
-        "required": ["employee", "temporary_password"],
+        "required": ["employee", "temporary_password", "temporary_password_expires_at"],
         "title": "EmployeeWithPassword",
         "type": "object"
       },
@@ -8388,7 +8406,7 @@
             "description": "Successful Response"
           },
           "401": {
-            "description": "problem+json — INVALID_CREDENTIALS: Tên đăng nhập hoặc mật khẩu không đúng."
+            "description": "problem+json — INVALID_CREDENTIALS: Tên đăng nhập hoặc mật khẩu không đúng. | TEMP_PASSWORD_EXPIRED: Mật khẩu tạm đã hết hạn. Vui lòng liên hệ Quản lý để được cấp lại."
           },
           "403": {
             "description": "problem+json — ACCOUNT_DISABLED: Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản lý."
@@ -8992,6 +9010,67 @@
         "tags": ["customers"]
       }
     },
+    "/api/v1/customers/export": {
+      "get": {
+        "operationId": "customers_export",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["COMPANY", "INDIVIDUAL"],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Xuất CSV toàn bộ khách hàng theo bộ lọc (M20-05)",
+        "tags": ["customers"]
+      }
+    },
     "/api/v1/customers/{customer_id}": {
       "get": {
         "operationId": "customers_get",
@@ -9534,7 +9613,7 @@
             "description": "problem+json — NOT_FOUND"
           },
           "409": {
-            "description": "problem+json — STALE_VERSION | DUPLICATE_NAME | INVALID_STATE"
+            "description": "problem+json — STALE_VERSION | INVALID_STATE | DEPARTMENT_HAS_EMPLOYEES"
           },
           "422": {
             "content": {
@@ -9692,6 +9771,83 @@
           }
         },
         "summary": "Thêm nhân viên (mật khẩu tạm hiện một lần)",
+        "tags": ["employees"]
+      }
+    },
+    "/api/v1/employees/export": {
+      "get": {
+        "operationId": "employees_export",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD", "TECHNICIAN"],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Role"
+            }
+          },
+          {
+            "in": "query",
+            "name": "is_active",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Active"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Xuất CSV toàn bộ nhân viên theo bộ lọc (M20-08)",
         "tags": ["employees"]
       }
     },
@@ -10604,6 +10760,16 @@
                 }
               ],
               "title": "Csat Rating"
+            }
+          },
+          {
+            "in": "query",
+            "name": "csat_unrated",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Csat Unrated",
+              "type": "boolean"
             }
           },
           {

@@ -114,6 +114,8 @@ def revision_has_work_if_revision(order_status: str, has_matching_task: bool) ->
     return order_status != "REVISION" or has_matching_task
 
 
+# The rule itself (ACCEPTED/IN_PROGRESS assignment, current cycle, task not cancelled) is computed
+# by orders.service._has_active_work; this entry only names the guard for state_machines.yaml.
 def actor_has_active_work_on_order(has_active_work: bool) -> bool:
     return has_active_work
 

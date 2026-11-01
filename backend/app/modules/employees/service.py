@@ -5,9 +5,10 @@ Every command logs "employee <target>: <action> by <actor>" — never a password
 
 import logging
 import uuid
-from datetime import datetime
+from collections.abc import Mapping
+from datetime import datetime, timedelta
 
-from sqlalchemy import func, or_, select, text
+from sqlalchemy import Select, func, or_, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -23,6 +24,7 @@ from app.modules.employees.domain import (
     last_code_number,
     temporary_password,
 )
+from app.modules.employees.export import build_csv
 from app.modules.employees.schemas import (
     EmployeeCreate,
     EmployeeDepartment,
@@ -80,7 +82,20 @@ def _out(employee: Employee, now: datetime) -> EmployeeOut:
         is_active=employee.is_active,
         is_locked=employee.locked_until is not None and now < employee.locked_until,
         must_change_password=employee.must_change_password,
+        temp_password_expires_at=employee.temp_password_expires_at,
         version=employee.version,
+    )
+
+
+# M20-09: callers pass Settings.temp_password_ttl_hours; this mirrors its default.
+DEFAULT_TEMP_PASSWORD_TTL = timedelta(hours=24)
+
+
+def _with_password(
+    employee: Employee, password: str, expires_at: datetime, now: datetime
+) -> EmployeeWithPassword:
+    return EmployeeWithPassword(
+        employee=_out(employee, now), temporary_password=password, temporary_password_expires_at=expires_at
     )
 
 
@@ -113,8 +128,14 @@ def _department_error(status_code: str, message: str) -> AppError:
 
 
 def _ensure_department_assignable(session: Session, department_id: uuid.UUID) -> None:
-    """New or changed department must exist and be active; keeping an inactive one is fine (§2)."""
-    is_active = session.scalar(select(Department.is_active).where(Department.id == department_id))
+    """New or changed department must exist and be active; keeping an inactive one is fine (§2).
+
+    FOR SHARE waits out a concurrent deactivation (FOR UPDATE) and re-reads its result, so its
+    active-employee count (M20-07) cannot miss this move.
+    """
+    is_active = session.scalar(
+        select(Department.is_active).where(Department.id == department_id).with_for_update(read=True)
+    )
     if is_active is None:
         raise _department_error("DEPARTMENT_NOT_FOUND", "Không tìm thấy phòng ban.")
     if not is_active:
@@ -180,6 +201,29 @@ def _like(q: str) -> str:
     return f"%{escaped}%"
 
 
+def _filtered(
+    query: Select[tuple[Employee]], *, q: str | None, role: str | None, is_active: bool | None
+) -> Select[tuple[Employee]]:
+    """Search + filters shared by the paged list and the CSV export (M20-08)."""
+    if q and q.strip():
+        pattern = _like(q.strip())
+        query = query.where(
+            or_(
+                func.unaccent(Employee.full_name).ilike(func.unaccent(pattern)),
+                Employee.code.ilike(pattern),
+                Employee.username.ilike(pattern),  # Q140
+                Employee.email.ilike(pattern),
+                Employee.phone.ilike(pattern),
+            )
+        )
+    if role is not None:
+        query = query.where(Employee.roles.any(EmployeeRole.role == role))
+    if is_active is not None:
+        query = query.where(Employee.is_active.is_(is_active))
+    # NV999 < NV1000: shorter codes first, then alphabetical
+    return query.order_by(func.length(Employee.code), Employee.code)
+
+
 def list_employees(
     session: Session,
     actor: Actor,
@@ -191,26 +235,24 @@ def list_employees(
     offset: int,
     now: datetime,
 ) -> EmployeePage:
-    query = apply_scope(select(Employee), actor, RULES)
-    if q and q.strip():
-        pattern = _like(q.strip())
-        query = query.where(
-            or_(
-                func.unaccent(Employee.full_name).ilike(func.unaccent(pattern)),
-                Employee.code.ilike(pattern),
-                Employee.email.ilike(pattern),
-                Employee.phone.ilike(pattern),
-            )
-        )
-    if role is not None:
-        query = query.where(Employee.roles.any(EmployeeRole.role == role))
-    if is_active is not None:
-        query = query.where(Employee.is_active.is_(is_active))
-    total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
-    # NV999 < NV1000: shorter codes first, then alphabetical
-    ordered = query.order_by(func.length(Employee.code), Employee.code)
-    rows = session.scalars(ordered.limit(limit).offset(offset)).all()
+    query = _filtered(apply_scope(select(Employee), actor, RULES), q=q, role=role, is_active=is_active)
+    total = session.scalar(select(func.count()).select_from(query.order_by(None).subquery())) or 0
+    rows = session.scalars(query.limit(limit).offset(offset)).all()
     return EmployeePage(items=[_out(e, now) for e in rows], total=total, limit=limit, offset=offset)
+
+
+def export_employees(
+    session: Session,
+    actor: Actor,
+    *,
+    q: str | None,
+    role: str | None,
+    is_active: bool | None,
+    role_labels: Mapping[str, str],
+) -> bytes:
+    """M20-08: every matching employee (no paging), same order as the list."""
+    query = _filtered(apply_scope(select(Employee), actor, RULES), q=q, role=role, is_active=is_active)
+    return build_csv(session.scalars(query).all(), role_labels)
 
 
 def lookup_employees(
@@ -245,7 +287,13 @@ def get_employee(session: Session, actor: Actor, employee_id: uuid.UUID, *, now:
 
 
 def create_employee(
-    session: Session, actor: Actor, body: EmployeeCreate, *, now: datetime, request_id: str | None = None
+    session: Session,
+    actor: Actor,
+    body: EmployeeCreate,
+    *,
+    now: datetime,
+    temp_password_ttl: timedelta = DEFAULT_TEMP_PASSWORD_TTL,
+    request_id: str | None = None,
 ) -> EmployeeWithPassword:
     if body.email is not None:
         _ensure_email_free(session, body.email)
@@ -254,6 +302,7 @@ def create_employee(
     codes = list(session.scalars(select(Employee.code)))
     number = next_value(session, "employee", at_least_after=last_code_number(codes))
     password = temporary_password(body.email, body.birth_date)
+    expires_at = now + temp_password_ttl
     employee = Employee(
         code=employee_code(number),
         full_name=body.full_name,
@@ -265,6 +314,7 @@ def create_employee(
         title=body.title or None,
         password_hash=hash_password(password),
         must_change_password=True,
+        temp_password_expires_at=expires_at,
         is_active=True,
         failed_login_count=0,
         password_changed_at=now,
@@ -283,7 +333,7 @@ def create_employee(
         data={"roles": sorted(roles)},
         request_id=request_id,
     )
-    return EmployeeWithPassword(employee=_out(employee, now), temporary_password=password)
+    return _with_password(employee, password, expires_at, now)
 
 
 def update_employee(
@@ -430,12 +480,15 @@ def reset_password(
     *,
     version: int,
     now: datetime,
+    temp_password_ttl: timedelta = DEFAULT_TEMP_PASSWORD_TTL,
     request_id: str | None = None,
 ) -> EmployeeWithPassword:
     employee = _locked(session, actor, employee_id, version)
     password = temporary_password(employee.email, employee.birth_date)
     employee.password_hash = hash_password(password)
     employee.must_change_password = True
+    expires_at = now + temp_password_ttl
+    employee.temp_password_expires_at = expires_at
     employee.password_changed_at = now  # also invalidates access tokens already issued
     employee.failed_login_count = 0
     employee.locked_until = None  # clears a temporary lock-out (Q37)
@@ -451,4 +504,4 @@ def reset_password(
         action="reset-password",
         request_id=request_id,
     )
-    return EmployeeWithPassword(employee=_out(employee, now), temporary_password=password)
+    return _with_password(employee, password, expires_at, now)

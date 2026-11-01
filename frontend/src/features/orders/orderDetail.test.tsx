@@ -327,7 +327,7 @@ describe("AC-ORD-065 thu hồi", () => {
     expect(await screen.findByLabelText("Địa chỉ thi công")).toHaveValue("12 Lê Lợi, Q1, TP.HCM");
   });
 
-  test("409 STALE_VERSION → banner đỏ + nút Tải lại (như huỷ đơn, AC-ORD-070)", async () => {
+  test("AC-UI-059 409 STALE_VERSION → dialog vẫn mở, thông báo + nút Tải lại (như huỷ đơn, AC-ORD-070)", async () => {
     signedInAs(hoaId, HOA);
     server.use(
       http.get("/api/v1/orders/:id", () =>
@@ -355,19 +355,121 @@ describe("AC-ORD-065 thu hồi", () => {
     const dialog = await screen.findByRole("dialog", { name: "Thu hồi đơn?" });
     await user.click(within(dialog).getByRole("button", { name: "Thu hồi" }));
 
+    // AC-UI-059 (M20-04) thay hành vi cũ "đóng dialog rồi hiện banner ngoài trang".
     expect(
-      await screen.findByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại."),
+      await within(dialog).findByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại."),
     ).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Thu hồi đơn?" })).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "Thu hồi" })).not.toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("button", { name: "Tải lại" }));
     await waitFor(() => {
       expect(screen.queryByRole("dialog", { name: "Thu hồi đơn?" })).not.toBeInTheDocument();
     });
+    expect(
+      screen.queryByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại."),
+    ).not.toBeInTheDocument();
+  });
 
-    await user.click(screen.getByRole("button", { name: "Tải lại" }));
+  test("AC-UI-059 AC-UI-063 409 GUARD_FAILED khi thu hồi → dialog vẫn mở, hiện message server", async () => {
+    signedInAs(hoaId, HOA);
+    const msg = "Đơn đã có đầu việc đang thực hiện, không thu hồi được.";
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ allowed_commands: ["recall", "cancel"] })),
+      ),
+      http.get("/api/v1/orders/:id/history", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 50, offset: 0 }),
+      ),
+      http.post("/api/v1/orders/:id/recall", () =>
+        HttpResponse.json(
+          { status: 409, code: "GUARD_FAILED", detail: msg, guard: "no_active_tasks" },
+          { status: 409 },
+        ),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Thu hồi" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thu hồi đơn?" });
+    await user.click(within(dialog).getByRole("button", { name: "Thu hồi" }));
+
+    expect(await within(dialog).findByText(msg)).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Thu hồi" })).toBeEnabled();
+  });
+});
+
+describe("M20-04 Thêm dòng hàng sau khi gửi — STALE giữ sheet", () => {
+  test("AC-UI-061 after-submit: 409 STALE → tải lại ngầm, sheet vẫn mở giữ ô tìm, bấm lại gửi version mới → đóng + toast", async () => {
+    signedInAs(anId, AN);
+    let gets = 0;
+    const postedVersions: number[] = [];
+    server.use(
+      http.get("/api/v1/orders/:id", () => {
+        gets += 1;
+        return HttpResponse.json(
+          order({
+            can_edit_lines_after_submit: true,
+            lines: [line()],
+            version: gets === 1 ? 1 : 5,
+          }),
+        );
+      }),
+      http.get("/api/v1/orders/:id/history", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 50, offset: 0 }),
+      ),
+      http.get("/api/v1/products", () =>
+        HttpResponse.json({ items: [pcProduct()], total: 1, limit: 20, offset: 0 }),
+      ),
+      http.post("/api/v1/orders/:id/lines-after-submit", async ({ request }) => {
+        const body = (await request.json()) as { version: number };
+        postedVersions.push(body.version);
+        if (body.version !== 5) {
+          return HttpResponse.json(
+            {
+              status: 409,
+              code: "STALE_VERSION",
+              detail: "Thông tin đã bị người khác thay đổi. Vui lòng tải lại.",
+            },
+            { status: 409 },
+          );
+        }
+        return HttpResponse.json(
+          order({ can_edit_lines_after_submit: true, lines: [line()], version: 6 }),
+          { status: 201 },
+        );
+      }),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Dòng hàng" }));
+    await user.click(screen.getByRole("button", { name: "Thêm dòng hàng" }));
+    const sheet = await screen.findByRole("dialog", { name: "Thêm dòng hàng" });
+    await user.type(within(sheet).getByLabelText("Tìm sản phẩm"), "core i5");
+    const pick = await within(sheet).findByRole("button", { name: new RegExp(pcProduct().name) });
+    await user.click(pick);
+
+    expect(await within(sheet).findByRole("alert")).toHaveTextContent(
+      "Đơn vừa được người khác cập nhật, đã tải lại dữ liệu mới. Vui lòng kiểm tra và bấm Thêm lại.",
+    );
+    expect(screen.getByRole("dialog", { name: "Thêm dòng hàng" })).toBeInTheDocument();
+    expect(within(sheet).getByLabelText("Tìm sản phẩm")).toHaveValue("core i5");
+    expect(screen.queryByRole("button", { name: "Tải lại" })).not.toBeInTheDocument();
     await waitFor(() => {
-      expect(
-        screen.queryByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại."),
-      ).not.toBeInTheDocument();
+      expect(gets).toBeGreaterThan(1);
     });
+
+    await user.click(
+      await within(sheet).findByRole("button", { name: new RegExp(pcProduct().name) }),
+    );
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Thêm dòng hàng" })).not.toBeInTheDocument();
+    });
+    expect(await screen.findByText("Đã thêm dòng hàng.")).toBeInTheDocument();
+    expect(postedVersions).toEqual([1, 5]);
   });
 });
 

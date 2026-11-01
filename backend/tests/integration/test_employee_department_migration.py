@@ -16,6 +16,7 @@ from tests.conftest import TEST_DATABASE_URL
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 # M17-02a migration (departments table + seed); the M17-02b migration sits right after it.
 _DEPARTMENTS_REVISION = "02466fd5936d"
+_BACKFILL_REVISION = "429a747dc251"
 EXPECTED = {
     "TECHNICAL": ("d3333333-3333-4333-8333-333333333333", "Kỹ thuật"),
     "SALES": ("d2222222-2222-4222-8222-222222222222", "Kinh doanh"),
@@ -39,6 +40,14 @@ def test_department_backfill_and_downgrade(migrated: None) -> None:
     command.downgrade(config, _DEPARTMENTS_REVISION)
     try:
         with engine.begin() as conn:
+            # M20-07 deleted the M17-02a legacy seed rows (its downgrade is a no-op): put them back.
+            for department_id, name in EXPECTED.values():
+                conn.execute(
+                    text(
+                        "INSERT INTO departments (id, name) VALUES (:id, :name) ON CONFLICT (id) DO NOTHING"
+                    ),
+                    {"id": department_id, "name": name},
+                )
             for n, (dept, employee_id) in enumerate(people.items()):
                 conn.execute(
                     text(
@@ -53,7 +62,8 @@ def test_department_backfill_and_downgrade(migrated: None) -> None:
                     },
                 )
 
-        command.upgrade(config, "head")
+        # Stop at M17-02b: M20-07 (later) moves everyone to "Phát Triển Kinh Tế".
+        command.upgrade(config, _BACKFILL_REVISION)
 
         with engine.connect() as conn:
             for dept, employee_id in people.items():

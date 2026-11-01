@@ -1,8 +1,9 @@
 import { Hammer, Lock, Package } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Alert } from "../../../components/ui/Alert";
 import { Sheet } from "../../../components/ui/Sheet";
 import { TextField } from "../../../components/ui/TextField";
+import { useToast } from "../../../components/ui/Toast";
 import { cn } from "../../../lib/cn";
 import { formatCurrency } from "../../../lib/format";
 import { useDebouncedValue } from "../../../lib/useDebouncedValue";
@@ -11,9 +12,15 @@ import { useMe } from "../../me/api";
 import { productImageUrl, useProducts, type Product } from "../../products/api";
 import { ProductImage } from "../../products/components/ProductList";
 import { useServices, type Service } from "../../services/api";
-import { useAddLine, useAddLineAfterSubmit, type OrderLineCreateBody } from "../api";
+import {
+  useAddLine,
+  useAddLineAfterSubmit,
+  useAddLineOnSite,
+  type OrderLineCreateBody,
+} from "../api";
 import type { LineEndpoint } from "./OrderLinesSection";
-import { isStaleAfterSubmit, type RunOrderWrite } from "./writeQueue";
+import { StaleReloadedMessage } from "./StaleReloadedMessage";
+import { isStaleOnSubmittedOrder, type RunOrderWrite } from "./writeQueue";
 
 type Tab = "PRODUCT" | "SERVICE";
 const TABS: { id: Tab; label: string; icon: typeof Package }[] = [
@@ -141,24 +148,32 @@ export function AddLineSheet({
   onClose,
   runOrderWrite,
   lineEndpoint = "draft",
-  onStaleVersion,
+  onReload,
 }: {
   onClose: () => void;
   runOrderWrite: RunOrderWrite;
   lineEndpoint?: LineEndpoint;
-  /** AC-ORD-102/103: when given (post-submit mode), a STALE_VERSION closes this sheet and defers to
-   * the caller's own tab-level banner instead of this sheet's local error state. */
-  onStaleVersion?: () => void;
+  /** AC-UI-061: when given (submitted order), a STALE_VERSION re-fetches the order in the
+   * background and keeps this sheet open so the user can retry against the fresh `version`. */
+  onReload?: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("PRODUCT");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ReactNode>(null);
   // Mặc định "Người nhận doanh số" là người đang thêm dòng hàng — sửa lại được ngay trên dòng vừa
   // thêm (OrderLinesSection), không khoá cố định.
+  // M19-01b: ở chế độ "on-site" không gửi người nhận doanh số — server tự ghi cho chính KTV.
   const me = useMe();
-  const defaultCreditedEmployeeId = me.data?.employee.id ?? null;
+  const onSite = lineEndpoint === "on-site";
+  const defaultCreditedEmployeeId = onSite ? undefined : (me.data?.employee.id ?? null);
+  const toast = useToast();
   const addLineDraft = useAddLine();
   const addLineAfterSubmit = useAddLineAfterSubmit();
-  const addLine = lineEndpoint === "after-submit" ? addLineAfterSubmit : addLineDraft;
+  const addLineOnSite = useAddLineOnSite();
+  const addLine = onSite
+    ? addLineOnSite
+    : lineEndpoint === "after-submit"
+      ? addLineAfterSubmit
+      : addLineDraft;
 
   async function addCatalogLine(body: Omit<OrderLineCreateBody, "version">) {
     setError(null);
@@ -166,15 +181,20 @@ export function AddLineSheet({
       await runOrderWrite((order) =>
         addLine.mutateAsync({ id: order.id, body: { ...body, version: order.version } }),
       );
+      if (lineEndpoint !== "draft") toast("Đã thêm dòng hàng.");
       onClose();
     } catch (err) {
-      if (isStaleAfterSubmit(err, lineEndpoint, onStaleVersion)) {
-        onStaleVersion?.();
-        onClose();
+      // M20-04: every failure stays in this sheet (AC-UI-060 replaces AC-ORD-240's toast + close).
+      if (onReload && isStaleOnSubmittedOrder(err, lineEndpoint)) {
+        onReload();
+        setError(<StaleReloadedMessage retryLabel="Thêm" />);
         return;
       }
-      setError(err instanceof ApiError ? (err.problem.detail ?? null) : null);
-      if (!(err instanceof ApiError)) setError("Không thực hiện được. Vui lòng thử lại.");
+      setError(
+        err instanceof ApiError && err.problem.detail
+          ? err.problem.detail
+          : "Không thực hiện được. Vui lòng thử lại.",
+      );
     }
   }
 

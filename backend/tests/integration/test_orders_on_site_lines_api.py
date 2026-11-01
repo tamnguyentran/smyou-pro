@@ -339,6 +339,24 @@ def test_inactive_assignment_fails_guard(
     assert body["detail"] == NOT_ACTIVE_WORK
 
 
+@pytest.mark.ac("AC-ORD-224")
+def test_inactive_assignment_fails_guard_on_update_and_remove(
+    app: FastAPI, db: Connection, items: dict[str, uuid.UUID], site: dict
+) -> None:
+    binh = client_as(app, BINH)
+    order = add_ssd(binh, site["order"], items)
+    line_id = ssd_line(order)["id"]
+    set_status(db, "assignments", site["binh"], "DONE")
+    url = f"/api/v1/orders/{site['order']}/lines-on-site/{line_id}"
+
+    for res in (
+        binh.patch(url, json={"version": order["version"], "quantity": "2"}),
+        binh.post(f"{url}/remove", json={"version": order["version"]}),
+    ):
+        body = problem(res, 409, "GUARD_FAILED")
+        assert body["guard"] == "actor_has_active_work_on_order"
+
+
 @pytest.mark.ac("AC-ORD-225")
 @pytest.mark.parametrize("status", ["AWAITING_CONFIRMATION", "COMPLETED", "CANCELLED"])
 def test_locked_order_statuses(
@@ -640,11 +658,15 @@ def test_update_and_remove_on_site_notify_each_time(
     assert res.status_code == 200, res.text
 
     for recipient in ("NV005", "NV010"):
-        bodies = [row.body for row in notifications_for(db, people[recipient], type_=NTF_TYPE)]
-        assert bodies[1:] == [
-            f"Đơn {CODE}: Nguyễn Văn Bình sửa Ổ cứng SSD Kingston 512GB",
-            f"Đơn {CODE}: Nguyễn Văn Bình xoá Ổ cứng SSD Kingston 512GB",
-        ]
+        # All rows share one transaction-level now(), so compare without relying on created_at order.
+        bodies = sorted(row.body for row in notifications_for(db, people[recipient], type_=NTF_TYPE))
+        assert bodies == sorted(
+            [
+                f"Đơn {CODE}: Nguyễn Văn Bình thêm Ổ cứng SSD Kingston 512GB {chr(0xD7)} 1",
+                f"Đơn {CODE}: Nguyễn Văn Bình sửa Ổ cứng SSD Kingston 512GB",
+                f"Đơn {CODE}: Nguyễn Văn Bình xoá Ổ cứng SSD Kingston 512GB",
+            ]
+        )
 
 
 @pytest.mark.ac("AC-NTF-052")

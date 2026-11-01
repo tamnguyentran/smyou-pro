@@ -147,6 +147,8 @@ class EmployeeOut(BaseModel):
     # Temporarily locked after repeated wrong passwords (Q19).
     is_locked: bool
     must_change_password: bool
+    # M20-09: when the pending temporary password stops working; null = no expiry.
+    temp_password_expires_at: datetime | None
     version: int
 
 
@@ -171,3 +173,4 @@ class EmployeeWithPassword(BaseModel):
     employee: EmployeeOut
     # Shown once to the Manager (Q33); never stored or logged in clear.
     temporary_password: str
+    temporary_password_expires_at: datetime

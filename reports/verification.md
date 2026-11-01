@@ -1,15 +1,16 @@
-# Verification — M19-01a — 2026-10-31
+# Verification — M20-10 — 2026-11-01
 
 | Gate | Command | Result |
 |---|---|---|
-| Lint BE/FE | make lint | ✅ All checks passed |
-| Typecheck | make typecheck | ✅ 0 errors |
-| Unit | make test-unit | ✅ BE 237 passed · FE 764 passed (80 files) |
-| Integration + generated + stateful | make test | ✅ 1218 passed, coverage 97% |
-| Contract drift | make contract | ⚠️ regenerated files differ from HEAD only because they were not committed yet (batch workflow); regeneration itself succeeds |
-| Migrations up/down | make migrations-check | ✅ upgrade bdf716c79f54 → 3f8a1c6d2e90; no model/migration drift |
-| AC traceability | make ac | ✅ M19-01a 21/21 · ⚠️ global 1282/1289 — the 7 missing are AC-ORD-236…242 of M19-01b (not implemented yet) |
-| E2E mobile + desktop + axe | make e2e | ✅ 222 passed, 0 failed |
+| Lint BE/FE | make lint | ✅ ruff + ruff format + import-linter (1 kept, 0 broken) + eslint + prettier |
+| Typecheck | make typecheck | ✅ |
+| Unit + Integration + generated + stateful (BE) | make test | ✅ 1293 passed, 29 deselected; coverage 97.12% (ngưỡng 85%) |
+| Unit (FE) | vitest --coverage | ✅ 85 files, 854 tests passed |
+| Contract drift | make contract | ✅ clean (openapi.json + schema.d.ts sinh lại đã stage, chế độ đợt — chưa commit) |
+| Migrations up/down | make migrations-check | ✅ upgrade → downgrade -1 → upgrade, "No new upgrade operations detected" |
+| AC traceability | make ac | ✅ 1415/1415 enforced ACs covered |
+| E2E mobile + desktop + axe | make e2e | ✅ docker stack 4 passed; Playwright 262 passed, 0 a11y violations |
 
-Screenshots: none (no UI change in M19-01a; UI is M19-01b).
-Failures / skipped gates: contract + ac as noted above; `/review` not run yet.
+Screenshots: `reports/screenshots/mobile/dashboard-care-section-grid.png`, `reports/screenshots/desktop/dashboard-care-section-grid.png`
+
+Failures / skipped gates: lượt `make verify` 1 dừng ở `make contract` vì file sinh lại (`openapi.json`, `schema.d.ts` — đổi mô tả "KH đã gọi") chưa stage → `git add` (không commit) rồi chạy `make contract ac migrations-check e2e`: xanh hết.

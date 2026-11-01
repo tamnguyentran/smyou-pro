@@ -92,6 +92,7 @@ def list_orders(
     date_from: Annotated[date | None, Query(alias="from")] = None,
     date_to: Annotated[date | None, Query(alias="to")] = None,
     csat_rating: Annotated[int | None, Query(ge=1, le=5)] = None,
+    csat_unrated: bool = False,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> OrderPage:
@@ -106,6 +107,7 @@ def list_orders(
         date_from=date_from,
         date_to=date_to,
         csat_rating=csat_rating,
+        csat_unrated=csat_unrated,
         now=request.app.state.clock(),
         limit=limit,
         offset=offset,

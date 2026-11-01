@@ -115,6 +115,7 @@ function employee(overrides: Partial<EmployeeOut> = {}): EmployeeOut {
     is_active: true,
     is_locked: false,
     must_change_password: false,
+    temp_password_expires_at: null,
     birth_date: null,
     birth_place: null,
     gender: null,

@@ -41,6 +41,7 @@ erDiagram
 | title | varchar(80) | chức danh hiển thị |
 | password_hash | text | argon2id |
 | must_change_password | bool | true khi Manager tạo/reset |
+| temp_password_expires_at | timestamptz? | M20-09: lúc tạo/Manager cấp lại + `TEMP_PASSWORD_TTL_HOURS` (24h); quá hạn → login `TEMP_PASSWORD_EXPIRED`; xoá về NULL khi đổi/đặt lại mật khẩu; NULL = không hết hạn (Q144) |
 | is_active | bool | khoá tài khoản thay vì xoá |
 | failed_login_count, locked_until | int, timestamptz | chống dò mật khẩu |
 
@@ -266,7 +267,7 @@ Chỉ `MANAGER` (`company.manage`). Mỗi lần sửa/đổi logo ghi `audit_eve
 | version | int, mặc định 1 | optimistic lock |
 | created_at/updated_at | timestamptz | |
 
-Seed 6 phòng (UUID cố định `d1111111-…` → `d6666666-…`): "Ban quản lý"/"Kinh doanh"/"Kỹ thuật" (ứng với enum `employees.department` cũ, M17-02b đã map sang `employees.department_id`) + "Phát Triển Kinh Tế"/"Nhân sự/marketing"/"Kế Toán - tài chính". Xem: `employee.read`; thêm/sửa/ngừng: `employee.manage`. Mỗi thao tác ghi `audit_events` (`entity_type=DEPARTMENT`, `action=create|rename|deactivate|activate`; `rename` kèm `{name: {from, to}}`). Chỉ là thông tin tổ chức, không quyết định quyền.
+Chỉ còn 3 phòng chuẩn (UUID cố định `d4444444-…`/`d5555555-…`/`d6666666-…`): "Phát Triển Kinh Tế"/"Nhân sự/Marketing"/"Kế Toán - Tài chính" — M20-07 chuyển mọi nhân viên ở phòng khác (kể cả 3 phòng seed cũ `d1111111-…`→`d3333333-…` "Ban quản lý"/"Kinh doanh"/"Kỹ thuật") sang "Phát Triển Kinh Tế" rồi xoá hẳn phòng đó; Manager bootstrap thuộc "Phát Triển Kinh Tế". Vẫn được thêm phòng mới; ngừng hoạt động bị chặn (409 `DEPARTMENT_HAS_EMPLOYEES`) khi phòng còn nhân viên **đang hoạt động** (Q138). Xem: `employee.read`; thêm/sửa/ngừng: `employee.manage`. Mỗi thao tác ghi `audit_events` (`entity_type=DEPARTMENT`, `action=create|rename|deactivate|activate`; `rename` kèm `{name: {from, to}}`). Chỉ là thông tin tổ chức, không quyết định quyền.
 
 ## Quy tắc tính tiền (có test property-based)
 Giá và VAT **tách riêng**: đơn giá luôn lưu chưa VAT; % VAT gắn với từng sản phẩm/dịch vụ và được snapshot vào từng dòng, nên một đơn có thể có nhiều mức VAT.

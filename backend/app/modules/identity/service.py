@@ -31,7 +31,7 @@ from app.core.security import (
 )
 from app.core.spec_loader import PermissionsSpec
 from app.modules.audit import service as audit
-from app.modules.departments.models import LEGACY_DEPARTMENT_IDS
+from app.modules.departments.models import STANDARD_DEPARTMENT_IDS
 from app.modules.identity.domain import is_locked, password_problems, register_failure
 from app.modules.identity.models import (
     AuthSession,
@@ -71,6 +71,7 @@ class Failure(StrEnum):
     DUPLICATE_CODE = "DUPLICATE_CODE"
     TOO_MANY_REQUESTS = "TOO_MANY_REQUESTS"
     INVALID_RESET = "INVALID_RESET_TOKEN"
+    TEMP_EXPIRED = "TEMP_PASSWORD_EXPIRED"
 
 
 @dataclass(frozen=True)
@@ -140,6 +141,12 @@ def generate_username(session: Session, full_name: str) -> str:
     return unique_username(base, set(taken))
 
 
+def temp_password_expired(employee: Employee, now: datetime) -> bool:
+    """M20-09: checked at login only (Q143) — a session opened in time can still change the password."""
+    expires_at = employee.temp_password_expires_at
+    return employee.must_change_password and expires_at is not None and now >= expires_at
+
+
 def login(
     session: Session,
     *,
@@ -202,6 +209,19 @@ def login(
             request_id=request_id,
         )
         return Failure.ACCOUNT_DISABLED
+    if temp_password_expired(employee, now):
+        # Right password, just too late (Q145): no failure counted; Manager must reset it again.
+        logger.info("login refused: temporary password of %s expired", employee.id)
+        audit.record(
+            session,
+            actor_id=None,
+            entity_type="EMPLOYEE",
+            entity_id=employee.id,
+            action="login_refused",
+            data={"reason": "temp_password_expired"},
+            request_id=request_id,
+        )
+        return Failure.TEMP_EXPIRED
     employee.failed_login_count = 0
     employee.locked_until = None
     logger.info("login succeeded for %s", employee.id)
@@ -314,6 +334,7 @@ def change_password(
         return problems
     employee.password_hash = hash_password(new_password)
     employee.must_change_password = False
+    employee.temp_password_expires_at = None
     employee.password_changed_at = now
     employee.failed_login_count = 0
     employee.locked_until = None
@@ -402,6 +423,7 @@ def reset_password(
         return problems
     employee.password_hash = hash_password(new_password)
     employee.must_change_password = False
+    employee.temp_password_expires_at = None
     employee.password_changed_at = now
     employee.version += 1
     _revoke(session, AuthSession.employee_id == employee.id, now=now)
@@ -423,7 +445,7 @@ def create_manager(
         full_name=full_name,
         username=generate_username(session, full_name),
         code=code,
-        department_id=LEGACY_DEPARTMENT_IDS["MANAGEMENT"],
+        department_id=STANDARD_DEPARTMENT_IDS["ECONOMIC"],
         password_hash=hash_password(password),
         must_change_password=False,
         password_changed_at=now,

@@ -23,7 +23,7 @@ Là Manager, tôi muốn tự quản lý danh sách phòng ban (thêm, đổi t�
 
 | ID | Given | When | Then | Lớp test |
 |---|---|---|---|---|
-| AC-EMP-033 | DB vừa migrate xong | Nguyễn Văn An (MANAGER) gọi `GET /api/v1/departments` | 200; đúng 6 phòng ban seed ở §2, đều `is_active=true`, `version=1`, sắp theo tên | integration |
+| AC-EMP-033 | DB vừa migrate xong | Nguyễn Văn An (MANAGER) gọi `GET /api/v1/departments` | 200; đúng 6 phòng ban seed ở §2, đều `is_active=true`, `version=1`, sắp theo tên — **M20-07:** sau migration gộp chỉ còn 3 phòng chuẩn (AC-EMP-091), test kiểm 3 phòng | integration |
 | AC-EMP-034 | An (MANAGER) | `POST /api/v1/departments` `{"name": "  Chăm sóc khách hàng "}` | 201; `name="Chăm sóc khách hàng"` (đã trim), `is_active=true`, `version=1`; 1 audit DEPARTMENT `create` actor=An | integration |
 | AC-EMP-035 | Đã có "Kế Toán - tài chính" đang hoạt động | An `POST` `{"name": "kế toán - TÀI CHÍNH"}` | 409 `DUPLICATE_NAME`; không tạo bản ghi | integration |
 | AC-EMP-036 | "Kinh doanh" đã ngừng hoạt động | An `POST` `{"name": "Kinh doanh"}` | 201 (trùng tên phòng đã ngừng hoạt động vẫn tạo được) | integration |
@@ -75,7 +75,7 @@ Là Manager, tôi muốn tự quản lý danh sách phòng ban (thêm, đổi t�
 - **Q102 (cần chốt):** Nhân viên hiện có đang ở 3 bộ phận cũ "Ban quản lý"/"Kinh doanh"/"Kỹ thuật", không khớp 3 phòng mới yêu cầu. Mặc định đề xuất: seed **6** phòng (3 mới + 3 cũ) để không mất dữ liệu nhân viên cũ; anh/chị tự chuyển nhân viên sang phòng mới và ngừng hoạt động phòng cũ khi muốn. Phương án khác: chỉ seed 3 phòng mới và chỉ định map cũ → mới (vd. Kinh doanh → "Phát Triển Kinh Tế"?; Kỹ thuật → ?).
 - **Q103:** Quyền: dùng lại `employee.manage` (chỉ Manager) để thêm/sửa, `employee.read` (Manager, QLKT) để xem — không tạo capability mới (giống M16-07 dùng lại `catalog.*`).
 - **Q104:** Vị trí menu: mục riêng "Phòng ban" dưới "Nhân sự & phân quyền" (không gộp thành tab trong màn Nhân sự).
-- Giả định: được ngừng hoạt động phòng ban đang có nhân viên (nhân viên vẫn giữ phòng đó — chi tiết ở M17-02b); không xoá cứng.
+- Giả định: được ngừng hoạt động phòng ban đang có nhân viên (nhân viên vẫn giữ phòng đó — chi tiết ở M17-02b); không xoá cứng. **Thay bởi M20-07:** phòng còn nhân viên đang hoạt động → 409 `DEPARTMENT_HAS_EMPLOYEES`; migration M20-07 đã xoá hẳn 3 phòng cũ.
 - Không cần sửa `spec/state_machines.yaml`. `spec/permissions.yaml` chỉ thêm menu:
   ```yaml
   +  - id: departments

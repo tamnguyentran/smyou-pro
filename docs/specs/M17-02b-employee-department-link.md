@@ -28,7 +28,7 @@ Là Manager, khi tạo/sửa nhân viên tôi muốn chọn phòng ban từ danh
 | AC-EMP-056 | Bình thuộc "Kinh doanh", phòng này đã ngừng hoạt động | An `PATCH` Bình chỉ đổi `phone` (không gửi `department_id` hoặc gửi đúng id cũ) | 200; Bình vẫn ở "Kinh doanh" | integration |
 | AC-EMP-057 | Bình thuộc "Kinh doanh" | An `PATCH` Bình `department_id` → "Phát Triển Kinh Tế" (đang hoạt động) | 200; audit EMPLOYEE `update` `changed_fields` chứa `department_id`; sang phòng đã ngừng hoạt động → 422 `DEPARTMENT_INACTIVE` | integration |
 | AC-EMP-058 | Tú đăng nhập | `GET /api/v1/auth/me` | `employee.department = { id, name: "Kỹ thuật" }` | integration |
-| AC-EMP-059 | DB trống | chạy lệnh bootstrap Manager đầu tiên | Manager được tạo với phòng "Ban quản lý" | integration |
+| ~~AC-EMP-059~~ | DB trống | chạy lệnh bootstrap Manager đầu tiên | ~~Manager được tạo với phòng "Ban quản lý"~~ — thay bởi AC-EMP-101 (M20-07: phòng cũ đã xoá, Manager thuộc "Phát Triển Kinh Tế") | integration |
 | AC-EMP-060 | An mở "Thêm nhân viên" | mở ô "Phòng ban" | Chỉ liệt kê phòng đang hoạt động (6 phòng seed nếu chưa ngừng phòng nào); bỏ trống → "Vui lòng chọn phòng ban." | component |
 | AC-EMP-061 | An mở sửa Bình (phòng "Kinh doanh" đã ngừng hoạt động) | xem form | Ô "Phòng ban" vẫn hiện "Kinh doanh (ngừng hoạt động)" là giá trị hiện tại; lưu không đổi phòng → thành công | component |
 | AC-EMP-062 | Hoa (TECH_LEAD) xem chi tiết nhân viên Tú | render | Dòng "Phòng ban: Kỹ thuật" (tên lấy từ API, không còn nhãn hard-code) | component |

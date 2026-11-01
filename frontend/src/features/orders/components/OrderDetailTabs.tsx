@@ -28,7 +28,7 @@ import { CustomerFeedbackBlock } from "./CustomerFeedbackBlock";
 import { EditContactSheet } from "./EditContactSheet";
 import { OrderHistoryTab } from "./OrderHistoryTab";
 import { OrderInfoTab } from "./OrderInfoTab";
-import { OrderLinesSection } from "./OrderLinesSection";
+import { OrderLinesSection, type LineEndpoint } from "./OrderLinesSection";
 import { OrderTotalsSection } from "./OrderTotalsSection";
 import { PrintInvoiceButton } from "./PrintInvoiceButton";
 import { ReviseOrderSheet } from "./ReviseOrderSheet";
@@ -98,6 +98,19 @@ export function OrderDetailTabs({
     (attachments.data?.items.some((a) => a.revision_no === order.revision_no) ?? false);
   const canRevise = order.allowed_commands.includes("request_revision") && order.can_revise;
   const status = order.status as OrderStatus;
+  // M19-01b §6: after-submit (Sale/Manager) wins; otherwise a technician on site; else read-only.
+  const lineEndpoint: LineEndpoint =
+    !order.can_edit_lines_after_submit && order.can_add_lines_on_site ? "on-site" : "after-submit";
+  const canEditLines = order.can_edit_lines_after_submit || order.can_add_lines_on_site;
+  function onLinesStale() {
+    if (lineEndpoint === "on-site") {
+      // AC-ORD-240: KTV không có banner "Tải lại" — tải lại ngay và báo bằng toast.
+      onReload();
+      toast("Đơn vừa được người khác cập nhật, đã tải lại dữ liệu mới.");
+    } else {
+      setLinesStale(true);
+    }
+  }
 
   function submitRecall() {
     setRecallError(null);
@@ -109,8 +122,8 @@ export function OrderDetailTabs({
           toast(`Đã thu hồi đơn ${updated.code}.`);
         },
         onError: (err: unknown) => {
+          // AC-UI-059: STALE keeps the dialog open with its own "Tải lại".
           if (err instanceof ApiError && err.problem.code === "STALE_VERSION") {
-            setRecallOpen(false);
             setRecallStale(true);
           } else {
             setRecallError(describeError(err));
@@ -188,21 +201,6 @@ export function OrderDetailTabs({
 
   return (
     <div className="space-y-4">
-      {recallStale ? (
-        <div className="space-y-2">
-          <Alert>Thông tin đã bị người khác thay đổi. Vui lòng tải lại.</Alert>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              setRecallStale(false);
-              onReload();
-            }}
-          >
-            Tải lại
-          </Button>
-        </div>
-      ) : null}
       {linesStale ? (
         <div className="space-y-2">
           <Alert>Thông tin đã bị người khác thay đổi. Vui lòng tải lại.</Alert>
@@ -330,15 +328,14 @@ export function OrderDetailTabs({
           <div className="space-y-4">
             <OrderLinesSection
               order={order}
-              canEdit={order.can_edit_lines_after_submit}
-              lineEndpoint="after-submit"
+              canEdit={canEditLines}
+              lineEndpoint={lineEndpoint}
               onAddLine={() => {
                 setAddLineOpen(true);
               }}
               runWrite={runWrite}
-              onStaleVersion={() => {
-                setLinesStale(true);
-              }}
+              onStaleVersion={onLinesStale}
+              onReload={onReload}
             />
             <OrderTotalsSection order={order} />
           </div>
@@ -352,12 +349,20 @@ export function OrderDetailTabs({
         open={recallOpen}
         onClose={() => {
           setRecallOpen(false);
+          setRecallError(null);
+          setRecallStale(false);
         }}
         title="Thu hồi đơn?"
         message={`Thu hồi đơn ${order.code} về Nháp để sửa tiếp?`}
         confirmLabel="Thu hồi"
         loading={recallOrder.isPending}
         error={recallError}
+        staleVersion={recallStale}
+        onReload={() => {
+          setRecallStale(false);
+          setRecallOpen(false);
+          onReload();
+        }}
         onConfirm={submitRecall}
       />
       <CancelOrderSheet
@@ -430,10 +435,8 @@ export function OrderDetailTabs({
             setAddLineOpen(false);
           }}
           runOrderWrite={runWrite}
-          lineEndpoint="after-submit"
-          onStaleVersion={() => {
-            setLinesStale(true);
-          }}
+          lineEndpoint={lineEndpoint}
+          onReload={onReload}
         />
       ) : null}
     </div>

@@ -562,3 +562,51 @@ describe("AC-CUS-012 phân quyền trang", () => {
     expect(await screen.findByText("Bạn không có quyền truy cập trang này.")).toBeInTheDocument();
   });
 });
+
+describe("AC-CUS-037/038 nút Xuất Excel", () => {
+  test("AC-CUS-037 href theo bộ lọc đang chọn, không kèm limit/offset; bỏ lọc → URL gốc", async () => {
+    mockViewport(true);
+    signedInAs(AN, () => HttpResponse.json(page([KIM_LONG], 25)));
+    const user = userEvent.setup();
+    renderApp("/customers");
+    await openMenu();
+    await screen.findByRole("table");
+
+    await user.type(screen.getByLabelText("Tìm kiếm"), "Minh");
+    await user.selectOptions(screen.getByLabelText("Loại khách hàng"), "COMPANY");
+    await user.click(await screen.findByRole("button", { name: "Trang sau" }));
+
+    const link = screen.getByRole("link", { name: "Xuất Excel" });
+    await waitFor(() => {
+      expect(link).toHaveAttribute("href", "/api/v1/customers/export?q=Minh&type=COMPANY");
+    });
+    expect(link.querySelector("svg")).not.toBeNull();
+    expect(link).toHaveClass("min-h-11");
+
+    await user.clear(screen.getByLabelText("Tìm kiếm"));
+    await user.selectOptions(screen.getByLabelText("Loại khách hàng"), "");
+    await waitFor(() => {
+      expect(link).toHaveAttribute("href", "/api/v1/customers/export");
+    });
+  });
+
+  test("AC-CUS-038 nút chỉ hiện từ lg (ẩn trên điện thoại)", async () => {
+    mockViewport(false);
+    signedInAs(AN, () => HttpResponse.json(page([KIM_LONG])));
+    renderApp("/customers");
+    await openMenu();
+
+    const link = await screen.findByRole("link", { name: "Xuất Excel" });
+    expect(link).toHaveClass("hidden", "lg:inline-flex");
+  });
+
+  test("AC-CUS-037 TECH_LEAD (không có customer.manage) không thấy nút", async () => {
+    mockViewport(true);
+    signedInAs(TUAN, () => HttpResponse.json(page([KIM_LONG])));
+    renderApp("/customers");
+    await openMenu();
+    await screen.findByRole("table");
+
+    expect(screen.queryByRole("link", { name: "Xuất Excel" })).toBeNull();
+  });
+});

@@ -21,7 +21,7 @@ from pwdlib import PasswordHash
 from sqlalchemy import Connection, create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-from app.modules.departments.models import LEGACY_DEPARTMENT_IDS
+from app.modules.departments.models import LEGACY_DEPARTMENT_IDS, STANDARD_DEPARTMENT_IDS
 from tests.conftest import TEST_DATABASE_URL
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -48,6 +48,7 @@ class Person:
     roles: tuple[str, ...]
     code: str
     full_name: str
+    # Key of LEGACY_DEPARTMENT_IDS (test-only rows, see ensure_legacy_departments) or STANDARD_DEPARTMENT_IDS.
     department: str
     # M17-03b: login name; defaults to the email's local part (unique like the email, valid format).
     username: str = ""
@@ -126,6 +127,18 @@ def api(app: FastAPI) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
+_LEGACY_NAMES = {"MANAGEMENT": "Ban quản lý", "SALES": "Kinh doanh", "TECHNICAL": "Kỹ thuật"}
+
+
+def ensure_legacy_departments(db: Connection) -> None:
+    """M20-07 deleted the 3 legacy departments; older tests still use them as plain fixture rows."""
+    for key, name in _LEGACY_NAMES.items():
+        db.execute(
+            text("INSERT INTO departments (id, name) VALUES (:id, :name) ON CONFLICT (id) DO NOTHING"),
+            {"id": LEGACY_DEPARTMENT_IDS[key], "name": name},
+        )
+
+
 def seed(
     db: Connection,
     person: Person,
@@ -135,6 +148,8 @@ def seed(
     failed_login_count: int = 0,
 ) -> uuid.UUID:
     employee_id = uuid.uuid4()
+    if person.department in LEGACY_DEPARTMENT_IDS:
+        ensure_legacy_departments(db)
     db.execute(
         text(
             "INSERT INTO employees (id, code, full_name, email, username, department_id, password_hash,"
@@ -147,7 +162,7 @@ def seed(
             "name": person.full_name,
             "email": person.email,
             "username": person.username,
-            "dept": LEGACY_DEPARTMENT_IDS[person.department],
+            "dept": {**LEGACY_DEPARTMENT_IDS, **STANDARD_DEPARTMENT_IDS}[person.department],
             "hash": _HASHER.hash(person.password),
             "must": must_change_password,
             "active": is_active,

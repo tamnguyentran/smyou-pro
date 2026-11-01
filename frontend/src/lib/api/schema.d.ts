@@ -349,6 +349,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/customers/export": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Xuất CSV toàn bộ khách hàng theo bộ lọc (M20-05) */
+    get: operations["customers_export"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/customers/{customer_id}": {
     parameters: {
       query?: never;
@@ -500,6 +517,23 @@ export interface paths {
     put?: never;
     /** Thêm nhân viên (mật khẩu tạm hiện một lần) */
     post: operations["employees_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/employees/export": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Xuất CSV toàn bộ nhân viên theo bộ lọc (M20-08) */
+    get: operations["employees_export"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -2482,7 +2516,7 @@ export interface components {
     };
     /**
      * DashboardFeedbackRow
-     * @description M18-01c: 1 đơn đã ghi phản hồi — popup "Khách hàng đã chăm sóc" và thẻ n★.
+     * @description M18-01c: 1 đơn đã ghi phản hồi — popup "KH đã gọi" và thẻ n★.
      */
     DashboardFeedbackRow: {
       /** Completed At */
@@ -2787,6 +2821,8 @@ export interface components {
       phone: string | null;
       /** Roles */
       roles: string[];
+      /** Temp Password Expires At */
+      temp_password_expires_at: string | null;
       /** Title */
       title: string | null;
       /** Username */
@@ -2906,6 +2942,11 @@ export interface components {
       employee: components["schemas"]["EmployeeOut"];
       /** Temporary Password */
       temporary_password: string;
+      /**
+       * Temporary Password Expires At
+       * Format: date-time
+       */
+      temporary_password_expires_at: string;
     };
     /** EmployeeWorkloadItem */
     EmployeeWorkloadItem: {
@@ -4905,7 +4946,7 @@ export interface operations {
           "application/json": components["schemas"]["LoginResponse"];
         };
       };
-      /** @description problem+json — INVALID_CREDENTIALS: Tên đăng nhập hoặc mật khẩu không đúng. */
+      /** @description problem+json — INVALID_CREDENTIALS: Tên đăng nhập hoặc mật khẩu không đúng. | TEMP_PASSWORD_EXPIRED: Mật khẩu tạm đã hết hạn. Vui lòng liên hệ Quản lý để được cấp lại. */
       401: {
         headers: {
           [name: string]: unknown;
@@ -5416,6 +5457,38 @@ export interface operations {
       };
     };
   };
+  customers_export: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        type?: ("COMPANY" | "INDIVIDUAL") | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "text/csv": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   customers_get: {
     parameters: {
       query?: never;
@@ -5829,7 +5902,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description problem+json — STALE_VERSION | DUPLICATE_NAME | INVALID_STATE */
+      /** @description problem+json — STALE_VERSION | INVALID_STATE | DEPARTMENT_HAS_EMPLOYEES */
       409: {
         headers: {
           [name: string]: unknown;
@@ -5910,6 +5983,39 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  employees_export: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        role?: ("MANAGER" | "SALE" | "CUSTOMER_CARE" | "TECH_LEAD" | "TECHNICIAN") | null;
+        is_active?: boolean | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "text/csv": unknown;
+        };
       };
       /** @description Validation Error */
       422: {
@@ -6558,6 +6664,7 @@ export interface operations {
         from?: string | null;
         to?: string | null;
         csat_rating?: number | null;
+        csat_unrated?: boolean;
         limit?: number;
         offset?: number;
       };

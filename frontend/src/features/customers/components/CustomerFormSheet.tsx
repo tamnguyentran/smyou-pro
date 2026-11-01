@@ -112,7 +112,7 @@ export function CustomerFormSheet({
     CustomerWritten["duplicate_phone_matches"]
   >([]);
 
-  const { register, handleSubmit, formState, control } = useForm<CustomerFormValues>({
+  const { register, handleSubmit, formState, control, setFocus } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema) as Resolver<CustomerFormValues>,
     defaultValues: {
       type: (customer?.type as CustomerType | undefined) ?? TYPE_ORDER[0],
@@ -203,7 +203,12 @@ export function CustomerFormSheet({
       if (error instanceof ApiError) {
         if (error.problem.code === "STALE_VERSION") setShowReload(true);
         setFormMessage(formError(error, SHOWN_FIELDS));
-        setServerErrors(fieldErrors(error));
+        const byField = fieldErrors(error);
+        setServerErrors(byField);
+        // AC-UI-069: the form is long — focusing (and so scrolling to) the first field the server
+        // rejected shows the error without the user hunting for it, like RHF does client-side.
+        const firstField = SHOWN_FIELDS.find((field) => field in byField);
+        if (firstField) setFocus(firstField as keyof CustomerFormValues);
       } else {
         setFormMessage("Không thực hiện được. Vui lòng thử lại.");
       }
@@ -218,38 +223,44 @@ export function CustomerFormSheet({
       wide={!readOnly}
       dismissible={!(create.isPending || update.isPending)}
       footer={
-        readOnly ? undefined : showReload ? (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              invalidateList();
-              onClose();
-            }}
-          >
-            Tải lại
-          </Button>
-        ) : (
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              className="flex-1"
-              icon={<X aria-hidden="true" className="size-4" />}
-              disabled={create.isPending || update.isPending}
-              onClick={onClose}
-            >
-              Huỷ
-            </Button>
-            <Button
-              type="submit"
-              form={FORM_ID}
-              className="flex-1"
-              icon={<Save aria-hidden="true" className="size-4" />}
-              loading={create.isPending || update.isPending}
-            >
-              Lưu
-            </Button>
+        readOnly ? undefined : (
+          <div className="space-y-3">
+            {/* AC-UI-069: the general error sits right above the buttons, never scrolled away. */}
+            {formMessage ? <Alert>{formMessage}</Alert> : null}
+            {showReload ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  invalidateList();
+                  onClose();
+                }}
+              >
+                Tải lại
+              </Button>
+            ) : (
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1"
+                  icon={<X aria-hidden="true" className="size-4" />}
+                  disabled={create.isPending || update.isPending}
+                  onClick={onClose}
+                >
+                  Huỷ
+                </Button>
+                <Button
+                  type="submit"
+                  form={FORM_ID}
+                  className="flex-1"
+                  icon={<Save aria-hidden="true" className="size-4" />}
+                  loading={create.isPending || update.isPending}
+                >
+                  Lưu
+                </Button>
+              </div>
+            )}
           </div>
         )
       }
@@ -302,7 +313,6 @@ export function CustomerFormSheet({
           onSubmit={(event) => void onSubmit(event)}
           className="space-y-4"
         >
-          {formMessage ? <Alert>{formMessage}</Alert> : null}
           <DuplicatePhoneWarning matches={duplicateMatches} />
 
           <FieldGroup divider={false}>

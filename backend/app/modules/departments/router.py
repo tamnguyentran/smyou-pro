@@ -29,6 +29,7 @@ def _docs(*lines: tuple[int, str]) -> dict[int | str, dict[str, Any]]:
 NOT_FOUND = (404, "NOT_FOUND")
 DUPLICATE = (409, "DUPLICATE_NAME")
 CONFLICTS = (409, "STALE_VERSION | DUPLICATE_NAME | INVALID_STATE")
+DEACTIVATE_CONFLICTS = (409, "STALE_VERSION | INVALID_STATE | DEPARTMENT_HAS_EMPLOYEES")
 
 
 @router.get(
@@ -91,7 +92,7 @@ def rename_department(
     operation_id="departments_deactivate",
     summary="Ngừng hoạt động phòng ban",
     response_model=DepartmentOut,
-    responses=_docs(NOT_FOUND, CONFLICTS),
+    responses=_docs(NOT_FOUND, DEACTIVATE_CONFLICTS),
 )
 def deactivate(
     department_id: uuid.UUID, body: DepartmentVersion, request: Request, session: DbSession, actor: Manager

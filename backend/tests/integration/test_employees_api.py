@@ -40,6 +40,7 @@ ITEM_KEYS = {
     "is_active",
     "is_locked",
     "must_change_password",
+    "temp_password_expires_at",  # M20-09
     "version",
 }
 NEW_HOA = {
@@ -528,6 +529,7 @@ def test_routes_capabilities_and_logs(
     assert employee_routes == {
         ("GET", "/api/v1/employees", "employee.read"),
         ("GET", "/api/v1/employees/lookup", "employee.lookup"),
+        ("GET", "/api/v1/employees/export", "employee.manage"),  # M20-08 (AC-EMP-112, Q141)
         ("GET", "/api/v1/employees/{employee_id}", "employee.read"),
         ("POST", "/api/v1/employees", "employee.manage"),
         ("PATCH", "/api/v1/employees/{employee_id}", "employee.manage"),

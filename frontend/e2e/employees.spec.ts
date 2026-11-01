@@ -71,7 +71,7 @@ test("AC-EMP-014 AC-EMP-018 @a11y @screenshot thêm nhân viên và mật khẩu
   const email = `qa.${info.project.name}.${String(Date.now())}@smyou.vn`;
   await form.getByLabel("Họ và tên").fill("QA Kiểm thử");
   await form.getByLabel("Email").fill(email);
-  await form.getByLabel("Phòng ban").selectOption({ label: "Kinh doanh" });
+  await form.getByLabel("Phòng ban").selectOption({ label: "Phát Triển Kinh Tế" });
   await form.getByRole("checkbox", { name: "Nhân viên kinh doanh" }).check();
   await evidence(page, info, "employee-form.png");
 
@@ -111,7 +111,7 @@ test("AC-EMP-018 không cuộn ngang ở 360px (danh sách, form thêm, mật kh
   const email = `qa.360.${info.project.name}.${String(Date.now())}@smyou.vn`;
   await form.getByLabel("Họ và tên").fill("QA 360px");
   await form.getByLabel("Email").fill(email);
-  await form.getByLabel("Phòng ban").selectOption({ label: "Kinh doanh" });
+  await form.getByLabel("Phòng ban").selectOption({ label: "Phát Triển Kinh Tế" });
   await form.getByRole("checkbox", { name: "Nhân viên kinh doanh" }).check();
   await noHorizontalScroll(); // form thêm nhân viên
 
@@ -133,7 +133,7 @@ test("AC-EMP-016 khoá tài khoản, cấp lại mật khẩu, mở khoá (backe
   const email = `qa.lock.${info.project.name}.${String(Date.now())}@smyou.vn`;
   await createForm.getByLabel("Họ và tên").fill(name);
   await createForm.getByLabel("Email").fill(email);
-  await createForm.getByLabel("Phòng ban").selectOption({ label: "Kỹ thuật" });
+  await createForm.getByLabel("Phòng ban").selectOption({ label: "Phát Triển Kinh Tế" });
   await createForm.getByRole("checkbox", { name: "Nhân viên kỹ thuật" }).check();
   await createForm.getByRole("button", { name: "Lưu" }).click();
   await page
@@ -205,7 +205,7 @@ test("AC-EMP-063 @screenshot tạo nhân viên chọn phòng ban mới từ danh
   const email = `qa.dept.${info.project.name}.${String(Date.now())}@smyou.vn`;
   await form.getByLabel("Họ và tên").fill(name);
   await form.getByLabel("Email").fill(email);
-  await form.getByLabel("Phòng ban").selectOption({ label: "Nhân sự/marketing" });
+  await form.getByLabel("Phòng ban").selectOption({ label: "Nhân sự/Marketing" });
   await form.getByRole("checkbox", { name: "Nhân viên kinh doanh" }).check();
   await evidence(page, info, "employee-department-form.png");
   await form.getByRole("button", { name: "Lưu" }).click();
@@ -220,7 +220,7 @@ test("AC-EMP-063 @screenshot tạo nhân viên chọn phòng ban mới từ danh
   await row.getByRole("button", { name: new RegExp(name) }).click();
   const editDialog = page.getByRole("dialog", { name: "Sửa nhân viên" });
   await expect(editDialog.getByLabel("Phòng ban").locator("option:checked")).toHaveText(
-    "Nhân sự/marketing",
+    "Nhân sự/Marketing",
   );
 });
 
@@ -241,7 +241,7 @@ test("AC-EMP-071 @screenshot tạo nhân viên đủ hồ sơ cá nhân, mở l�
   await form.getByLabel("Ngày cấp").fill("2018-10-08");
   await form.getByLabel("Nơi cấp").fill("Cục Cảnh sát QLHC về TTXH");
   await form.getByLabel("Tình trạng hôn nhân").selectOption({ label: "Đã kết hôn" });
-  await form.getByLabel("Phòng ban").selectOption({ label: "Kinh doanh" });
+  await form.getByLabel("Phòng ban").selectOption({ label: "Phát Triển Kinh Tế" });
   await form.getByRole("checkbox", { name: "Nhân viên kinh doanh" }).check();
   await evidence(page, info, "employee-profile-form.png");
   expect(
@@ -281,7 +281,7 @@ test("AC-AUTH-074 @screenshot tạo NV có ngày sinh → đăng nhập bằng t
   const form = page.getByRole("dialog", { name: "Thêm nhân viên" });
   await form.getByLabel("Họ và tên").fill("Nguyễn Lê Kim Yến");
   await form.getByLabel("Ngày sinh").fill("1985-07-30");
-  await form.getByLabel("Phòng ban").selectOption({ label: "Kinh doanh" });
+  await form.getByLabel("Phòng ban").selectOption({ label: "Phát Triển Kinh Tế" });
   await form.getByRole("checkbox", { name: "Nhân viên kinh doanh" }).check();
   await form.getByRole("button", { name: "Lưu" }).click();
 
@@ -330,4 +330,158 @@ test("AC-EMP-085 AC-EMP-083 @a11y @screenshot khối Cách phân quyền hoạt 
   await evidence(page, info, "employees-permission-guide.png", {
     checkOverflow: info.project.name === "mobile",
   });
+});
+
+const ECONOMIC = "d4444444-4444-4444-8444-444444444444";
+
+/** M20-08: a fresh employee with phone + birth date, created through the API (same session cookie). */
+async function createKhoa(page: Page, info: TestInfo): Promise<{ name: string; username: string }> {
+  const name = `Phạm Văn Khoa ${info.project.name} ${String(Date.now())}`;
+  const res = await page.request.post("api/v1/employees", {
+    data: {
+      full_name: name,
+      phone: "0912345678",
+      birth_date: "1995-04-20",
+      department_id: ECONOMIC,
+      roles: ["TECHNICIAN"],
+    },
+  });
+  expect(res.status()).toBe(201);
+  const body = (await res.json()) as { employee: { username: string } };
+  return { name, username: body.employee.username };
+}
+
+test("AC-EMP-105 AC-EMP-106 AC-EMP-107 @screenshot cột Tài khoản đăng nhập, SĐT, Ngày sinh; tìm theo tên đăng nhập", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER);
+  await expect(page.getByRole("heading", { level: 1, name: "Nhân sự & phân quyền" })).toBeVisible();
+  const khoa = await createKhoa(page, info);
+
+  await page.getByLabel("Tìm kiếm").fill(khoa.username);
+  if (info.project.name === "mobile") {
+    const card = page.getByRole("button", { name: new RegExp(khoa.name) });
+    await expect(card).toContainText(`Tài khoản: ${khoa.username}`);
+    await expect(card).toContainText("0912345678");
+    await expect(card).toContainText("Ngày sinh: 20/04/1995");
+    expect((await card.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    await evidence(page, info, "employees-login-column.png");
+    await card.click();
+    await expect(page.getByRole("dialog", { name: "Sửa nhân viên" })).toBeVisible();
+    return;
+  }
+
+  const table = page.getByRole("table");
+  await expect(table.getByRole("columnheader")).toHaveText([
+    "Mã",
+    "Họ tên",
+    "Tài khoản đăng nhập",
+    "Email",
+    "SĐT",
+    "Ngày sinh",
+    "Vai trò",
+    "Trạng thái",
+  ]);
+  const row = table.getByRole("row").filter({ hasText: khoa.name });
+  await expect(row).toHaveCount(1);
+  const cells = row.getByRole("cell");
+  await expect(cells.nth(1)).toHaveText(khoa.name);
+  await expect(cells.nth(2)).toHaveText(khoa.username);
+  await expect(cells.nth(3)).toHaveText("—");
+  await expect(cells.nth(4)).toHaveText("0912345678");
+  await expect(cells.nth(5)).toHaveText("20/04/1995");
+  await evidence(page, info, "employees-login-column.png");
+});
+
+test("AC-EMP-116 AC-EMP-117 AC-EMP-118 nút Xuất Excel: desktop tải CSV theo bộ lọc, điện thoại ẩn", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER);
+  await expect(page.getByRole("button", { name: "Thêm nhân viên" })).toBeVisible();
+  const exportLink = page.getByRole("link", { name: "Xuất Excel" });
+
+  if (info.project.name === "mobile") {
+    await expect(exportLink).toBeHidden();
+    return;
+  }
+
+  await expect(exportLink).toBeVisible();
+  expect((await exportLink.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await expect(exportLink).toHaveAttribute("href", /\/api\/v1\/employees\/export$/);
+
+  // Như customers.spec.ts: gọi lại đúng href bằng page.request (chung cookie phiên).
+  const href = await exportLink.getAttribute("href");
+  if (href === null) throw new Error("export link missing href");
+  await exportLink.click();
+  await expect(page.getByRole("heading", { level: 1, name: "Nhân sự & phân quyền" })).toBeVisible();
+  const response = await page.request.get(href);
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-disposition"] ?? "").toMatch(
+    /filename="nhan-vien-\d{4}-\d{2}-\d{2}\.csv"/,
+  );
+  const body = await response.body();
+  expect([...body.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
+  expect(body.subarray(3).toString("utf-8")).toMatch(/^Mã NV,Họ tên,Tài khoản đăng nhập/);
+  expect(body.toString("utf-8")).toContain("E2E01");
+
+  await page.getByLabel("Tìm kiếm").fill("Minh");
+  await page.getByLabel("Vai trò").selectOption("SALE");
+  await page.getByLabel("Trạng thái").selectOption("true");
+  await expect(exportLink).toHaveAttribute(
+    "href",
+    /\/api\/v1\/employees\/export\?q=Minh&role=SALE&is_active=true$/,
+  );
+});
+
+test("AC-EMP-117 QLKT không thấy nút Xuất Excel", async ({ page }) => {
+  await signIn(page, TECH_LEAD);
+  await expect(page.getByRole("heading", { level: 1, name: "Nhân sự & phân quyền" })).toBeVisible();
+  await expect(page.getByRole("table").or(page.getByRole("list")).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Xuất Excel" })).toHaveCount(0);
+});
+
+test("AC-EMP-123 AC-EMP-124 @a11y @screenshot cấp lại mật khẩu: giờ hết hạn trong hộp thoại và trên sheet", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER);
+  await page.getByRole("button", { name: "Thêm nhân viên" }).click();
+  const createForm = page.getByRole("dialog", { name: "Thêm nhân viên" });
+  const name = "QA Hết Hạn";
+  const email = `qa.expiry.${info.project.name}.${String(Date.now())}@smyou.vn`;
+  await createForm.getByLabel("Họ và tên").fill(name);
+  await createForm.getByLabel("Email").fill(email);
+  await createForm.getByLabel("Phòng ban").selectOption({ label: "Phát Triển Kinh Tế" });
+  await createForm.getByRole("checkbox", { name: "Nhân viên kỹ thuật" }).check();
+  await createForm.getByRole("button", { name: "Lưu" }).click();
+  const expiryLine =
+    /^Hết hạn lúc \d{2}:\d{2} \d{2}\/\d{2}\/\d{4}\. Nhân viên phải đổi mật khẩu ở lần đăng nhập đầu\.$/;
+  const created = page.getByRole("dialog", { name: "Mật khẩu tạm" });
+  await expect(created.getByText(expiryLine)).toBeVisible();
+  await created.getByRole("button", { name: "Đóng", exact: true }).click();
+
+  await page.getByLabel("Tìm kiếm").fill(email);
+  await page
+    .locator("li, tr")
+    .filter({ hasText: email })
+    .getByRole("button", { name: new RegExp(name) })
+    .first()
+    .click();
+  const editDialog = page.getByRole("dialog", { name: "Sửa nhân viên" });
+  await expect(editDialog.getByText(/^Mật khẩu tạm — hết hạn lúc /)).toBeVisible();
+  await editDialog.getByRole("button", { name: "Cấp lại mật khẩu" }).click();
+  await page
+    .getByRole("dialog", { name: "Cấp lại mật khẩu" })
+    .getByRole("button", { name: "Cấp lại mật khẩu" })
+    .click();
+  const passwordDialog = page.getByRole("dialog", { name: "Mật khẩu tạm" });
+  await expect(passwordDialog.getByText(expiryLine)).toBeVisible();
+  await expect(passwordDialog.getByRole("button", { name: "Sao chép" })).toBeVisible();
+  await evidence(page, info, "temporary-password-expiry.png");
+  await passwordDialog.getByRole("button", { name: "Đóng", exact: true }).click();
+  await evidence(page, info, "employee-sheet-temp-password-status.png");
 });

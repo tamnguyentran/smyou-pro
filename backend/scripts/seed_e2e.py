@@ -14,9 +14,9 @@ from sqlalchemy import delete, func, select, update
 from app.core.config import Settings
 from app.core.db import create_db_engine, create_session_factory
 from app.core.security import hash_password
-from app.modules.catalog.models import Product, Service
+from app.modules.catalog.models import Product, ProductServiceGroup, Service
 from app.modules.customers.models import Customer
-from app.modules.departments.models import LEGACY_DEPARTMENT_IDS
+from app.modules.departments.models import STANDARD_DEPARTMENT_IDS
 from app.modules.dispatch.models import Assignment, DefectRecord, Task
 from app.modules.files import service as files_service
 from app.modules.files.models import Attachment
@@ -27,6 +27,7 @@ from app.modules.identity.models import (
     PasswordResetRequest,
     PasswordResetToken,
 )
+from app.modules.notifications.models import Notification
 from app.modules.orders.models import Order, OrderLine, OrderRevision
 
 # Tiny valid JPEG (magic bytes + EOI marker) — same idiom as test_orders_confirmation_api.py's
@@ -58,7 +59,12 @@ ACCOUNTS = [
     ("mai.quenmk.desktop@smyou.vn", "E2E13", "Bùi Thị Mai", ("SALE",), "QuenMK@E2E1", False),
     # M15-02b: màn tra cứu CSKH (/orders) dùng role riêng, không gộp qua _MANAGER_BUNDLE.
     ("lan.cskh@smyou.vn", "E2E14", "Nguyễn Thị Lan", ("CUSTOMER_CARE",), "E2e@SmYou2026", False),
+    # M19-01b: KTV thêm dòng hàng tại hiện trường — tài khoản riêng, không lẫn "Việc của tôi" của khoa.shell.
+    ("binh.ktv@smyou.vn", "E2E15", "Nguyễn Văn Bình", ("TECHNICIAN",), "E2e@SmYou2026", False),
+    # M20-09: mật khẩu tạm đã quá hạn 24 giờ — đăng nhập luôn bị từ chối (không test nào đổi được).
+    ("het.han@smyou.vn", "E2E16", "Trần Văn Khoa", ("TECHNICIAN",), "TamThoi#E2E1", True),
 ]
+EXPIRED_TEMP_ACCOUNT = "het.han@smyou.vn"
 
 # (sku, name, category, brand, unit, price, is_active, price_fixed) — M2-01b: stable data for the
 # products list screenshot/e2e, independent of test execution order (upsert by sku, not created by
@@ -66,6 +72,7 @@ ACCOUNTS = [
 PRODUCTS = [
     ("E2E-MON-001", "Màn hình Dell 22 inch E2E", "MONITOR", "Dell", "CAI", 2_800_000, True, True),
     ("E2E-PRN-001", "Hộp mực Canon E2E", "PRINTER_SUPPLY", "Canon", "HOP", 850_000, False, False),
+    ("E2E-SSD-001", "Ổ cứng SSD Kingston 512GB E2E", "STORAGE", "Kingston", "CAI", 1_350_000, True, False),
 ]
 
 # (code, name, category, unit, price, is_active) — M2-02: stable data for the services list
@@ -77,6 +84,12 @@ SERVICES = [
 
 # (code, type, name, phone, tax_code) — M3-01: stable data for the customers list screenshot/e2e,
 # independent of test execution order (upsert by code, not created by a test itself).
+STANDARD_GROUP_IDS = [
+    uuid.UUID("a1111111-1111-4111-8111-111111111111"),
+    uuid.UUID("a2222222-2222-4222-8222-222222222222"),
+    uuid.UUID("a3333333-3333-4333-8333-333333333333"),
+]
+RETIRED_GROUPS = ["Thiết bị mạng", "Máy in cũ"]
 CUSTOMERS = [
     ("E2E-KH-001", "COMPANY", "Cty Sáng Tạo Mới E2E", "0909123456", "0312345678"),
     ("E2E-KH-002", "INDIVIDUAL", "Anh Ngọc E2E - Grand Hotel", "0918234567", None),
@@ -142,6 +155,24 @@ CSK_REVISION_ORDERS = [
     ("E2E-DH-M1503B", "E2E-DH-M1503B-T1", "Camera bị mờ góc trái"),  # desktop
 ]
 
+# M19-01b: KTV thêm dòng hàng tại hiện trường (orders-on-site-lines.spec.ts) — same one-order-per-
+# project idiom. IN_PROGRESS, created by hoa.e2e (SALE, receives the notification), 1 line of Hoa's
+# (1.000.000đ, VAT 0), binh.ktv's assignment IN_PROGRESS. Lines + notifications reset on every seed.
+ON_SITE_ORDERS = [
+    ("E2E-DH-M1901A", "E2E-DH-M1901A-T1"),  # mobile
+    ("E2E-DH-M1901B", "E2E-DH-M1901B-T1"),  # desktop
+]
+
+
+# M20-03: "Chỉ đơn của tôi" mặc định bật cho SALE/CSKH (orders.spec.ts) — read-only, shared by both
+# projects. COMPLETED this month, unrated: one created by lan.cskh (her only order, so her
+# "Chưa đánh giá" tile = 1), one by ha.e2e (another Sale — hidden from Hoa while the box is ticked).
+# (code, creator email)
+MINE_DEFAULT_ORDERS = [
+    ("E2E-DH-M2003L", "lan.cskh@smyou.vn"),
+    ("E2E-DH-M2003H", "ha.e2e@smyou.vn"),
+]
+
 
 def main() -> int:
     settings = Settings()
@@ -173,12 +204,15 @@ def main() -> int:
             employee = session.scalars(select(Employee).where(Employee.email == email)).one_or_none()
             if employee is None:
                 employee = Employee(
-                    email=email, code=code, full_name=name, department_id=LEGACY_DEPARTMENT_IDS["TECHNICAL"]
+                    email=email, code=code, full_name=name, department_id=STANDARD_DEPARTMENT_IDS["ECONOMIC"]
                 )
                 session.add(employee)
             employee.username = email.split("@", 1)[0]
             employee.password_hash = hash_password(password)
             employee.must_change_password = must_change
+            employee.temp_password_expires_at = (
+                now - timedelta(hours=1) if email == EXPIRED_TEMP_ACCOUNT else None
+            )
             employee.is_active = True
             employee.failed_login_count = 0
             employee.locked_until = None
@@ -214,6 +248,19 @@ def main() -> int:
             service.price = price
             service.cost_price = round(price * 0.8)
             service.is_active = is_active
+        # M20-06: only the 3 standard groups stay active (state after the consolidation migration);
+        # 2 retired groups for the "Đã ngừng hoạt động" filter (AC-CAT-107).
+        session.execute(
+            update(ProductServiceGroup)
+            .where(ProductServiceGroup.id.not_in(STANDARD_GROUP_IDS), ProductServiceGroup.is_active)
+            .values(is_active=False)
+        )
+        for name in RETIRED_GROUPS:
+            if (
+                session.scalars(select(ProductServiceGroup).where(ProductServiceGroup.name == name)).first()
+                is None
+            ):
+                session.add(ProductServiceGroup(name=name, is_active=False))
         creator_id = session.scalars(select(Employee.id).where(Employee.email == "an.e2e@smyou.vn")).one()
         for code, customer_type, name, phone, tax_code in CUSTOMERS:
             customer = session.scalars(select(Customer).where(Customer.code == code)).one_or_none()
@@ -397,6 +444,24 @@ def main() -> int:
             csk_order.csat_recorded_at = now
             upsert_task_assignment(csk_order, task_code, "DONE", "DONE", "1.0", -1)
 
+        for order_code, creator_email in MINE_DEFAULT_ORDERS:
+            mine_order = upsert_order(
+                order_code,
+                customer_name="Cty TNHH Đơn Của Tôi E2E",
+                customer_phone="0918777888",
+                service_address="60 Lê Lợi, P. Bến Nghé, Q.1, TP.HCM",
+            )
+            mine_order.created_by = session.scalars(
+                select(Employee.id).where(Employee.email == creator_email)
+            ).one()
+            mine_order.status = "COMPLETED"
+            mine_order.revision_no = 0
+            mine_order.completed_at = now
+            mine_order.csat_rating = None
+            mine_order.csat_comment = None
+            mine_order.csat_recorded_by = None
+            mine_order.csat_recorded_at = None
+
         for order_code, task_code in REOPEN_ORDERS:
             reopen_order = upsert_order(
                 order_code,
@@ -429,6 +494,23 @@ def main() -> int:
         dashboard_order.total = 12_000_000
         dashboard_order.completed_at = now
         dashboard_order.csat_rating = 5
+        # M20-02: thẻ "Chưa đánh giá" trên /orders (CSKH) cần ≥1 đơn COMPLETED trong tháng hiện tại
+        # chưa có csat_rating để AC-CSK-033 có dữ liệu lọc.
+        unrated_order = session.scalars(select(Order).where(Order.code == "E2E-DH-M2002A")).one_or_none()
+        if unrated_order is None:
+            unrated_order = Order(
+                code="E2E-DH-M2002A",
+                status="COMPLETED",
+                customer_name="Khách lẻ M20-02 E2E",
+                customer_phone="0909765432",
+                service_address="22 Lý Tự Trọng, P. Bến Nghé, Q.1, TP.HCM",
+                created_by=creator_id,
+            )
+            session.add(unrated_order)
+        unrated_order.status = "COMPLETED"
+        unrated_order.customer_name = "Khách lẻ M20-02 E2E"
+        unrated_order.completed_at = now
+        unrated_order.csat_rating = None
         # M16: báo cáo doanh thu cộng theo dòng hàng (credited_employee_id), nên đơn cần ≥1 dòng
         # ghi công cho An thì E2E-KH-001 / Nguyễn Văn An mới hiện trong báo cáo.
         session.flush()
@@ -501,6 +583,38 @@ def main() -> int:
             duc_id,
             title="Bảo trì camera E2E (quá hạn, của Đức)",
         )
+
+        binh_id = session.scalars(select(Employee.id).where(Employee.email == "binh.ktv@smyou.vn")).one()
+        ssd = session.scalars(select(Product).where(Product.sku == "E2E-SSD-001")).one()
+        ssd.vat_rate = Decimal("0")
+        for order_code, task_code in ON_SITE_ORDERS:
+            on_site_order = upsert_order(order_code, customer_name="Cty TNHH Hiện Trường E2E")
+            on_site_order.status = "IN_PROGRESS"
+            on_site_order.created_by = hoa_id
+            on_site_order.subtotal = 1_000_000
+            on_site_order.discount_amount = 0
+            on_site_order.vat_amount = 0
+            on_site_order.total = 1_000_000
+            session.execute(delete(OrderLine).where(OrderLine.order_id == on_site_order.id))
+            session.execute(delete(Notification).where(Notification.entity_id == on_site_order.id))
+            session.add(
+                OrderLine(
+                    order_id=on_site_order.id,
+                    position=1,
+                    item_type="CUSTOM",
+                    name_snapshot="Lắp đặt camera hiện trường E2E",
+                    unit_snapshot="gói",
+                    vat_rate=Decimal("0"),
+                    quantity=Decimal("1"),
+                    unit_price=1_000_000,
+                    line_gross=1_000_000,
+                    line_vat=0,
+                    line_total=1_000_000,
+                    credited_employee_id=hoa_id,
+                    added_by_id=hoa_id,
+                )
+            )
+            upsert_task_assignment(on_site_order, task_code, "IN_PROGRESS", "IN_PROGRESS", "1.0", 2, binh_id)
     sys.stdout.write(
         f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products, {len(SERVICES)} E2E services,"
         f" {len(CUSTOMERS)} E2E customers, {len(MY_TASKS)} E2E my-tasks assignments\n"

@@ -515,6 +515,89 @@ describe("M15-02b — CSKH tra cứu + CSAT trên /orders", () => {
   });
 });
 
+describe('M20-02 — thẻ "Chưa đánh giá" lọc danh sách', () => {
+  function setup() {
+    signedInAs(lanId, LAN);
+    const queries: URLSearchParams[] = [];
+    server.use(
+      http.get("/api/v1/orders", ({ request }) => {
+        queries.push(new URL(request.url).searchParams);
+        return HttpResponse.json({ items: [summary()], total: 1, limit: 20, offset: 0 });
+      }),
+      http.get("/api/v1/orders/csat-summary", () =>
+        HttpResponse.json({ "5": 3, "4": 2, "3": 1, "2": 1, "1": 1, none: 2 }),
+      ),
+    );
+    renderApp("/orders");
+    const last = () => queries[queries.length - 1] ?? new URLSearchParams();
+    return { last, user: userEvent.setup() };
+  }
+  const unratedTile = () => screen.getByRole("button", { name: /Chưa đánh giá/ });
+
+  test("AC-CSK-030: bấm 'Chưa đánh giá' → aria-pressed, gọi csat_unrated=true, giữ ngày, về trang 1", async () => {
+    const { last, user } = setup();
+    await screen.findByText("DH2609-0001");
+    expect(unratedTile()).toBeEnabled();
+
+    await user.click(unratedTile());
+    await waitFor(() => {
+      expect(last().get("csat_unrated")).toBe("true");
+    });
+    const range = defaultMonthToDateRange();
+    expect(last().get("csat_rating")).toBeNull();
+    expect(last().get("from")).toBe(range.from);
+    expect(last().get("to")).toBe(range.to);
+    expect(last().get("offset")).toBe("0");
+    expect(unratedTile()).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("AC-CSK-030: ô đang chọn có viền chọn nhìn thấy được (không chỉ aria-pressed/hover)", async () => {
+    const { user } = setup();
+    await screen.findByText("DH2609-0001");
+    expect(unratedTile()).not.toHaveClass("ring-2");
+
+    await user.click(unratedTile());
+    await waitFor(() => {
+      expect(unratedTile()).toHaveAttribute("aria-pressed", "true");
+    });
+    expect(unratedTile()).toHaveClass("ring-2", "ring-brand");
+  });
+
+  test("AC-CSK-031: đang chọn 'Chưa đánh giá' → bấm '3★' chuyển sang csat_rating=3", async () => {
+    const { last, user } = setup();
+    await screen.findByText("DH2609-0001");
+    await user.click(unratedTile());
+    await waitFor(() => {
+      expect(last().get("csat_unrated")).toBe("true");
+    });
+
+    const three = screen.getByRole("button", { name: /3★/ });
+    await user.click(three);
+    await waitFor(() => {
+      expect(last().get("csat_rating")).toBe("3");
+    });
+    expect(last().get("csat_unrated")).toBeNull();
+    expect(three).toHaveAttribute("aria-pressed", "true");
+    expect(unratedTile()).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("AC-CSK-032: bấm lại 'Chưa đánh giá' → gỡ lọc", async () => {
+    const { last, user } = setup();
+    await screen.findByText("DH2609-0001");
+    await user.click(unratedTile());
+    await waitFor(() => {
+      expect(last().get("csat_unrated")).toBe("true");
+    });
+
+    await user.click(unratedTile());
+    await waitFor(() => {
+      expect(last().get("csat_unrated")).toBeNull();
+    });
+    expect(last().get("csat_rating")).toBeNull();
+    expect(unratedTile()).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
 describe("M16-09 — bố cục dòng bộ lọc (Tìm kiếm/Từ ngày/Đến ngày)", () => {
   function mobile() {
     vi.stubGlobal(

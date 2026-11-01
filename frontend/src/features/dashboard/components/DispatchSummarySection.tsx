@@ -30,7 +30,7 @@ export function DispatchSummarySection({ summary }: { summary: DispatchSummary }
   return (
     <section className="space-y-3">
       <h2 className="text-sm font-semibold text-muted">Điều phối</h2>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {TILES.map((tile) => (
           <StatTile
             key={tile.card}

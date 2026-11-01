@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import type { components } from "../../lib/api/schema";
+import { resolveBasePath } from "../../lib/basePath";
 import { toApiError } from "../auth/errors";
 import type { CustomerType } from "./schemas";
 
@@ -17,6 +18,18 @@ export interface CustomerFilters {
 }
 
 export const CUSTOMERS_KEY = "customers";
+
+/** AC-CUS-037 (M20-05): trình duyệt tải trực tiếp URL này (session cookie), như `kpiExportUrl`.
+ * Cùng bộ lọc với danh sách nhưng không phân trang. */
+export function customersExportUrl(filters: Pick<CustomerFilters, "q" | "type">): string {
+  const apiPrefix = resolveBasePath(import.meta.env.BASE_URL).apiPrefix;
+  const params = new URLSearchParams();
+  const q = filters.q.trim();
+  if (q) params.set("q", q);
+  if (filters.type) params.set("type", filters.type);
+  const query = params.toString();
+  return `${apiPrefix}/api/v1/customers/export${query ? `?${query}` : ""}`;
+}
 
 /** Paginated, searched, filtered list — kept while the next page loads (no flash back to Skeleton).
  * `enabled` (default true) lets a caller like the order form's customer picker skip fetching while

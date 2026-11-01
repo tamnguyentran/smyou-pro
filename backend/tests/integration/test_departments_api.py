@@ -1,6 +1,7 @@
 """M17-02a: danh sách "Phòng ban" (AC-EMP-033…046)."""
 
 import uuid
+from dataclasses import replace
 from typing import Any
 
 import httpx2 as httpx
@@ -10,7 +11,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Connection, text
 
 from app.core.authz import declared_routes
-from tests.integration.conftest import AN, Person, login, seed
+from tests.integration.conftest import AN, Person, ensure_legacy_departments, login, seed
 
 HOA = Person("hoa.tran@smyou.vn", "Hoa@SmYou26", ("TECH_LEAD",), "NV010", "Trần Thị Hoa", "TECHNICAL")
 BINH = Person("binh.le@smyou.vn", "Binh@SmYou26", ("SALE",), "NV005", "Lê Văn Bình", "SALES")
@@ -26,12 +27,10 @@ ECONOMIC_ID = "d4444444-4444-4444-8444-444444444444"
 HR_ID = "d5555555-5555-4555-8555-555555555555"
 ACCOUNTING_ID = "d6666666-6666-4666-8666-666666666666"
 
+# M20-07: only the 3 standard departments remain (Q137 spelling); the legacy ones are test rows only.
 SEEDED = [
-    "Ban quản lý",
-    "Kế Toán - tài chính",
-    "Kinh doanh",
-    "Kỹ thuật",
-    "Nhân sự/marketing",
+    "Kế Toán - Tài chính",
+    "Nhân sự/Marketing",
     "Phát Triển Kinh Tế",
 ]
 
@@ -45,7 +44,14 @@ def client_as(app: FastAPI, person: Person) -> TestClient:
 
 @pytest.fixture
 def people(db: Connection) -> dict[str, uuid.UUID]:
-    return {p.code: seed(db, p) for p in (AN, HOA, BINH, TU, THU)}
+    # Accounting is never deactivated here, so M20-07's "has employees" guard stays out of the way.
+    return {p.code: seed(db, replace(p, department="ACCOUNTING")) for p in (AN, HOA, BINH, TU, THU)}
+
+
+@pytest.fixture
+def legacy(db: Connection, people: dict[str, uuid.UUID]) -> None:
+    """The 3 pre-M20-07 departments as plain, empty test rows."""
+    ensure_legacy_departments(db)
 
 
 def problem(res: httpx.Response, status: int, code: str) -> dict[str, Any]:
@@ -64,6 +70,13 @@ def audits(db: Connection, entity_id: str) -> list[dict[str, Any]]:
         {"id": entity_id},
     )
     return [dict(r._mapping) for r in rows]
+
+
+def version_of(db: Connection, department_id: str) -> int:
+    """M20-07 renames standard rows (version + 1, again on every migration-test rerun)."""
+    return int(
+        db.execute(text("SELECT version FROM departments WHERE id = :id"), {"id": department_id}).scalar_one()
+    )
 
 
 def count_named(db: Connection, name: str) -> int:
@@ -87,21 +100,16 @@ def test_capability_declared() -> None:
 
 
 @pytest.mark.ac("AC-EMP-033")
-def test_seed_has_6_departments_sorted(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
+def test_seed_has_3_standard_departments_sorted(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
     res = client_as(app, AN).get(URL)
     assert res.status_code == 200, res.text
     body = res.json()
     assert [item["name"] for item in body["items"]] == SEEDED
-    assert body["total"] == 6
-    assert all(item["is_active"] is True and item["version"] == 1 for item in body["items"])
-    assert {item["id"] for item in body["items"]} == {
-        MANAGEMENT_ID,
-        SALES_ID,
-        TECHNICAL_ID,
-        ECONOMIC_ID,
-        HR_ID,
-        ACCOUNTING_ID,
-    }
+    assert body["total"] == 3
+    assert all(item["is_active"] is True for item in body["items"])
+    assert {item["id"] for item in body["items"]} == {ECONOMIC_ID, HR_ID, ACCOUNTING_ID}
     assert all(item["created_at"] and item["updated_at"] for item in body["items"])
 
 
@@ -123,12 +131,12 @@ def test_create_rejects_duplicate_active_name_case_insensitive(
 ) -> None:
     body = problem(client_as(app, AN).post(URL, json={"name": "kế toán - TÀI CHÍNH"}), 409, "DUPLICATE_NAME")
     assert [e["field"] for e in body["errors"]] == ["name"]
-    assert count_named(db, "Kế Toán - tài chính") == 1
+    assert count_named(db, "Kế Toán - Tài chính") == 1
 
 
 @pytest.mark.ac("AC-EMP-036")
 def test_create_allows_name_of_inactive_department(
-    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], legacy: None
 ) -> None:
     an = client_as(app, AN)
     assert an.post(f"{URL}/{SALES_ID}/deactivate", json={"version": 1}).status_code == 200
@@ -143,46 +151,49 @@ def test_create_allows_name_of_inactive_department(
 def test_create_validates_name(app: FastAPI, db: Connection, people: dict[str, uuid.UUID], name: str) -> None:
     body = problem(client_as(app, AN).post(URL, json={"name": name}), 422, "VALIDATION_ERROR")
     assert [e["field"] for e in body["errors"]] == ["name"]
-    assert int(db.execute(text("SELECT count(*) FROM departments")).scalar_one()) == 6
+    assert int(db.execute(text("SELECT count(*) FROM departments")).scalar_one()) == 3
 
 
 @pytest.mark.ac("AC-EMP-038")
 def test_rename_bumps_version_and_audits_old_new(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
-    res = client_as(app, AN).patch(f"{URL}/{HR_ID}", json={"name": "Nhân sự - Marketing", "version": 1})
+    v = version_of(db, HR_ID)
+    res = client_as(app, AN).patch(f"{URL}/{HR_ID}", json={"name": "Nhân sự - Marketing", "version": v})
     assert res.status_code == 200, res.text
     body = res.json()
     assert body["name"] == "Nhân sự - Marketing"
-    assert body["version"] == 2
+    assert body["version"] == v + 1
     events = audits(db, HR_ID)
     assert len(events) == 1
     assert events[0]["action"] == "rename"
     assert events[0]["actor_id"] == people["NV001"]
-    assert events[0]["data"] == {"name": {"from": "Nhân sự/marketing", "to": "Nhân sự - Marketing"}}
+    assert events[0]["data"] == {"name": {"from": "Nhân sự/Marketing", "to": "Nhân sự - Marketing"}}
 
 
 @pytest.mark.ac("AC-EMP-039")
 def test_stale_version_rejected(app: FastAPI, db: Connection, people: dict[str, uuid.UUID]) -> None:
     an = client_as(app, AN)
-    assert an.patch(f"{URL}/{HR_ID}", json={"name": "Nhân sự - Marketing", "version": 1}).status_code == 200
+    v = version_of(db, HR_ID)
+    assert an.patch(f"{URL}/{HR_ID}", json={"name": "Nhân sự - Marketing", "version": v}).status_code == 200
 
-    problem(an.patch(f"{URL}/{HR_ID}", json={"name": "Nhân sự", "version": 1}), 409, "STALE_VERSION")
-    problem(an.post(f"{URL}/{HR_ID}/deactivate", json={"version": 1}), 409, "STALE_VERSION")
+    problem(an.patch(f"{URL}/{HR_ID}", json={"name": "Nhân sự", "version": v}), 409, "STALE_VERSION")
+    problem(an.post(f"{URL}/{HR_ID}/deactivate", json={"version": v}), 409, "STALE_VERSION")
 
     current = an.get(f"{URL}/{HR_ID}").json()
     assert current["name"] == "Nhân sự - Marketing"
     assert current["is_active"] is True
-    assert current["version"] == 2
+    assert current["version"] == v + 1
 
 
 @pytest.mark.ac("AC-EMP-040")
 def test_rename_to_other_active_name_conflicts(
-    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], legacy: None
 ) -> None:
     an = client_as(app, AN)
-    problem(an.patch(f"{URL}/{HR_ID}", json={"name": "kỹ thuật", "version": 1}), 409, "DUPLICATE_NAME")
-    assert an.get(f"{URL}/{HR_ID}").json()["name"] == "Nhân sự/marketing"
+    v = version_of(db, HR_ID)
+    problem(an.patch(f"{URL}/{HR_ID}", json={"name": "kỹ thuật", "version": v}), 409, "DUPLICATE_NAME")
+    assert an.get(f"{URL}/{HR_ID}").json()["name"] == "Nhân sự/Marketing"
 
 
 @pytest.mark.ac("AC-EMP-041")
@@ -220,7 +231,7 @@ def test_repeat_deactivate_or_activate_is_invalid_state(
 
 @pytest.mark.ac("AC-EMP-043")
 def test_activate_conflicts_with_active_same_name(
-    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], legacy: None
 ) -> None:
     an = client_as(app, AN)
     off = an.post(f"{URL}/{TECHNICAL_ID}/deactivate", json={"version": 1}).json()
@@ -299,7 +310,7 @@ def test_other_roles_forbidden_everywhere(
 
 @pytest.mark.ac("AC-EMP-046")
 def test_filter_active_and_accent_insensitive_search(
-    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], legacy: None
 ) -> None:
     an = client_as(app, AN)
     assert an.post(f"{URL}/{SALES_ID}/deactivate", json={"version": 1}).status_code == 200
@@ -310,3 +321,128 @@ def test_filter_active_and_accent_insensitive_search(
 
     unaccented = an.get(URL, params={"q": "KY THUAT"}).json()
     assert [item["name"] for item in unaccented["items"]] == ["Kỹ thuật"]
+
+
+# --- M20-07: deactivate is refused while active employees still belong to the department ---
+
+KHOA_LEFT = Person("khoa.vu@smyou.vn", "Khoa@SmYou26", ("TECHNICIAN",), "NV016", "Trần Văn Khoa", "ECONOMIC")
+
+
+@pytest.fixture
+def economic(db: Connection) -> dict[str, uuid.UUID]:
+    """After M20-07: An, Bình, Tú, Thu (active) in "Phát Triển Kinh Tế"; Hoa elsewhere."""
+    staff = {p.code: seed(db, replace(p, department="ECONOMIC")) for p in (AN, BINH, TU, THU)}
+    return {**staff, HOA.code: seed(db, replace(HOA, department="HR"))}
+
+
+def deactivate_audits(db: Connection, department_id: str) -> list[str]:
+    return [e["action"] for e in audits(db, department_id) if e["action"] == "deactivate"]
+
+
+def move(an: TestClient, employee_id: uuid.UUID, department_id: str) -> None:
+    current = an.get(f"/api/v1/employees/{employee_id}").json()
+    res = an.patch(
+        f"/api/v1/employees/{employee_id}",
+        json={"version": current["version"], "department_id": department_id},
+    )
+    assert res.status_code == 200, res.text
+
+
+@pytest.mark.ac("AC-EMP-096")
+def test_deactivate_refused_while_active_employees_remain(
+    app: FastAPI, db: Connection, economic: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    v = version_of(db, ECONOMIC_ID)
+
+    body = problem(
+        an.post(f"{URL}/{ECONOMIC_ID}/deactivate", json={"version": v}), 409, "DEPARTMENT_HAS_EMPLOYEES"
+    )
+
+    assert body["detail"] == (
+        "Phòng ban còn 4 nhân viên đang hoạt động, hãy chuyển họ sang phòng khác trước khi ngừng hoạt động."
+    )
+    current = an.get(f"{URL}/{ECONOMIC_ID}").json()
+    assert (current["is_active"], current["version"]) == (True, v)
+    assert deactivate_audits(db, ECONOMIC_ID) == []
+
+
+@pytest.mark.ac("AC-EMP-097")
+def test_deactivate_emptied_department_still_works(
+    app: FastAPI, db: Connection, economic: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    depot = an.post(URL, json={"name": "Kho vận"}).json()
+    move(an, economic[BINH.code], depot["id"])
+    move(an, economic[BINH.code], ECONOMIC_ID)
+
+    res = an.post(f"{URL}/{depot['id']}/deactivate", json={"version": depot["version"]})
+
+    assert res.status_code == 200, res.text
+    assert res.json()["is_active"] is False
+    assert [(e["action"], e["actor_id"]) for e in audits(db, depot["id"])][-1] == (
+        "deactivate",
+        economic[AN.code],
+    )
+
+
+@pytest.mark.ac("AC-EMP-098")
+def test_employees_who_left_do_not_block_deactivate(
+    app: FastAPI, db: Connection, economic: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    depot = an.post(URL, json={"name": "Kho vận"}).json()
+    khoa = seed(db, KHOA_LEFT, is_active=False)
+    db.execute(text("UPDATE employees SET department_id = :d WHERE id = :id"), {"d": depot["id"], "id": khoa})
+
+    res = an.post(f"{URL}/{depot['id']}/deactivate", json={"version": depot["version"]})
+
+    assert res.status_code == 200, res.text
+    assert res.json()["is_active"] is False
+    department_id = db.execute(text("SELECT department_id FROM employees WHERE id = :id"), {"id": khoa})
+    assert str(department_id.scalar_one()) == depot["id"]
+
+
+@pytest.mark.ac("AC-EMP-099")
+def test_stale_version_checked_before_employee_rule(
+    app: FastAPI, db: Connection, economic: dict[str, uuid.UUID]
+) -> None:
+    an = client_as(app, AN)
+    depot = an.post(URL, json={"name": "Kho vận"}).json()
+    assert (
+        an.patch(f"{URL}/{depot['id']}", json={"name": "Kho vận 2", "version": depot["version"]}).status_code
+        == 200
+    )
+    move(an, economic[BINH.code], depot["id"])
+
+    problem(
+        an.post(f"{URL}/{depot['id']}/deactivate", json={"version": depot["version"]}), 409, "STALE_VERSION"
+    )
+
+
+@pytest.mark.ac("AC-EMP-100")
+@pytest.mark.parametrize("person", [HOA, BINH], ids=["tech_lead", "sale"])
+def test_deactivate_forbidden_without_leaking_employee_count(
+    app: FastAPI, db: Connection, economic: dict[str, uuid.UUID], person: Person
+) -> None:
+    depot = client_as(app, AN).post(URL, json={"name": "Kho vận"}).json()
+    client = client_as(app, person)
+
+    for department_id, version in (
+        (ECONOMIC_ID, version_of(db, ECONOMIC_ID)),
+        (depot["id"], depot["version"]),
+    ):
+        body = problem(
+            client.post(f"{URL}/{department_id}/deactivate", json={"version": version}), 403, "FORBIDDEN"
+        )
+        assert "nhân viên" not in body.get("detail", "")
+    assert department_is_active(db, ECONOMIC_ID)
+    assert department_is_active(db, depot["id"])
+
+
+def department_is_active(db: Connection, department_id: str) -> bool:
+    return bool(
+        db.execute(
+            text("SELECT is_active FROM departments WHERE id = :id"), {"id": department_id}
+        ).scalar_one()
+    )

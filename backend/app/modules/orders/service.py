@@ -715,10 +715,19 @@ def list_orders(
     date_from: date | None = None,
     date_to: date | None = None,
     csat_rating: int | None = None,
+    csat_unrated: bool = False,
     now: datetime,
     limit: int,
     offset: int,
 ) -> OrderPage:
+    if csat_rating is not None and csat_unrated:
+        message = 'Không thể lọc đồng thời theo mức sao và "Chưa đánh giá".'
+        raise AppError(
+            422,
+            "VALIDATION_ERROR",
+            message,
+            errors=[{"field": "csat_unrated", "code": "conflicting_filters", "message": message}],
+        )
     query = apply_scope(
         select(Order, Employee, ProductServiceGroup)
         .outerjoin(Employee, Employee.id == Order.created_by)
@@ -745,6 +754,9 @@ def list_orders(
         query = query.where(Order.completed_at < _vn_day_start_utc(date_to + timedelta(days=1)))
     if csat_rating is not None:
         query = query.where(Order.csat_rating == csat_rating)
+    if csat_unrated:
+        # M20-02: same definition as the "none" bucket of get_csat_summary so tile count == rows.
+        query = query.where(Order.status == "COMPLETED", Order.csat_rating.is_(None))
     if overdue:
         query = query.where(
             Order.status.notin_(("COMPLETED", "CANCELLED")),

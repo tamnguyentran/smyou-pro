@@ -199,9 +199,7 @@ CARDS: dict[str, _Card] = {
     "mine.awaiting_confirmation": _Card(
         "Chờ KH xác nhận", "viec-cua-toi-cho-kh-xac-nhan", "order", _my_card("awaiting_confirmation")
     ),
-    "care.customers": _Card(
-        "Khách hàng đã chăm sóc", "cskh-kh-da-cham-soc", "feedback", _care_card("customers")
-    ),
+    "care.customers": _Card("KH đã gọi", "cskh-kh-da-cham-soc", "feedback", _care_card("customers")),
     "care.staff": _Card("NV đã gọi điện CSKH", "cskh-nv-goi-dien", "care_staff", _care_card("staff")),
     "care.revision_orders": _Card(
         "Đơn hàng phải sửa", "cskh-don-phai-sua", "order", _care_card("revision_orders")

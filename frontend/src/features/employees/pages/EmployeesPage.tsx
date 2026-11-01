@@ -1,4 +1,4 @@
-import { Search, ShieldQuestion, UserPlus, Users } from "lucide-react";
+import { Download, Search, ShieldQuestion, UserPlus, Users } from "lucide-react";
 import { useId, useState } from "react";
 import { ROLE_LABELS } from "../../../app/menu";
 import { MeError } from "../../../app/shell/MeError";
@@ -11,7 +11,7 @@ import { Select } from "../../../components/ui/Select";
 import { TextField } from "../../../components/ui/TextField";
 import { useDebouncedValue } from "../../../lib/useDebouncedValue";
 import { useMe } from "../../me/api";
-import { useEmployees, type Employee, type EmployeeFilters } from "../api";
+import { employeesExportUrl, useEmployees, type Employee, type EmployeeFilters } from "../api";
 import { EmployeeFormSheet } from "../components/EmployeeFormSheet";
 import { EmployeeList } from "../components/EmployeeList";
 import { PermissionGuide } from "../components/PermissionGuide";
@@ -72,7 +72,7 @@ export function EmployeesPage() {
         <div className="grid flex-1 gap-3 sm:grid-cols-3">
           <TextField
             label="Tìm kiếm"
-            placeholder="Tên, mã, email, SĐT…"
+            placeholder="Tên, mã, tài khoản, email, SĐT…"
             value={q}
             onChange={(event) => {
               setQ(event.target.value);
@@ -127,6 +127,18 @@ export function EmployeesPage() {
           >
             Cách phân quyền hoạt động
           </Button>
+          {canManage ? (
+            // M20-08: chỉ desktop (như M20-05); cùng bộ lọc danh sách, không phân trang.
+            <a
+              href={employeesExportUrl({ q: debouncedQ, role, is_active: isActive })}
+              target="_blank"
+              rel="noopener"
+              className="hidden min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-heading transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 lg:inline-flex"
+            >
+              <Download aria-hidden="true" className="size-4" />
+              Xuất Excel
+            </a>
+          ) : null}
           {canManage ? (
             <Button
               icon={<UserPlus aria-hidden="true" className="size-4" />}

@@ -608,7 +608,9 @@ describe("AC-ORD-032 xoá dòng", () => {
     const dialog = await screen.findByRole("dialog", { name: "Xoá dòng hàng" });
     await user.click(within(dialog).getByRole("button", { name: "Xoá" }));
 
-    expect(await within(row).findByText("Đơn không còn ở trạng thái nháp.")).toBeInTheDocument();
+    // AC-UI-062 (M20-04): lỗi hiện trong dialog đang mở, không còn đóng dialog rồi báo trong dòng.
+    expect(await within(dialog).findByText("Đơn không còn ở trạng thái nháp.")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Xoá dòng hàng" })).toBeInTheDocument();
     expect(screen.getByTestId(`order-line-${dellLineId}`)).toBeInTheDocument();
   });
 });
