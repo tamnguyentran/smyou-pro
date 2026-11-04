@@ -12,6 +12,7 @@ export const CAPABILITY_LABELS: Record<string, string> = {
   "customer.manage": "Thêm/sửa khách hàng",
   "customer_gift.read": "Xem ghi nhận quà tặng khách hàng",
   "customer_gift.manage": "Ghi nhận/sửa quà tặng khách hàng",
+  "customer.potential.record": "Ghi tiềm năng sử dụng dịch vụ của khách hàng",
   "order.read": "Xem đơn hàng",
   "order.print": "In hoá đơn bán hàng",
   "order.read_prices": "Xem giá trong đơn",
@@ -33,11 +34,14 @@ export const CAPABILITY_LABELS: Record<string, string> = {
   "assignment.respond": "Nhận/từ chối/bắt đầu/xong việc được giao",
   "task.upload_photo": "Tải ảnh đầu việc",
   "dashboard.read": "Xem Tổng quan",
-  "kpi.read": "Xem báo cáo KPI",
+  "kpi.read": "Xem báo cáo Công việc theo nhân viên",
   "report.revenue.read": "Xem báo cáo doanh thu",
   "report.customer_gift.read": "Xem báo cáo chi phí quà tặng",
+  "report.kpi_sales.read": "Xem Báo cáo KPI doanh số (mọi nhân viên)",
+  "report.business_charts.read": "Xem biểu đồ kinh doanh",
   "audit.read": "Xem Nhật ký hệ thống",
   "company.manage": "Xem/sửa thông tin công ty",
+  "kpi_target.manage": "Thiết lập doanh thu KPI (chỉ tiêu theo tháng)",
   "notification.read": "Nhận thông báo",
 };
 

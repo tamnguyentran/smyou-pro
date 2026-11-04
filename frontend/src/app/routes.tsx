@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import type { RouteObject } from "react-router";
 import { AuditPage } from "../features/audit/pages/AuditPage";
 import { CompanyProfilePage } from "../features/company/pages/CompanyProfilePage";
@@ -17,6 +18,8 @@ import { WorkloadPage } from "../features/dispatch/pages/WorkloadPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { EmployeesPage } from "../features/employees/pages/EmployeesPage";
 import { KpiReportPage } from "../features/kpi/pages/KpiReportPage";
+import { KpiSalesReportPage } from "../features/kpiSales/pages/KpiSalesReportPage";
+import { KpiTargetsPage } from "../features/kpiTargets/pages/KpiTargetsPage";
 import { MyTasksPage } from "../features/myTasks/pages/MyTasksPage";
 import { NotificationsPage } from "../features/notifications/pages/NotificationsPage";
 import { DraftOrderPage } from "../features/orders/pages/DraftOrderPage";
@@ -26,6 +29,7 @@ import { ProductsPage } from "../features/products/pages/ProductsPage";
 import { ProfilePage } from "../features/profile/pages/ProfilePage";
 import { RevenueByCustomerReportPage } from "../features/revenueReport/pages/RevenueByCustomerReportPage";
 import { RevenueByEmployeeReportPage } from "../features/revenueReport/pages/RevenueByEmployeeReportPage";
+import { RevenueSkeleton } from "../features/revenueReport/components/RevenueSkeleton";
 import { ServicesPage } from "../features/services/pages/ServicesPage";
 import { menuPages } from "./menu";
 import { AppShell } from "./shell/AppShell";
@@ -53,6 +57,7 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/my-tasks" is real (M5-01) and checks assignment.respond itself, same capability as the menu entry.
 // "/dispatch/revisions" is real (M6-03b), same capability (task.manage) as the menu entry.
 // "/reports/kpi" is real (M8-01b) and checks kpi.read itself, same capability as the menu entry.
+// "/reports/kpi-sales" is real (M21-02b) and checks report.kpi_sales.read itself, same as the menu entry.
 // "/reports/revenue-by-customer" is real (M15-09b), same capability (report.revenue.read) as the
 // menu entry added in M15-11.
 // "/reports/revenue-by-employee" is real (M15-10b), same reasoning as above.
@@ -62,16 +67,27 @@ import { NotFoundPage } from "./shell/StatusPage";
 // menu entry added alongside M16-02a's capability.
 // "/settings/company" is real (M17-01) and checks company.manage itself, same as the menu entry.
 // "/settings/departments" is real (M17-02a) and checks employee.manage itself, same as the menu entry.
+// "/settings/kpi-targets" is real (M21-01b) and checks kpi_target.manage itself, same as the menu entry.
+// "/reports/business-charts" is real (M23b) and checks report.business_charts.read itself, same as
+// the menu entry. Lazy (AC-RPT-138, ADR-016): recharts stays out of the main bundle.
+const BusinessChartsPage = lazy(() =>
+  import("../features/businessCharts/pages/BusinessChartsPage").then((m) => ({
+    default: m.BusinessChartsPage,
+  })),
+);
 const REAL_PAGES = new Set([
   "/",
   "/employees",
   "/reports/kpi",
+  "/reports/kpi-sales",
   "/reports/revenue-by-customer",
   "/reports/revenue-by-employee",
   "/reports/customer-gifts",
+  "/reports/business-charts",
   "/audit",
   "/settings/company",
   "/settings/departments",
+  "/settings/kpi-targets",
   "/catalog/products",
   "/catalog/services",
   "/catalog/groups",
@@ -131,12 +147,22 @@ export const routes: RouteObject[] = [
       ...menuRoutes,
       { path: "/employees", element: <EmployeesPage /> },
       { path: "/reports/kpi", element: <KpiReportPage /> },
+      { path: "/reports/kpi-sales", element: <KpiSalesReportPage /> },
       { path: "/reports/revenue-by-customer", element: <RevenueByCustomerReportPage /> },
       { path: "/reports/revenue-by-employee", element: <RevenueByEmployeeReportPage /> },
       { path: "/reports/customer-gifts", element: <CustomerGiftReportPage /> },
+      {
+        path: "/reports/business-charts",
+        element: (
+          <Suspense fallback={<RevenueSkeleton />}>
+            <BusinessChartsPage />
+          </Suspense>
+        ),
+      },
       { path: "/audit", element: <AuditPage /> },
       { path: "/settings/company", element: <CompanyProfilePage /> },
       { path: "/settings/departments", element: <DepartmentsPage /> },
+      { path: "/settings/kpi-targets", element: <KpiTargetsPage /> },
       { path: "/catalog/products", element: <ProductsPage /> },
       { path: "/catalog/services", element: <ServicesPage /> },
       { path: "/catalog/groups", element: <ProductServiceGroupsPage /> },

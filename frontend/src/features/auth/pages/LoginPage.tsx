@@ -7,6 +7,7 @@ import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { PasswordField } from "../../../components/ui/PasswordField";
 import { TextField } from "../../../components/ui/TextField";
+import { AuthLayout } from "../AuthLayout";
 import { useDocumentTitle } from "../../../lib/useDocumentTitle";
 import { useLogin } from "../api";
 import { fieldErrors, formError } from "../errors";
@@ -25,7 +26,7 @@ export function LoginPage() {
   });
 
   return (
-    <main className="flex min-h-dvh items-center justify-center p-4">
+    <AuthLayout>
       <section className="w-full rounded-2xl bg-card p-7 shadow-card md:max-w-md md:p-8">
         <BrandHeader />
         <h2 className="mt-6 text-lg font-semibold text-heading lg:text-xl">Đăng nhập</h2>
@@ -62,6 +63,6 @@ export function LoginPage() {
           </Button>
         </form>
       </section>
-    </main>
+    </AuthLayout>
   );
 }

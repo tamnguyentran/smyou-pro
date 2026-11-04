@@ -12,6 +12,7 @@ import type { components } from "../../lib/api/schema";
 type Order = components["schemas"]["OrderDetail"];
 type OrderLine = components["schemas"]["OrderLineOut"];
 type Product = components["schemas"]["ProductOut"];
+type Service = components["schemas"]["ServiceOut"];
 
 const hoaId = "a0000000-0000-4000-8000-000000000010";
 const binhId = "a0000000-0000-4000-8000-000000000016";
@@ -652,5 +653,65 @@ describe("M20-04 KTV — lỗi giữ sheet/dialog, hiện lỗi bên trong", () 
       expect(screen.queryByRole("dialog", { name: "Xoá dòng hàng" })).not.toBeInTheDocument();
     });
     expect(removedVersions).toEqual([1, 3]);
+  });
+});
+
+describe("AC-ORD-264 (M21-08) KTV chọn DV chưa có giá vốn — lỗi ngay dưới ô chọn", () => {
+  const costMissing =
+    "Sản phẩm/dịch vụ này chưa có giá vốn trong danh mục nên không thể bán. Vui lòng liên hệ Quản lý cập nhật giá vốn.";
+  const install: Service = {
+    id: "f0000000-0000-4000-8000-000000000061",
+    code: "DV-LD01",
+    name: "Lắp đặt camera",
+    category: "INSTALLATION",
+    unit: "LAN",
+    price: 155_555,
+    cost_price: null,
+    price_fixed: false,
+    vat_rate: "8",
+    description: null,
+    default_estimated_hours: null,
+    is_active: true,
+    version: 1,
+  };
+
+  test("422 ITEM_COST_MISSING: sheet vẫn mở, lỗi role=alert màu lỗi dưới ô Tìm dịch vụ, giữ ô tìm, không toast", async () => {
+    signedInAs(binhId, BINH);
+    server.use(
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order())),
+      http.get("/api/v1/services", () =>
+        HttpResponse.json({ items: [install], total: 1, limit: 10, offset: 0 }),
+      ),
+      http.post("/api/v1/orders/:id/lines-on-site", () =>
+        HttpResponse.json(
+          {
+            status: 422,
+            code: "ITEM_COST_MISSING",
+            detail: costMissing,
+            errors: [{ field: "service_id", code: "cost_missing", message: costMissing }],
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    const user = await openLinesTab();
+
+    await user.click(screen.getByRole("button", { name: "Thêm dòng hàng" }));
+    const sheet = await screen.findByRole("dialog", { name: "Thêm dòng hàng" });
+    await user.click(within(sheet).getByRole("tab", { name: "Dịch vụ" }));
+    const search = within(sheet).getByLabelText("Tìm dịch vụ");
+    await user.type(search, "lắp");
+    await user.click(await within(sheet).findByRole("button", { name: /Lắp đặt camera/ }));
+
+    const alert = await within(sheet).findByRole("alert");
+    expect(alert).toHaveTextContent(costMissing);
+    expect(alert.className).toContain("text-urgent-fg");
+    expect(search.getAttribute("aria-describedby")).toContain(alert.id);
+    expect(search).toHaveAttribute("aria-invalid", "true");
+    expect(search.compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getAllByText(costMissing)).toHaveLength(1);
+    expect(screen.getByRole("dialog", { name: "Thêm dòng hàng" })).toBeInTheDocument();
+    expect(search).toHaveValue("lắp");
+    expect(screen.queryByText(/Đã thêm dòng hàng/)).not.toBeInTheDocument();
   });
 });

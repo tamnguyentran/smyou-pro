@@ -1,20 +1,25 @@
 """E2E accounts (run by `make e2e` before Playwright). Idempotent: resets passwords, lock-outs and
-sessions, and purges orders created by test runs (anything whose code isn't an "E2E-" fixture).
+sessions, and purges orders created by test runs (anything whose code isn't an "E2E-" fixture) and
+employees created by test runs (see `purge_test_employees`).
 
 Never run against production: the passwords below are public.
 """
 
 import sys
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import column, delete, func, select, table, text, update
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import Settings
 from app.core.db import create_db_engine, create_session_factory
 from app.core.security import hash_password
+from app.modules.audit.models import AuditEvent
 from app.modules.catalog.models import Product, ProductServiceGroup, Service
+from app.modules.customer_potential.models import CustomerPotentialNote
 from app.modules.customers.models import Customer
 from app.modules.departments.models import STANDARD_DEPARTMENT_IDS
 from app.modules.dispatch.models import Assignment, DefectRecord, Task
@@ -27,6 +32,7 @@ from app.modules.identity.models import (
     PasswordResetRequest,
     PasswordResetToken,
 )
+from app.modules.kpi_targets.models import EmployeeKpiTarget
 from app.modules.notifications.models import Notification
 from app.modules.orders.models import Order, OrderLine, OrderRevision
 
@@ -164,6 +170,16 @@ ON_SITE_ORDERS = [
 ]
 
 
+# M21-05b: KTV ghi tiềm năng khách hàng từ "Việc của tôi" (customer-potential.spec.ts) — the order
+# needs a customer_id (khách chủ đơn). Notes belong to the customer, not the order, so each Playwright
+# project gets its own order AND customer — sharing one would let the other run's note show up.
+# (order code, task code, customer code, customer name, customer phone)
+POTENTIAL_ORDERS = [
+    ("E2E-DH-M2105A", "E2E-DH-M2105A-T1", "E2E-KH-M2105A", "Cty Tiềm Năng Di Động E2E", "0918210501"),
+    ("E2E-DH-M2105B", "E2E-DH-M2105B-T1", "E2E-KH-M2105B", "Cty Tiềm Năng Máy Bàn E2E", "0918210502"),
+]
+
+
 # M20-03: "Chỉ đơn của tôi" mặc định bật cho SALE/CSKH (orders.spec.ts) — read-only, shared by both
 # projects. COMPLETED this month, unrated: one created by lan.cskh (her only order, so her
 # "Chưa đánh giá" tile = 1), one by ha.e2e (another Sale — hidden from Hoa while the box is ticked).
@@ -174,12 +190,66 @@ MINE_DEFAULT_ORDERS = [
 ]
 
 
-def main() -> int:
+@dataclass(frozen=True)
+class PurgeResult:
+    purged: int
+    kept: int
+
+
+# FKs to employees.id that neither cascade nor set null — a row there keeps its employee alive.
+_BLOCKING_FKS = text(
+    "SELECT r.relname, a.attname FROM pg_constraint c JOIN pg_class r ON r.oid = c.conrelid"
+    " JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey)"
+    " WHERE c.contype = 'f' AND c.confrelid = 'employees'::regclass AND c.confdeltype NOT IN ('c', 'n')"
+)
+
+
+def purge_test_employees(session: Session) -> PurgeResult:
+    """M21-07: delete employees that e2e runs created through the API (audited "create" by an E2E
+    account), so `make e2e` reruns stop piling them up. Ones still referenced elsewhere are kept."""
+    fixture_emails = [account[0] for account in ACCOUNTS]
+    fixture_ids = set(session.scalars(select(Employee.id).where(Employee.email.in_(fixture_emails))))
+    candidates = (
+        set(
+            session.scalars(
+                select(AuditEvent.entity_id)
+                .join(Employee, Employee.id == AuditEvent.entity_id)
+                .where(
+                    AuditEvent.entity_type == "EMPLOYEE",
+                    AuditEvent.action == "create",
+                    AuditEvent.actor_id.in_(fixture_ids),
+                )
+            )
+        )
+        - fixture_ids
+    )
+    if not candidates:
+        return PurgeResult(purged=0, kept=0)
+    kept: set[uuid.UUID] = set()
+    for table_name, column_name in session.execute(_BLOCKING_FKS).tuples():
+        if (table_name, column_name) == ("employee_kpi_targets", "employee_id"):
+            continue  # the purge deletes these rows itself
+        ref = column(column_name)
+        kept.update(
+            session.scalars(select(ref).select_from(table(table_name)).where(ref.in_(candidates)).distinct())
+        )
+    purged = candidates - kept
+    if purged:
+        session.execute(delete(EmployeeKpiTarget).where(EmployeeKpiTarget.employee_id.in_(purged)))
+        session.execute(
+            delete(AuditEvent).where(AuditEvent.entity_type == "EMPLOYEE", AuditEvent.entity_id.in_(purged))
+        )
+        session.execute(delete(Employee).where(Employee.id.in_(purged)))
+        session.flush()
+    return PurgeResult(purged=len(purged), kept=len(kept))
+
+
+def main(session_factory: sessionmaker[Session] | None = None) -> int:
     settings = Settings()
     if settings.app_env == "production":
         sys.stderr.write("seed_e2e refuses to run with APP_ENV=production\n")
         return 1
-    factory = create_session_factory(
+    factory = session_factory or create_session_factory(
         create_db_engine(settings.database_url, settings.db_connect_timeout_seconds)
     )
     now = datetime.now(UTC)
@@ -199,6 +269,8 @@ def main() -> int:
             session.execute(delete(OrderLine).where(OrderLine.order_id.in_(stale_order_ids)))
             session.execute(delete(Order).where(Order.id.in_(stale_order_ids)))
             session.flush()
+        # M21-07: e2e tests create employees too (names/emails stamped with Date.now()) — ~830 piled up.
+        purge = purge_test_employees(session)
 
         for email, code, name, roles, password, must_change in ACCOUNTS:
             employee = session.scalars(select(Employee).where(Employee.email == email)).one_or_none()
@@ -615,6 +687,42 @@ def main() -> int:
                 )
             )
             upsert_task_assignment(on_site_order, task_code, "IN_PROGRESS", "IN_PROGRESS", "1.0", 2, binh_id)
+
+        # M21-05b: notes are append-only in the app, so reset the seeded customers' history here —
+        # AC-CUS-060 then always starts from "Chưa có ghi nhận", AC-CUS-059 from one fixed note.
+        potential_customer_ids = [e2e_kh_001_id]
+        for order_code, task_code, customer_code, customer_name, customer_phone in POTENTIAL_ORDERS:
+            customer = session.scalars(select(Customer).where(Customer.code == customer_code)).one_or_none()
+            if customer is None:
+                customer = Customer(
+                    code=customer_code, type="COMPANY", phone=customer_phone, created_by=creator_id
+                )
+                session.add(customer)
+            customer.name = customer_name
+            customer.phone = customer_phone
+            session.flush()
+            potential_customer_ids.append(customer.id)
+            potential_order = upsert_order(
+                order_code, customer_name=customer_name, customer_phone=customer_phone
+            )
+            potential_order.status = "IN_PROGRESS"
+            potential_order.customer_id = customer.id
+            potential_order.created_by = hoa_id
+            upsert_task_assignment(
+                potential_order, task_code, "IN_PROGRESS", "IN_PROGRESS", "1.0", 2, binh_id
+            )
+        session.execute(
+            delete(CustomerPotentialNote).where(CustomerPotentialNote.customer_id.in_(potential_customer_ids))
+        )
+        session.add(
+            CustomerPotentialNote(
+                customer_id=e2e_kh_001_id,
+                order_id=dashboard_order.id,
+                author_id=binh_id,
+                note="Muốn lắp thêm 4 camera kho E2E",
+            )
+        )
+    sys.stdout.write(f"seed_e2e: purged {purge.purged} test employees (kept {purge.kept} still referenced)\n")
     sys.stdout.write(
         f"seeded {len(ACCOUNTS)} E2E accounts, {len(PRODUCTS)} E2E products, {len(SERVICES)} E2E services,"
         f" {len(CUSTOMERS)} E2E customers, {len(MY_TASKS)} E2E my-tasks assignments\n"

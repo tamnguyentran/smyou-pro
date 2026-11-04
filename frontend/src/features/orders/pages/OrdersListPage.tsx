@@ -8,6 +8,7 @@ import { Button } from "../../../components/ui/Button";
 import { ChipGroup } from "../../../components/ui/Chip";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { Pagination } from "../../../components/ui/Pagination";
+import { DateField } from "../../../components/ui/DateField";
 import { TextField } from "../../../components/ui/TextField";
 import { defaultMonthToDateRange } from "../../../lib/dateRange";
 import { useDebouncedValue } from "../../../lib/useDebouncedValue";
@@ -142,21 +143,21 @@ export function OrdersListPage() {
         </div>
         {isCustomerCare ? (
           <>
-            <TextField
-              type="date"
+            <DateField
+              mode="date"
               label="Từ ngày"
               value={effectiveDateFrom ?? ""}
-              onChange={(event) => {
-                setDateFrom(event.target.value);
+              onChange={(value) => {
+                setDateFrom(value);
                 setOffset(0);
               }}
             />
-            <TextField
-              type="date"
+            <DateField
+              mode="date"
               label="Đến ngày"
               value={effectiveDateTo ?? ""}
-              onChange={(event) => {
-                setDateTo(event.target.value);
+              onChange={(value) => {
+                setDateTo(value);
                 setOffset(0);
               }}
             />

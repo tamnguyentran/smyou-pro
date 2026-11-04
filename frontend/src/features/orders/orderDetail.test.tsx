@@ -230,6 +230,8 @@ function historyEvent(overrides: Partial<AuditEventOut> = {}): AuditEventOut {
     from_status: "DRAFT",
     to_status: "PENDING_DISPATCH",
     data: null,
+    business_area: "ORDERS",
+    entity_label: "DH2609-0001",
     ...overrides,
   };
 }

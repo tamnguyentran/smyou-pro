@@ -143,7 +143,7 @@ Tổng tiền **luôn tính ở server** từ dòng hàng; client gửi lên ch�
 | product_id / service_id | uuid null | theo item_type |
 | sku_snapshot, name_snapshot, unit_snapshot, specs_snapshot, warranty_months_snapshot | | **snapshot** lúc thêm dòng |
 | catalog_price_snapshot | bigint | giá danh mục lúc thêm dòng |
-| cost_price_snapshot | bigint null | giá vốn danh mục lúc thêm dòng (M15-08); không đổi theo giá vốn danh mục về sau, dùng tính lời/lỗ; `null` cho dòng `CUSTOM` |
+| cost_price_snapshot | bigint null | giá vốn danh mục lúc thêm dòng (M15-08); không đổi theo giá vốn danh mục về sau, dùng tính lời/lỗ. M21-08: SP/DV thiếu giá vốn không thêm được vào đơn (`ITEM_COST_MISSING`); dòng cũ đang `null` (kể cả `CUSTOM`) được migration điền 70% giá bán (ADR-017) |
 | price_fixed | bool | snapshot từ danh mục; dòng `CUSTOM` luôn `false` |
 | vat_rate | numeric(5,2) | snapshot từ danh mục; người tạo đơn chọn/nhập lại như ở danh mục (dòng `CUSTOM` bắt buộc nhập) |
 | quantity | numeric(12,2) | > 0 |
@@ -268,6 +268,29 @@ Chỉ `MANAGER` (`company.manage`). Mỗi lần sửa/đổi logo ghi `audit_eve
 | created_at/updated_at | timestamptz | |
 
 Chỉ còn 3 phòng chuẩn (UUID cố định `d4444444-…`/`d5555555-…`/`d6666666-…`): "Phát Triển Kinh Tế"/"Nhân sự/Marketing"/"Kế Toán - Tài chính" — M20-07 chuyển mọi nhân viên ở phòng khác (kể cả 3 phòng seed cũ `d1111111-…`→`d3333333-…` "Ban quản lý"/"Kinh doanh"/"Kỹ thuật") sang "Phát Triển Kinh Tế" rồi xoá hẳn phòng đó; Manager bootstrap thuộc "Phát Triển Kinh Tế". Vẫn được thêm phòng mới; ngừng hoạt động bị chặn (409 `DEPARTMENT_HAS_EMPLOYEES`) khi phòng còn nhân viên **đang hoạt động** (Q138). Xem: `employee.read`; thêm/sửa/ngừng: `employee.manage`. Mỗi thao tác ghi `audit_events` (`entity_type=DEPARTMENT`, `action=create|rename|deactivate|activate`; `rename` kèm `{name: {from, to}}`). Chỉ là thông tin tổ chức, không quyết định quyền.
+
+## 17. EmployeeKpiTarget (Chỉ tiêu KPI theo tháng) — `employee_kpi_targets` (M21-01a)
+| Trường | Kiểu | Ghi chú |
+|---|---|---|
+| employee_id | uuid FK → Employee, bắt buộc | |
+| month | date, bắt buộc | luôn ngày 01 của tháng (CHECK); `UNIQUE (employee_id, month)` → tối đa 1 chỉ tiêu/NV/tháng |
+| net_revenue_target | BIGINT VND, `0 ≤ x ≤ 10^13` | chỉ tiêu "Thu nhập thuần" |
+| version | int, mặc định 1 | optimistic lock (PUT bản ghi đã có phải gửi `version`) |
+| created_at/updated_at | timestamptz | |
+| updated_by | uuid FK → Employee | người đặt/sửa gần nhất |
+
+Mỗi tháng là một dòng riêng → sửa tháng này không đổi tháng khác (lịch sử). Manager sửa được cả tháng đã qua (Q147). Copy lấy toàn bộ chỉ tiêu tháng nguồn sang `from+1…to` (≤ 12 tháng), mặc định giữ chỉ tiêu đã có, `overwrite=true` ghi đè. Danh sách tháng: NV đang hoạt động + NV đã nghỉ có chỉ tiêu tháng đó. Quyền: `kpi_target.manage` (chỉ MANAGER). Audit `entity_type=KPI_TARGET`, `action=kpi_target.set` (`{employee_id, month, from, to}`) | `kpi_target.delete` (`{employee_id, month, from}`) | `kpi_target.copy` (1 bản ghi tổng hợp `{from_month, to_month, overwrite, created, overwritten, skipped}`).
+
+## 18. CustomerPotentialNote (Tiềm năng sử dụng dịch vụ) — `customer_potential_notes` (M21-05a, append-only)
+| Trường | Kiểu | Ghi chú |
+|---|---|---|
+| customer_id | uuid FK → Customer, bắt buộc | lấy từ `orders.customer_id` lúc ghi (đơn không có khách trong danh bạ → 409 `order_has_customer`) |
+| order_id | uuid FK → Order, bắt buộc | đơn KTV đang làm khi ghi |
+| author_id | uuid FK → Employee, bắt buộc | KTV ghi |
+| note | text, 1–1000 ký tự (trim, CHECK) | ghi chú tự do |
+| created_at | timestamptz | index `(customer_id, created_at DESC)` |
+
+Không sửa/xoá — ghi bản mới thay thế; bản mới nhất là "tiềm năng hiện tại" của **khách** (Q156), dù ghi ở đơn nào. Ghi: `customer.potential.record` (KTV có phân công ACCEPTED/IN_PROGRESS/DONE trên đơn — PENDING/REJECTED → 404; đơn COMPLETED/CANCELLED → 409 `order_open_for_potential_note`, Q154). Đọc lịch sử: ai đọc được đơn (`order.read`). Audit `entity_type=CUSTOMER`, `action=potential_note` (`{order_id, order_code, note_id}`). Báo cáo Doanh thu theo KH thêm `potential_note`/`potential_noted_at` và `last_purchase_date` = ngày tạo (giờ VN) đơn gần nhất khác DRAFT/CANCELLED trên toàn lịch sử khách (Q155).
 
 ## Quy tắc tính tiền (có test property-based)
 Giá và VAT **tách riêng**: đơn giá luôn lưu chưa VAT; % VAT gắn với từng sản phẩm/dịch vụ và được snapshot vào từng dòng, nên một đơn có thể có nhiều mức VAT.

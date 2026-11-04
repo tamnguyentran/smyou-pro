@@ -312,7 +312,8 @@ test("AC-UI-071 AC-UI-072 @screenshot 'Chăm sóc khách hàng': thẻ 'KH đã 
   page,
 }, info) => {
   const desktop = (page.viewportSize()?.width ?? 0) >= 1024;
-  await signIn(page, desktop ? MANAGER : CUSTOMER_CARE, "/");
+  // M21-03: Manager/CSKH có thêm thẻ thứ 4 (test AC-DASH-129 bên dưới); SALE/QLKT giữ 3 thẻ.
+  await signIn(page, desktop ? TECH_LEAD : SALE, "/");
   await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
   const section = "Chăm sóc khách hàng (tháng này)";
   const widths = desktop ? [1440, 768] : [page.viewportSize()?.width ?? 390];
@@ -355,6 +356,47 @@ test("AC-UI-071 AC-UI-072 @screenshot 'Chăm sóc khách hàng': thẻ 'KH đã 
   await page
     .locator("section", { has: page.getByRole("heading", { name: section }) })
     .screenshot({ path: shot(info, "dashboard-care-section-only.png") });
+});
+
+test("AC-DASH-129 @a11y @screenshot 'Chăm sóc khách hàng' có thẻ 'Đơn ghi doanh số': 2×2 trên điện thoại (CSKH), 1 hàng 4 thẻ cao đều trên tablet/desktop (Manager)", async ({
+  page,
+}, info) => {
+  const desktop = (page.viewportSize()?.width ?? 0) >= 1024;
+  await signIn(page, desktop ? MANAGER : CUSTOMER_CARE, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+  const section = "Chăm sóc khách hàng (tháng này)";
+  // 1440 last: resizing re-mounts the section, so the screenshot below must not follow a resize.
+  const widths = desktop ? [768, 1440] : [page.viewportSize()?.width ?? 390];
+
+  for (const width of widths) {
+    if (desktop) await page.setViewportSize({ width, height: 900 });
+    const { tiles, boxes } = await tileBoxes(page, section, 4);
+    const credited = tiles.nth(3);
+    await expect(credited.locator("p").first()).toHaveText("Đơn ghi doanh số");
+    await expect(credited).toContainText(desktop ? "Của CSKH" : "Của tôi");
+    const [a, b, c, d] = boxes as [Box, Box, Box, Box];
+    const where = `AC-DASH-129 @${String(width)}px`;
+    if (desktop) {
+      expect(new Set(boxes.map((box) => Math.round(box.y))).size, where).toBe(1);
+      expect(new Set(boxes.map((box) => Math.round(box.width))).size, where).toBe(1);
+      sameHeight(boxes, where);
+    } else {
+      expect(Math.round(a.y), where).toBe(Math.round(b.y));
+      expect(Math.round(c.y), where).toBe(Math.round(d.y));
+      expect(c.y, where).toBeGreaterThan(a.y);
+      sameHeight([a, b], `${where} hàng 1`);
+      sameHeight([c, d], `${where} hàng 2`);
+    }
+    for (const box of boxes) expect(box.height).toBeGreaterThanOrEqual(44);
+    await noHorizontalScroll(page);
+  }
+  await page
+    .locator("section", { has: page.getByRole("heading", { name: section }) })
+    .screenshot({ path: shot(info, "dashboard-care-credited-orders.png") });
+
+  await page.getByRole("button", { name: /Đơn ghi doanh số/ }).click();
+  await expect(page.getByRole("dialog", { name: /^Đơn ghi doanh số/ })).toBeVisible();
+  await evidence(page, info, "dashboard-card-popup-credited-orders.png");
 });
 
 test("AC-UI-073 Tuấn (TECH_LEAD): 'Điều phối' sau khi thẻ h-full — thẻ cùng hàng cao bằng nhau, không cao bất thường", async ({

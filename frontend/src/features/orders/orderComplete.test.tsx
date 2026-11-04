@@ -100,7 +100,7 @@ describe("Hoàn tất đơn (M6-02)", () => {
     stub();
     const user = await openOrder();
 
-    await user.click(screen.getByRole("button", { name: "Hoàn tất đơn" }));
+    await user.click(await screen.findByRole("button", { name: "Hoàn tất đơn" }));
     const dialog = await screen.findByRole("dialog", { name: `Hoàn tất đơn ${orderCode}?` });
     expect(within(dialog).getByText(/không thể hoàn tác/i)).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Xác nhận hoàn tất" })).toBeDisabled();

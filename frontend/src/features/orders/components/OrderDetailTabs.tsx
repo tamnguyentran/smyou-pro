@@ -25,6 +25,7 @@ import { CancelOrderSheet } from "./CancelOrderSheet";
 import { CompleteOrderSheet } from "./CompleteOrderSheet";
 import { ConfirmationAttachmentsTab } from "./ConfirmationAttachmentsTab";
 import { CustomerFeedbackBlock } from "./CustomerFeedbackBlock";
+import { CustomerPotentialBlock } from "./CustomerPotentialBlock";
 import { EditContactSheet } from "./EditContactSheet";
 import { OrderHistoryTab } from "./OrderHistoryTab";
 import { OrderInfoTab } from "./OrderInfoTab";
@@ -321,6 +322,7 @@ export function OrderDetailTabs({
                   : undefined
               }
             />
+            <CustomerPotentialBlock order={order} />
             <CustomerFeedbackBlock order={order} />
           </div>
         ) : null}

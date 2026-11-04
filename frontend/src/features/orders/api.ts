@@ -172,6 +172,43 @@ export function useConfirmationAttachments(orderId: string | undefined) {
   });
 }
 
+export type CustomerPotentialNote = components["schemas"]["CustomerPotentialNoteOut"];
+export const CUSTOMER_POTENTIAL_KEY = "order-customer-potential";
+
+/** AC-CUS-052/056 (M21-05b): lịch sử tiềm năng của khách hàng chủ đơn, mới nhất trước (M21-05a). */
+export function useCustomerPotentialNotes(orderId: string, { enabled }: { enabled: boolean }) {
+  return useQuery({
+    queryKey: [CUSTOMER_POTENTIAL_KEY, orderId],
+    enabled,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET(
+        "/api/v1/orders/{order_id}/customer-potential",
+        { params: { path: { order_id: orderId } } },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+  });
+}
+
+/** AC-CUS-053 (M21-05b): KTV ghi tiềm năng — không đổi đơn, nên chỉ refetch lịch sử ghi chú. */
+export function useRecordCustomerPotential() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, note }: { id: string; note: string }) => {
+      const { data, error, response } = await api.POST(
+        "/api/v1/orders/{order_id}/customer-potential",
+        { params: { path: { order_id: id } }, body: { note } },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: (_data, { id }) => {
+      void queryClient.invalidateQueries({ queryKey: [CUSTOMER_POTENTIAL_KEY, id] });
+    },
+  });
+}
+
 export type InvoicePrintData = components["schemas"]["OrderInvoicePrint"];
 
 /** M17-04: fetched on click only (never cached) — `printed_at`/`slip_no` are per print. */

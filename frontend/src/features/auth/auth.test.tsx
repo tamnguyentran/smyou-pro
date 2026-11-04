@@ -182,7 +182,7 @@ describe("Đổi mật khẩu lần đầu", () => {
       expect(router.state.location.pathname).toBe("/doi-mat-khau");
     });
 
-    await user.type(screen.getByLabelText("Mật khẩu hiện tại"), "TamThoi#14");
+    await user.type(await screen.findByLabelText("Mật khẩu hiện tại"), "TamThoi#14");
     await user.type(screen.getByLabelText("Mật khẩu mới"), "Khoa@SmYou9");
     await user.type(screen.getByLabelText("Nhập lại mật khẩu mới"), "Khoa@SmYou9");
     await user.click(screen.getByRole("button", { name: "Đổi mật khẩu" }));

@@ -7,16 +7,24 @@ spec/state_machines.yaml.
 """
 
 import uuid
+from collections.abc import Sequence
 from datetime import date, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, Row, and_, func, select
 from sqlalchemy.orm import Session
 
 from app.core.authz import Actor, ScopeRules, apply_scope
 from app.core.errors import AppError
-from app.modules.audit.domain import EntityType
+from app.modules.audit.domain import (
+    AUTH_ACTIONS,
+    ENTITY_BUSINESS_AREA,
+    BusinessArea,
+    EntityType,
+    business_area,
+)
+from app.modules.audit.labels import entity_labels
 from app.modules.audit.models import AuditEvent
 from app.modules.audit.schemas import ActorSummary, AuditEventOut, AuditEventPage
 from app.modules.identity.models import Employee
@@ -81,7 +89,23 @@ def latest_action(
     )
 
 
-def _out(event: AuditEvent, employee: Employee | None) -> AuditEventOut:
+def _business_area_filter(area: BusinessArea) -> ColumnElement[bool]:
+    """Translate the derived "Nghiệp vụ" back into entity_type/action conditions (no stored column)."""
+    if area is BusinessArea.AUTH:
+        return and_(AuditEvent.entity_type == EntityType.EMPLOYEE, AuditEvent.action.in_(AUTH_ACTIONS))
+    entity_types = [t for t, a in ENTITY_BUSINESS_AREA.items() if a is area]
+    condition = AuditEvent.entity_type.in_(entity_types)
+    if area is BusinessArea.EMPLOYEES:
+        return and_(condition, AuditEvent.action.not_in(AUTH_ACTIONS))
+    return condition
+
+
+def _page(session: Session, rows: Sequence[Row[tuple[AuditEvent, Employee]]]) -> list[AuditEventOut]:
+    labels = entity_labels(session, [event for event, _ in rows])
+    return [_out(event, employee, labels.get(event.id)) for event, employee in rows]
+
+
+def _out(event: AuditEvent, employee: Employee | None, entity_label: str | None) -> AuditEventOut:
     actor = (
         ActorSummary(id=employee.id, code=employee.code, full_name=employee.full_name)
         if employee is not None
@@ -97,6 +121,8 @@ def _out(event: AuditEvent, employee: Employee | None) -> AuditEventOut:
         from_status=event.from_status,
         to_status=event.to_status,
         data=event.data,
+        business_area=business_area(event.entity_type, event.action),
+        entity_label=entity_label,
     )
 
 
@@ -110,6 +136,7 @@ def list_events(
     occurred_to: date | None,
     limit: int,
     offset: int,
+    business_area: BusinessArea | None = None,
 ) -> AuditEventPage:
     if occurred_from is not None and occurred_to is not None and occurred_from > occurred_to:
         message = "Từ ngày không được sau Đến ngày."
@@ -124,6 +151,8 @@ def list_events(
     query = apply_scope(query, actor, RULES)
     if entity_type is not None:
         query = query.where(AuditEvent.entity_type == entity_type)
+    if business_area is not None:
+        query = query.where(_business_area_filter(business_area))
     if actor_id is not None:
         query = query.where(AuditEvent.actor_id == actor_id)
     if occurred_from is not None:
@@ -134,7 +163,7 @@ def list_events(
     total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
     ordered = query.order_by(AuditEvent.occurred_at.desc(), AuditEvent.seq.desc())
     rows = session.execute(ordered.limit(limit).offset(offset)).all()
-    items = [_out(event, employee) for event, employee in rows]
+    items = _page(session, rows)
     return AuditEventPage(items=items, total=total, limit=limit, offset=offset)
 
 
@@ -152,5 +181,5 @@ def list_events_for_entity(
     total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
     ordered = query.order_by(AuditEvent.occurred_at.desc(), AuditEvent.seq.desc())
     rows = session.execute(ordered.limit(limit).offset(offset)).all()
-    items = [_out(event, employee) for event, employee in rows]
+    items = _page(session, rows)
     return AuditEventPage(items=items, total=total, limit=limit, offset=offset)

@@ -64,7 +64,13 @@ function CatalogResultRow({
   );
 }
 
-function ProductPicker({ onPick }: { onPick: (product: Product) => void }) {
+function ProductPicker({
+  onPick,
+  error,
+}: {
+  onPick: (product: Product) => void;
+  error: string | undefined;
+}) {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 300);
   const results = useProducts({
@@ -78,6 +84,8 @@ function ProductPicker({ onPick }: { onPick: (product: Product) => void }) {
     <div className="space-y-3">
       <TextField
         label="Tìm sản phẩm"
+        error={error}
+        errorAlert
         placeholder="Tên hoặc mã sản phẩm…"
         value={query}
         onChange={(event) => {
@@ -104,7 +112,13 @@ function ProductPicker({ onPick }: { onPick: (product: Product) => void }) {
   );
 }
 
-function ServicePicker({ onPick }: { onPick: (service: Service) => void }) {
+function ServicePicker({
+  onPick,
+  error,
+}: {
+  onPick: (service: Service) => void;
+  error: string | undefined;
+}) {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 300);
   const results = useServices({
@@ -118,6 +132,8 @@ function ServicePicker({ onPick }: { onPick: (service: Service) => void }) {
     <div className="space-y-3">
       <TextField
         label="Tìm dịch vụ"
+        error={error}
+        errorAlert
         placeholder="Tên hoặc mã dịch vụ…"
         value={query}
         onChange={(event) => {
@@ -159,6 +175,8 @@ export function AddLineSheet({
 }) {
   const [tab, setTab] = useState<Tab>("PRODUCT");
   const [error, setError] = useState<ReactNode>(null);
+  // M21-08 (AC-ORD-263/264): SP/DV chưa có giá vốn — lỗi hiện ngay dưới ô chọn, không ở đầu Sheet.
+  const [pickError, setPickError] = useState<string>();
   // Mặc định "Người nhận doanh số" là người đang thêm dòng hàng — sửa lại được ngay trên dòng vừa
   // thêm (OrderLinesSection), không khoá cố định.
   // M19-01b: ở chế độ "on-site" không gửi người nhận doanh số — server tự ghi cho chính KTV.
@@ -177,6 +195,7 @@ export function AddLineSheet({
 
   async function addCatalogLine(body: Omit<OrderLineCreateBody, "version">) {
     setError(null);
+    setPickError(undefined);
     try {
       await runOrderWrite((order) =>
         addLine.mutateAsync({ id: order.id, body: { ...body, version: order.version } }),
@@ -188,6 +207,10 @@ export function AddLineSheet({
       if (onReload && isStaleOnSubmittedOrder(err, lineEndpoint)) {
         onReload();
         setError(<StaleReloadedMessage retryLabel="Thêm" />);
+        return;
+      }
+      if (err instanceof ApiError && err.problem.code === "ITEM_COST_MISSING") {
+        setPickError(err.problem.detail);
         return;
       }
       setError(
@@ -215,6 +238,7 @@ export function AddLineSheet({
             onClick={() => {
               setTab(id);
               setError(null);
+              setPickError(undefined);
             }}
             className={cn(
               "flex min-h-11 flex-1 items-center justify-center gap-1.5 border-b-2 px-2 text-sm font-semibold transition duration-200",
@@ -230,6 +254,7 @@ export function AddLineSheet({
       </div>
       {tab === "PRODUCT" ? (
         <ProductPicker
+          error={pickError}
           onPick={(product) => {
             void addCatalogLine({
               item_type: "PRODUCT",
@@ -246,6 +271,7 @@ export function AddLineSheet({
       ) : null}
       {tab === "SERVICE" ? (
         <ServicePicker
+          error={pickError}
           onPick={(service) => {
             void addCatalogLine({
               item_type: "SERVICE",

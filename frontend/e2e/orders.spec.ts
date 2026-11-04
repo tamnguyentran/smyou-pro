@@ -21,6 +21,25 @@ function shot(info: TestInfo, file: string) {
   return resolve(import.meta.dirname, "../../reports/screenshots", info.project.name, file);
 }
 
+/** M21-06b (AC-UI-107): mở lịch của ô ngày `label`; lịch nằm trọn khung nhìn, không cuộn ngang. */
+async function expectPickerFits(page: Page, label: string) {
+  const field = page.getByLabel(label, { exact: true }).locator("xpath=..");
+  await field.getByRole("button", { name: "Chọn ngày" }).click();
+  const picker = field.getByRole("dialog", { name: "Chọn ngày" });
+  await expect(picker).toBeVisible();
+  const box = await picker.boundingBox();
+  if (!box) throw new Error("picker has no box");
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()?.width ?? 0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(picker).toHaveCount(0);
+}
+
 const isMobile = (info: TestInfo) => info.project.name === "mobile";
 
 async function evidence(
@@ -451,4 +470,29 @@ test("AC-ORD-250 @screenshot CSKH: thẻ 'Chưa đánh giá' đếm theo 'Chỉ 
   expect(shown).toBeGreaterThanOrEqual(2);
   expect(page1.total).toBe(shown);
   await expect(rows).toHaveCount(Math.min(shown, 20));
+});
+
+test("AC-UI-098 AC-UI-107 @screenshot CSKH gõ Từ ngày/Đến ngày kiểu dd/MM/yyyy, API nhận yyyy-MM-dd; lịch vừa màn hình", async ({
+  page,
+}, info) => {
+  await signIn(page, CUSTOMER_CARE, "/orders");
+  await expect(page.getByRole("heading", { level: 1, name: "Danh sách đơn" })).toBeVisible();
+  const from = page.getByLabel("Từ ngày");
+  const to = page.getByLabel("Đến ngày");
+  await expect(page.locator('input[type="date"]')).toHaveCount(0);
+
+  await from.fill("");
+  await from.pressSequentially("01102026");
+  await to.fill("");
+  const listed = page.waitForRequest(
+    (r) => r.url().includes("/api/v1/orders?") && r.url().includes("to=2026-10-31"),
+  );
+  await to.pressSequentially("31102026");
+  const url = (await listed).url();
+  expect(url).toContain("from=2026-10-01");
+  await expect(from).toHaveValue("01/10/2026");
+  await expect(to).toHaveValue("31/10/2026");
+
+  await expectPickerFits(page, "Từ ngày");
+  await evidence(page, info, "order-list-datefield.png", { checkOverflow: true });
 });

@@ -312,7 +312,7 @@ describe("TaskEditSheet — sửa/thêm/gỡ người/huỷ đầu việc", () =
       "Lắp 4 camera tầng 1, đấu nối đầu ghi.",
     );
     expect(within(dialog).getByLabelText("Số giờ ước tính")).toHaveValue("4");
-    expect(within(dialog).getByLabelText("Hạn hoàn thành")).toHaveValue("2026-10-05T09:00");
+    expect(within(dialog).getByLabelText("Hạn hoàn thành")).toHaveValue("05/10/2026 09:00");
     expect(within(dialog).getByLabelText("Mức ưu tiên")).toHaveValue("HIGH");
 
     const assigneeList = within(dialog).getByTestId("task-assignees");
@@ -529,6 +529,43 @@ describe("TaskEditSheet — sửa/thêm/gỡ người/huỷ đầu việc", () =
     expect(await screen.findByText("Đã huỷ")).toBeInTheDocument();
     expect(calls.cancels).toHaveLength(1);
     expect(calls.cancels[0]).toMatchObject({ version: 7, reason: "abc không còn cần nữa" });
+  });
+
+  test("AC-UI-106 Hạn hoàn thành hiện giờ VN; chọn ngày 06 bằng lịch → Lưu gửi 2026-11-06T17:00:00+07:00", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-04T03:00:00Z"));
+    try {
+      const calls = stubEdit({ task: taskDetail({ due_at: "2026-11-05T10:00:00Z" }) });
+      const user = await openEditSheet();
+      const dialog = screen.getByRole("dialog", { name: `Sửa đầu việc — ${taskCode}` });
+      const due = within(dialog).getByLabelText("Hạn hoàn thành");
+      expect(due).not.toHaveAttribute("type", "datetime-local");
+      expect(due).toHaveValue("05/11/2026 17:00");
+      const field = due.parentElement;
+      if (!field) throw new Error("no DateField wrapper");
+      await user.click(within(field).getByRole("button", { name: "Chọn ngày" }));
+      await user.click(
+        within(within(field).getByRole("dialog", { name: "Chọn ngày" })).getByRole("button", {
+          name: "6",
+        }),
+      );
+      expect(due).toHaveValue("06/11/2026 17:00");
+      await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+      await waitFor(() => {
+        expect(calls.patches).toHaveLength(1);
+      });
+      expect(calls.patches[0]).toMatchObject({ due_at: "2026-11-06T17:00:00+07:00" });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("AC-UI-106 không có task.manage → ô Hạn hoàn thành và nút lịch bị khoá", async () => {
+    stubEdit({ person: HOA, personId: hoaId });
+    await openEditSheet();
+    const dialog = screen.getByRole("dialog", { name: `Sửa đầu việc — ${taskCode}` });
+    expect(within(dialog).getByLabelText("Hạn hoàn thành")).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Chọn ngày" })).toBeDisabled();
   });
 
   test("AC-DSP-068 không có task.manage → sheet chỉ xem", async () => {

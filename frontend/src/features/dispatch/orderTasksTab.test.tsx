@@ -173,6 +173,11 @@ function localInput(offsetDays: number, hhmm = "08:00") {
   return `${String(d.getFullYear())}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${hhmm}`;
 }
 
+/** Chuỗi gõ vào DateField (M21-06b): `yyyy-MM-ddTHH:mm` → `dd/MM/yyyy HH:mm`. */
+function vnTyped(local: string) {
+  return `${local.slice(8, 10)}/${local.slice(5, 7)}/${local.slice(0, 4)} ${local.slice(11)}`;
+}
+
 function mobile() {
   vi.stubGlobal(
     "matchMedia",
@@ -412,7 +417,7 @@ describe("Tab Đầu việc trên trang chi tiết đơn", () => {
     const due = localInput(3);
     await user.type(within(dialog).getByLabelText("Tiêu đề đầu việc"), "Nghiệm thu với khách");
     await user.type(within(dialog).getByLabelText("Số giờ ước tính"), "1,5");
-    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), due);
+    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(due));
     await user.click(within(dialog).getByRole("checkbox", { name: /Trần Minh Khoa/ }));
     await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
 
@@ -451,7 +456,7 @@ describe("Tab Đầu việc trên trang chi tiết đơn", () => {
     const dialog = await screen.findByRole("dialog", { name: `Tạo đầu việc — ${orderCode}` });
     await user.type(within(dialog).getByLabelText("Tiêu đề đầu việc"), "Lắp đặt 4 camera tầng 1");
     await user.type(within(dialog).getByLabelText("Số giờ ước tính"), "4");
-    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), localInput(2));
+    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(localInput(2)));
     await user.click(within(dialog).getByRole("checkbox", { name: /Trần Minh Khoa/ }));
     await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
 
@@ -503,7 +508,7 @@ describe("Tab Đầu việc trên trang chi tiết đơn", () => {
     const dialog = await screen.findByRole("dialog", { name: `Tạo đầu việc — ${orderCode}` });
     await user.type(within(dialog).getByLabelText("Tiêu đề đầu việc"), "Nghiệm thu với khách");
     await user.type(within(dialog).getByLabelText("Số giờ ước tính"), "2");
-    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), localInput(3));
+    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(localInput(3)));
     await user.click(within(dialog).getByRole("checkbox", { name: /Trần Minh Khoa/ }));
     await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
 

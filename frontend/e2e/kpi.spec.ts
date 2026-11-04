@@ -23,7 +23,9 @@ test("AC-KPI-017 AC-KPI-018 AC-UI-035 @a11y @screenshot Manager xem báo cáo KP
   page,
 }, info) => {
   await signIn(page, MANAGER);
-  await expect(page.getByRole("heading", { level: 1, name: "Báo cáo KPI" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Công việc theo nhân viên" }),
+  ).toBeVisible();
   await expect(page.getByRole("main")).toContainText("E2E");
   await page.evaluate(() => document.fonts.ready);
   const results = await new AxeBuilder({ page }).analyze();
@@ -39,7 +41,9 @@ test("AC-KPI-023 @a11y @screenshot Kỹ thuật viên xem báo cáo KPI: 1 thẻ
   page,
 }, info) => {
   await signIn(page, TECHNICIAN);
-  await expect(page.getByRole("heading", { level: 1, name: "Báo cáo KPI" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Công việc theo nhân viên" }),
+  ).toBeVisible();
   await expect(page.getByLabel("Kỹ thuật viên")).toHaveCount(0);
   await page.evaluate(() => document.fonts.ready);
   const results = await new AxeBuilder({ page }).analyze();
@@ -55,7 +59,9 @@ test("AC-KPI-022 Manager lọc theo KTV rồi xuất CSV: tải đúng tham số
   page,
 }) => {
   await signIn(page, MANAGER);
-  await expect(page.getByRole("heading", { level: 1, name: "Báo cáo KPI" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Công việc theo nhân viên" }),
+  ).toBeVisible();
 
   await page
     .getByLabel("Kỹ thuật viên", { exact: true })
@@ -71,7 +77,9 @@ test("AC-KPI-022 Manager lọc theo KTV rồi xuất CSV: tải đúng tham số
   if (href === null) throw new Error("export link missing href");
   await exportLink.click();
   // target="_blank" nên bấm không điều hướng rời trang báo cáo.
-  await expect(page.getByRole("heading", { level: 1, name: "Báo cáo KPI" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Công việc theo nhân viên" }),
+  ).toBeVisible();
 
   const response = await page.request.get(href);
   expect(response.headers()["content-disposition"] ?? "").toMatch(
@@ -85,14 +93,18 @@ test("AC-KPI-024 Kỹ thuật viên xuất CSV: chỉ 1 dòng của chính mình
   page,
 }) => {
   await signIn(page, TECHNICIAN);
-  await expect(page.getByRole("heading", { level: 1, name: "Báo cáo KPI" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Công việc theo nhân viên" }),
+  ).toBeVisible();
   await expect(page.getByLabel("Kỹ thuật viên")).toHaveCount(0);
 
   const exportLink = page.getByRole("link", { name: "Xuất CSV" });
   const href = await exportLink.getAttribute("href");
   if (href === null) throw new Error("export link missing href");
   await exportLink.click();
-  await expect(page.getByRole("heading", { level: 1, name: "Báo cáo KPI" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Công việc theo nhân viên" }),
+  ).toBeVisible();
 
   const response = await page.request.get(href);
   expect(response.headers()["content-disposition"] ?? "").toMatch(

@@ -2,12 +2,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { CalendarClock, MapPin, Phone } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useForm, useWatch, type Resolver } from "react-hook-form";
+import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { Select } from "../../../components/ui/Select";
 import { Sheet } from "../../../components/ui/Sheet";
 import { Textarea } from "../../../components/ui/Textarea";
+import { DateField } from "../../../components/ui/DateField";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
 import { formatDate, formatPhone, mapHref } from "../../../lib/format";
@@ -238,11 +239,19 @@ export function TaskCreateSheet({
               },
             })}
           />
-          <TextField
-            label="Hạn hoàn thành"
-            type="datetime-local"
-            error={formState.errors.due_at?.message}
-            {...register("due_at")}
+          <Controller
+            control={control}
+            name="due_at"
+            render={({ field }) => (
+              <DateField
+                mode="datetime"
+                label="Hạn hoàn thành"
+                error={formState.errors.due_at?.message}
+                name={field.name}
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
           />
           <Select label="Mức ưu tiên" {...register("priority")}>
             {PRIORITY_ORDER.map((priority) => (

@@ -11,11 +11,13 @@ import app.modules.audit.models  # registers tables on Base.metadata
 import app.modules.catalog.models  # registers tables on Base.metadata
 import app.modules.company.models  # registers tables on Base.metadata
 import app.modules.customer_gifts.models  # registers tables on Base.metadata
+import app.modules.customer_potential.models  # registers tables on Base.metadata
 import app.modules.customers.models  # registers tables on Base.metadata
 import app.modules.departments.models  # registers tables on Base.metadata
 import app.modules.dispatch.models  # registers tables on Base.metadata
 import app.modules.files.models  # registers tables on Base.metadata
 import app.modules.identity.models  # registers tables on Base.metadata
+import app.modules.kpi_targets.models  # registers tables on Base.metadata
 import app.modules.notifications.models  # registers tables on Base.metadata
 import app.modules.orders.models  # noqa: F401  # registers tables on Base.metadata
 from app.core.config import Settings

@@ -36,6 +36,25 @@ test("AC-ORD-124 file này không ép chạy tuần tự", () => {
   expect(source).not.toMatch(/describe\s*\.\s*configure\s*\(/);
 });
 
+/** M21-06b (AC-UI-107): mở lịch của ô ngày `label`; lịch nằm trọn khung nhìn, không cuộn ngang. */
+async function expectPickerFits(page: Page, label: string) {
+  const field = page.getByLabel(label, { exact: true }).locator("xpath=..");
+  await field.getByRole("button", { name: "Chọn ngày" }).click();
+  const picker = field.getByRole("dialog", { name: "Chọn ngày" });
+  await expect(picker).toBeVisible();
+  const box = await picker.boundingBox();
+  if (!box) throw new Error("picker has no box");
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()?.width ?? 0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(picker).toHaveCount(0);
+}
+
 async function evidence(
   page: Page,
   info: TestInfo,
@@ -66,10 +85,11 @@ async function evidence(
   if (size) await page.setViewportSize(size);
 }
 
+/** Chuỗi gõ vào DateField (M21-06b): `dd/MM/yyyy HH:mm`; `.slice(0, 10)` → `dd/MM/yyyy`. */
 function localInput(offsetDays: number, hhmm = "09:00") {
   const d = new Date(Date.now() + offsetDays * 86_400_000);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${String(d.getFullYear())}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${hhmm}`;
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${String(d.getFullYear())} ${hhmm}`;
 }
 
 /** Sale gửi một đơn "Khẩn" để đơn đó nằm trong hàng đợi điều phối; trả về mã đơn. */
@@ -158,6 +178,42 @@ test("AC-DSP-015 AC-DSP-016 AC-DSP-019 AC-DSP-022 AC-DSP-026 AC-DSP-027 AC-UI-03
   // Q90 (2026-10-19, đảo Q81): tạo task + giao người làm đơn chuyển IN_PROGRESS ngay — rời khỏi
   // hàng đợi "Chờ điều phối" (chỉ đếm PENDING_DISPATCH) dù chưa ai bấm "Bắt đầu".
   await expect(page.getByRole("button", { name: new RegExp(code) })).toHaveCount(0);
+});
+
+test("AC-UI-103 AC-UI-105 Ngày hẹn và Hạn hoàn thành nhập kiểu dd/MM/yyyy (HH:mm), gửi đúng định dạng API", async ({
+  page,
+}) => {
+  const code = await submitUrgentOrder(page);
+  const requested = localInput(7).slice(0, 10);
+  await page.context().clearCookies();
+  await signIn(page, TECH_LEAD, "/dispatch/queue");
+  await page
+    .getByRole("button", { name: new RegExp(code) })
+    .first()
+    .click();
+  const panel = page.getByRole("dialog", { name: `Tạo đầu việc — ${code}` });
+  // AC-UI-103: Ngày hẹn gõ ở form đơn nháp đã lưu đúng ngày (server trả lại, hiện dd/MM/yyyy).
+  await expect(panel.getByText(requested)).toBeVisible();
+
+  await panel.getByLabel("Tiêu đề đầu việc").fill("Lắp đặt 4 camera tầng 1");
+  await panel.getByLabel("Số giờ ước tính").fill("4");
+  const due = panel.getByLabel("Hạn hoàn thành");
+  await expect(due).not.toHaveAttribute("type", "datetime-local");
+  await due.pressSequentially(localInput(2, "17:00").replace(/\D/g, ""));
+  await expect(due).toHaveValue(localInput(2, "17:00"));
+  await panel.getByRole("checkbox", { name: new RegExp(TECHNICIAN_CODE) }).check();
+  await panel.getByRole("button", { name: "Tạo đầu việc" }).click();
+  await expect(
+    page.getByText(`Đã tạo đầu việc ${code}-T1 và giao cho 1 kỹ thuật viên.`),
+  ).toBeVisible();
+
+  // Khứ hồi qua server: due_at gửi lên (+07:00) mở lại trong "Sửa đầu việc" vẫn đúng 17:00 giờ VN.
+  await page.goto("./orders");
+  await openOrderDetail(page, code);
+  await page.getByRole("tab", { name: "Đầu việc" }).click();
+  await page.getByTestId("order-tasks").getByText(`${code}-T1`).click();
+  const edit = page.getByRole("dialog", { name: `Sửa đầu việc — ${code}-T1` });
+  await expect(edit.getByLabel("Hạn hoàn thành")).toHaveValue(localInput(2, "17:00"));
 });
 
 test("AC-SYS-089 form Tạo đầu việc ở 390px: footer bấm được khi form lỗi, nhập đủ rồi tạo thành công", async ({
@@ -453,4 +509,14 @@ test("AC-DSP-125 AC-DSP-126 AC-DSP-130 @a11y @screenshot Mở lại đầu việ
     isMobile(info) ? "dispatch-revisions-390.png" : "dispatch-revisions-1440.png",
     { checkOverflow: true },
   );
+});
+
+test("AC-UI-107 @screenshot Bảng việc: lịch ô Từ ngày vừa màn hình, bộ lọc giữ bố cục", async ({
+  page,
+}, info) => {
+  await signIn(page, TECH_LEAD, "/dispatch/board");
+  await expect(page.getByRole("heading", { name: "Bảng đầu việc", level: 1 })).toBeVisible();
+  await expect(page.locator('input[type="date"]')).toHaveCount(0);
+  await expectPickerFits(page, "Từ ngày");
+  await evidence(page, info, "task-board-datefield.png", { checkOverflow: true });
 });

@@ -168,6 +168,11 @@ function localInput(offsetDays: number, hhmm = "09:00") {
   return `${String(d.getFullYear())}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${hhmm}`;
 }
 
+/** Chuỗi gõ vào DateField (M21-06b): `yyyy-MM-ddTHH:mm` → `dd/MM/yyyy HH:mm`. */
+function vnTyped(local: string) {
+  return `${local.slice(8, 10)}/${local.slice(5, 7)}/${local.slice(0, 4)} ${local.slice(11)}`;
+}
+
 interface Calls {
   orders: number;
   me: number;
@@ -236,7 +241,7 @@ async function fillValidForm(user: UserEvent, dialog: HTMLElement, due = localIn
   await user.type(within(dialog).getByLabelText("Tiêu đề đầu việc"), "Lắp đặt 4 camera tầng 1");
   await user.clear(within(dialog).getByLabelText("Số giờ ước tính"));
   await user.type(within(dialog).getByLabelText("Số giờ ước tính"), "9");
-  await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), due);
+  await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(due));
   await user.click(within(dialog).getByRole("checkbox", { name: /Trần Minh Khoa/ }));
   await user.click(within(dialog).getByRole("checkbox", { name: /Đỗ Văn Minh/ }));
 }
@@ -247,6 +252,28 @@ afterEach(() => {
 });
 
 describe("Panel tạo đầu việc", () => {
+  test("AC-UI-105 gõ Hạn hoàn thành 051120261700 → ô 05/11/2026 17:00, gửi due_at +07:00", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-04T03:00:00Z"));
+    try {
+      const calls = stubQueue();
+      const { user, dialog } = await openPanel();
+      const due = within(dialog).getByLabelText("Hạn hoàn thành");
+      expect(due).not.toHaveAttribute("type", "datetime-local");
+      await fillValidForm(user, dialog, "");
+      await user.clear(due);
+      await user.type(due, "051120261700");
+      expect(due).toHaveValue("05/11/2026 17:00");
+      await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
+      await waitFor(() => {
+        expect(calls.posts).toHaveLength(1);
+      });
+      expect(calls.posts[0]).toMatchObject({ due_at: "2026-11-05T17:00:00+07:00" });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test("AC-DSP-019 mở panel: tóm tắt đơn, 6 ô, ưu tiên theo đơn, focus vào tiêu đề", async () => {
     stubQueue();
     const { dialog } = await openPanel();
@@ -285,7 +312,7 @@ describe("Panel tạo đầu việc", () => {
 
     await user.clear(hours);
     await user.type(hours, "6");
-    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), localInput(3));
+    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(localInput(3)));
     await user.type(within(dialog).getByLabelText("Tiêu đề đầu việc"), "Lắp đặt 4 camera tầng 1");
     await user.click(within(dialog).getByRole("checkbox", { name: /Trần Minh Khoa/ }));
     await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
@@ -423,7 +450,7 @@ describe("Panel tạo đầu việc", () => {
       expect(await within(dialog).findByText(hoursMessage)).toBeInTheDocument();
     }
 
-    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), localInput(-1));
+    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(localInput(-1)));
     await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
     expect(
       await within(dialog).findByText("Hạn hoàn thành không được ở quá khứ."),

@@ -448,8 +448,45 @@ describe("M15-02b — CSKH tra cứu + CSAT trên /orders", () => {
     const range = defaultMonthToDateRange();
     expect(lastQuery).toContain(`from=${range.from}`);
     expect(lastQuery).toContain(`to=${range.to}`);
-    expect(screen.getByLabelText("Từ ngày")).toHaveValue(range.from);
-    expect(screen.getByLabelText("Đến ngày")).toHaveValue(range.to);
+    expect(screen.getByLabelText("Từ ngày")).toHaveValue(range.from.split("-").reverse().join("/"));
+    expect(screen.getByLabelText("Đến ngày")).toHaveValue(range.to.split("-").reverse().join("/"));
+  });
+
+  test("AC-UI-098: gõ Từ ngày 01102026, Đến ngày 31102026 → ô dd/MM/yyyy, API from/to yyyy-MM-dd; xoá Từ ngày → bỏ lọc from", async () => {
+    signedInAs(lanId, LAN);
+    let lastQuery = "";
+    server.use(
+      http.get("/api/v1/orders", ({ request }) => {
+        lastQuery = new URL(request.url).search;
+        return HttpResponse.json({ items: [summary()], total: 1, limit: 20, offset: 0 });
+      }),
+      http.get("/api/v1/orders/csat-summary", () =>
+        HttpResponse.json({ "5": 0, "4": 0, "3": 0, "2": 0, "1": 0, none: 0 }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderApp("/orders");
+    await screen.findByText("DH2609-0001");
+
+    const from = screen.getByLabelText("Từ ngày");
+    const to = screen.getByLabelText("Đến ngày");
+    expect(from).not.toHaveAttribute("type", "date");
+    await user.clear(from);
+    await user.type(from, "01102026");
+    await user.clear(to);
+    await user.type(to, "31102026");
+    expect(from).toHaveValue("01/10/2026");
+    expect(to).toHaveValue("31/10/2026");
+    await waitFor(() => {
+      expect(lastQuery).toContain("from=2026-10-01");
+      expect(lastQuery).toContain("to=2026-10-31");
+    });
+
+    await user.clear(from);
+    await waitFor(() => {
+      expect(lastQuery).not.toMatch(/[?&]from=\d/);
+    });
+    expect(lastQuery).toContain("to=2026-10-31");
   });
 
   test("AC-CSK-011: tô nền dòng theo csat_rating (xanh/vàng/hồng/mặc định)", async () => {

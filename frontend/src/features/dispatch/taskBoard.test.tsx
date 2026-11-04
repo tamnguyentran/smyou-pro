@@ -271,8 +271,8 @@ describe("Bảng đầu việc", () => {
     renderApp("/dispatch/board");
     await screen.findByText("DH2610-N01-T3");
 
-    fireEvent.change(screen.getByLabelText("Từ ngày"), { target: { value: "2026-10-06" } });
-    fireEvent.change(screen.getByLabelText("Đến ngày"), { target: { value: "2026-10-06" } });
+    fireEvent.change(screen.getByLabelText("Từ ngày"), { target: { value: "06/10/2026" } });
+    fireEvent.change(screen.getByLabelText("Đến ngày"), { target: { value: "06/10/2026" } });
     await waitFor(() => {
       expect(queries).toContain("?due_from=2026-10-06&due_to=2026-10-06");
     });
@@ -304,6 +304,33 @@ describe("Bảng đầu việc", () => {
         "DH2610-D01-T1",
       ),
     ).toBeInTheDocument();
+  });
+
+  test("AC-UI-099 chọn Từ ngày 03/11/2026 bằng lịch → ô hiện 03/11/2026, gọi due_from=2026-11-03", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-04T03:00:00Z"));
+    try {
+      signedInAs(tuanId, TUAN);
+      const queries = mockBoard();
+      const user = userEvent.setup();
+      renderApp("/dispatch/board");
+      await screen.findByText("DH2610-N01-T3");
+
+      const from = screen.getByLabelText("Từ ngày");
+      expect(from).not.toHaveAttribute("type", "date");
+      const field = from.parentElement;
+      if (!field) throw new Error("no DateField wrapper");
+      await user.click(within(field).getByRole("button", { name: "Chọn ngày" }));
+      const dialog = within(field).getByRole("dialog", { name: "Chọn ngày" });
+      expect(within(dialog).getByText("Tháng 11/2026")).toBeInTheDocument();
+      await user.click(within(dialog).getByRole("button", { name: "3" }));
+      expect(from).toHaveValue("03/11/2026");
+      await waitFor(() => {
+        expect(queries.at(-1)).toContain("due_from=2026-11-03");
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test("AC-DSP-086 bấm thẻ T2 → điều hướng /orders/{order_id}, không mở sheet", async () => {

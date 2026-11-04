@@ -105,7 +105,20 @@ function mockReport(rows: KpiRow[], onRequest?: (search: string) => void) {
   );
 }
 
-describe("Báo cáo KPI", () => {
+describe("Công việc theo nhân viên", () => {
+  test("AC-RPT-088 /reports/kpi đổi tiêu đề thành 'Công việc theo nhân viên', nội dung như cũ", async () => {
+    signedInAs(anId, AN);
+    mockReport([KHOA]);
+    renderApp("/reports/kpi");
+
+    expect(
+      await screen.findByRole("heading", { name: "Công việc theo nhân viên" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Báo cáo KPI" })).not.toBeInTheDocument();
+    const list = await screen.findByRole("list", { name: "Báo cáo KPI theo kỹ thuật viên" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(1);
+  });
+
   test("AC-KPI-016 mặc định đầu tháng hiện tại → hôm nay, gọi API đúng tham số", async () => {
     vi.setSystemTime(new Date("2026-09-15T10:00:00Z"));
     signedInAs(anId, AN);
@@ -115,12 +128,12 @@ describe("Báo cáo KPI", () => {
     });
     renderApp("/reports/kpi");
 
-    await screen.findByRole("heading", { name: "Báo cáo KPI" });
+    await screen.findByRole("heading", { name: "Công việc theo nhân viên" });
     await waitFor(() => {
       expect(requests).toContain("?from=2026-09-01&to=2026-09-15");
     });
-    expect(screen.getByLabelText("Từ ngày")).toHaveValue("2026-09-01");
-    expect(screen.getByLabelText("Đến ngày")).toHaveValue("2026-09-15");
+    expect(screen.getByLabelText("Từ ngày")).toHaveValue("01/09/2026");
+    expect(screen.getByLabelText("Đến ngày")).toHaveValue("15/09/2026");
     vi.useRealTimers();
   });
 
@@ -195,6 +208,33 @@ describe("Báo cáo KPI", () => {
     expect(within(list).getByText("—")).toBeInTheDocument();
   });
 
+  test("AC-UI-100 Công việc theo nhân viên: Từ ngày/Đến ngày là DateField, gõ tay → API nhận yyyy-MM-dd", async () => {
+    signedInAs(anId, AN);
+    const requests: string[] = [];
+    mockReport([KHOA], (search) => {
+      requests.push(search);
+    });
+    renderApp("/reports/kpi");
+    await screen.findByRole("list", { name: "Báo cáo KPI theo kỹ thuật viên" });
+    const user = userEvent.setup();
+    const from = await screen.findByLabelText("Từ ngày");
+    const to = screen.getByLabelText("Đến ngày");
+    expect(document.querySelector('input[type="date"]')).toBeNull();
+    await user.clear(from);
+    await user.type(from, "01082026");
+    await user.clear(to);
+    await user.type(to, "20082026");
+    expect(from).toHaveValue("01/08/2026");
+    expect(to).toHaveValue("20/08/2026");
+    await waitFor(() => {
+      expect(requests.at(-1)).toContain("from=2026-08-01");
+      expect(requests.at(-1)).toContain("to=2026-08-20");
+    });
+    expect(screen.getByRole("link", { name: /Xuất CSV/ }).getAttribute("href")).toContain(
+      "from=2026-08-01&to=2026-08-20",
+    );
+  });
+
   test("AC-KPI-020 đổi ngày → gọi lại API với tham số mới", async () => {
     signedInAs(anId, AN);
     const requests: string[] = [];
@@ -207,7 +247,7 @@ describe("Báo cáo KPI", () => {
 
     const user = userEvent.setup();
     await user.clear(screen.getByLabelText("Từ ngày"));
-    await user.type(screen.getByLabelText("Từ ngày"), "2026-08-01");
+    await user.type(screen.getByLabelText("Từ ngày"), "01/08/2026");
     await waitFor(() => {
       expect(requests.some((s) => s.includes("from=2026-08-01"))).toBe(true);
     });

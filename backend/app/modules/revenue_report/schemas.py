@@ -26,6 +26,11 @@ class RevenueRowOut(BaseModel):
     order_count: int
     subtotal_revenue: int
     profit: int | None
+    # M21-05a: theo khách hàng, không theo khoảng lọc/scope — ghi chú tiềm năng mới nhất (Q156) và
+    # ngày tạo (giờ VN) của đơn gần nhất khác DRAFT/CANCELLED (Q155).
+    potential_note: str | None = None
+    potential_noted_at: datetime | None = None
+    last_purchase_date: date | None = None
 
 
 class RevenueReportOut(BaseModel):

@@ -95,6 +95,8 @@ class DashboardOut(BaseModel):
     care_summary: CareSummaryOut | None = None
     care_staff_count: int | None = None
     orders_needing_revision_count: int | None = None
+    # M21-03: chỉ MANAGER/CUSTOMER_CARE — xem `service.credited_orders_where`.
+    care_credited_order_count: int | None = None
 
 
 class DashboardOrderRow(BaseModel):
@@ -158,12 +160,24 @@ class DashboardCareStaffRow(BaseModel):
     last_recorded_at: datetime
 
 
+class DashboardCreditedOrderRow(BaseModel):
+    """M21-03: 1 đơn trong popup "Đơn ghi doanh số" — `credited_total` chỉ cộng các dòng ghi cho
+    (các) CSKH mà người gọi được xem."""
+
+    order_id: uuid.UUID
+    order_code: str
+    customer_name: str | None
+    created_at: datetime
+    status: str
+    credited_total: int
+
+
 class DashboardCardItemsOut(BaseModel):
     """`GET /api/v1/dashboard/cards/{card}/items` (M18-01a/b/c): đúng 1 danh sách theo `kind`."""
 
     card: str
     label: str
-    kind: Literal["order", "task", "staff", "feedback", "care_staff"]
+    kind: Literal["order", "task", "staff", "feedback", "care_staff", "credited_order"]
     total: int
     page: int
     page_size: int
@@ -172,3 +186,4 @@ class DashboardCardItemsOut(BaseModel):
     staff_items: list[DashboardStaffRow] | None = None
     feedback_items: list[DashboardFeedbackRow] | None = None
     care_staff_items: list[DashboardCareStaffRow] | None = None
+    credited_order_items: list[DashboardCreditedOrderRow] | None = None

@@ -110,6 +110,12 @@
             "SALE": "all",
             "CUSTOMER_CARE": "all"
           }
+        },
+        {
+          "id": "customer.potential.record",
+          "roles": {
+            "TECHNICIAN": "assigned"
+          }
         }
       ]
     },
@@ -319,6 +325,24 @@
       "capabilities": [
         {
           "id": "company.manage",
+          "roles": {
+            "MANAGER": "all"
+          }
+        },
+        {
+          "id": "kpi_target.manage",
+          "roles": {
+            "MANAGER": "all"
+          }
+        },
+        {
+          "id": "report.kpi_sales.read",
+          "roles": {
+            "MANAGER": "all"
+          }
+        },
+        {
+          "id": "report.business_charts.read",
           "roles": {
             "MANAGER": "all"
           }

@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useForm, useWatch, type Resolver } from "react-hook-form";
+import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { usePageTitle } from "../../../app/shell/pageTitle";
 import { NotFoundPage } from "../../../app/shell/StatusPage";
@@ -11,6 +11,7 @@ import { ChipGroup } from "../../../components/ui/Chip";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { Select } from "../../../components/ui/Select";
 import { Textarea } from "../../../components/ui/Textarea";
+import { DateField } from "../../../components/ui/DateField";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
 import { formatCurrency } from "../../../lib/format";
@@ -391,11 +392,19 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
                   </option>
                 ))}
               </Select>
-              <TextField
-                label="Ngày hẹn"
-                type="date"
-                error={formState.errors.requested_date?.message}
-                {...register("requested_date")}
+              <Controller
+                control={control}
+                name="requested_date"
+                render={({ field }) => (
+                  <DateField
+                    mode="date"
+                    label="Ngày hẹn"
+                    error={formState.errors.requested_date?.message}
+                    name={field.name}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                  />
+                )}
               />
               <div className="col-span-full">
                 <TextField

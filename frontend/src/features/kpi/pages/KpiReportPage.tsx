@@ -15,7 +15,7 @@ import { defaultMonthToDateRange } from "../../../lib/dateRange";
 
 /** AC-KPI-016…026 (M8-01b): trang `/reports/kpi` — số liệu KPI thô theo KTV. */
 export function KpiReportPage() {
-  usePageTitle("Báo cáo KPI");
+  usePageTitle("Công việc theo nhân viên");
   const me = useMe();
   const [filters, setFilters] = useState<Filters>(() => ({
     ...defaultMonthToDateRange(),
@@ -39,26 +39,6 @@ export function KpiReportPage() {
   }
   if (!me.data) return <KpiSkeleton isSelf={false} />;
   if (!allowed) return <ForbiddenPage />;
-  if (report.isPending) return <KpiSkeleton isSelf={isSelf} />;
-  if (report.isError) {
-    return (
-      <EmptyState
-        icon={Inbox}
-        message="Không tải được báo cáo KPI."
-        action={
-          <Button
-            variant="secondary"
-            onClick={() => {
-              void report.refetch();
-            }}
-          >
-            Tải lại
-          </Button>
-        }
-      />
-    );
-  }
-
   const technicians = isSelf
     ? undefined
     : (options.data?.rows ?? []).map((row) => ({
@@ -69,8 +49,27 @@ export function KpiReportPage() {
 
   return (
     <div className="space-y-6">
+      {/* Filters stay mounted while the report reloads: DateField reports "" mid-typing, which
+          refetches — swapping the whole page for a skeleton would drop the field being typed in. */}
       <KpiFilters filters={filters} technicians={technicians} onChange={setFilters} />
-      {isSelf ? (
+      {report.isPending ? (
+        <KpiSkeleton isSelf={isSelf} />
+      ) : report.isError ? (
+        <EmptyState
+          icon={Inbox}
+          message="Không tải được báo cáo KPI."
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => {
+                void report.refetch();
+              }}
+            >
+              Tải lại
+            </Button>
+          }
+        />
+      ) : isSelf ? (
         report.data.rows[0] ? (
           <KpiSelfCard row={report.data.rows[0]} />
         ) : null

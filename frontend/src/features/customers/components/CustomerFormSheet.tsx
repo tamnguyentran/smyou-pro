@@ -2,12 +2,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Save, TriangleAlert, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { useForm, useWatch, type Resolver } from "react-hook-form";
+import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { Select } from "../../../components/ui/Select";
 import { Sheet } from "../../../components/ui/Sheet";
 import { Textarea } from "../../../components/ui/Textarea";
+import { DateField } from "../../../components/ui/DateField";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
 import { ApiError, formError } from "../../auth/errors";
@@ -351,19 +352,35 @@ export function CustomerFormSheet({
               {...register("tax_code")}
             />
             {selectedType === "COMPANY" ? (
-              <TextField
-                label="Ngày thành lập"
-                type="date"
-                error={formState.errors.founded_date?.message ?? serverErrors.founded_date}
-                {...register("founded_date")}
+              <Controller
+                control={control}
+                name="founded_date"
+                render={({ field }) => (
+                  <DateField
+                    mode="date"
+                    label="Ngày thành lập"
+                    error={formState.errors.founded_date?.message ?? serverErrors.founded_date}
+                    name={field.name}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                  />
+                )}
               />
             ) : (
               <>
-                <TextField
-                  label="Ngày sinh"
-                  type="date"
-                  error={formState.errors.date_of_birth?.message ?? serverErrors.date_of_birth}
-                  {...register("date_of_birth")}
+                <Controller
+                  control={control}
+                  name="date_of_birth"
+                  render={({ field }) => (
+                    <DateField
+                      mode="date"
+                      label="Ngày sinh"
+                      error={formState.errors.date_of_birth?.message ?? serverErrors.date_of_birth}
+                      name={field.name}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                    />
+                  )}
                 />
                 <Select
                   label="Giới tính"

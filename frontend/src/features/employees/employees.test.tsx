@@ -875,8 +875,9 @@ describe("M17-03a hồ sơ nhân viên", () => {
         .getAllByRole("option")
         .map((o) => o.textContent),
     ).toEqual(["—", "Độc thân", "Đã kết hôn", "Ly hôn", "Goá"]);
-    expect(within(dialog).getByLabelText("Ngày sinh")).toHaveAttribute("type", "date");
-    expect(within(dialog).getByLabelText("Ngày cấp")).toHaveAttribute("type", "date");
+    // M21-06b: ô ngày là DateField (dd/MM/yyyy) thay cho type="date".
+    expect(within(dialog).getByLabelText("Ngày sinh")).toHaveAttribute("placeholder", "dd/MM/yyyy");
+    expect(within(dialog).getByLabelText("Ngày cấp")).toHaveAttribute("placeholder", "dd/MM/yyyy");
 
     await user.type(within(dialog).getByLabelText("Họ và tên"), "Trần Văn Lợi");
     await user.type(within(dialog).getByLabelText("CMND/CCCD"), "1234567890");
@@ -888,7 +889,7 @@ describe("M17-03a hồ sơ nhân viên", () => {
 
     await user.clear(within(dialog).getByLabelText("CMND/CCCD"));
     await user.type(within(dialog).getByLabelText("CMND/CCCD"), "089185000565");
-    await user.type(within(dialog).getByLabelText("Ngày sinh"), "1985-07-30");
+    await user.type(within(dialog).getByLabelText("Ngày sinh"), "30/07/1985");
     await user.selectOptions(gender, "FEMALE");
     await user.selectOptions(marital, "MARRIED");
     await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
@@ -905,6 +906,63 @@ describe("M17-03a hồ sơ nhân viên", () => {
       id_issued_date: null,
       id_issued_place: null,
     });
+  });
+});
+
+describe("AC-UI-104 Ngày sinh/Ngày cấp không sau hôm nay (M21-06b)", () => {
+  test("gõ ngày mai → lỗi, không gửi; gõ 20051995 → gửi birth_date; Ngày cấp tương tự", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-04T03:00:00Z"));
+    try {
+      let posted: Record<string, unknown> | null = null;
+      signedInAs(AN, () => HttpResponse.json(page([AN_ROW])));
+      server.use(
+        http.post("/api/v1/employees", async ({ request }) => {
+          posted = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json(
+            {
+              employee: employee({ full_name: "Trần Văn Lợi", email: null }),
+              temporary_password: "aB3dEfGh9k",
+            },
+            { status: 201 },
+          );
+        }),
+      );
+      renderApp("/employees");
+      await openMenu();
+      const user = userEvent.setup();
+      await user.click(await screen.findByRole("button", { name: "Thêm nhân viên" }));
+      const dialog = await screen.findByRole("dialog", { name: "Thêm nhân viên" });
+
+      const birth = within(dialog).getByLabelText("Ngày sinh");
+      const issued = within(dialog).getByLabelText("Ngày cấp");
+      await user.type(birth, "05112026");
+      await user.tab();
+      expect(within(dialog).getByText("Ngày không được sau 04/11/2026.")).toBeInTheDocument();
+      expect(birth).toHaveAttribute("aria-invalid", "true");
+      await user.type(issued, "05112026");
+      await user.tab();
+      expect(within(dialog).getAllByText("Ngày không được sau 04/11/2026.")).toHaveLength(2);
+      expect(issued).toHaveAttribute("aria-invalid", "true");
+
+      await user.clear(birth);
+      await user.type(birth, "20051995");
+      await user.clear(issued);
+      await user.type(issued, "04112026");
+      await user.tab();
+      expect(within(dialog).queryByText("Ngày không được sau 04/11/2026.")).toBeNull();
+
+      await user.type(within(dialog).getByLabelText("Họ và tên"), "Trần Văn Lợi");
+      await user.type(within(dialog).getByLabelText("CMND/CCCD"), "089185000565");
+      await user.selectOptions(within(dialog).getByLabelText("Phòng ban"), SALES.id);
+      await user.click(within(dialog).getByRole("checkbox", { name: "Nhân viên kinh doanh" }));
+      await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+
+      expect(await screen.findByRole("dialog", { name: "Mật khẩu tạm" })).toBeInTheDocument();
+      expect(posted).toMatchObject({ birth_date: "1995-05-20", id_issued_date: "2026-11-04" });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -1107,7 +1165,7 @@ describe("AC-EMP-088 màn hình được vào theo menu.json", () => {
       within(within(region).getByRole("list", { name: "Màn hình được vào" }))
         .getAllByRole("listitem")
         .map((li) => li.textContent);
-    expect(screens()).toEqual(["Tổng quan", "Việc của tôi", "Báo cáo › Báo cáo KPI"]);
+    expect(screens()).toEqual(["Tổng quan", "Việc của tôi", "Báo cáo › Công việc theo nhân viên"]);
 
     await user.selectOptions(within(region).getByLabelText("Vai trò"), "SALE");
     expect(screens()).toContain("Đơn hàng › Khách hàng");
@@ -1127,7 +1185,7 @@ describe("AC-EMP-088 màn hình được vào theo menu.json", () => {
           .map((li) => li.textContent),
       );
     // Columns follow the header order: Quản lý chung, Kinh doanh, CSKH, QLKT, Kỹ thuật.
-    expect(columns[4]).toEqual(["Tổng quan", "Việc của tôi", "Báo cáo › Báo cáo KPI"]);
+    expect(columns[4]).toEqual(["Tổng quan", "Việc của tôi", "Báo cáo › Công việc theo nhân viên"]);
     expect(columns[0]).toContain("Điều phối kỹ thuật › Đơn chờ điều phối");
     expect(columns[1]).toContain("Đơn hàng › Khách hàng");
     expect(columns[1]?.some((t) => t.startsWith("Điều phối kỹ thuật"))).toBe(false);

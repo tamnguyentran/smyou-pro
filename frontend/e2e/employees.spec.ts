@@ -23,6 +23,25 @@ function shot(info: TestInfo, file: string) {
 /** `checkOverflow` toggles the 360px resize check: only safe when nothing needs to survive it —
  * crossing the 1024px breakpoint remounts AppShell's outlet (desktop sidebar ↔ mobile header/drawer),
  * which would drop any open Sheet/dialog state even though the viewport is restored afterward. */
+/** M21-06b (AC-UI-107): mở lịch của ô ngày `label`; lịch nằm trọn khung nhìn, không cuộn ngang. */
+async function expectPickerFits(page: Page, label: string) {
+  const field = page.getByLabel(label, { exact: true }).locator("xpath=..");
+  await field.getByRole("button", { name: "Chọn ngày" }).click();
+  const picker = field.getByRole("dialog", { name: "Chọn ngày" });
+  await expect(picker).toBeVisible();
+  const box = await picker.boundingBox();
+  if (!box) throw new Error("picker has no box");
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()?.width ?? 0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(picker).toHaveCount(0);
+}
+
 async function evidence(
   page: Page,
   info: TestInfo,
@@ -232,13 +251,13 @@ test("AC-EMP-071 @screenshot tạo nhân viên đủ hồ sơ cá nhân, mở l�
   const form = page.getByRole("dialog", { name: "Thêm nhân viên" });
   const name = `Kim Yến ${info.project.name} ${String(Date.now())}`;
   await form.getByLabel("Họ và tên").fill(name);
-  await form.getByLabel("Ngày sinh").fill("1985-07-30");
+  await form.getByLabel("Ngày sinh").fill("30/07/1985");
   await form.getByLabel("Nơi sinh").fill("An Giang");
   await form.getByLabel("Giới tính").selectOption({ label: "Nữ" });
   await form.getByLabel("SĐT").fill("0932068787");
   await form.getByLabel("Địa chỉ").fill("12 Trần Hưng Đạo, Long Xuyên, An Giang");
   await form.getByLabel("CMND/CCCD").fill("089185000565");
-  await form.getByLabel("Ngày cấp").fill("2018-10-08");
+  await form.getByLabel("Ngày cấp").fill("08/10/2018");
   await form.getByLabel("Nơi cấp").fill("Cục Cảnh sát QLHC về TTXH");
   await form.getByLabel("Tình trạng hôn nhân").selectOption({ label: "Đã kết hôn" });
   await form.getByLabel("Phòng ban").selectOption({ label: "Phát Triển Kinh Tế" });
@@ -259,13 +278,13 @@ test("AC-EMP-071 @screenshot tạo nhân viên đủ hồ sơ cá nhân, mở l�
   await page.getByLabel("Tìm kiếm").fill(name);
   await page.getByRole("button", { name: new RegExp(name) }).click();
   const edit = page.getByRole("dialog", { name: "Sửa nhân viên" });
-  await expect(edit.getByLabel("Ngày sinh")).toHaveValue("1985-07-30");
+  await expect(edit.getByLabel("Ngày sinh")).toHaveValue("30/07/1985");
   await expect(edit.getByLabel("Nơi sinh")).toHaveValue("An Giang");
   await expect(edit.getByLabel("Giới tính").locator("option:checked")).toHaveText("Nữ");
   await expect(edit.getByLabel("Địa chỉ")).toHaveValue("12 Trần Hưng Đạo, Long Xuyên, An Giang");
   await expect(edit.getByLabel("Email")).toHaveValue("");
   await expect(edit.getByLabel("CMND/CCCD")).toHaveValue("089185000565");
-  await expect(edit.getByLabel("Ngày cấp")).toHaveValue("2018-10-08");
+  await expect(edit.getByLabel("Ngày cấp")).toHaveValue("08/10/2018");
   await expect(edit.getByLabel("Nơi cấp")).toHaveValue("Cục Cảnh sát QLHC về TTXH");
   await expect(edit.getByLabel("Tình trạng hôn nhân").locator("option:checked")).toHaveText(
     "Đã kết hôn",
@@ -280,7 +299,7 @@ test("AC-AUTH-074 @screenshot tạo NV có ngày sinh → đăng nhập bằng t
   await page.getByRole("button", { name: "Thêm nhân viên" }).click();
   const form = page.getByRole("dialog", { name: "Thêm nhân viên" });
   await form.getByLabel("Họ và tên").fill("Nguyễn Lê Kim Yến");
-  await form.getByLabel("Ngày sinh").fill("1985-07-30");
+  await form.getByLabel("Ngày sinh").fill("30/07/1985");
   await form.getByLabel("Phòng ban").selectOption({ label: "Phát Triển Kinh Tế" });
   await form.getByRole("checkbox", { name: "Nhân viên kinh doanh" }).check();
   await form.getByRole("button", { name: "Lưu" }).click();
@@ -484,4 +503,52 @@ test("AC-EMP-123 AC-EMP-124 @a11y @screenshot cấp lại mật khẩu: giờ h�
   await evidence(page, info, "temporary-password-expiry.png");
   await passwordDialog.getByRole("button", { name: "Đóng", exact: true }).click();
   await evidence(page, info, "employee-sheet-temp-password-status.png");
+});
+
+test("AC-UI-104 AC-UI-107 @screenshot Ngày sinh sau hôm nay báo lỗi tiếng Việt; lịch vừa màn hình", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER);
+  await page.getByRole("button", { name: "Thêm nhân viên" }).click();
+  const form = page.getByRole("dialog", { name: "Thêm nhân viên" });
+  const birth = form.getByLabel("Ngày sinh");
+  await birth.pressSequentially("05112099");
+  await birth.blur();
+  await expect(form.getByText(/^Ngày không được sau \d{2}\/\d{2}\/\d{4}\.$/)).toBeVisible();
+  await expect(birth).toHaveAttribute("aria-invalid", "true");
+
+  await birth.fill("");
+  await birth.pressSequentially("20051995");
+  await birth.blur();
+  await expect(birth).toHaveValue("20/05/1995");
+  await expect(birth).not.toHaveAttribute("aria-invalid", "true");
+
+  await expectPickerFits(page, "Ngày sinh");
+  await evidence(page, info, "employee-form-datefield.png");
+});
+
+test("AC-SYS-154 seed_e2e dọn NV do lượt chạy trước tạo: chỉ còn NV test của lượt hiện tại", async ({
+  page,
+}) => {
+  await signIn(page, MANAGER);
+  await expect(page.getByRole("heading", { level: 1, name: "Nhân sự & phân quyền" })).toBeVisible();
+  type Row = { full_name: string; email: string };
+  const all: Row[] = [];
+  for (let offset = 0; ; offset += 100) {
+    const res = await page.request.get(`api/v1/employees?limit=100&offset=${String(offset)}`);
+    expect(res.status()).toBe(200);
+    const body = (await res.json()) as { items: Row[]; total: number };
+    all.push(...body.items);
+    if (body.items.length === 0 || all.length >= body.total) break;
+  }
+  // non-vacuous: the listing really covers the DB (fixture manager present)
+  expect(all.map((e) => e.email)).toContain(MANAGER);
+  // every e2e-created employee stamps Date.now() into its name ("Phạm Văn Khoa desktop 17…",
+  // "Kim Yến mobile 17…") or email ("qa.lock.mobile.17…@"); older than this run (< 1h) → purged
+  const stamps = all
+    .map((e) => /\b(1\d{12})\b/.exec(`${e.full_name} ${e.email}`)?.[1])
+    .filter((s): s is string => s !== undefined)
+    .map(Number);
+  const runStart = Date.now() - 60 * 60 * 1000;
+  expect(stamps.filter((s) => s < runStart)).toEqual([]);
 });

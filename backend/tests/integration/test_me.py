@@ -44,6 +44,9 @@ MANAGER_CAPABILITIES = {
     "report.customer_gift.read": ["all"],
     "audit.read": ["all"],
     "company.manage": ["all"],
+    "kpi_target.manage": ["all"],  # M21-01a
+    "report.kpi_sales.read": ["all"],  # M21-02a
+    "report.business_charts.read": ["all"],  # M23a
     "notification.read": ["self"],
 }
 
@@ -56,6 +59,7 @@ TECHNICIAN_CAPABILITIES = {
     "order.upload_confirmation": ["assigned"],
     "order.complete": ["assigned"],
     "order.edit_lines_on_site": ["assigned"],  # M19-01a
+    "customer.potential.record": ["assigned"],  # M21-05a
     "task.read": ["assigned"],
     "assignment.respond": ["self"],
     "task.upload_photo": ["assigned"],
@@ -100,7 +104,8 @@ def test_manager_sees_profile_roles_and_exactly_their_capabilities(api: TestClie
     }
     assert body["roles"] == ["MANAGER"]
     assert body["capabilities"] == MANAGER_CAPABILITIES
-    assert len(MANAGER_CAPABILITIES) == 30  # M17-04: + order.print; M19-01a: + catalog.read_cost
+    # M17-04: + order.print; M19-01a: + catalog.read_cost; M21-01a/02a: + 2; M23a: + 1
+    assert len(MANAGER_CAPABILITIES) == 33
     assert "task.manage" not in MANAGER_CAPABILITIES
     assert "assignment.respond" not in MANAGER_CAPABILITIES
     assert body["counters"] == {}

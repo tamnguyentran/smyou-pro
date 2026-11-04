@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Clock } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { ROLE_LABELS } from "../../../app/menu";
 import { Alert } from "../../../components/ui/Alert";
 import { Badge } from "../../../components/ui/Badge";
@@ -10,6 +10,7 @@ import { Button } from "../../../components/ui/Button";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { Select } from "../../../components/ui/Select";
 import { Sheet } from "../../../components/ui/Sheet";
+import { DateField } from "../../../components/ui/DateField";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
 import { useSession } from "../../auth/api";
@@ -209,7 +210,7 @@ export function EmployeeFormSheet({
     expiresAt: string;
   } | null>(null);
 
-  const { register, handleSubmit, formState, setValue } = useForm<EmployeeFormValues>({
+  const { register, handleSubmit, formState, setValue, control } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: {
       full_name: employee?.full_name ?? "",
@@ -479,12 +480,20 @@ export function EmployeeFormSheet({
                 error={fieldError("full_name")}
                 {...register("full_name")}
               />
-              <TextField
-                label="Ngày sinh"
-                type="date"
-                max={today}
-                error={fieldError("birth_date")}
-                {...register("birth_date")}
+              <Controller
+                control={control}
+                name="birth_date"
+                render={({ field }) => (
+                  <DateField
+                    mode="date"
+                    label="Ngày sinh"
+                    max={today}
+                    error={fieldError("birth_date")}
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
               />
               <TextField
                 label="Nơi sinh"
@@ -512,12 +521,20 @@ export function EmployeeFormSheet({
                 error={fieldError("id_number")}
                 {...register("id_number")}
               />
-              <TextField
-                label="Ngày cấp"
-                type="date"
-                max={today}
-                error={fieldError("id_issued_date")}
-                {...register("id_issued_date")}
+              <Controller
+                control={control}
+                name="id_issued_date"
+                render={({ field }) => (
+                  <DateField
+                    mode="date"
+                    label="Ngày cấp"
+                    max={today}
+                    error={fieldError("id_issued_date")}
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
               />
               <TextField
                 label="Nơi cấp"

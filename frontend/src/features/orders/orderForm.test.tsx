@@ -763,6 +763,53 @@ describe("AC-ORD-034 lưu nháp", () => {
   });
 });
 
+describe("AC-UI-103 Ngày hẹn dùng DateField (M21-06b)", () => {
+  test("gõ Ngày hẹn 10112026, Lưu nháp → gửi requested_date=2026-11-10", async () => {
+    signedInAs(hoaId, HOA);
+    let body: Record<string, unknown> = {};
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ customer_id: customerId, lines: [orderLine()] })),
+      ),
+      http.patch("/api/v1/orders/:id", async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          order({
+            customer_id: customerId,
+            lines: [orderLine()],
+            requested_date: "2026-11-10",
+            version: 2,
+          }),
+        );
+      }),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+    const user = userEvent.setup();
+
+    const requested = screen.getByLabelText("Ngày hẹn");
+    expect(requested).not.toHaveAttribute("type", "date");
+    await user.type(requested, "10112026");
+    expect(requested).toHaveValue("10/11/2026");
+    await user.click(screen.getByRole("button", { name: "Lưu nháp" }));
+    await waitFor(() => {
+      expect(body.requested_date).toBe("2026-11-10");
+    });
+  });
+
+  test("mở lại đơn nháp có requested_date → ô hiện 10/11/2026", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ requested_date: "2026-11-10" })),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+    expect(screen.getByLabelText("Ngày hẹn")).toHaveValue("10/11/2026");
+  });
+});
+
 describe("AC-ORD-035 409 STALE_VERSION", () => {
   test("hiện banner đỏ + nút Tải lại, cảnh báo trước khi mất thay đổi chưa lưu", async () => {
     signedInAs(hoaId, HOA);

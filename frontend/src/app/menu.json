@@ -163,11 +163,29 @@
       "badge": null,
       "children": [
         {
+          "id": "reports-business-charts",
+          "label": "Biểu đồ kinh doanh",
+          "icon": "ChartPie",
+          "path": "/reports/business-charts",
+          "capability": "report.business_charts.read",
+          "badge": null,
+          "children": []
+        },
+        {
           "id": "reports-kpi",
-          "label": "Báo cáo KPI",
+          "label": "Công việc theo nhân viên",
           "icon": "BarChart3",
           "path": "/reports/kpi",
           "capability": "kpi.read",
+          "badge": null,
+          "children": []
+        },
+        {
+          "id": "reports-kpi-sales",
+          "label": "Báo cáo KPI",
+          "icon": "Target",
+          "path": "/reports/kpi-sales",
+          "capability": "report.kpi_sales.read",
           "badge": null,
           "children": []
         },
@@ -232,6 +250,15 @@
           "icon": "UserCog",
           "path": "/employees",
           "capability": "employee.manage",
+          "badge": null,
+          "children": []
+        },
+        {
+          "id": "kpi_targets",
+          "label": "Thiết lập doanh thu KPI",
+          "icon": "Target",
+          "path": "/settings/kpi-targets",
+          "capability": "kpi_target.manage",
           "badge": null,
           "children": []
         }

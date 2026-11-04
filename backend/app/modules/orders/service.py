@@ -66,6 +66,10 @@ ORDER_LOCKED = "Đơn đã hoàn tất hoặc đã huỷ, không thể sửa."
 PRICE_FIXED = "Đơn giá của dòng này cố định theo danh mục."
 DISCOUNT_EXCEEDS_GROSS = "Giảm giá không được lớn hơn tiền hàng của dòng."
 ITEM_INACTIVE = "Sản phẩm/dịch vụ này đã ngừng kinh doanh."
+ITEM_COST_MISSING = (
+    "Sản phẩm/dịch vụ này chưa có giá vốn trong danh mục nên không thể bán."
+    " Vui lòng liên hệ Quản lý cập nhật giá vốn."
+)
 CUSTOM_LINE_DISABLED = "Chỉ được chọn Sản phẩm hoặc Dịch vụ."
 LINE_NOT_EDITABLE = "Bạn chỉ sửa/xoá được dòng hàng do chính mình thêm."
 SELF_CREDIT_ONLY = "Dòng hàng do kỹ thuật viên thêm chỉ ghi doanh số cho chính bạn."
@@ -223,6 +227,16 @@ def _item_inactive(field: str) -> AppError:
         "ITEM_INACTIVE",
         ITEM_INACTIVE,
         errors=[{"field": field, "code": "inactive", "message": ITEM_INACTIVE}],
+    )
+
+
+def _item_cost_missing(field: str) -> AppError:
+    # M21-08: profit/KPI need a cost on every sold line, so an item without one cannot be sold.
+    return AppError(
+        422,
+        "ITEM_COST_MISSING",
+        ITEM_COST_MISSING,
+        errors=[{"field": field, "code": "cost_missing", "message": ITEM_COST_MISSING}],
     )
 
 
@@ -527,6 +541,8 @@ def _snapshot_item(session: Session, body: OrderLineCreate) -> _ItemSnapshot:
             raise _field_error("product_id", NOT_FOUND_PRODUCT)
         if not product.is_active:
             raise _item_inactive("product_id")
+        if product.cost_price is None:
+            raise _item_cost_missing("product_id")
         return _ItemSnapshot(
             product_id=product.id,
             service_id=None,
@@ -546,6 +562,8 @@ def _snapshot_item(session: Session, body: OrderLineCreate) -> _ItemSnapshot:
             raise _field_error("service_id", NOT_FOUND_SERVICE)
         if not service_row.is_active:
             raise _item_inactive("service_id")
+        if service_row.cost_price is None:
+            raise _item_cost_missing("service_id")
         return _ItemSnapshot(
             product_id=None,
             service_id=service_row.id,

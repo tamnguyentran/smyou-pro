@@ -35,6 +35,7 @@ capabilities:
   customer.manage:       { MANAGER: all, SALE: all, CUSTOMER_CARE: all }
   customer_gift.read:    { MANAGER: all, SALE: all, CUSTOMER_CARE: all }    # M16-01a, Q97: all — not own
   customer_gift.manage:  { MANAGER: all, SALE: all, CUSTOMER_CARE: all }    # create + edit, no delete (Q97)
+  customer.potential.record: { TECHNICIAN: assigned }   # M21-05a (Q154): phân công ACCEPTED/IN_PROGRESS/DONE, đơn chưa COMPLETED/CANCELLED
   # --- Đơn hàng ---
   order.read:            { MANAGER: all, SALE: all, CUSTOMER_CARE: all, TECH_LEAD: all, TECHNICIAN: assigned }
   order.print:           { MANAGER: all, SALE: all, CUSTOMER_CARE: all, TECH_LEAD: all, TECHNICIAN: assigned }   # M17-04 (Q109): same as order.read
@@ -65,6 +66,9 @@ capabilities:
   audit.read:            { MANAGER: all }
   # --- Hệ thống ---
   company.manage:        { MANAGER: all }   # M17-01: view + edit the single company profile, upload logo
+  kpi_target.manage:     { MANAGER: all }   # M21-01a: monthly "Thu nhập thuần" targets per employee (Q146)
+  report.kpi_sales.read: { MANAGER: all }   # M21-02a: company-wide monthly KPI sales report (Q150); own figures via /me/kpi-sales (profile.manage)
+  report.business_charts.read: { MANAGER: all }   # M23a: company-wide business charts (Q157–Q160, Q165–Q172)
   notification.read:     { MANAGER: self, SALE: self, TECH_LEAD: self, TECHNICIAN: self }
 
 public_routes:
@@ -134,7 +138,9 @@ menu:
     label: Báo cáo
     icon: BarChart3
     children:
-      - { id: reports-kpi,              label: Báo cáo KPI,                icon: BarChart3, path: /reports/kpi,                 capability: kpi.read }
+      - { id: reports-business-charts, label: Biểu đồ kinh doanh,    icon: ChartPie,  path: /reports/business-charts,    capability: report.business_charts.read }  # M23a
+      - { id: reports-kpi,              label: Công việc theo nhân viên,   icon: BarChart3, path: /reports/kpi,                 capability: kpi.read }   # M21-02b: renamed (was "Báo cáo KPI")
+      - { id: reports-kpi-sales,        label: Báo cáo KPI,                icon: Target,    path: /reports/kpi-sales,           capability: report.kpi_sales.read }  # M21-02b
       - { id: reports-revenue-customer, label: Doanh thu theo khách hàng,  icon: Users,     path: /reports/revenue-by-customer, capability: report.revenue.read }
       - { id: reports-revenue-employee, label: Doanh thu theo nhân viên,   icon: UserCog,   path: /reports/revenue-by-employee, capability: report.revenue.read }
       - { id: reports-customer-gift,    label: Chi phí quà tặng KH,        icon: Gift,      path: /reports/customer-gifts,      capability: report.customer_gift.read }
@@ -147,6 +153,7 @@ menu:
       - { id: company,     label: Thông tin Công ty,    icon: Info,    path: /settings/company,     capability: company.manage }
       - { id: departments, label: Phòng ban,            icon: Network, path: /settings/departments, capability: employee.manage }
       - { id: employees,   label: Nhân sự & phân quyền, icon: UserCog, path: /employees,            capability: employee.manage }
+      - { id: kpi_targets, label: Thiết lập doanh thu KPI, icon: Target, path: /settings/kpi-targets, capability: kpi_target.manage }  # M21-01b
   - id: audit
     label: Nhật ký hệ thống
     icon: History
