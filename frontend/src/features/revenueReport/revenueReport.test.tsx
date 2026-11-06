@@ -127,10 +127,36 @@ describe("Báo cáo doanh thu theo khách hàng", () => {
     await waitFor(() => {
       expect(requests).toContain("?from=2026-09-01&to=2026-09-15&status=COMPLETED");
     });
-    expect(screen.getByLabelText("Từ ngày")).toHaveValue("2026-09-01");
-    expect(screen.getByLabelText("Đến ngày")).toHaveValue("2026-09-15");
+    expect(screen.getByLabelText("Từ ngày")).toHaveValue("01/09/2026");
+    expect(screen.getByLabelText("Đến ngày")).toHaveValue("15/09/2026");
     expect(screen.getByLabelText("Trạng thái")).toHaveValue("COMPLETED");
     expect(screen.getByLabelText("Khách hàng")).toHaveValue("");
+  });
+
+  test("AC-UI-100 Doanh thu theo KH: Từ ngày/Đến ngày là DateField, gõ tay → API nhận yyyy-MM-dd", async () => {
+    signedInAs(anId, AN);
+    const requests: string[] = [];
+    mockReport([row()], (search) => {
+      requests.push(search);
+    });
+    renderApp("/reports/revenue-by-customer");
+    const user = userEvent.setup();
+    const from = await screen.findByLabelText("Từ ngày");
+    const to = screen.getByLabelText("Đến ngày");
+    expect(document.querySelector('input[type="date"]')).toBeNull();
+    await user.clear(from);
+    await user.type(from, "01082026");
+    await user.clear(to);
+    await user.type(to, "20082026");
+    expect(from).toHaveValue("01/08/2026");
+    expect(to).toHaveValue("20/08/2026");
+    await waitFor(() => {
+      expect(requests.at(-1)).toContain("from=2026-08-01");
+      expect(requests.at(-1)).toContain("to=2026-08-20");
+    });
+    expect(screen.getByRole("link", { name: /Xuất Excel/i }).getAttribute("href")).toContain(
+      "from=2026-08-01&to=2026-08-20",
+    );
   });
 
   test("AC-RPT-071 bấm 1 dòng → drilldown liệt kê DÒNG HÀNG (không phải đơn), kèm seller_id", async () => {
@@ -198,12 +224,47 @@ describe("Báo cáo doanh thu theo khách hàng", () => {
     renderApp("/reports/revenue-by-customer");
 
     await screen.findByText("Cty Sáng Tạo Mới");
-    const dash = screen.getByText("—");
+    // M21-05b: the "Tiềm năng"/"Ngày mua hàng cuối" columns also show "—" when empty, so locate the
+    // profit cell by its tooltip (owner-approved 2026-11-03) — the assertions below are unchanged.
+    const dash = screen.getByTitle("Một số dòng hàng chưa có giá vốn tại thời điểm tạo đơn.");
+    expect(dash).toHaveTextContent("—");
     expect(dash).toHaveAttribute(
       "title",
       "Một số dòng hàng chưa có giá vốn tại thời điểm tạo đơn.",
     );
     expect(screen.queryByText("0 ₫")).not.toBeInTheDocument();
+  });
+
+  test("AC-CUS-058 1440px: cột 'Tiềm năng' + 'Ngày mua hàng cuối' (dd/MM/yyyy); dòng không có → '—'", async () => {
+    signedInAs(anId, AN);
+    mockReport([
+      row({
+        customer_name: "Công ty TNHH Minh Phát",
+        potential_note: "Muốn lắp thêm 4 camera kho",
+        potential_noted_at: "2026-11-05T02:30:00Z",
+        last_purchase_date: "2026-11-03",
+      }),
+      row({
+        customer_id: "c0000000-0000-4000-8000-000000000002",
+        customer_code: "KH00002",
+        customer_name: "Cty Chưa Ghi Nhận",
+        potential_note: null,
+        potential_noted_at: null,
+        last_purchase_date: null,
+      }),
+    ]);
+    renderApp("/reports/revenue-by-customer");
+
+    await screen.findByText("Công ty TNHH Minh Phát");
+    expect(screen.getByRole("columnheader", { name: "Tiềm năng" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Ngày mua hàng cuối" })).toBeInTheDocument();
+    const minhPhat = screen.getByRole("row", { name: /Công ty TNHH Minh Phát/ });
+    const potential = within(minhPhat).getByText("Muốn lắp thêm 4 camera kho");
+    expect(potential).toHaveAttribute("title", "Muốn lắp thêm 4 camera kho");
+    expect(potential).toHaveClass("line-clamp-2");
+    expect(within(minhPhat).getByText("03/11/2026")).toBeInTheDocument();
+    const empty = screen.getByRole("row", { name: /Cty Chưa Ghi Nhận/ });
+    expect(within(empty).getAllByText("—")).toHaveLength(2);
   });
 
   test("AC-RPT-015 mobile 390px: thẻ (không bảng), bộ lọc xếp dọc", async () => {

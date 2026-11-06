@@ -494,6 +494,8 @@ def test_export_returns_csv_with_bom_and_unassigned_row(
         "Số đơn",
         "Doanh thu",
         "Lợi nhuận",
+        "Tiềm năng sử dụng dịch vụ",
+        "Ngày mua hàng cuối",
     ]
     assert len(rows) - 1 == len(report_items)
     unassigned_csv_row = next(row for row in rows[1:] if row[4] == "")

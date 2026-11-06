@@ -6,6 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from app.modules.audit.domain import BusinessArea
+
 
 class ActorSummary(BaseModel):
     id: uuid.UUID
@@ -23,6 +25,8 @@ class AuditEventOut(BaseModel):
     from_status: str | None
     to_status: str | None
     data: dict[str, Any] | None
+    business_area: BusinessArea  # M21-04: "Nghiệp vụ", derived from entity_type/action
+    entity_label: str | None  # M21-04: order code, customer name…; None when it can't be looked up
 
 
 class AuditEventPage(BaseModel):

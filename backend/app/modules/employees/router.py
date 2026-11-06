@@ -1,12 +1,13 @@
 """/api/v1/employees — thin HTTP layer (M1-04a). State changes are named commands, never a PATCH of status."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query, Request, Response
 
 from app.core.authz import Actor, require
+from app.core.csv_export import VIETNAM
 from app.core.db import DbSession
 from app.core.request_id import get_request_id
 from app.modules.employees import service
@@ -43,6 +44,11 @@ CONFLICTS = (
 def _now(request: Request) -> datetime:
     now: datetime = request.app.state.clock()
     return now
+
+
+def _temp_password_ttl(request: Request) -> timedelta:
+    """M20-09: how long a temporary password stays usable (TEMP_PASSWORD_TTL_HOURS)."""
+    return timedelta(hours=request.app.state.settings.temp_password_ttl_hours)
 
 
 @router.get(
@@ -82,6 +88,34 @@ def lookup_employees(
     return service.lookup_employees(session, q=q, include_inactive=include_inactive, limit=limit)
 
 
+# Declared before `/{employee_id}` so "export" isn't parsed as a UUID (→ 422).
+@router.get(
+    "/export",
+    operation_id="employees_export",
+    summary="Xuất CSV toàn bộ nhân viên theo bộ lọc (M20-08)",
+    response_class=Response,
+    responses={200: {"content": {"text/csv": {}}}},
+)
+def export_employees(
+    request: Request,
+    session: DbSession,
+    actor: Manager,
+    q: Annotated[str | None, Query(max_length=100)] = None,
+    role: Role | None = None,
+    is_active: bool | None = None,
+) -> Response:
+    role_labels = {name: spec.label for name, spec in request.app.state.specs.permissions.roles.items()}
+    csv_bytes = service.export_employees(
+        session, actor, q=q, role=role, is_active=is_active, role_labels=role_labels
+    )
+    today = _now(request).astimezone(VIETNAM).date()
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="nhan-vien-{today.isoformat()}.csv"'},
+    )
+
+
 @router.get(
     "/{employee_id}",
     operation_id="employees_get",
@@ -106,7 +140,12 @@ def create_employee(
 ) -> EmployeeWithPassword:
     response.headers["Cache-Control"] = NO_STORE
     return service.create_employee(
-        session, actor, body, now=_now(request), request_id=get_request_id(request)
+        session,
+        actor,
+        body,
+        now=_now(request),
+        temp_password_ttl=_temp_password_ttl(request),
+        request_id=get_request_id(request),
     )
 
 
@@ -208,5 +247,6 @@ def reset_password(
         employee_id,
         version=body.version,
         now=_now(request),
+        temp_password_ttl=_temp_password_ttl(request),
         request_id=get_request_id(request),
     )

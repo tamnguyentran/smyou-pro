@@ -12,7 +12,7 @@ sequenceDiagram
   actor C as Khách hàng
   S->>S: Tạo đơn (DRAFT), thêm dòng hàng/dịch vụ
   S->>L: Gửi đơn (submit → PENDING_DISPATCH)
-  L->>T: Tạo task, giao 1..n người (đơn vẫn Chờ điều phối)
+  L->>T: Tạo task, giao 1..n người (đơn → Đang thực hiện ngay, Q90)
   T-->>L: Từ chối + lý do (→ task cần giao lại)
   T->>T: Tiếp nhận → Bắt đầu (đơn → IN_PROGRESS, lần bắt đầu đầu tiên) → Hoàn thành
   Note over L: Khi mọi task DONE → đơn AWAITING_CONFIRMATION
@@ -44,8 +44,8 @@ stateDiagram-v2
 ```
 
 Điểm cần lưu ý:
-- **Chuyển "system"** không có API riêng; được kích hoạt bên trong cùng transaction của lệnh gây ra nó (tạo task, hoàn thành assignment, huỷ task…). Hàm `reevaluate_order(order)` là nơi duy nhất quyết định các chuyển này — **trừ `start_dispatch`**, hiệu ứng `fire_order_start_dispatch_if_first_start` riêng, gắn trong lệnh `assignment.start` (không qua `reevaluate_order`).
-- **Đơn hàng IN_PROGRESS ≠ Task/Assignment IN_PROGRESS** (dễ nhầm, 3 chữ "Đang thực hiện" ở 3 tầng khác nhau): đơn chỉ chuyển IN_PROGRESS khi có **ít nhất 1 phân công** của đơn đó thật sự Bắt đầu (`assignment.start`) — chỉ giao task/giao người thôi (task vẫn "Chờ tiếp nhận") KHÔNG làm đơn đổi trạng thái (Q81, chốt 2026-10-15; trước đó đơn đổi ngay lúc tạo task đầu tiên — đã đổi lại theo yêu cầu chủ dự án).
+- **Chuyển "system"** không có API riêng; được kích hoạt bên trong cùng transaction của lệnh gây ra nó (tạo task, hoàn thành assignment, huỷ task…). Hàm `reevaluate_dispatch_state(order)` (backend `orders/service.py`) là nơi duy nhất quyết định `start_dispatch`/`undispatch`, gọi sau mọi thay đổi task/phân công: tạo/huỷ task, **thêm người** (UAT BUG-01, 2026-11-06), từ chối, gỡ người.
+- **Đơn hàng IN_PROGRESS ≠ Task/Assignment IN_PROGRESS** (dễ nhầm, 3 chữ "Đang thực hiện" ở 3 tầng khác nhau): đơn chuyển IN_PROGRESS ngay khi có **ít nhất 1 phân công chưa bị từ chối/gỡ** (kể cả còn "Chờ tiếp nhận"), không cần ai bấm Bắt đầu; mất hết phân công active thì lùi về PENDING_DISPATCH, thêm người lại thì quay lại IN_PROGRESS (Q90, 2026-10-19 — thay Q81).
 - Khi vào REVISION mà Quản lý kỹ thuật chưa thêm/mở lại task nào, đơn **không** tự nhảy về AWAITING_CONFIRMATION (guard `revision_has_work_if_revision`).
 - Ảnh phiếu xác nhận gắn với `revision_no`; sau mỗi lần chỉnh sửa phải có ảnh xác nhận mới.
 
@@ -105,7 +105,7 @@ In-app (chuông) và Web Push dùng **chung một nguồn**: cứ có dòng `not
 | QLKT **gỡ hết assignment đang mở** (huỷ active) | `order.cancel_active` | Các KTV bị gỡ |
 | QLKT **tạo đầu việc + giao người** | `task.create` | Chỉ các **KTV được giao** |
 | QLKT **sửa** đầu việc | `task.update` | KTV đang hoạt động ở chu kỳ hiện tại |
-| QLKT **thêm người** vào task | `task.add_assignee` | Chỉ người vừa thêm |
+| QLKT **thêm người** vào task | `task.add_assignee` | Chỉ người vừa thêm (nếu đơn đang Chờ điều phối thì kèm thông báo `start_dispatch` như dòng trên) |
 | QLKT **mở lại** task | `task.reopen` | KTV được giao lại ở chu kỳ mới |
 | QLKT **huỷ** task | `task.cancel` | KTV đang có assignment hoạt động bị gỡ |
 | KTV **từ chối** đầu việc | `assignment.reject` | Mọi TECH_LEAD active |

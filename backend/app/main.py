@@ -17,12 +17,14 @@ from app.core.spec_loader import check_guard_registry, load_specs
 from app.modules.assignments import service as assignments_service
 from app.modules.assignments.router import router as assignments_router
 from app.modules.audit.router import router as audit_router
+from app.modules.business_charts.router import router as business_charts_router
 from app.modules.catalog.groups_router import router as product_service_groups_router
 from app.modules.catalog.router import router as catalog_router
 from app.modules.catalog.router import services_router
 from app.modules.company.router import router as company_router
 from app.modules.customer_gift_report.router import router as customer_gift_report_router
 from app.modules.customer_gifts.router import router as customer_gifts_router
+from app.modules.customer_potential.router import router as customer_potential_router
 from app.modules.customers.router import router as customers_router
 from app.modules.dashboard.router import router as dashboard_router
 from app.modules.departments.router import router as departments_router
@@ -35,11 +37,15 @@ from app.modules.identity.router import me_router
 from app.modules.identity.router import router as auth_router
 from app.modules.identity.service import authenticate
 from app.modules.kpi.router import router as kpi_router
+from app.modules.kpi_targets.router import router as kpi_targets_router
+from app.modules.kpi_targets.sales_router import me_router as my_kpi_sales_router
+from app.modules.kpi_targets.sales_router import router as kpi_sales_router
 from app.modules.notifications import realtime as notifications_realtime
 from app.modules.notifications.router import router as notifications_router
 from app.modules.orders import service as orders_service
 from app.modules.orders.router import router as orders_router
 from app.modules.revenue_report.employee_router import router as revenue_by_employee_router
+from app.modules.revenue_report.product_router import router as revenue_by_product_router
 from app.modules.revenue_report.router import router as revenue_report_router
 from app.modules.system.router import router as system_router
 from app.modules.workflow.guards import GUARDS, PENDING_GUARDS
@@ -99,6 +105,10 @@ def create_app(
     app.include_router(me_router)
     app.include_router(employees_router)
     app.include_router(departments_router)
+    app.include_router(kpi_targets_router)
+    app.include_router(kpi_sales_router)
+    app.include_router(my_kpi_sales_router)
+    app.include_router(business_charts_router)
     app.include_router(audit_router)
     app.include_router(notifications_router)
     app.include_router(catalog_router)
@@ -108,12 +118,14 @@ def create_app(
     app.include_router(customers_router)
     app.include_router(customer_gifts_router)
     app.include_router(customer_gift_report_router)
+    app.include_router(customer_potential_router)
     app.include_router(company_router)
     app.include_router(dashboard_router)
     app.include_router(kpi_router)
     app.include_router(orders_router)
     app.include_router(revenue_report_router)
     app.include_router(revenue_by_employee_router)
+    app.include_router(revenue_by_product_router)
     app.include_router(dispatch_router)
     app.include_router(tasks_router)
     return app

@@ -41,6 +41,7 @@ const HOA: Person = {
     "order.edit_draft": own,
     "customer.read": all,
     "catalog.read": all,
+    "catalog.read_cost": all,
     "profile.manage": self,
   },
 };
@@ -56,6 +57,7 @@ const HA: Person = {
     "order.edit_draft": own,
     "customer.read": all,
     "catalog.read": all,
+    "catalog.read_cost": all,
     "profile.manage": self,
   },
 };
@@ -71,6 +73,7 @@ const AN: Person = {
     "order.edit_draft": all,
     "customer.read": all,
     "catalog.read": all,
+    "catalog.read_cost": all,
     "profile.manage": self,
   },
 };
@@ -137,6 +140,7 @@ function order(overrides: Partial<Order> = {}): Order {
     allowed_commands: [],
     can_edit_contact: false,
     can_edit_lines_after_submit: false,
+    can_add_lines_on_site: false,
     can_upload_confirmation: false,
     can_complete: false,
     can_revise: false,
@@ -182,6 +186,10 @@ function orderLine(overrides: Partial<OrderLine> = {}): OrderLine {
     cost_price_snapshot: null,
     credited_employee_id: null,
     credited_employee_name: null,
+    added_by_id: null,
+    added_by_name: null,
+    added_on_site: false,
+    can_edit_on_site: false,
     price_fixed: true,
     vat_rate: "8",
     quantity: "1",
@@ -755,6 +763,53 @@ describe("AC-ORD-034 lưu nháp", () => {
   });
 });
 
+describe("AC-UI-103 Ngày hẹn dùng DateField (M21-06b)", () => {
+  test("gõ Ngày hẹn 10112026, Lưu nháp → gửi requested_date=2026-11-10", async () => {
+    signedInAs(hoaId, HOA);
+    let body: Record<string, unknown> = {};
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ customer_id: customerId, lines: [orderLine()] })),
+      ),
+      http.patch("/api/v1/orders/:id", async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          order({
+            customer_id: customerId,
+            lines: [orderLine()],
+            requested_date: "2026-11-10",
+            version: 2,
+          }),
+        );
+      }),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+    const user = userEvent.setup();
+
+    const requested = screen.getByLabelText("Ngày hẹn");
+    expect(requested).not.toHaveAttribute("type", "date");
+    await user.type(requested, "10112026");
+    expect(requested).toHaveValue("10/11/2026");
+    await user.click(screen.getByRole("button", { name: "Lưu nháp" }));
+    await waitFor(() => {
+      expect(body.requested_date).toBe("2026-11-10");
+    });
+  });
+
+  test("mở lại đơn nháp có requested_date → ô hiện 10/11/2026", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ requested_date: "2026-11-10" })),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+    expect(screen.getByLabelText("Ngày hẹn")).toHaveValue("10/11/2026");
+  });
+});
+
 describe("AC-ORD-035 409 STALE_VERSION", () => {
   test("hiện banner đỏ + nút Tải lại, cảnh báo trước khi mất thay đổi chưa lưu", async () => {
     signedInAs(hoaId, HOA);
@@ -1108,5 +1163,277 @@ describe("M16-10 thêm khách hàng ngay trong màn tạo đơn", () => {
     await openForm();
 
     expect(screen.queryByRole("button", { name: "Thêm khách hàng" })).not.toBeInTheDocument();
+  });
+});
+
+describe("M20-04 dialog Gửi đơn giữ mở khi lỗi", () => {
+  const guardMsg = "Đơn cần có khách hàng trước khi gửi.";
+  const staleMsg = "Thông tin đã bị người khác thay đổi. Vui lòng tải lại.";
+  const submittable = () =>
+    order({
+      customer_id: customerId,
+      lines: [orderLine()],
+      allowed_commands: ["submit", "cancel"],
+    });
+
+  async function confirmSubmit(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole("button", { name: "Gửi đơn" }));
+    const dialog = await screen.findByRole("dialog", { name: "Gửi đơn?" });
+    await user.click(within(dialog).getByRole("button", { name: "Gửi đơn" }));
+    return dialog;
+  }
+
+  test("AC-UI-057 AC-UI-063 409 GUARD_FAILED → dialog vẫn mở, lỗi trong dialog, bấm lại được; Huỷ đóng và xoá lỗi", async () => {
+    signedInAs(hoaId, HOA);
+    let submits = 0;
+    server.use(
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(submittable())),
+      http.post("/api/v1/orders/:id/submit", () => {
+        submits += 1;
+        return HttpResponse.json(
+          { status: 409, code: "GUARD_FAILED", detail: guardMsg, guard: "customer_present" },
+          { status: 409 },
+        );
+      }),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+    const user = userEvent.setup();
+
+    const dialog = await confirmSubmit(user);
+
+    expect(await within(dialog).findByText(guardMsg)).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Gửi đơn?" })).toBeInTheDocument();
+    expect(screen.getAllByText(guardMsg)).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 1, name: "DH2609-0001" })).toBeInTheDocument();
+    const retry = within(dialog).getByRole("button", { name: "Gửi đơn" });
+    expect(retry).toBeEnabled();
+    await user.click(retry);
+    await waitFor(() => {
+      expect(submits).toBe(2);
+    });
+
+    await user.click(within(dialog).getByRole("button", { name: "Huỷ" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Gửi đơn?" })).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText(guardMsg)).not.toBeInTheDocument();
+  });
+
+  test("AC-UI-058 409 STALE_VERSION → dialog vẫn mở với Tải lại (ẩn Gửi đơn); Tải lại → tải lại đơn + đóng", async () => {
+    signedInAs(hoaId, HOA);
+    let gets = 0;
+    server.use(
+      http.get("/api/v1/orders/:id", () => {
+        gets += 1;
+        return HttpResponse.json(submittable());
+      }),
+      http.post("/api/v1/orders/:id/submit", () =>
+        HttpResponse.json(
+          { status: 409, code: "STALE_VERSION", detail: staleMsg },
+          { status: 409 },
+        ),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+    const user = userEvent.setup();
+
+    const dialog = await confirmSubmit(user);
+
+    expect(await within(dialog).findByText(staleMsg)).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "Gửi đơn" })).not.toBeInTheDocument();
+    const getsBefore = gets;
+    await user.click(within(dialog).getByRole("button", { name: "Tải lại" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Gửi đơn?" })).not.toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(gets).toBeGreaterThan(getsBefore);
+    });
+  });
+
+  test("AC-UI-064 đang gửi → Esc/nền tối/✕ không đóng; lỗi trả về rồi thì Esc đóng được", async () => {
+    signedInAs(hoaId, HOA);
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(submittable())),
+      http.post("/api/v1/orders/:id/submit", async () => {
+        await gate;
+        return HttpResponse.json(
+          { status: 500, code: "INTERNAL", detail: "Lỗi máy chủ." },
+          { status: 500 },
+        );
+      }),
+    );
+    renderApp(`/orders/${orderId}`);
+    await openForm("DH2609-0001");
+    const user = userEvent.setup();
+
+    const dialog = await confirmSubmit(user);
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByTestId("sheet-overlay"));
+    expect(within(dialog).getByRole("button", { name: "Đóng hộp thoại" })).toBeDisabled();
+    expect(screen.getByRole("dialog", { name: "Gửi đơn?" })).toBeInTheDocument();
+
+    release();
+    expect(await within(dialog).findByRole("alert")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Gửi đơn?" })).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe("M20-04 tạo đơn — thêm khách xong tự chọn", () => {
+  const HOA_MANAGE: Person = {
+    ...HOA,
+    capabilities: { ...HOA.capabilities, "customer.manage": all },
+  };
+  const newCustomerId = "e0000000-0000-4000-8000-000000000099";
+
+  function draftHandlers(patchedCustomerIds: (string | null)[]) {
+    return [
+      http.post("/api/v1/orders", () => HttpResponse.json(order({ lines: [] }), { status: 201 })),
+      http.get("/api/v1/products", () =>
+        HttpResponse.json({ items: [dellProduct()], total: 1, limit: 20, offset: 0 }),
+      ),
+      http.post("/api/v1/orders/:id/lines", () =>
+        HttpResponse.json(order({ lines: [orderLine()] }), { status: 201 }),
+      ),
+      http.get("/api/v1/orders/:id", () => HttpResponse.json(order({ lines: [orderLine()] }))),
+      http.patch("/api/v1/orders/:id", async ({ request }) => {
+        const body = (await request.json()) as { version: number; customer_id: string | null };
+        patchedCustomerIds.push(body.customer_id);
+        return HttpResponse.json(
+          order({ customer_id: body.customer_id, lines: [orderLine()], version: body.version + 1 }),
+        );
+      }),
+    ];
+  }
+
+  async function fillNewCustomer(
+    user: ReturnType<typeof userEvent.setup>,
+    name: string,
+    phone: string,
+  ) {
+    await user.click(screen.getByRole("button", { name: "Thêm khách hàng" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm khách hàng" });
+    await user.selectOptions(within(dialog).getByLabelText("Loại khách hàng"), "Cá nhân");
+    await user.type(within(dialog).getByLabelText("Tên khách hàng"), name);
+    await user.type(within(dialog).getByLabelText("Số điện thoại"), phone);
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+    return dialog;
+  }
+
+  test("AC-UI-065 đã thêm dòng hàng (nháp tạo ngầm) → thêm khách cá nhân → khách được chọn, Lưu nháp gửi customer_id", async () => {
+    signedInAs(hoaId, HOA_MANAGE);
+    const patched: (string | null)[] = [];
+    server.use(
+      ...draftHandlers(patched),
+      http.post("/api/v1/customers", async ({ request }) => {
+        const body = (await request.json()) as { name: string; phone: string; type: string };
+        return HttpResponse.json(
+          {
+            ...customer({ id: newCustomerId, name: body.name, phone: body.phone, address: null }),
+            type: body.type,
+            duplicate_phone_matches: [],
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    renderApp("/orders/new");
+    await openForm();
+    const user = userEvent.setup();
+    await addDellLine(user);
+
+    await fillNewCustomer(user, "Nguyễn Thị Lan", "0912345678");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Thêm khách hàng" })).not.toBeInTheDocument();
+    });
+    expect(await screen.findByText("Đã thêm khách hàng Nguyễn Thị Lan.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Tìm khách hàng")).toHaveValue("Nguyễn Thị Lan");
+    expect(screen.getByText("0912345678")).toBeInTheDocument();
+    const save = screen.getByRole("button", { name: "Lưu nháp" });
+    expect(save).toBeEnabled();
+    await user.click(save);
+    await waitFor(() => {
+      expect(patched).toEqual([newCustomerId]);
+    });
+  });
+
+  test("AC-UI-067 SĐT sai định dạng → modal vẫn mở, lỗi dưới ô SĐT, tên giữ nguyên, ô Tìm khách hàng không đổi", async () => {
+    signedInAs(hoaId, HOA_MANAGE);
+    server.use(
+      http.post("/api/v1/customers", () =>
+        HttpResponse.json(
+          {
+            status: 422,
+            code: "VALIDATION_ERROR",
+            detail: "Dữ liệu không hợp lệ.",
+            errors: [
+              {
+                field: "phone",
+                code: "invalid",
+                message: "Số điện thoại cần 10 chữ số, bắt đầu bằng 0.",
+              },
+            ],
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    renderApp("/orders/new");
+    await openForm();
+    const user = userEvent.setup();
+
+    const dialog = await fillNewCustomer(user, "Nguyễn Thị Lan", "0912");
+
+    expect(
+      await within(dialog).findByText("Số điện thoại cần 10 chữ số, bắt đầu bằng 0."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Thêm khách hàng" })).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Tên khách hàng")).toHaveValue("Nguyễn Thị Lan");
+    expect(within(dialog).getByLabelText("Số điện thoại")).toHaveValue("0912");
+    expect(screen.getByLabelText("Tìm khách hàng")).toHaveValue("");
+  });
+
+  test("AC-UI-068 trùng SĐT → khách mới đã được chọn, modal ở lại hiện cảnh báo; Đóng → đơn vẫn chọn khách mới", async () => {
+    signedInAs(hoaId, HOA_MANAGE);
+    server.use(
+      http.post("/api/v1/customers", async ({ request }) => {
+        const body = (await request.json()) as { name: string; phone: string; type: string };
+        return HttpResponse.json(
+          {
+            ...customer({ id: newCustomerId, name: body.name, phone: body.phone }),
+            type: body.type,
+            duplicate_phone_matches: [{ id: customerId, code: "KH00002", name: "Lê Văn Hùng" }],
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    renderApp("/orders/new");
+    await openForm();
+    const user = userEvent.setup();
+
+    const dialog = await fillNewCustomer(user, "Nguyễn Thị Lan", "0987654321");
+
+    expect(
+      await within(dialog).findByText("SĐT này đã dùng cho: Lê Văn Hùng (KH00002)."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByLabelText("Tìm khách hàng")).toHaveValue("Nguyễn Thị Lan");
+
+    await user.click(within(dialog).getByRole("button", { name: "Đóng hộp thoại" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("Tìm khách hàng")).toHaveValue("Nguyễn Thị Lan");
   });
 });

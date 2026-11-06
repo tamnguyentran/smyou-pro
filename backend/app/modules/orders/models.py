@@ -146,6 +146,11 @@ class OrderLine(Base):
     line_total: Mapped[int] = mapped_column(BigInteger)
     note: Mapped[str | None] = mapped_column(Text)
     credited_employee_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("employees.id"), index=True)
+    # M19-01a: who created the line (null for lines older than this column) and whether a
+    # technician added it on site — only such lines are editable via `lines-on-site`.
+    added_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("employees.id"), index=True)
+    added_on_site: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
 
     order: Mapped[Order] = relationship(back_populates="lines")
-    credited_employee: Mapped[Employee | None] = relationship()
+    credited_employee: Mapped[Employee | None] = relationship(foreign_keys=[credited_employee_id])
+    added_by: Mapped[Employee | None] = relationship(foreign_keys=[added_by_id])

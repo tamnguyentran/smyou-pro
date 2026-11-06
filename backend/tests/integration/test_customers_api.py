@@ -297,6 +297,7 @@ def test_routes_declare_capability(app: FastAPI) -> None:
     assert routes == {
         ("GET", "/api/v1/customers", "customer.read"),
         ("GET", "/api/v1/customers/{customer_id}", "customer.read"),
+        ("GET", "/api/v1/customers/export", "customer.manage"),  # M20-05 (AC-CUS-033, Q132)
         ("POST", "/api/v1/customers", "customer.manage"),
         ("PATCH", "/api/v1/customers/{customer_id}", "customer.manage"),
     }

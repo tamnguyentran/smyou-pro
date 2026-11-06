@@ -17,6 +17,16 @@
             "MANAGER": "all",
             "SALE": "all",
             "CUSTOMER_CARE": "all",
+            "TECH_LEAD": "all",
+            "TECHNICIAN": "all"
+          }
+        },
+        {
+          "id": "catalog.read_cost",
+          "roles": {
+            "MANAGER": "all",
+            "SALE": "all",
+            "CUSTOMER_CARE": "all",
             "TECH_LEAD": "all"
           }
         },
@@ -100,6 +110,12 @@
             "SALE": "all",
             "CUSTOMER_CARE": "all"
           }
+        },
+        {
+          "id": "customer.potential.record",
+          "roles": {
+            "TECHNICIAN": "assigned"
+          }
         }
       ]
     },
@@ -166,6 +182,12 @@
           }
         },
         {
+          "id": "order.edit_lines_on_site",
+          "roles": {
+            "TECHNICIAN": "assigned"
+          }
+        },
+        {
           "id": "order.submit",
           "roles": {
             "MANAGER": "all",
@@ -176,7 +198,8 @@
           "id": "order.cancel",
           "roles": {
             "MANAGER": "all",
-            "SALE": "own"
+            "SALE": "own",
+            "CUSTOMER_CARE": "own"
           }
         },
         {
@@ -308,10 +331,29 @@
           }
         },
         {
+          "id": "kpi_target.manage",
+          "roles": {
+            "MANAGER": "all"
+          }
+        },
+        {
+          "id": "report.kpi_sales.read",
+          "roles": {
+            "MANAGER": "all"
+          }
+        },
+        {
+          "id": "report.business_charts.read",
+          "roles": {
+            "MANAGER": "all"
+          }
+        },
+        {
           "id": "notification.read",
           "roles": {
             "MANAGER": "self",
             "SALE": "self",
+            "CUSTOMER_CARE": "self",
             "TECH_LEAD": "self",
             "TECHNICIAN": "self"
           }

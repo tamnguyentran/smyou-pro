@@ -62,6 +62,8 @@ interface AuditEventOut {
   from_status: string | null;
   to_status: string | null;
   data: Record<string, unknown> | null;
+  business_area: string;
+  entity_label: string | null;
 }
 
 function auditEvent(overrides: Partial<AuditEventOut> = {}): AuditEventOut {
@@ -75,6 +77,8 @@ function auditEvent(overrides: Partial<AuditEventOut> = {}): AuditEventOut {
     from_status: "ACTIVE",
     to_status: "INACTIVE",
     data: null,
+    business_area: "EMPLOYEES",
+    entity_label: null,
     ...overrides,
   };
 }
@@ -223,9 +227,33 @@ describe("AC-SYS-074 bộ lọc", () => {
       expect(lastQuery).toContain("occurred_from=2026-09-01");
       expect(lastQuery).toContain("occurred_to=2026-09-15");
     });
-    expect(screen.getByLabelText("Từ ngày")).toHaveValue("2026-09-01");
-    expect(screen.getByLabelText("Đến ngày")).toHaveValue("2026-09-15");
+    expect(screen.getByLabelText("Từ ngày")).toHaveValue("01/09/2026");
+    expect(screen.getByLabelText("Đến ngày")).toHaveValue("15/09/2026");
     vi.useRealTimers();
+  });
+
+  test("AC-UI-100 Nhật ký hệ thống: Từ ngày/Đến ngày là DateField, gõ tay → API nhận yyyy-MM-dd", async () => {
+    const requests: string[] = [];
+    signedInAs(AN, ({ request }) => {
+      requests.push(new URL(request.url).search);
+      return HttpResponse.json(page([auditEvent()]));
+    });
+    renderApp("/audit");
+    await openAudit();
+    const user = userEvent.setup();
+    const from = await screen.findByLabelText("Từ ngày");
+    const to = screen.getByLabelText("Đến ngày");
+    expect(document.querySelector('input[type="date"]')).toBeNull();
+    await user.clear(from);
+    await user.type(from, "01082026");
+    await user.clear(to);
+    await user.type(to, "20082026");
+    expect(from).toHaveValue("01/08/2026");
+    expect(to).toHaveValue("20/08/2026");
+    await waitFor(() => {
+      expect(requests.at(-1)).toContain("occurred_from=2026-08-01");
+      expect(requests.at(-1)).toContain("occurred_to=2026-08-20");
+    });
   });
 
   test("chọn người thực hiện gọi lại API với actor_id; Xoá lọc trả về danh sách đầy đủ", async () => {

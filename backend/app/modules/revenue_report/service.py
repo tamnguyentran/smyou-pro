@@ -16,11 +16,12 @@ from datetime import date, datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select, true
+from sqlalchemy import func, select, true
 from sqlalchemy.orm import Session
 
 from app.core.authz import Actor, ScopeRules, apply_scope
 from app.core.errors import AppError
+from app.modules.customer_potential.models import CustomerPotentialNote
 from app.modules.customers.models import Customer
 from app.modules.identity.models import Employee
 from app.modules.orders.models import Order, OrderLine
@@ -29,6 +30,7 @@ from app.modules.revenue_report.schemas import RevenueLineOut, RevenueReportOut,
 VIETNAM = ZoneInfo("Asia/Ho_Chi_Minh")
 
 NOT_COMPLETED_STATUSES = ("PENDING_DISPATCH", "IN_PROGRESS", "AWAITING_CONFIRMATION", "REVISION")
+NOT_PURCHASE_STATUSES = ("DRAFT", "CANCELLED")
 
 RULES: ScopeRules = {"own": lambda actor: OrderLine.credited_employee_id == actor.id}
 
@@ -53,6 +55,8 @@ _CSV_HEADER = [
     "Số đơn",
     "Doanh thu",
     "Lợi nhuận",
+    "Tiềm năng sử dụng dịch vụ",
+    "Ngày mua hàng cuối",
 ]
 _CSV_FORMULA_PREFIXES = ("=", "+", "-", "@")
 
@@ -96,6 +100,36 @@ def _line_profit(line_total: int, cost_price_snapshot: int | None, quantity: Dec
             Decimal(1), rounding=ROUND_HALF_UP
         )
     )
+
+
+def _latest_potential_notes(
+    session: Session, customer_ids: set[uuid.UUID]
+) -> dict[uuid.UUID, tuple[str, datetime]]:
+    """M21-05a (Q156): newest note per customer, whichever order it was written on."""
+    stmt = (
+        select(
+            CustomerPotentialNote.customer_id, CustomerPotentialNote.note, CustomerPotentialNote.created_at
+        )
+        .where(CustomerPotentialNote.customer_id.in_(customer_ids))
+        .distinct(CustomerPotentialNote.customer_id)
+        .order_by(
+            CustomerPotentialNote.customer_id,
+            CustomerPotentialNote.created_at.desc(),
+            CustomerPotentialNote.id.desc(),
+        )
+    )
+    return {row.customer_id: (row.note, row.created_at) for row in session.execute(stmt)}
+
+
+def _last_purchase_dates(session: Session, customer_ids: set[uuid.UUID]) -> dict[uuid.UUID, date]:
+    """M21-05a (Q155): VN date of the customer's newest non-DRAFT/CANCELLED order, over its whole
+    history — independent of the report's date range."""
+    stmt = (
+        select(Order.customer_id, func.max(Order.created_at).label("last_created_at"))
+        .where(Order.customer_id.in_(customer_ids), Order.status.notin_(NOT_PURCHASE_STATUSES))
+        .group_by(Order.customer_id)
+    )
+    return {row.customer_id: row.last_created_at.astimezone(VIETNAM).date() for row in session.execute(stmt)}
 
 
 def get_report(
@@ -152,11 +186,14 @@ def get_report(
     seller_ids = {key[1] for key in groups if key[1] is not None}
     customers = {c.id: c for c in session.scalars(select(Customer).where(Customer.id.in_(customer_ids)))}
     sellers = {e.id: e for e in session.scalars(select(Employee).where(Employee.id.in_(seller_ids)))}
+    notes = _latest_potential_notes(session, customer_ids)
+    last_purchases = _last_purchase_dates(session, customer_ids)
 
     out_rows = []
     for (cust_id, seller_id), group in groups.items():
         customer = customers[cust_id]
         seller = sellers[seller_id] if seller_id is not None else None
+        note = notes.get(cust_id)
         out_rows.append(
             RevenueRowOut(
                 customer_id=cust_id,
@@ -171,6 +208,9 @@ def get_report(
                 order_count=len(group.order_ids),
                 subtotal_revenue=group.subtotal_revenue,
                 profit=None if group.has_null else group.profit,
+                potential_note=note[0] if note else None,
+                potential_noted_at=note[1] if note else None,
+                last_purchase_date=last_purchases.get(cust_id),
             )
         )
     out_rows.sort(key=lambda r: (r.customer_code, r.unassigned, r.seller.full_name if r.seller else ""))
@@ -261,6 +301,8 @@ def build_csv(report: RevenueReportOut) -> bytes:
                 row.order_count,
                 row.subtotal_revenue,
                 "" if row.profit is None else row.profit,
+                _escape_csv_formula(row.potential_note or ""),
+                "" if row.last_purchase_date is None else row.last_purchase_date.strftime("%d/%m/%Y"),
             ]
         )
     return ("﻿" + buffer.getvalue()).encode("utf-8")

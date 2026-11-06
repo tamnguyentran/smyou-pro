@@ -77,6 +77,10 @@ _FAILURES: dict[Failure, tuple[int, str]] = {
     Failure.SESSION_REVOKED: (401, "Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại."),
     Failure.TOO_MANY_REQUESTS: (429, "Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau."),
     Failure.INVALID_RESET: (422, "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn."),
+    Failure.TEMP_EXPIRED: (
+        401,
+        "Mật khẩu tạm đã hết hạn. Vui lòng liên hệ Quản lý để được cấp lại.",
+    ),
 }
 
 
@@ -160,7 +164,12 @@ def _body(issued: Issued) -> LoginResponse:
     operation_id="auth_login",
     summary="Đăng nhập bằng tên đăng nhập và mật khẩu",
     response_model=LoginResponse,
-    responses=_responses(Failure.INVALID_CREDENTIALS, Failure.ACCOUNT_DISABLED, Failure.ACCOUNT_LOCKED),
+    responses=_responses(
+        Failure.INVALID_CREDENTIALS,
+        Failure.ACCOUNT_DISABLED,
+        Failure.ACCOUNT_LOCKED,
+        Failure.TEMP_EXPIRED,
+    ),
 )
 def login(
     body: LoginRequest, request: Request, response: Response, session: DbSession

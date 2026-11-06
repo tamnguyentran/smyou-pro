@@ -21,6 +21,25 @@ function shot(info: TestInfo, file: string) {
   return resolve(import.meta.dirname, "../../reports/screenshots", info.project.name, file);
 }
 
+/** M21-06b (AC-UI-107): mở lịch của ô ngày `label`; lịch nằm trọn khung nhìn, không cuộn ngang. */
+async function expectPickerFits(page: Page, label: string) {
+  const field = page.getByLabel(label, { exact: true }).locator("xpath=..");
+  await field.getByRole("button", { name: "Chọn ngày" }).click();
+  const picker = field.getByRole("dialog", { name: "Chọn ngày" });
+  await expect(picker).toBeVisible();
+  const box = await picker.boundingBox();
+  if (!box) throw new Error("picker has no box");
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()?.width ?? 0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(picker).toHaveCount(0);
+}
+
 const isMobile = (info: TestInfo) => info.project.name === "mobile";
 
 async function evidence(
@@ -357,4 +376,123 @@ test("AC-CSK-010 AC-CSK-012 @a11y @screenshot danh sách đơn: bộ lọc ngày
   await expect(page.getByRole("button", { name: /chưa đánh giá/i })).toBeVisible();
 
   await evidence(page, info, "order-list-csat.png", { checkOverflow: true });
+});
+
+test("AC-CSK-033 @screenshot thẻ 'Chưa đánh giá' lọc danh sách (CSKH)", async ({ page }, info) => {
+  await signIn(page, CUSTOMER_CARE, "/orders");
+  const tile = page.getByRole("button", { name: /chưa đánh giá/i });
+  await expect(tile).toBeEnabled();
+
+  const filtered = page.waitForResponse(
+    (res) => res.url().includes("/api/v1/orders?") && res.url().includes("csat_unrated=true"),
+  );
+  await tile.click();
+  const page1 = (await (await filtered).json()) as { items: { csat_rating: number | null }[] };
+  await expect(tile).toHaveAttribute("aria-pressed", "true");
+
+  const shown = Number(await tile.locator("p").nth(1).textContent());
+  expect(shown).toBeGreaterThan(0);
+  expect(page1.items).toHaveLength(Math.min(shown, 20));
+  expect(page1.items.every((item) => item.csat_rating === null)).toBe(true);
+
+  const rows = isMobile(info)
+    ? page.locator("main ul > li > button")
+    : page.locator("main tbody tr");
+  await expect(rows).toHaveCount(Math.min(shown, 20));
+  for (const tone of ["bg-completed-bg", "bg-review-bg", "bg-urgent-bg"]) {
+    await expect(rows.and(page.locator(`.${tone}`))).toHaveCount(0);
+  }
+
+  await evidence(page, info, "order-list-csat-unrated.png", { checkOverflow: true });
+});
+
+// M20-03: seed_e2e.py MINE_DEFAULT_ORDERS — E2E-DH-M2003L (Lan tạo), E2E-DH-M2003H (Sale Hà tạo),
+// cả hai COMPLETED trong tháng, chưa đánh giá.
+test("AC-ORD-243 AC-ORD-246 Sale mở danh sách đơn: mặc định chỉ đơn của mình, bỏ tick thấy đơn của Sale khác", async ({
+  page,
+}) => {
+  const firstList = page.waitForResponse(
+    (res) => res.url().includes("/api/v1/orders?") && !res.url().includes("q="),
+  );
+  await signIn(page, SALE, "/orders");
+  const first = await firstList;
+  expect(new URL(first.url()).searchParams.get("mine")).toBe("true");
+  const body = (await first.json()) as { items: { created_by_name: string }[] };
+  expect(body.items.every((item) => item.created_by_name === "Lê Thị Hoa")).toBe(true);
+
+  const mine = page.getByRole("checkbox", { name: "Chỉ đơn của tôi" });
+  await expect(mine).toBeChecked();
+  await page.getByLabel("Tìm kiếm").fill("E2E-DH-M2003H");
+  await expect(page.getByText("Không tìm thấy đơn nào.")).toBeVisible();
+
+  const all = page.waitForResponse(
+    (res) =>
+      res.url().includes("/api/v1/orders?") &&
+      res.url().includes("q=E2E-DH-M2003H") &&
+      !res.url().includes("mine="),
+  );
+  await mine.uncheck();
+  await all;
+  await expect(page.getByText("E2E-DH-M2003H").first()).toBeVisible();
+});
+
+test("AC-ORD-250 @screenshot CSKH: thẻ 'Chưa đánh giá' đếm theo 'Chỉ đơn của tôi'", async ({
+  page,
+}, info) => {
+  await signIn(page, CUSTOMER_CARE, "/orders");
+  const mine = page.getByRole("checkbox", { name: "Chỉ đơn của tôi" });
+  await expect(mine).toBeChecked();
+  const tile = page.getByRole("button", { name: /chưa đánh giá/i });
+  const tileCount = async () => Number(await tile.locator("p").nth(1).textContent());
+  await expect(tile.locator("p").nth(1)).toHaveText("1");
+
+  const rows = isMobile(info)
+    ? page.locator("main ul > li > button")
+    : page.locator("main tbody tr");
+  await tile.click();
+  await expect(tile).toHaveAttribute("aria-pressed", "true");
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText("E2E-DH-M2003L");
+  // Không checkOverflow ở giữa test: đổi kích thước viewport có thể làm mất bộ lọc thẻ đang chọn.
+  await evidence(page, info, "order-list-mine-default-csat.png");
+
+  // Bỏ tick → thẻ + danh sách tính toàn công ty (stack e2e dùng chung: ≥ 2, có cả đơn của Hà).
+  const companyWide = page.waitForResponse(
+    (res) =>
+      res.url().includes("/api/v1/orders?") &&
+      res.url().includes("csat_unrated=true") &&
+      !res.url().includes("mine="),
+  );
+  await mine.uncheck();
+  const page1 = (await (await companyWide).json()) as { total: number };
+  await expect(tile.locator("p").nth(1)).not.toHaveText("1");
+  const shown = await tileCount();
+  expect(shown).toBeGreaterThanOrEqual(2);
+  expect(page1.total).toBe(shown);
+  await expect(rows).toHaveCount(Math.min(shown, 20));
+});
+
+test("AC-UI-098 AC-UI-107 @screenshot CSKH gõ Từ ngày/Đến ngày kiểu dd/MM/yyyy, API nhận yyyy-MM-dd; lịch vừa màn hình", async ({
+  page,
+}, info) => {
+  await signIn(page, CUSTOMER_CARE, "/orders");
+  await expect(page.getByRole("heading", { level: 1, name: "Danh sách đơn" })).toBeVisible();
+  const from = page.getByLabel("Từ ngày");
+  const to = page.getByLabel("Đến ngày");
+  await expect(page.locator('input[type="date"]')).toHaveCount(0);
+
+  await from.fill("");
+  await from.pressSequentially("01102026");
+  await to.fill("");
+  const listed = page.waitForRequest(
+    (r) => r.url().includes("/api/v1/orders?") && r.url().includes("to=2026-10-31"),
+  );
+  await to.pressSequentially("31102026");
+  const url = (await listed).url();
+  expect(url).toContain("from=2026-10-01");
+  await expect(from).toHaveValue("01/10/2026");
+  await expect(to).toHaveValue("31/10/2026");
+
+  await expectPickerFits(page, "Từ ngày");
+  await evidence(page, info, "order-list-datefield.png", { checkOverflow: true });
 });

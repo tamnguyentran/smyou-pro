@@ -8,17 +8,27 @@ export type RunOrderWrite = (task: (current: Order) => Promise<Order>) => Promis
 /** AC-ORD-102/103: a STALE_VERSION on an after-submit line/add-line write defers to the caller's
  * own tab-level banner (`onStaleVersion`) instead of the local sheet/row error state — but only
  * when the caller actually wired a banner up, and only in post-submit mode (draft-mode callers
- * never pass `onStaleVersion`). */
+ * never pass `onStaleVersion`). M19-01b: the on-site mode defers the same way (its caller reloads). */
 export function isStaleAfterSubmit(
   err: unknown,
-  lineEndpoint: "draft" | "after-submit" | undefined,
+  lineEndpoint: "draft" | "after-submit" | "on-site" | undefined,
   onStaleVersion: (() => void) | undefined,
 ): boolean {
   return (
-    lineEndpoint === "after-submit" &&
+    lineEndpoint !== undefined &&
     Boolean(onStaleVersion) &&
-    err instanceof ApiError &&
-    err.problem.code === "STALE_VERSION"
+    isStaleOnSubmittedOrder(err, lineEndpoint)
+  );
+}
+
+/** M20-04: a STALE_VERSION from a line write on an already-submitted order (after-submit/on-site) —
+ * modals then reload the order in the background and stay open for a retry (AC-UI-061/062). */
+export function isStaleOnSubmittedOrder(
+  err: unknown,
+  lineEndpoint: "draft" | "after-submit" | "on-site",
+): boolean {
+  return (
+    lineEndpoint !== "draft" && err instanceof ApiError && err.problem.code === "STALE_VERSION"
   );
 }
 

@@ -44,6 +44,10 @@ const PRODUCT_LINE: OrderLineOut = {
   cost_price_snapshot: null,
   credited_employee_id: null,
   credited_employee_name: null,
+  added_by_id: null,
+  added_by_name: null,
+  added_on_site: false,
+  can_edit_on_site: false,
   price_fixed: false,
   vat_rate: "10",
   line_discount: 0,
@@ -88,6 +92,7 @@ function detail(overrides: Partial<OrderDetail> = {}): OrderDetail {
     allowed_commands: [],
     can_edit_contact: true,
     can_edit_lines_after_submit: true,
+    can_add_lines_on_site: false,
     can_upload_confirmation: false,
     can_complete: false,
     can_revise: false,
@@ -148,6 +153,7 @@ function technician(id: string, code: string, full_name: string): EmployeeOut {
     is_active: true,
     is_locked: false,
     must_change_password: false,
+    temp_password_expires_at: null,
     birth_date: null,
     birth_place: null,
     gender: null,
@@ -165,6 +171,11 @@ function localInput(offsetDays: number, hhmm = "08:00") {
   const d = new Date(Date.now() + offsetDays * 86_400_000);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${String(d.getFullYear())}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${hhmm}`;
+}
+
+/** Chuỗi gõ vào DateField (M21-06b): `yyyy-MM-ddTHH:mm` → `dd/MM/yyyy HH:mm`. */
+function vnTyped(local: string) {
+  return `${local.slice(8, 10)}/${local.slice(5, 7)}/${local.slice(0, 4)} ${local.slice(11)}`;
 }
 
 function mobile() {
@@ -406,7 +417,7 @@ describe("Tab Đầu việc trên trang chi tiết đơn", () => {
     const due = localInput(3);
     await user.type(within(dialog).getByLabelText("Tiêu đề đầu việc"), "Nghiệm thu với khách");
     await user.type(within(dialog).getByLabelText("Số giờ ước tính"), "1,5");
-    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), due);
+    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(due));
     await user.click(within(dialog).getByRole("checkbox", { name: /Trần Minh Khoa/ }));
     await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
 
@@ -445,7 +456,7 @@ describe("Tab Đầu việc trên trang chi tiết đơn", () => {
     const dialog = await screen.findByRole("dialog", { name: `Tạo đầu việc — ${orderCode}` });
     await user.type(within(dialog).getByLabelText("Tiêu đề đầu việc"), "Lắp đặt 4 camera tầng 1");
     await user.type(within(dialog).getByLabelText("Số giờ ước tính"), "4");
-    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), localInput(2));
+    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(localInput(2)));
     await user.click(within(dialog).getByRole("checkbox", { name: /Trần Minh Khoa/ }));
     await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
 
@@ -497,7 +508,7 @@ describe("Tab Đầu việc trên trang chi tiết đơn", () => {
     const dialog = await screen.findByRole("dialog", { name: `Tạo đầu việc — ${orderCode}` });
     await user.type(within(dialog).getByLabelText("Tiêu đề đầu việc"), "Nghiệm thu với khách");
     await user.type(within(dialog).getByLabelText("Số giờ ước tính"), "2");
-    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), localInput(3));
+    await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(localInput(3)));
     await user.click(within(dialog).getByRole("checkbox", { name: /Trần Minh Khoa/ }));
     await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
 

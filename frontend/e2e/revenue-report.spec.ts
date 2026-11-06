@@ -46,8 +46,8 @@ test("AC-RPT-014 Manager bấm 'Xuất Excel' → tải đúng tham số lọc h
   ).toBeVisible();
   await expect(page.getByText("E2E-KH-001")).toBeVisible();
 
-  const from = await page.getByLabel("Từ ngày").inputValue();
-  const to = await page.getByLabel("Đến ngày").inputValue();
+  const from = (await page.getByLabel("Từ ngày").inputValue()).split("/").reverse().join("-");
+  const to = (await page.getByLabel("Đến ngày").inputValue()).split("/").reverse().join("-");
 
   const exportLink = page.getByRole("link", { name: "Xuất Excel" });
   const href = await exportLink.getAttribute("href");
@@ -69,4 +69,64 @@ test("AC-RPT-014 Manager bấm 'Xuất Excel' → tải đúng tham số lọc h
   );
   const content = await response.text();
   expect(content).toContain("Cty Sáng Tạo Mới E2E");
+});
+
+// M21-05b: seed_e2e.py ghi sẵn 1 tiềm năng cho E2E-KH-001 (đơn E2E-DH-M1504A, tạo hôm nay).
+test("AC-CUS-059 @a11y @screenshot báo cáo hiện Tiềm năng + Ngày mua hàng cuối (thẻ ở 390px, cột ở 1440px)", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER);
+  await expect(page.getByText("E2E-KH-001")).toBeVisible();
+  const purchase = /\d{2}\/\d{2}\/\d{4}/;
+  if (info.project.name === "mobile") {
+    const card = page.getByRole("listitem").filter({ hasText: "E2E-KH-001" }).first();
+    await expect(card.getByText("Tiềm năng: Muốn lắp thêm 4 camera kho E2E")).toBeVisible();
+    await expect(card.getByText(/^Mua cuối: \d{2}\/\d{2}\/\d{4}$/)).toBeVisible();
+    for (const width of [390, 360]) {
+      await page.setViewportSize({ width, height: 780 });
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+        ),
+      ).toBe(true);
+    }
+    await page.setViewportSize({ width: 390, height: 780 });
+  } else {
+    await expect(page.getByRole("columnheader", { name: "Tiềm năng" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Ngày mua hàng cuối" })).toBeVisible();
+    const row = page.getByRole("row").filter({ hasText: "E2E-KH-001" }).first();
+    await expect(row.getByText("Muốn lắp thêm 4 camera kho E2E")).toBeVisible();
+    await expect(row.getByText(purchase)).toBeVisible();
+  }
+  await page.evaluate(() => document.fonts.ready);
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(
+    results.violations
+      .filter((v) => v.impact === "serious" || v.impact === "critical")
+      .map((v) => v.id),
+  ).toEqual([]);
+  await page.screenshot({ path: shot(info, "revenue-by-customer-potential.png"), fullPage: true });
+});
+
+test("AC-UI-100 Từ ngày/Đến ngày gõ kiểu dd/MM/yyyy → API và link xuất dùng yyyy-MM-dd", async ({
+  page,
+}) => {
+  await signIn(page, MANAGER, "/reports/revenue-by-customer");
+  const from = page.getByLabel("Từ ngày");
+  const to = page.getByLabel("Đến ngày");
+  await expect(page.locator('input[type="date"]')).toHaveCount(0);
+  await from.fill("");
+  await from.pressSequentially("01102026");
+  await to.fill("");
+  const loaded = page.waitForRequest(
+    (r) =>
+      r.url().includes("/api/v1/reports/revenue-by-customer?") && r.url().includes("to=2026-10-31"),
+  );
+  await to.pressSequentially("31102026");
+  expect((await loaded).url()).toContain("from=2026-10-01");
+  await expect(from).toHaveValue("01/10/2026");
+  await expect(to).toHaveValue("31/10/2026");
+  const href = await page.getByRole("link", { name: /Xuất Excel/ }).getAttribute("href");
+  expect(href).toContain("from=2026-10-01");
+  expect(href).toContain("to=2026-10-31");
 });

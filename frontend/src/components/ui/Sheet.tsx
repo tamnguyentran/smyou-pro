@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "../../lib/cn";
 
 const FOCUSABLE =
@@ -80,10 +81,23 @@ export function Sheet({
   }, [open, onClose, dismissible]);
 
   if (!open) return null;
-  return (
+  // Portal to <body> (M20-04): a sheet opened from inside another form ("Thêm khách hàng" inside the
+  // draft order form) would otherwise put its own <form> inside the outer one in the DOM — browsers
+  // then submit the nested form natively (full page reload, nothing saved) instead of letting
+  // React's handler run. React still bubbles synthetic events through the portal to the outer
+  // form's onSubmit, so `onSubmit` below stops them: a sheet's submit never saves its opener's form.
+  return createPortal(
     // z-[60] > Toast's z-50 (review M4-02b): a sheet that stays open after a save (AC-DSP-059)
     // must keep its footer above the success toast, not hidden behind it for 4s.
-    <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="fixed inset-0 z-[60]">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      className="fixed inset-0 z-[60]"
+      onSubmit={(event) => {
+        event.stopPropagation();
+      }}
+    >
       <div
         data-testid="sheet-overlay"
         aria-hidden="true"
@@ -134,6 +148,7 @@ export function Sheet({
           </div>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

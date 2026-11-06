@@ -7,15 +7,16 @@ import { Button } from "../../../components/ui/Button";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { Pagination } from "../../../components/ui/Pagination";
 import { Select } from "../../../components/ui/Select";
-import { TextField } from "../../../components/ui/TextField";
+import { DateField } from "../../../components/ui/DateField";
 import { defaultMonthToDateRange } from "../../../lib/dateRange";
 import { useMe } from "../../me/api";
 import { useAuditEvents, useEmployeeDirectory, type AuditEventFilters } from "../api";
-import { AuditEventList, type EntityNames } from "../components/AuditEventList";
+import { AuditEventList } from "../components/AuditEventList";
+import { BUSINESS_AREA_LABELS } from "../labels";
 
 const PAGE_SIZE = 20;
 const EMPTY_FILTERS: AuditEventFilters = {
-  entityType: "",
+  businessArea: "",
   actorId: "",
   occurredFrom: "",
   occurredTo: "",
@@ -40,7 +41,7 @@ function Waiting() {
   );
 }
 
-/** Nhật ký hệ thống (M1-05): Manager-only, filters by entity type / actor / date range. */
+/** Nhật ký hệ thống (M1-05, M21-04): Manager-only, filters by business area / actor / date range. */
 export function AuditPage() {
   usePageTitle("Nhật ký hệ thống");
   const me = useMe();
@@ -53,9 +54,6 @@ export function AuditPage() {
     filters.occurredFrom > filters.occurredTo;
   const events = useAuditEvents(filters, { enabled: !rangeInvalid });
   const stale = rangeInvalid || (events.isPlaceholderData && events.isFetching);
-  const names: EntityNames = new Map(
-    (employees.data ?? []).map((e) => [e.id, `${e.full_name} (${e.code})`]),
-  );
 
   if (!me.data && me.isError) {
     return (
@@ -77,14 +75,18 @@ export function AuditPage() {
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Select
-          label="Loại đối tượng"
-          value={filters.entityType}
+          label="Nghiệp vụ"
+          value={filters.businessArea}
           onChange={(event) => {
-            setFilter("entityType", event.target.value as AuditEventFilters["entityType"]);
+            setFilter("businessArea", event.target.value as AuditEventFilters["businessArea"]);
           }}
         >
           <option value="">Tất cả</option>
-          <option value="EMPLOYEE">Nhân viên</option>
+          {Object.entries(BUSINESS_AREA_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
         </Select>
         <Select
           label="Người thực hiện"
@@ -100,21 +102,21 @@ export function AuditPage() {
             </option>
           ))}
         </Select>
-        <TextField
-          type="date"
+        <DateField
+          mode="date"
           label="Từ ngày"
           value={filters.occurredFrom}
-          onChange={(event) => {
-            setFilter("occurredFrom", event.target.value);
+          onChange={(value) => {
+            setFilter("occurredFrom", value);
           }}
         />
-        <TextField
-          type="date"
+        <DateField
+          mode="date"
           label="Đến ngày"
           value={filters.occurredTo}
           error={rangeInvalid ? "Từ ngày không được sau Đến ngày." : undefined}
-          onChange={(event) => {
-            setFilter("occurredTo", event.target.value);
+          onChange={(value) => {
+            setFilter("occurredTo", value);
           }}
         />
       </div>
@@ -153,7 +155,7 @@ export function AuditPage() {
             aria-busy={stale || undefined}
             className={stale ? "opacity-50 transition-opacity" : "transition-opacity"}
           >
-            <AuditEventList items={events.data.items} names={names} />
+            <AuditEventList items={events.data.items} />
           </div>
           <Pagination
             total={events.data.total}

@@ -7,6 +7,7 @@ import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { TextField } from "../../../components/ui/TextField";
+import { AuthLayout } from "../AuthLayout";
 import { useDocumentTitle } from "../../../lib/useDocumentTitle";
 import { useForgotPassword } from "../api";
 import { fieldErrors, formError } from "../errors";
@@ -25,7 +26,7 @@ export function ForgotPasswordPage() {
   });
 
   return (
-    <main className="flex min-h-dvh items-center justify-center p-4">
+    <AuthLayout>
       <section className="w-full rounded-2xl bg-card p-7 shadow-card md:max-w-md md:p-8">
         <BrandHeader />
         <h2 className="mt-6 text-lg font-semibold text-heading lg:text-xl">Quên mật khẩu</h2>
@@ -72,6 +73,6 @@ export function ForgotPasswordPage() {
           </>
         )}
       </section>
-    </main>
+    </AuthLayout>
   );
 }

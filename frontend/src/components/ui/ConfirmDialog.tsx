@@ -1,8 +1,11 @@
+import type { ReactNode } from "react";
 import { Alert } from "./Alert";
 import { Button } from "./Button";
 import { Sheet } from "./Sheet";
 
-/** UI_GUIDELINES §6: irreversible/consequential actions state their effect before confirming. */
+/** UI_GUIDELINES §6: irreversible/consequential actions state their effect before confirming.
+ * M20-04: the caller keeps it open on any server error — `error` shows inside the dialog, and
+ * `staleVersion` swaps the confirm button for "Tải lại" (same pattern as CancelOrderSheet). */
 export function ConfirmDialog({
   open,
   onClose,
@@ -12,6 +15,8 @@ export function ConfirmDialog({
   onConfirm,
   loading = false,
   error,
+  staleVersion = false,
+  onReload,
 }: {
   open: boolean;
   onClose: () => void;
@@ -20,7 +25,9 @@ export function ConfirmDialog({
   confirmLabel: string;
   onConfirm: () => void;
   loading?: boolean;
-  error?: string | null;
+  error?: ReactNode;
+  staleVersion?: boolean;
+  onReload?: () => void;
 }) {
   return (
     <Sheet
@@ -33,14 +40,22 @@ export function ConfirmDialog({
           <Button variant="secondary" onClick={onClose} disabled={loading}>
             Huỷ
           </Button>
-          <Button onClick={onConfirm} loading={loading}>
-            {confirmLabel}
-          </Button>
+          {staleVersion ? (
+            <Button onClick={onReload}>Tải lại</Button>
+          ) : (
+            <Button onClick={onConfirm} loading={loading}>
+              {confirmLabel}
+            </Button>
+          )}
         </div>
       }
     >
       <p className="text-sm leading-relaxed text-body">{message}</p>
-      {error ? (
+      {staleVersion ? (
+        <div className="mt-3">
+          <Alert>Thông tin đã bị người khác thay đổi. Vui lòng tải lại.</Alert>
+        </div>
+      ) : error ? (
         <div className="mt-3">
           <Alert>{error}</Alert>
         </div>

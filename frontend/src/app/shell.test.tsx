@@ -188,7 +188,12 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
       {
         "Đơn hàng": ["Danh sách đơn", "Tạo đơn mới", "Khách hàng"],
         "Danh mục": ["Sản phẩm", "Dịch vụ", "Nhóm sản phẩm/dịch vụ"],
-        "Báo cáo": ["Báo cáo KPI", "Doanh thu theo khách hàng", "Doanh thu theo nhân viên"],
+        "Báo cáo": [
+          "Công việc theo nhân viên",
+          "Doanh thu theo khách hàng",
+          "Doanh thu theo nhân viên",
+          "Doanh thu theo SP/DV",
+        ],
         // This AN fixture has no company.manage, so the group shows only its employee.manage children.
         "Thông tin Công ty": ["Phòng ban", "Nhân sự & phân quyền"],
       },
@@ -199,7 +204,11 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
       ["Tổng quan", "Đơn hàng", "Báo cáo"],
       {
         "Đơn hàng": ["Danh sách đơn", "Tạo đơn mới", "Khách hàng"],
-        "Báo cáo": ["Doanh thu theo khách hàng", "Doanh thu theo nhân viên"],
+        "Báo cáo": [
+          "Doanh thu theo khách hàng",
+          "Doanh thu theo nhân viên",
+          "Doanh thu theo SP/DV",
+        ],
       },
     ],
     [
@@ -213,10 +222,20 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
           "Lịch & tải việc",
           "Đơn cần chỉnh sửa",
         ],
-        "Báo cáo": ["Báo cáo KPI", "Doanh thu theo khách hàng", "Doanh thu theo nhân viên"],
+        "Báo cáo": [
+          "Công việc theo nhân viên",
+          "Doanh thu theo khách hàng",
+          "Doanh thu theo nhân viên",
+          "Doanh thu theo SP/DV",
+        ],
       },
     ],
-    ["Khoa (KTV)", KHOA, ["Tổng quan", "Việc của tôi", "Báo cáo"], { "Báo cáo": ["Báo cáo KPI"] }],
+    [
+      "Khoa (KTV)",
+      KHOA,
+      ["Tổng quan", "Việc của tôi", "Báo cáo"],
+      { "Báo cáo": ["Công việc theo nhân viên"] },
+    ],
   ])("AC-SYS-035 menu của %s đúng bảng PERMISSIONS", async (_, person, top, groups) => {
     signedInAs(person);
     renderApp("/");
@@ -234,32 +253,58 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
     expect(structure.top).toEqual(["Tổng quan", "Việc của tôi", "Đơn hàng", "Báo cáo"]);
     expect(structure.groups).toEqual({
       "Đơn hàng": ["Danh sách đơn", "Tạo đơn mới", "Khách hàng"],
-      "Báo cáo": ["Báo cáo KPI", "Doanh thu theo khách hàng", "Doanh thu theo nhân viên"],
+      "Báo cáo": [
+        "Công việc theo nhân viên",
+        "Doanh thu theo khách hàng",
+        "Doanh thu theo nhân viên",
+        "Doanh thu theo SP/DV",
+      ],
     });
     expect(screen.getAllByText("Nhân viên kinh doanh · Nhân viên kỹ thuật")).toHaveLength(2); // header + footer
   });
 
-  test("AC-RPT-050 An (MANAGER, kpi.read + report.revenue.read) thấy đủ 3 mục con Báo cáo", async () => {
+  test("AC-RPT-050 An (MANAGER, kpi.read + report.revenue.read) thấy đủ 4 mục con Báo cáo", async () => {
     signedInAs(AN);
     renderApp("/");
 
     const structure = await menuStructure();
     expect(structure.groups["Báo cáo"]).toEqual([
-      "Báo cáo KPI",
+      "Công việc theo nhân viên",
       "Doanh thu theo khách hàng",
       "Doanh thu theo nhân viên",
+      "Doanh thu theo SP/DV",
     ]);
   });
 
-  test("AC-RPT-051 Khoa (TECHNICIAN, chỉ có kpi.read) chỉ thấy Báo cáo KPI", async () => {
+  test("AC-RPT-152 An thấy 'Doanh thu theo SP/DV' ngay sau 'Doanh thu theo nhân viên', trỏ /reports/revenue-by-product", async () => {
+    signedInAs(AN);
+    renderApp("/");
+
+    const groups = (await menuStructure()).groups["Báo cáo"] ?? [];
+    expect(groups[groups.indexOf("Doanh thu theo nhân viên") + 1]).toBe("Doanh thu theo SP/DV");
+    const nav = await mainMenu();
+    expect(within(nav).getByRole("link", { name: "Doanh thu theo SP/DV" })).toHaveAttribute(
+      "href",
+      "/reports/revenue-by-product",
+    );
+  });
+
+  test("AC-RPT-152 Khoa (TECHNICIAN, không có report.revenue.read) không thấy 'Doanh thu theo SP/DV'", async () => {
+    signedInAs(KHOA);
+    renderApp("/");
+
+    expect((await menuStructure()).groups["Báo cáo"]).not.toContain("Doanh thu theo SP/DV");
+  });
+
+  test("AC-RPT-051 Khoa (TECHNICIAN, chỉ có kpi.read) chỉ thấy Công việc theo nhân viên", async () => {
     signedInAs(KHOA);
     renderApp("/");
 
     const structure = await menuStructure();
-    expect(structure.groups["Báo cáo"]).toEqual(["Báo cáo KPI"]);
+    expect(structure.groups["Báo cáo"]).toEqual(["Công việc theo nhân viên"]);
   });
 
-  test("AC-RPT-052 Hoa (SALE, chỉ có report.revenue.read) thấy 2 mục doanh thu, không có Báo cáo KPI", async () => {
+  test("AC-RPT-052 Hoa (SALE, chỉ có report.revenue.read) thấy 3 mục doanh thu, không có Báo cáo KPI", async () => {
     signedInAs(HOA);
     renderApp("/");
 
@@ -267,10 +312,11 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
     expect(structure.groups["Báo cáo"]).toEqual([
       "Doanh thu theo khách hàng",
       "Doanh thu theo nhân viên",
+      "Doanh thu theo SP/DV",
     ]);
   });
 
-  test("AC-RPT-053 Lan (CUSTOMER_CARE, chỉ có report.revenue.read) thấy 2 mục doanh thu, không có Báo cáo KPI", async () => {
+  test("AC-RPT-053 Lan (CUSTOMER_CARE, chỉ có report.revenue.read) thấy 3 mục doanh thu, không có Báo cáo KPI", async () => {
     signedInAs(LAN);
     renderApp("/");
 
@@ -279,7 +325,76 @@ describe("Khung ứng dụng — menu theo vai trò", () => {
     expect(structure.groups["Báo cáo"]).toEqual([
       "Doanh thu theo khách hàng",
       "Doanh thu theo nhân viên",
+      "Doanh thu theo SP/DV",
     ]);
+  });
+
+  test("AC-RPT-121 An (MANAGER, có report.business_charts.read) thấy 'Biểu đồ kinh doanh' đầu nhóm Báo cáo, trỏ /reports/business-charts", async () => {
+    signedInAs({
+      ...AN,
+      capabilities: { ...AN.capabilities, "report.business_charts.read": all },
+    });
+    renderApp("/");
+
+    const structure = await menuStructure();
+    expect(structure.groups["Báo cáo"]?.[0]).toBe("Biểu đồ kinh doanh");
+    const nav = await mainMenu();
+    expect(within(nav).getByRole("link", { name: "Biểu đồ kinh doanh" })).toHaveAttribute(
+      "href",
+      "/reports/business-charts",
+    );
+  });
+
+  test("AC-RPT-121 Lan (CUSTOMER_CARE, không có report.business_charts.read) không thấy 'Biểu đồ kinh doanh'", async () => {
+    signedInAs(LAN);
+    renderApp("/");
+
+    const structure = await menuStructure();
+    expect(structure.groups["Báo cáo"]).not.toContain("Biểu đồ kinh doanh");
+  });
+
+  test("AC-RPT-087 An (MANAGER, đủ quyền báo cáo) thấy 'Công việc theo nhân viên' rồi 'Báo cáo KPI' mới, 'Báo cáo KPI' không trỏ /reports/kpi", async () => {
+    signedInAs({
+      ...AN,
+      capabilities: {
+        ...AN.capabilities,
+        "report.kpi_sales.read": all,
+        "report.customer_gift.read": all,
+      },
+    });
+    renderApp("/");
+
+    const structure = await menuStructure();
+    expect(structure.groups["Báo cáo"]).toEqual([
+      "Công việc theo nhân viên",
+      "Báo cáo KPI",
+      "Doanh thu theo khách hàng",
+      "Doanh thu theo nhân viên",
+      "Doanh thu theo SP/DV",
+      "Chi phí quà tặng KH",
+    ]);
+    const nav = await mainMenu();
+    expect(within(nav).getByRole("link", { name: "Báo cáo KPI" })).toHaveAttribute(
+      "href",
+      "/reports/kpi-sales",
+    );
+    expect(within(nav).getByRole("link", { name: "Công việc theo nhân viên" })).toHaveAttribute(
+      "href",
+      "/reports/kpi",
+    );
+  });
+
+  test.each([
+    ["Hoa (SALE)", HOA],
+    ["Lan (CSKH)", LAN],
+    ["Tuấn (QLKT)", TUAN],
+    ["Khoa (KTV)", KHOA],
+  ])("AC-RPT-095 %s không thấy mục 'Báo cáo KPI'", async (_, person) => {
+    signedInAs(person);
+    renderApp("/");
+
+    const structure = await menuStructure();
+    expect(structure.groups["Báo cáo"]).not.toContain("Báo cáo KPI");
   });
 
   test("AC-SYS-037 badge từ counters: ẩn khi 0, 99+ khi lớn, có nhãn đọc màn hình", async () => {

@@ -154,7 +154,7 @@ def test_list_search_filter_and_page(
 
 
 @pytest.mark.ac("AC-CAT-020")
-def test_read_scope_sale_techlead_ok_technician_forbidden(
+def test_read_scope_sale_techlead_ok_technician_read_only(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID], services: dict[str, uuid.UUID]
 ) -> None:
     service_id = services["DV-BOMMUC"]
@@ -163,9 +163,11 @@ def test_read_scope_sale_techlead_ok_technician_forbidden(
         assert client.get("/api/v1/services").status_code == 200
         assert client.get(f"/api/v1/services/{service_id}").status_code == 200
 
+    # M19-01a (AC-CAT-098) supersedes "TECHNICIAN → 403": read-only access, cost price hidden.
     khoa = client_as(app, KHOA)
-    problem(khoa.get("/api/v1/services"), 403, "FORBIDDEN")
-    problem(khoa.get(f"/api/v1/services/{service_id}"), 403, "FORBIDDEN")
+    assert khoa.get("/api/v1/services").status_code == 200
+    assert khoa.get(f"/api/v1/services/{service_id}").json()["cost_price"] is None
+    problem(khoa.post("/api/v1/services", json={}), 403, "FORBIDDEN")
 
 
 @pytest.mark.ac("AC-CAT-021")

@@ -61,6 +61,8 @@ class Employee(Base):
     title: Mapped[str | None] = mapped_column(String(80))
     password_hash: Mapped[str] = mapped_column(Text)
     must_change_password: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    # M20-09: set with a temporary password (create / Manager reset); NULL = never expires (Q144).
+    temp_password_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"), index=True)
     failed_login_count: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

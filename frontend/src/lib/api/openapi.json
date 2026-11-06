@@ -117,6 +117,9 @@
               }
             ]
           },
+          "business_area": {
+            "$ref": "#/components/schemas/BusinessArea"
+          },
           "data": {
             "anyOf": [
               {
@@ -133,6 +136,17 @@
             "format": "uuid",
             "title": "Entity Id",
             "type": "string"
+          },
+          "entity_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Label"
           },
           "entity_type": {
             "title": "Entity Type",
@@ -180,7 +194,9 @@
           "action",
           "from_status",
           "to_status",
-          "data"
+          "data",
+          "business_area",
+          "entity_label"
         ],
         "title": "AuditEventOut",
         "type": "object"
@@ -305,6 +321,122 @@
         },
         "required": ["file"],
         "title": "Body_services_import_preview",
+        "type": "object"
+      },
+      "BusinessArea": {
+        "description": "M21-04: the \"Nghiệp vụ\" (screen) an event belongs to — computed on read, never stored.",
+        "enum": [
+          "ORDERS",
+          "TASKS",
+          "ASSIGNMENTS",
+          "CUSTOMERS",
+          "CUSTOMER_GIFTS",
+          "CATALOG",
+          "EMPLOYEES",
+          "AUTH",
+          "COMPANY",
+          "DEPARTMENTS",
+          "KPI_TARGETS"
+        ],
+        "title": "BusinessArea",
+        "type": "string"
+      },
+      "BusinessResultsOut": {
+        "properties": {
+          "composition": {
+            "$ref": "#/components/schemas/CompositionOut"
+          },
+          "customers_monthly": {
+            "items": {
+              "$ref": "#/components/schemas/CustomersMonthOut"
+            },
+            "title": "Customers Monthly",
+            "type": "array"
+          },
+          "from": {
+            "title": "From",
+            "type": "string"
+          },
+          "monthly": {
+            "items": {
+              "$ref": "#/components/schemas/MonthlyMoneyOut"
+            },
+            "title": "Monthly",
+            "type": "array"
+          },
+          "to": {
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": ["from", "to", "monthly", "composition", "customers_monthly"],
+        "title": "BusinessResultsOut",
+        "type": "object"
+      },
+      "BusinessSalesOut": {
+        "properties": {
+          "from": {
+            "title": "From",
+            "type": "string"
+          },
+          "metric": {
+            "enum": ["revenue", "profit"],
+            "title": "Metric",
+            "type": "string"
+          },
+          "pareto": {
+            "items": {
+              "$ref": "#/components/schemas/ParetoItemOut"
+            },
+            "title": "Pareto",
+            "type": "array"
+          },
+          "slow_selling": {
+            "items": {
+              "$ref": "#/components/schemas/ItemQuantityOut"
+            },
+            "title": "Slow Selling",
+            "type": "array"
+          },
+          "to": {
+            "title": "To",
+            "type": "string"
+          },
+          "top_selling": {
+            "items": {
+              "$ref": "#/components/schemas/ItemQuantityOut"
+            },
+            "title": "Top Selling",
+            "type": "array"
+          }
+        },
+        "required": ["from", "to", "metric", "pareto", "top_selling", "slow_selling"],
+        "title": "BusinessSalesOut",
+        "type": "object"
+      },
+      "BusinessStaffOut": {
+        "properties": {
+          "from": {
+            "title": "From",
+            "type": "string"
+          },
+          "hours_by_technician": {
+            "items": {
+              "$ref": "#/components/schemas/TechnicianHoursOut"
+            },
+            "title": "Hours By Technician",
+            "type": "array"
+          },
+          "kpi_completion": {
+            "$ref": "#/components/schemas/KpiCompletionOut"
+          },
+          "to": {
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": ["from", "to", "hours_by_technician", "kpi_completion"],
+        "title": "BusinessStaffOut",
         "type": "object"
       },
       "CareSummaryOut": {
@@ -609,6 +741,34 @@
         },
         "required": ["version"],
         "title": "CompanyProfileUpdate",
+        "type": "object"
+      },
+      "CompositionOut": {
+        "properties": {
+          "by_customer_type": {
+            "items": {
+              "$ref": "#/components/schemas/ShareOut"
+            },
+            "title": "By Customer Type",
+            "type": "array"
+          },
+          "by_group": {
+            "items": {
+              "$ref": "#/components/schemas/ShareOut"
+            },
+            "title": "By Group",
+            "type": "array"
+          },
+          "by_item": {
+            "items": {
+              "$ref": "#/components/schemas/ShareOut"
+            },
+            "title": "By Item",
+            "type": "array"
+          }
+        },
+        "required": ["by_group", "by_item", "by_customer_type"],
+        "title": "CompositionOut",
         "type": "object"
       },
       "ConfirmationAttachment": {
@@ -1522,6 +1682,72 @@
         "title": "CustomerPage",
         "type": "object"
       },
+      "CustomerPotentialNoteCreate": {
+        "properties": {
+          "note": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": ["note"],
+        "title": "CustomerPotentialNoteCreate",
+        "type": "object"
+      },
+      "CustomerPotentialNoteOut": {
+        "properties": {
+          "author_id": {
+            "format": "uuid",
+            "title": "Author Id",
+            "type": "string"
+          },
+          "author_name": {
+            "title": "Author Name",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "customer_id": {
+            "format": "uuid",
+            "title": "Customer Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "order_code": {
+            "title": "Order Code",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "customer_id",
+          "order_id",
+          "order_code",
+          "note",
+          "author_id",
+          "author_name",
+          "created_at"
+        ],
+        "title": "CustomerPotentialNoteOut",
+        "type": "object"
+      },
       "CustomerUpdate": {
         "additionalProperties": false,
         "properties": {
@@ -1945,6 +2171,25 @@
         "title": "CustomerWritten",
         "type": "object"
       },
+      "CustomersMonthOut": {
+        "properties": {
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "new_count": {
+            "title": "New Count",
+            "type": "integer"
+          },
+          "returning_count": {
+            "title": "Returning Count",
+            "type": "integer"
+          }
+        },
+        "required": ["month", "new_count", "returning_count"],
+        "title": "CustomersMonthOut",
+        "type": "object"
+      },
       "DashboardCardItemsOut": {
         "description": "`GET /api/v1/dashboard/cards/{card}/items` (M18-01a/b/c): đúng 1 danh sách theo `kind`.",
         "properties": {
@@ -1966,6 +2211,20 @@
             ],
             "title": "Care Staff Items"
           },
+          "credited_order_items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DashboardCreditedOrderRow"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credited Order Items"
+          },
           "feedback_items": {
             "anyOf": [
               {
@@ -1981,7 +2240,7 @@
             "title": "Feedback Items"
           },
           "kind": {
-            "enum": ["order", "task", "staff", "feedback", "care_staff"],
+            "enum": ["order", "task", "staff", "feedback", "care_staff", "credited_order"],
             "title": "Kind",
             "type": "string"
           },
@@ -2078,8 +2337,56 @@
         "title": "DashboardCareStaffRow",
         "type": "object"
       },
+      "DashboardCreditedOrderRow": {
+        "description": "M21-03: 1 đơn trong popup \"Đơn ghi doanh số\" — `credited_total` chỉ cộng các dòng ghi cho\n(các) CSKH mà người gọi được xem.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "credited_total": {
+            "title": "Credited Total",
+            "type": "integer"
+          },
+          "customer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Name"
+          },
+          "order_code": {
+            "title": "Order Code",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "order_code",
+          "customer_name",
+          "created_at",
+          "status",
+          "credited_total"
+        ],
+        "title": "DashboardCreditedOrderRow",
+        "type": "object"
+      },
       "DashboardFeedbackRow": {
-        "description": "M18-01c: 1 đơn đã ghi phản hồi — popup \"Khách hàng đã chăm sóc\" và thẻ n★.",
+        "description": "M18-01c: 1 đơn đã ghi phản hồi — popup \"KH đã gọi\" và thẻ n★.",
         "properties": {
           "completed_at": {
             "anyOf": [
@@ -2243,6 +2550,17 @@
       },
       "DashboardOut": {
         "properties": {
+          "care_credited_order_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Care Credited Order Count"
+          },
           "care_staff_count": {
             "anyOf": [
               {
@@ -3010,6 +3328,18 @@
             "title": "Roles",
             "type": "array"
           },
+          "temp_password_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temp Password Expires At"
+          },
           "title": {
             "anyOf": [
               {
@@ -3051,6 +3381,7 @@
           "is_active",
           "is_locked",
           "must_change_password",
+          "temp_password_expires_at",
           "version"
         ],
         "title": "EmployeeOut",
@@ -3420,9 +3751,14 @@
           "temporary_password": {
             "title": "Temporary Password",
             "type": "string"
+          },
+          "temporary_password_expires_at": {
+            "format": "date-time",
+            "title": "Temporary Password Expires At",
+            "type": "string"
           }
         },
-        "required": ["employee", "temporary_password"],
+        "required": ["employee", "temporary_password", "temporary_password_expires_at"],
         "title": "EmployeeWithPassword",
         "type": "object"
       },
@@ -3499,7 +3835,8 @@
           "ASSIGNMENT",
           "CUSTOMER_GIFT",
           "COMPANY_PROFILE",
-          "DEPARTMENT"
+          "DEPARTMENT",
+          "KPI_TARGET"
         ],
         "title": "EntityType",
         "type": "string"
@@ -3715,6 +4052,51 @@
         "title": "ImportRowError",
         "type": "object"
       },
+      "ItemQuantityOut": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "number"
+          },
+          "revenue": {
+            "title": "Revenue",
+            "type": "integer"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": ["key", "label", "unit", "quantity", "revenue"],
+        "title": "ItemQuantityOut",
+        "type": "object"
+      },
+      "KpiCompletionOut": {
+        "properties": {
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/KpiSalesRowOut"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": ["month", "rows"],
+        "title": "KpiCompletionOut",
+        "type": "object"
+      },
       "KpiReportOut": {
         "properties": {
           "from": {
@@ -3819,6 +4201,330 @@
           "actual_hours_missing_count"
         ],
         "title": "KpiRowOut",
+        "type": "object"
+      },
+      "KpiSalesReportOut": {
+        "properties": {
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/KpiSalesRowOut"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/KpiSalesTotalsOut"
+          }
+        },
+        "required": ["month", "rows", "totals"],
+        "title": "KpiSalesReportOut",
+        "type": "object"
+      },
+      "KpiSalesRowOut": {
+        "properties": {
+          "achievement_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Achievement Pct"
+          },
+          "department_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Name"
+          },
+          "employee_code": {
+            "title": "Employee Code",
+            "type": "string"
+          },
+          "employee_id": {
+            "format": "uuid",
+            "title": "Employee Id",
+            "type": "string"
+          },
+          "employee_name": {
+            "title": "Employee Name",
+            "type": "string"
+          },
+          "net_revenue": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Revenue"
+          },
+          "stt": {
+            "title": "Stt",
+            "type": "integer"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "total_sales": {
+            "title": "Total Sales",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "stt",
+          "employee_id",
+          "employee_code",
+          "employee_name",
+          "department_name",
+          "total_sales",
+          "net_revenue",
+          "target",
+          "achievement_pct"
+        ],
+        "title": "KpiSalesRowOut",
+        "type": "object"
+      },
+      "KpiSalesTotalsOut": {
+        "properties": {
+          "has_missing_cost": {
+            "title": "Has Missing Cost",
+            "type": "boolean"
+          },
+          "net_revenue": {
+            "title": "Net Revenue",
+            "type": "integer"
+          },
+          "target": {
+            "title": "Target",
+            "type": "integer"
+          },
+          "total_sales": {
+            "title": "Total Sales",
+            "type": "integer"
+          }
+        },
+        "required": ["total_sales", "net_revenue", "target", "has_missing_cost"],
+        "title": "KpiSalesTotalsOut",
+        "type": "object"
+      },
+      "KpiTargetCopy": {
+        "additionalProperties": false,
+        "properties": {
+          "from_month": {
+            "examples": ["2026-11"],
+            "pattern": "^20\\d{2}-(0[1-9]|1[0-2])$",
+            "title": "From Month",
+            "type": "string"
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean"
+          },
+          "to_month": {
+            "examples": ["2026-11"],
+            "pattern": "^20\\d{2}-(0[1-9]|1[0-2])$",
+            "title": "To Month",
+            "type": "string"
+          }
+        },
+        "required": ["from_month", "to_month"],
+        "title": "KpiTargetCopy",
+        "type": "object"
+      },
+      "KpiTargetCopyResult": {
+        "properties": {
+          "created": {
+            "title": "Created",
+            "type": "integer"
+          },
+          "overwritten": {
+            "title": "Overwritten",
+            "type": "integer"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": ["created", "overwritten", "skipped"],
+        "title": "KpiTargetCopyResult",
+        "type": "object"
+      },
+      "KpiTargetPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/KpiTargetRowOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": ["items", "total", "limit", "offset"],
+        "title": "KpiTargetPage",
+        "type": "object"
+      },
+      "KpiTargetRowOut": {
+        "properties": {
+          "department_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "employee_code": {
+            "title": "Employee Code",
+            "type": "string"
+          },
+          "employee_id": {
+            "format": "uuid",
+            "title": "Employee Id",
+            "type": "string"
+          },
+          "employee_name": {
+            "title": "Employee Name",
+            "type": "string"
+          },
+          "employee_status": {
+            "enum": ["ACTIVE", "INACTIVE"],
+            "title": "Employee Status",
+            "type": "string"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "employee_id",
+          "employee_code",
+          "employee_name",
+          "department_name",
+          "employee_status",
+          "phone",
+          "email",
+          "target",
+          "version",
+          "updated_at"
+        ],
+        "title": "KpiTargetRowOut",
+        "type": "object"
+      },
+      "KpiTargetSet": {
+        "additionalProperties": false,
+        "properties": {
+          "net_revenue_target": {
+            "maximum": 10000000000000.0,
+            "minimum": 0.0,
+            "title": "Net Revenue Target",
+            "type": "integer"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": ["net_revenue_target"],
+        "title": "KpiTargetSet",
         "type": "object"
       },
       "LoginRequest": {
@@ -4106,6 +4812,25 @@
         "title": "MeResponse",
         "type": "object"
       },
+      "MonthlyMoneyOut": {
+        "properties": {
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "profit": {
+            "title": "Profit",
+            "type": "integer"
+          },
+          "revenue": {
+            "title": "Revenue",
+            "type": "integer"
+          }
+        },
+        "required": ["month", "revenue", "profit"],
+        "title": "MonthlyMoneyOut",
+        "type": "object"
+      },
       "MyAssignmentOut": {
         "properties": {
           "actual_hours": {
@@ -4259,6 +4984,54 @@
         },
         "required": ["items"],
         "title": "MyAssignmentsOut",
+        "type": "object"
+      },
+      "MyKpiSalesOut": {
+        "properties": {
+          "achievement_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Achievement Pct"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "net_revenue": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Revenue"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "total_sales": {
+            "title": "Total Sales",
+            "type": "integer"
+          }
+        },
+        "required": ["month", "total_sales", "net_revenue", "target", "achievement_pct"],
+        "title": "MyKpiSalesOut",
         "type": "object"
       },
       "MyTaskSummaryOut": {
@@ -4697,6 +5470,10 @@
             "title": "Allowed Commands",
             "type": "array"
           },
+          "can_add_lines_on_site": {
+            "title": "Can Add Lines On Site",
+            "type": "boolean"
+          },
           "can_complete": {
             "title": "Can Complete",
             "type": "boolean"
@@ -4967,6 +5744,7 @@
           "allowed_commands",
           "can_edit_contact",
           "can_edit_lines_after_submit",
+          "can_add_lines_on_site",
           "can_upload_confirmation",
           "can_complete",
           "can_revise",
@@ -5157,6 +5935,37 @@
       },
       "OrderLineOut": {
         "properties": {
+          "added_by_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Added By Id"
+          },
+          "added_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Added By Name"
+          },
+          "added_on_site": {
+            "title": "Added On Site",
+            "type": "boolean"
+          },
+          "can_edit_on_site": {
+            "title": "Can Edit On Site",
+            "type": "boolean"
+          },
           "catalog_price_snapshot": {
             "anyOf": [
               {
@@ -5354,7 +6163,11 @@
           "line_total",
           "note",
           "credited_employee_id",
-          "credited_employee_name"
+          "credited_employee_name",
+          "added_by_id",
+          "added_by_name",
+          "added_on_site",
+          "can_edit_on_site"
         ],
         "title": "OrderLineOut",
         "type": "object"
@@ -5920,6 +6733,33 @@
         "title": "OrderUpdate",
         "type": "object"
       },
+      "ParetoItemOut": {
+        "properties": {
+          "cumulative_pct": {
+            "title": "Cumulative Pct",
+            "type": "number"
+          },
+          "is_vital": {
+            "title": "Is Vital",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "integer"
+          }
+        },
+        "required": ["key", "label", "value", "cumulative_pct", "is_vital"],
+        "title": "ParetoItemOut",
+        "type": "object"
+      },
       "PriceHistoryOut": {
         "properties": {
           "changed_at": {
@@ -6232,6 +7072,154 @@
         },
         "required": ["items", "total", "limit", "offset"],
         "title": "ProductPage",
+        "type": "object"
+      },
+      "ProductRevenueReportOut": {
+        "properties": {
+          "from": {
+            "format": "date",
+            "title": "From",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProductRevenueRowOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "mode": {
+            "enum": ["group", "item"],
+            "title": "Mode",
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ProductRevenueSummaryOut"
+          },
+          "to": {
+            "format": "date",
+            "title": "To",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": ["from", "to", "mode", "items", "summary", "total"],
+        "title": "ProductRevenueReportOut",
+        "type": "object"
+      },
+      "ProductRevenueRowOut": {
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "item_type": {
+            "anyOf": [
+              {
+                "enum": ["PRODUCT", "SERVICE", "CUSTOM"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Type"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "order_count": {
+            "title": "Order Count",
+            "type": "integer"
+          },
+          "profit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profit"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "subtotal_revenue": {
+            "title": "Subtotal Revenue",
+            "type": "integer"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "code",
+          "item_type",
+          "unit",
+          "quantity",
+          "order_count",
+          "subtotal_revenue",
+          "profit"
+        ],
+        "title": "ProductRevenueRowOut",
+        "type": "object"
+      },
+      "ProductRevenueSummaryOut": {
+        "properties": {
+          "profit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profit"
+          },
+          "subtotal_revenue": {
+            "title": "Subtotal Revenue",
+            "type": "integer"
+          }
+        },
+        "required": ["subtotal_revenue", "profit"],
+        "title": "ProductRevenueSummaryOut",
         "type": "object"
       },
       "ProductServiceGroupCreate": {
@@ -6650,9 +7638,44 @@
             "title": "Customer Name",
             "type": "string"
           },
+          "last_purchase_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Purchase Date"
+          },
           "order_count": {
             "title": "Order Count",
             "type": "integer"
+          },
+          "potential_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Potential Note"
+          },
+          "potential_noted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Potential Noted At"
           },
           "profit": {
             "anyOf": [
@@ -7055,6 +8078,29 @@
         },
         "required": ["version"],
         "title": "ServiceUpdate",
+        "type": "object"
+      },
+      "ShareOut": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "profit": {
+            "title": "Profit",
+            "type": "integer"
+          },
+          "revenue": {
+            "title": "Revenue",
+            "type": "integer"
+          }
+        },
+        "required": ["key", "label", "revenue", "profit"],
+        "title": "ShareOut",
         "type": "object"
       },
       "StaffStatusCounts": {
@@ -7708,6 +8754,40 @@
         "title": "TaskUpdate",
         "type": "object"
       },
+      "TechnicianHoursOut": {
+        "properties": {
+          "assigned_hours": {
+            "title": "Assigned Hours",
+            "type": "number"
+          },
+          "employee_code": {
+            "title": "Employee Code",
+            "type": "string"
+          },
+          "employee_id": {
+            "format": "uuid",
+            "title": "Employee Id",
+            "type": "string"
+          },
+          "employee_name": {
+            "title": "Employee Name",
+            "type": "string"
+          },
+          "task_count": {
+            "title": "Task Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "employee_id",
+          "employee_code",
+          "employee_name",
+          "assigned_hours",
+          "task_count"
+        ],
+        "title": "TechnicianHoursOut",
+        "type": "object"
+      },
       "TopCustomerOut": {
         "properties": {
           "customer_code": {
@@ -8115,6 +9195,22 @@
           },
           {
             "in": "query",
+            "name": "business_area",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/BusinessArea"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Area"
+            }
+          },
+          {
+            "in": "query",
             "name": "actor_id",
             "required": false,
             "schema": {
@@ -8210,7 +9306,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Nhật ký hệ thống (lọc theo thực thể / người thực hiện / khoảng ngày)",
+        "summary": "Nhật ký hệ thống (lọc theo nghiệp vụ / thực thể / người thực hiện / khoảng ngày)",
         "tags": ["audit"]
       }
     },
@@ -8348,7 +9444,7 @@
             "description": "Successful Response"
           },
           "401": {
-            "description": "problem+json — INVALID_CREDENTIALS: Tên đăng nhập hoặc mật khẩu không đúng."
+            "description": "problem+json — INVALID_CREDENTIALS: Tên đăng nhập hoặc mật khẩu không đúng. | TEMP_PASSWORD_EXPIRED: Mật khẩu tạm đã hết hạn. Vui lòng liên hệ Quản lý để được cấp lại."
           },
           "403": {
             "description": "problem+json — ACCOUNT_DISABLED: Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản lý."
@@ -8952,6 +10048,67 @@
         "tags": ["customers"]
       }
     },
+    "/api/v1/customers/export": {
+      "get": {
+        "operationId": "customers_export",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["COMPANY", "INDIVIDUAL"],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Xuất CSV toàn bộ khách hàng theo bộ lọc (M20-05)",
+        "tags": ["customers"]
+      }
+    },
     "/api/v1/customers/{customer_id}": {
       "get": {
         "operationId": "customers_get",
@@ -9494,7 +10651,7 @@
             "description": "problem+json — NOT_FOUND"
           },
           "409": {
-            "description": "problem+json — STALE_VERSION | DUPLICATE_NAME | INVALID_STATE"
+            "description": "problem+json — STALE_VERSION | INVALID_STATE | DEPARTMENT_HAS_EMPLOYEES"
           },
           "422": {
             "content": {
@@ -9652,6 +10809,83 @@
           }
         },
         "summary": "Thêm nhân viên (mật khẩu tạm hiện một lần)",
+        "tags": ["employees"]
+      }
+    },
+    "/api/v1/employees/export": {
+      "get": {
+        "operationId": "employees_export",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["MANAGER", "SALE", "CUSTOMER_CARE", "TECH_LEAD", "TECHNICIAN"],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Role"
+            }
+          },
+          {
+            "in": "query",
+            "name": "is_active",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Active"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Xuất CSV toàn bộ nhân viên theo bộ lọc (M20-08)",
         "tags": ["employees"]
       }
     },
@@ -10078,6 +11312,258 @@
         "tags": ["system"]
       }
     },
+    "/api/v1/kpi-targets": {
+      "get": {
+        "operationId": "kpi_targets_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "month",
+            "required": true,
+            "schema": {
+              "examples": ["2026-11"],
+              "pattern": "^20\\d{2}-(0[1-9]|1[0-2])$",
+              "title": "Month",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "department_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Department Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KpiTargetPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chỉ tiêu Thu nhập thuần của nhân viên trong một tháng",
+        "tags": ["kpi-targets"]
+      }
+    },
+    "/api/v1/kpi-targets/copy": {
+      "post": {
+        "operationId": "kpi_targets_copy",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KpiTargetCopy"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KpiTargetCopyResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Copy chỉ tiêu một tháng sang các tháng sau",
+        "tags": ["kpi-targets"]
+      }
+    },
+    "/api/v1/kpi-targets/{employee_id}/{month}": {
+      "delete": {
+        "operationId": "kpi_targets_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "employee_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Employee Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "month",
+            "required": true,
+            "schema": {
+              "examples": ["2026-11"],
+              "pattern": "^20\\d{2}-(0[1-9]|1[0-2])$",
+              "title": "Month",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Xoá chỉ tiêu một tháng của nhân viên",
+        "tags": ["kpi-targets"]
+      },
+      "put": {
+        "operationId": "kpi_targets_set",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "employee_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Employee Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "month",
+            "required": true,
+            "schema": {
+              "examples": ["2026-11"],
+              "pattern": "^20\\d{2}-(0[1-9]|1[0-2])$",
+              "title": "Month",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KpiTargetSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KpiTargetRowOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Đặt/sửa chỉ tiêu một tháng của nhân viên",
+        "tags": ["kpi-targets"]
+      }
+    },
     "/api/v1/kpi/report": {
       "get": {
         "operationId": "get_kpi_report",
@@ -10234,6 +11720,55 @@
           }
         },
         "summary": "Thông tin, vai trò, quyền và bộ đếm của người đang đăng nhập",
+        "tags": ["me"]
+      }
+    },
+    "/api/v1/me/kpi-sales": {
+      "get": {
+        "operationId": "me_kpi_sales",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "month",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^20\\d{2}-(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": ["2026-11"],
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyKpiSalesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "KPI doanh số của tôi trong tháng",
         "tags": ["me"]
       }
     },
@@ -10564,6 +12099,16 @@
                 }
               ],
               "title": "Csat Rating"
+            }
+          },
+          {
+            "in": "query",
+            "name": "csat_unrated",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Csat Unrated",
+              "type": "boolean"
             }
           },
           {
@@ -11229,6 +12774,109 @@
         "tags": ["orders"]
       }
     },
+    "/api/v1/orders/{order_id}/customer-potential": {
+      "get": {
+        "operationId": "list_customer_potential_notes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerPotentialNoteOut"
+                  },
+                  "title": "Response List Customer Potential Notes",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lịch sử tiềm năng của khách hàng chủ đơn (mới nhất trước)",
+        "tags": ["customer-potential"]
+      },
+      "post": {
+        "operationId": "record_customer_potential_note",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerPotentialNoteCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerPotentialNoteOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "KTV ghi tiềm năng sử dụng dịch vụ của khách hàng chủ đơn",
+        "tags": ["customer-potential"]
+      }
+    },
     "/api/v1/orders/{order_id}/history": {
       "get": {
         "operationId": "orders_history",
@@ -11588,6 +13236,203 @@
           }
         },
         "summary": "Xoá dòng hàng sau khi gửi",
+        "tags": ["orders"]
+      }
+    },
+    "/api/v1/orders/{order_id}/lines-on-site": {
+      "post": {
+        "operationId": "orders_add_line_on_site",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderLineCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED | GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "KTV thêm dòng hàng tại hiện trường",
+        "tags": ["orders"]
+      }
+    },
+    "/api/v1/orders/{order_id}/lines-on-site/{line_id}": {
+      "patch": {
+        "operationId": "orders_update_line_on_site",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "line_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Line Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderLineUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "problem+json — LINE_NOT_EDITABLE"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED | GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "KTV sửa dòng hàng mình thêm tại hiện trường",
+        "tags": ["orders"]
+      }
+    },
+    "/api/v1/orders/{order_id}/lines-on-site/{line_id}/remove": {
+      "post": {
+        "operationId": "orders_remove_line_on_site",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "line_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Line Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderLineRemove"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "problem+json — LINE_NOT_EDITABLE"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "409": {
+            "description": "problem+json — STALE_VERSION | ORDER_NOT_SUBMITTED | ORDER_LOCKED | GUARD_FAILED"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "KTV xoá dòng hàng mình thêm tại hiện trường",
         "tags": ["orders"]
       }
     },
@@ -13337,6 +15182,218 @@
         "tags": ["products"]
       }
     },
+    "/api/v1/reports/business-charts/results": {
+      "get": {
+        "operationId": "get_business_results_charts",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^20\\d{2}-(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": ["2026-09"],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^20\\d{2}-(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": ["2026-10"],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessResultsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Biểu đồ: doanh thu & lợi nhuận theo tháng, cơ cấu, khách mới/quay lại",
+        "tags": ["business-charts"]
+      }
+    },
+    "/api/v1/reports/business-charts/sales": {
+      "get": {
+        "operationId": "get_business_sales_charts",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^20\\d{2}-(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": ["2026-09"],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^20\\d{2}-(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": ["2026-10"],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "metric",
+            "required": false,
+            "schema": {
+              "default": "revenue",
+              "enum": ["revenue", "profit"],
+              "title": "Metric",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessSalesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Biểu đồ: Pareto 80/20, top bán chạy và bán chậm",
+        "tags": ["business-charts"]
+      }
+    },
+    "/api/v1/reports/business-charts/staff": {
+      "get": {
+        "operationId": "get_business_staff_charts",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^20\\d{2}-(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": ["2026-09"],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^20\\d{2}-(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": ["2026-10"],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessStaffOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Biểu đồ: giờ được phân công theo KTV, tỷ lệ hoàn thành KPI",
+        "tags": ["business-charts"]
+      }
+    },
     "/api/v1/reports/customer-gifts": {
       "get": {
         "operationId": "get_customer_gift_report",
@@ -13576,6 +15633,204 @@
         },
         "summary": "Danh sách bản ghi tặng quà của 1 khách hàng trong khoảng (drilldown)",
         "tags": ["customer-gift-report"]
+      }
+    },
+    "/api/v1/reports/kpi-sales": {
+      "get": {
+        "operationId": "get_kpi_sales_report",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "month",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^20\\d{2}-(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": ["2026-11"],
+              "title": "Month"
+            }
+          },
+          {
+            "in": "query",
+            "name": "department_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Department Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "employee_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KpiSalesReportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Báo cáo KPI: doanh số, doanh thu thuần so với mục tiêu theo tháng",
+        "tags": ["kpi-sales-report"]
+      }
+    },
+    "/api/v1/reports/kpi-sales/export": {
+      "get": {
+        "operationId": "export_kpi_sales_report",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "month",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^20\\d{2}-(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": ["2026-11"],
+              "title": "Month"
+            }
+          },
+          {
+            "in": "query",
+            "name": "department_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Department Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "employee_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Xuất CSV báo cáo KPI",
+        "tags": ["kpi-sales-report"]
       }
     },
     "/api/v1/reports/revenue-by-customer": {
@@ -14167,6 +16422,330 @@
           }
         },
         "summary": "Danh sách dòng hàng của 1 nhân viên hoặc nhóm 'Chưa gán' (drilldown)",
+        "tags": ["revenue-report"]
+      }
+    },
+    "/api/v1/reports/revenue-by-product": {
+      "get": {
+        "operationId": "get_revenue_by_product_report",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "mode",
+            "required": false,
+            "schema": {
+              "default": "group",
+              "enum": ["group", "item"],
+              "title": "Mode",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "COMPLETED",
+              "enum": ["COMPLETED", "NOT_COMPLETED"],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductRevenueReportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Báo cáo doanh thu theo nhóm SP/DV hoặc từng SP/DV",
+        "tags": ["revenue-report"]
+      }
+    },
+    "/api/v1/reports/revenue-by-product/export": {
+      "get": {
+        "operationId": "export_revenue_by_product_report",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "mode",
+            "required": false,
+            "schema": {
+              "default": "group",
+              "enum": ["group", "item"],
+              "title": "Mode",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "COMPLETED",
+              "enum": ["COMPLETED", "NOT_COMPLETED"],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Xuất CSV báo cáo doanh thu theo SP/DV",
+        "tags": ["revenue-report"]
+      }
+    },
+    "/api/v1/reports/revenue-by-product/lines": {
+      "get": {
+        "operationId": "get_revenue_by_product_lines",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "mode",
+            "required": true,
+            "schema": {
+              "enum": ["group", "item"],
+              "title": "Mode",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "maxLength": 300,
+              "minLength": 1,
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "COMPLETED",
+              "enum": ["COMPLETED", "NOT_COMPLETED"],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RevenueLineOut"
+                  },
+                  "title": "Response Get Revenue By Product Lines",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Danh sách dòng hàng của 1 nhóm SP/DV hoặc 1 SP/DV (drilldown)",
         "tags": ["revenue-report"]
       }
     },

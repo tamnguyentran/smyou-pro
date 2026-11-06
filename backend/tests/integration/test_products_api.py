@@ -170,7 +170,7 @@ def test_list_search_filter_and_page(
 
 
 @pytest.mark.ac("AC-CAT-002")
-def test_read_scope_sale_techlead_ok_technician_forbidden(
+def test_read_scope_sale_techlead_ok_technician_read_only(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID], products: dict[str, uuid.UUID]
 ) -> None:
     product_id = products["MAYBO3551"]
@@ -179,9 +179,12 @@ def test_read_scope_sale_techlead_ok_technician_forbidden(
         assert client.get("/api/v1/products").status_code == 200
         assert client.get(f"/api/v1/products/{product_id}").status_code == 200
 
+    # M19-01a (AC-CAT-098, Q125) supersedes the original "TECHNICIAN → 403": technicians now read
+    # the catalog to add lines on site, but still can't manage it (AC-CAT-099).
     khoa = client_as(app, KHOA)
-    problem(khoa.get("/api/v1/products"), 403, "FORBIDDEN")
-    problem(khoa.get(f"/api/v1/products/{product_id}"), 403, "FORBIDDEN")
+    assert khoa.get("/api/v1/products").status_code == 200
+    assert khoa.get(f"/api/v1/products/{product_id}").status_code == 200
+    problem(khoa.post("/api/v1/products", json={}), 403, "FORBIDDEN")
 
 
 @pytest.mark.ac("AC-CAT-003")
@@ -405,8 +408,11 @@ def test_serve_attachment_forbidden_and_not_found(
         f"/api/v1/products/{product_id}/image", files={"file": ("photo.jpg", JPEG_BYTES, "image/jpeg")}
     ).json()["image_attachment_id"]
 
+    # M19-01a: TECHNICIAN now holds `catalog.read`, so the product image is served to them too.
     khoa = client_as(app, KHOA)
-    problem(khoa.get(f"/api/v1/attachments/{attachment_id}"), 403, "FORBIDDEN")
+    assert khoa.get(f"/api/v1/attachments/{attachment_id}").status_code == 200
+    upload = {"file": ("p.jpg", JPEG_BYTES, "image/jpeg")}
+    problem(khoa.post(f"/api/v1/products/{product_id}/image", files=upload), 403, "FORBIDDEN")
     problem(an.get(f"/api/v1/attachments/{uuid.uuid4()}"), 404, "NOT_FOUND")
 
 

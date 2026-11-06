@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import type { RouteObject } from "react-router";
 import { AuditPage } from "../features/audit/pages/AuditPage";
 import { CompanyProfilePage } from "../features/company/pages/CompanyProfilePage";
@@ -15,8 +16,11 @@ import { RevisionQueuePage } from "../features/dispatch/pages/RevisionQueuePage"
 import { TaskBoardPage } from "../features/dispatch/pages/TaskBoardPage";
 import { WorkloadPage } from "../features/dispatch/pages/WorkloadPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
+import { GuidePage } from "../features/guide/pages/GuidePage";
 import { EmployeesPage } from "../features/employees/pages/EmployeesPage";
 import { KpiReportPage } from "../features/kpi/pages/KpiReportPage";
+import { KpiSalesReportPage } from "../features/kpiSales/pages/KpiSalesReportPage";
+import { KpiTargetsPage } from "../features/kpiTargets/pages/KpiTargetsPage";
 import { MyTasksPage } from "../features/myTasks/pages/MyTasksPage";
 import { NotificationsPage } from "../features/notifications/pages/NotificationsPage";
 import { DraftOrderPage } from "../features/orders/pages/DraftOrderPage";
@@ -26,6 +30,8 @@ import { ProductsPage } from "../features/products/pages/ProductsPage";
 import { ProfilePage } from "../features/profile/pages/ProfilePage";
 import { RevenueByCustomerReportPage } from "../features/revenueReport/pages/RevenueByCustomerReportPage";
 import { RevenueByEmployeeReportPage } from "../features/revenueReport/pages/RevenueByEmployeeReportPage";
+import { RevenueByProductReportPage } from "../features/revenueReport/pages/RevenueByProductReportPage";
+import { RevenueSkeleton } from "../features/revenueReport/components/RevenueSkeleton";
 import { ServicesPage } from "../features/services/pages/ServicesPage";
 import { menuPages } from "./menu";
 import { AppShell } from "./shell/AppShell";
@@ -36,7 +42,8 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/employees" is real (M1-04b) and checks employee.read itself — narrower than the menu entry's
 // employee.manage (Q36: TECH_LEAD reads it without seeing the menu item), so it is excluded here.
 // "/audit" is real (M1-05) and checks audit.read itself, same as "/employees" above.
-// "/catalog/products" is real (M2-01b) and checks catalog.read itself — narrower than the menu
+// "/catalog/products" is real (M2-01b) and checks catalog.read_cost itself (M19-01a: was catalog.read,
+// which TECHNICIAN now also holds for on-site lines) — narrower than the menu
 // entry's catalog.manage (AC-CAT-017: Sale reads it without seeing the "Danh mục" menu item).
 // "/catalog/services" is real (M2-02), same reasoning (AC-CAT-031).
 // "/customers" is real (M3-01) and checks customer.read itself — narrower than the menu entry's
@@ -52,25 +59,39 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/my-tasks" is real (M5-01) and checks assignment.respond itself, same capability as the menu entry.
 // "/dispatch/revisions" is real (M6-03b), same capability (task.manage) as the menu entry.
 // "/reports/kpi" is real (M8-01b) and checks kpi.read itself, same capability as the menu entry.
+// "/reports/kpi-sales" is real (M21-02b) and checks report.kpi_sales.read itself, same as the menu entry.
 // "/reports/revenue-by-customer" is real (M15-09b), same capability (report.revenue.read) as the
 // menu entry added in M15-11.
 // "/reports/revenue-by-employee" is real (M15-10b), same reasoning as above.
+// "/reports/revenue-by-product" is real (M24-01b), same reasoning as above.
 // "/catalog/groups" is real (M16-07), same capability (catalog.manage on the menu entry,
-// catalog.read on the route) as "/catalog/products"/"/catalog/services".
+// catalog.read_cost on the route) as "/catalog/products"/"/catalog/services".
 // "/reports/customer-gifts" is real (M16-02b), same capability (report.customer_gift.read) as the
 // menu entry added alongside M16-02a's capability.
 // "/settings/company" is real (M17-01) and checks company.manage itself, same as the menu entry.
 // "/settings/departments" is real (M17-02a) and checks employee.manage itself, same as the menu entry.
+// "/settings/kpi-targets" is real (M21-01b) and checks kpi_target.manage itself, same as the menu entry.
+// "/reports/business-charts" is real (M23b) and checks report.business_charts.read itself, same as
+// the menu entry. Lazy (AC-RPT-138, ADR-016): recharts stays out of the main bundle.
+const BusinessChartsPage = lazy(() =>
+  import("../features/businessCharts/pages/BusinessChartsPage").then((m) => ({
+    default: m.BusinessChartsPage,
+  })),
+);
 const REAL_PAGES = new Set([
   "/",
   "/employees",
   "/reports/kpi",
+  "/reports/kpi-sales",
   "/reports/revenue-by-customer",
   "/reports/revenue-by-employee",
+  "/reports/revenue-by-product",
   "/reports/customer-gifts",
+  "/reports/business-charts",
   "/audit",
   "/settings/company",
   "/settings/departments",
+  "/settings/kpi-targets",
   "/catalog/products",
   "/catalog/services",
   "/catalog/groups",
@@ -130,12 +151,23 @@ export const routes: RouteObject[] = [
       ...menuRoutes,
       { path: "/employees", element: <EmployeesPage /> },
       { path: "/reports/kpi", element: <KpiReportPage /> },
+      { path: "/reports/kpi-sales", element: <KpiSalesReportPage /> },
       { path: "/reports/revenue-by-customer", element: <RevenueByCustomerReportPage /> },
       { path: "/reports/revenue-by-employee", element: <RevenueByEmployeeReportPage /> },
+      { path: "/reports/revenue-by-product", element: <RevenueByProductReportPage /> },
       { path: "/reports/customer-gifts", element: <CustomerGiftReportPage /> },
+      {
+        path: "/reports/business-charts",
+        element: (
+          <Suspense fallback={<RevenueSkeleton />}>
+            <BusinessChartsPage />
+          </Suspense>
+        ),
+      },
       { path: "/audit", element: <AuditPage /> },
       { path: "/settings/company", element: <CompanyProfilePage /> },
       { path: "/settings/departments", element: <DepartmentsPage /> },
+      { path: "/settings/kpi-targets", element: <KpiTargetsPage /> },
       { path: "/catalog/products", element: <ProductsPage /> },
       { path: "/catalog/services", element: <ServicesPage /> },
       { path: "/catalog/groups", element: <ProductServiceGroupsPage /> },
@@ -154,6 +186,7 @@ export const routes: RouteObject[] = [
       { path: "/orders/:id", element: <DraftOrderPage /> },
       { path: "/ca-nhan", element: <ProfilePage /> },
       { path: "/thong-bao", element: <NotificationsPage /> },
+      { path: "/huong-dan", element: <GuidePage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

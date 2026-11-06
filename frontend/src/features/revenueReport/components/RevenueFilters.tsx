@@ -1,6 +1,6 @@
 import { Download } from "lucide-react";
 import { Select } from "../../../components/ui/Select";
-import { TextField } from "../../../components/ui/TextField";
+import { DateField } from "../../../components/ui/DateField";
 import type { RevenueFilters as Filters } from "../api";
 import { revenueExportUrl } from "../api";
 import { CustomerSearchField } from "./CustomerSearchField";
@@ -22,21 +22,21 @@ export function RevenueFilters({
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <TextField
-          type="date"
+        <DateField
+          mode="date"
           label="Từ ngày"
           value={filters.from}
-          onChange={(event) => {
-            set("from", event.target.value);
+          onChange={(value) => {
+            set("from", value);
           }}
         />
 
-        <TextField
-          type="date"
+        <DateField
+          mode="date"
           label="Đến ngày"
           value={filters.to}
-          onChange={(event) => {
-            set("to", event.target.value);
+          onChange={(value) => {
+            set("to", value);
           }}
         />
 

@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
+import { Clock } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { ROLE_LABELS } from "../../../app/menu";
 import { Alert } from "../../../components/ui/Alert";
 import { Badge } from "../../../components/ui/Badge";
@@ -9,6 +10,7 @@ import { Button } from "../../../components/ui/Button";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { Select } from "../../../components/ui/Select";
 import { Sheet } from "../../../components/ui/Sheet";
+import { DateField } from "../../../components/ui/DateField";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
 import { useSession } from "../../auth/api";
@@ -25,7 +27,7 @@ import {
   type Role,
 } from "../api";
 import { fieldErrors } from "../errors";
-import { formatDate } from "../../../lib/format";
+import { formatDate, formatTimeDate } from "../../../lib/format";
 import { useActiveDepartments } from "../../departments/api";
 import {
   GENDER_LABELS,
@@ -124,6 +126,25 @@ function profileBody(values: EmployeeFormValues) {
 }
 
 /** Today in Asia/Ho_Chi_Minh as YYYY-MM-DD — the latest selectable birth/issue date (AC-EMP-066). */
+/** AC-EMP-124: pending temporary password — its expiry, or a warning once past it (client clock). */
+function TempPasswordStatus({ employee }: { employee: Employee }) {
+  const [openedAt] = useState(() => Date.now()); // client clock when the sheet opened
+  const expiresAt = employee.temp_password_expires_at;
+  if (!employee.must_change_password || !expiresAt) return null;
+  return (
+    <p className="flex min-h-11 w-full items-center gap-2 text-sm text-body">
+      {openedAt >= new Date(expiresAt).getTime() ? (
+        <Badge tone="urgent">Mật khẩu tạm đã hết hạn — bấm Cấp lại mật khẩu</Badge>
+      ) : (
+        <>
+          <Clock aria-hidden="true" className="size-4 shrink-0 text-muted" />
+          {`Mật khẩu tạm — hết hạn lúc ${formatTimeDate(expiresAt)}`}
+        </>
+      )}
+    </p>
+  );
+}
+
 function todayInVietnam(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
 }
@@ -181,11 +202,15 @@ export function EmployeeFormSheet({
     name: string;
     username: string;
     password: string;
+    expiresAt: string;
   } | null>(null);
   const [changeLogin, setChangeLogin] = useState(false);
-  const [resetPasswordValue, setResetPasswordValue] = useState<string | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState<{
+    password: string;
+    expiresAt: string;
+  } | null>(null);
 
-  const { register, handleSubmit, formState, setValue } = useForm<EmployeeFormValues>({
+  const { register, handleSubmit, formState, setValue, control } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: {
       full_name: employee?.full_name ?? "",
@@ -251,6 +276,7 @@ export function EmployeeFormSheet({
           name: created.employee.full_name,
           username: created.employee.username,
           password: created.temporary_password,
+          expiresAt: created.temporary_password_expires_at,
         });
         return;
       }
@@ -321,7 +347,10 @@ export function EmployeeFormSheet({
           version: employee.version,
         });
         setEmployee(result.employee);
-        setResetPasswordValue(result.temporary_password);
+        setResetPasswordValue({
+          password: result.temporary_password,
+          expiresAt: result.temporary_password_expires_at,
+        });
       }
       invalidateList();
       setConfirming(null);
@@ -342,6 +371,7 @@ export function EmployeeFormSheet({
         open
         username={tempPassword.username}
         password={tempPassword.password}
+        expiresAt={tempPassword.expiresAt}
         onClose={() => {
           const name = tempPassword.name;
           setTempPassword(null);
@@ -450,12 +480,20 @@ export function EmployeeFormSheet({
                 error={fieldError("full_name")}
                 {...register("full_name")}
               />
-              <TextField
-                label="Ngày sinh"
-                type="date"
-                max={today}
-                error={fieldError("birth_date")}
-                {...register("birth_date")}
+              <Controller
+                control={control}
+                name="birth_date"
+                render={({ field }) => (
+                  <DateField
+                    mode="date"
+                    label="Ngày sinh"
+                    max={today}
+                    error={fieldError("birth_date")}
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
               />
               <TextField
                 label="Nơi sinh"
@@ -483,12 +521,20 @@ export function EmployeeFormSheet({
                 error={fieldError("id_number")}
                 {...register("id_number")}
               />
-              <TextField
-                label="Ngày cấp"
-                type="date"
-                max={today}
-                error={fieldError("id_issued_date")}
-                {...register("id_issued_date")}
+              <Controller
+                control={control}
+                name="id_issued_date"
+                render={({ field }) => (
+                  <DateField
+                    mode="date"
+                    label="Ngày cấp"
+                    max={today}
+                    error={fieldError("id_issued_date")}
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
               />
               <TextField
                 label="Nơi cấp"
@@ -570,6 +616,7 @@ export function EmployeeFormSheet({
             />
             {employee && canManage ? (
               <div className="flex flex-wrap gap-3 border-t border-line pt-4">
+                <TempPasswordStatus employee={employee} />
                 {employee.is_active && !isSelf ? (
                   <Button
                     type="button"
@@ -643,7 +690,8 @@ export function EmployeeFormSheet({
         <TemporaryPasswordDialog
           open
           username={employee?.username}
-          password={resetPasswordValue}
+          password={resetPasswordValue.password}
+          expiresAt={resetPasswordValue.expiresAt}
           onClose={() => {
             setResetPasswordValue(null);
           }}

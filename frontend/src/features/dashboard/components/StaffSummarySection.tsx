@@ -43,7 +43,7 @@ export function StaffSummarySection({ summary }: { summary: StaffSummary }) {
       <h2 className="text-sm font-semibold text-muted">
         Nhân sự kỹ thuật ({summary.active_technician_count} đang hoạt động)
       </h2>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {tiles.map((tile) => (
           <StatTile
             key={tile.card}

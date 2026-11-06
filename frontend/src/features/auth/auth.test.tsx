@@ -182,7 +182,7 @@ describe("Đổi mật khẩu lần đầu", () => {
       expect(router.state.location.pathname).toBe("/doi-mat-khau");
     });
 
-    await user.type(screen.getByLabelText("Mật khẩu hiện tại"), "TamThoi#14");
+    await user.type(await screen.findByLabelText("Mật khẩu hiện tại"), "TamThoi#14");
     await user.type(screen.getByLabelText("Mật khẩu mới"), "Khoa@SmYou9");
     await user.type(screen.getByLabelText("Nhập lại mật khẩu mới"), "Khoa@SmYou9");
     await user.click(screen.getByRole("button", { name: "Đổi mật khẩu" }));
@@ -556,5 +556,22 @@ describe("M17-03b đăng nhập bằng tên đăng nhập", () => {
     await waitFor(() => {
       expect(body).toEqual({ username: "an.nv", password: "SmYou@2026" });
     });
+  });
+});
+
+describe("M20-09 mật khẩu tạm hết hạn", () => {
+  test("AC-AUTH-086 401 TEMP_PASSWORD_EXPIRED → hiện đúng thông báo hết hạn, không dùng lỗi sai mật khẩu", async () => {
+    const detail = "Mật khẩu tạm đã hết hạn. Vui lòng liên hệ Quản lý để được cấp lại.";
+    server.use(
+      http.post("/api/v1/auth/login", () => problem(401, "TEMP_PASSWORD_EXPIRED", detail)),
+    );
+    renderApp("/dang-nhap");
+    const user = await fillLogin("khoa.tran", "14031995");
+
+    await user.click(screen.getByRole("button", { name: "Đăng nhập" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(detail);
+    expect(screen.queryByText("Tên đăng nhập hoặc mật khẩu không đúng.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Đăng nhập" })).toBeEnabled();
   });
 });

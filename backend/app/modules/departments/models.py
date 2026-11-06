@@ -9,11 +9,17 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.db import Base
 
 # Seeded by the M17-02a migration with fixed ids; M17-02b maps the old employees.department enum
-# onto these (bootstrap Manager → "Ban quản lý").
+# onto these. Kept for older migration tests only.
 LEGACY_DEPARTMENT_IDS = {
     "MANAGEMENT": uuid.UUID("d1111111-1111-4111-8111-111111111111"),
     "SALES": uuid.UUID("d2222222-2222-4222-8222-222222222222"),
     "TECHNICAL": uuid.UUID("d3333333-3333-4333-8333-333333333333"),
+}
+# M20-07: the legacy rows above are deleted; only these 3 remain, everyone else moved to ECONOMIC.
+STANDARD_DEPARTMENT_IDS = {
+    "ECONOMIC": uuid.UUID("d4444444-4444-4444-8444-444444444444"),
+    "HR": uuid.UUID("d5555555-5555-4555-8555-555555555555"),
+    "ACCOUNTING": uuid.UUID("d6666666-6666-4666-8666-666666666666"),
 }
 
 

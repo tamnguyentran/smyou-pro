@@ -35,6 +35,9 @@ Frontend không viết tay type API. `make contract` xuất `openapi.json` và s
 ## ADR-011: Image đa kiến trúc
 Dev arm64 (M2), prod amd64 (AlmaLinux). Image production build với `--platform linux/amd64` và chạy smoke test trên runner amd64 của CI. Không phụ thuộc native lib không có wheel amd64/arm64.
 
+## ADR-016: Recharts cho biểu đồ, nạp lười theo route
+Bối cảnh: M23b cần 8 biểu đồ (kết hợp cột + đường, tròn, Pareto 2 trục, cột ngang) trên mobile và desktop; trước đó app không có thư viện biểu đồ. Quyết định (Q173): dùng **Recharts 3** (React, vẽ SVG) — có sẵn combo/Pareto/ngang, DOM SVG test được bằng Testing Library (tooltip qua `mouseMove`), màu lấy thẳng `var(--color-*)` của UI_GUIDELINES §2. Chỉ `features/businessCharts/` được import `recharts`; route `/reports/business-charts` nạp bằng `React.lazy`, nên Recharts nằm trong chunk riêng của trang (~120 kB gzip), không vào bundle chính (AC-RPT-138, kiểm bằng `chunk.test.ts`). Không dùng `Cell` (deprecated ở 3.x) — màu từng cột/lát đặt bằng trường `fill` của datum. Phương án bỏ: Chart.js (canvas, nhẹ hơn nhưng không kiểm được DOM và a11y kém hơn). Hệ quả: biểu đồ mới sau này dùng lại `components/chartKit.tsx` (card, khung `role="img"`, chú giải HTML, tooltip, skeleton); muốn dùng Recharts ở trang khác thì trang đó cũng phải nạp lười.
+
 ## ADR-015: SMTP (Gmail) cho luồng "Quên mật khẩu"
 Bối cảnh: PRD §5 chốt "không tích hợp email" cho v1, nhưng chủ dự án yêu cầu trực tiếp (Q86) thêm tự đặt lại mật khẩu qua email vì nhân viên không nhớ mật khẩu phải chờ Manager reset tay. Quyết định: dùng `smtplib`/`email` (thư viện chuẩn Python, không thêm dependency ngoài) gửi qua Gmail SMTP (`smtp.gmail.com:587`, STARTTLS, App Password — không dùng mật khẩu Gmail thật); toàn bộ cấu hình (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`) nằm trong file biến môi trường (`.env.dev`/`.env.prod`), không hard-code, không commit giá trị thật. Hệ quả: SMTP chỉ dùng cho email đặt lại mật khẩu (không mở rộng sang Zalo/SMS/email khác — vẫn ngoài phạm vi theo PRD §5); gửi email là tác vụ đồng bộ trong request (tải thấp, ~30 người dùng, không cần hàng đợi); lỗi gửi email (SMTP timeout/sai cấu hình) không được lộ chi tiết lỗi cho người dùng cuối (tránh dò email tồn tại) — chỉ log phía server.
 
@@ -46,3 +49,6 @@ Bối cảnh: báo giá thực tế có mặt hàng giá gồm VAT, có mặt h�
 
 ## ADR-012: Tài liệu tham khảo là minh hoạ, không phải đặc tả
 Ảnh phiếu viết tay chỉ dùng để suy ra trường dữ liệu. Trường chưa chắc chắn ghi vào `OPEN_QUESTIONS.md` với giả định mặc định.
+
+## ADR-017: Điền giá vốn còn trống một lần (ngoại lệ của ADR-004)
+Bối cảnh: dữ liệu cũ có SP/DV và dòng đơn thiếu giá vốn, báo cáo lợi nhuận hiện "—" (Q161, Q165). Quyết định (M21-08): migration dữ liệu `7b3e5d1a9c42` gán `cost_price` của SP/DV và `cost_price_snapshot` **đang null** của dòng đơn cũ = 70% giá bán (`unit_price`; dòng quà: 70% `catalog_price_snapshot` hoặc 0, Q175), làm tròn nửa lên. Đây là ngoại lệ **một lần** của ADR-004 / quy tắc 7 CLAUDE.md, chỉ cho cột `cost_price_snapshot` đang null; snapshot đã có không đổi. Từ nay dòng mới chỉ bán được SP/DV có giá vốn (`ITEM_COST_MISSING`). Hệ quả: không ghi lịch sử giá/audit cho lần sửa này; `downgrade` không hoàn tác được.

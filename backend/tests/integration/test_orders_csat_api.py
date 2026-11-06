@@ -274,3 +274,102 @@ def test_order_list_filters_by_completed_at_range_and_csat_rating(
 
     by_rating = lan.get("/api/v1/orders?from=2026-09-01&to=2026-09-26&csat_rating=3").json()
     assert [item["id"] for item in by_rating["items"]] == [str(in_range_3)]
+
+
+@pytest.fixture
+def october_orders(db: Connection, people: dict[str, uuid.UUID]) -> dict[str, uuid.UUID]:
+    """M20-02: tháng 10/2026 — 0001 5★, 0002 + 0003 chưa đánh giá, 0004 đang làm."""
+    completed = datetime(2026, 10, 15, 3, 0, tzinfo=UTC)
+    return {
+        "0001": insert_order(
+            db,
+            created_by=people["NV001"],
+            status="COMPLETED",
+            code="DH2610-0001",
+            completed_at=completed,
+            csat_rating=5,
+        ),
+        "0002": insert_order(
+            db, created_by=people["NV001"], status="COMPLETED", code="DH2610-0002", completed_at=completed
+        ),
+        "0003": insert_order(
+            db, created_by=people["NV001"], status="COMPLETED", code="DH2610-0003", completed_at=completed
+        ),
+        "0004": insert_order(db, created_by=people["NV001"], status="IN_PROGRESS", code="DH2610-0004"),
+    }
+
+
+@pytest.mark.ac("AC-CSK-026")
+def test_order_list_filters_unrated_matches_csat_summary(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], october_orders: dict[str, uuid.UUID]
+) -> None:
+    # Chưa đánh giá nhưng hoàn tất ngoài khoảng ngày, và đơn huỷ có completed_at → đều không được tính.
+    insert_order(
+        db,
+        created_by=people["NV001"],
+        status="COMPLETED",
+        code="DH2609-0099",
+        completed_at=datetime(2026, 9, 20, 3, 0, tzinfo=UTC),
+    )
+    insert_order(
+        db,
+        created_by=people["NV001"],
+        status="CANCELLED",
+        code="DH2610-0098",
+        completed_at=datetime(2026, 10, 15, 3, 0, tzinfo=UTC),
+    )
+    lan = client_as(app, LAN)
+
+    res = lan.get("/api/v1/orders?from=2026-10-01&to=2026-10-31&csat_unrated=true")
+    assert res.status_code == 200, res.text
+    page = res.json()
+    assert page["total"] == 2
+    assert {item["code"] for item in page["items"]} == {"DH2610-0002", "DH2610-0003"}
+
+    summary = lan.get("/api/v1/orders/csat-summary?from=2026-10-01&to=2026-10-31").json()
+    assert page["total"] == summary["none"]
+
+
+@pytest.mark.ac("AC-CSK-027")
+def test_order_list_unrated_without_dates_only_completed(
+    app: FastAPI, db: Connection, october_orders: dict[str, uuid.UUID]
+) -> None:
+    res = client_as(app, LAN).get("/api/v1/orders?csat_unrated=true")
+    assert res.status_code == 200, res.text
+    codes = {item["code"] for item in res.json()["items"]}
+    assert codes == {"DH2610-0002", "DH2610-0003"}
+    assert all(item["csat_rating"] is None for item in res.json()["items"])
+
+
+@pytest.mark.ac("AC-CSK-028")
+@pytest.mark.usefixtures("people")
+def test_order_list_rejects_rating_with_unrated(app: FastAPI) -> None:
+    res = client_as(app, LAN).get("/api/v1/orders?csat_rating=4&csat_unrated=true")
+    body = problem(res, 422, "VALIDATION_ERROR")
+    assert body["errors"][0]["code"] == "conflicting_filters"
+
+
+@pytest.mark.ac("AC-CSK-029")
+def test_order_list_unrated_combines_with_mine(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], october_orders: dict[str, uuid.UUID]
+) -> None:
+    own = insert_order(
+        db,
+        created_by=people["NV005"],
+        status="COMPLETED",
+        code="DH2610-0005",
+        completed_at=datetime(2026, 10, 16, 3, 0, tzinfo=UTC),
+    )
+    hoa = client_as(app, HOA)
+
+    mine = hoa.get("/api/v1/orders?csat_unrated=true&mine=true")
+    assert mine.status_code == 200, mine.text
+    assert {item["id"] for item in mine.json()["items"]} == {str(own)}
+
+    everyone = hoa.get("/api/v1/orders?csat_unrated=true")
+    assert everyone.status_code == 200, everyone.text
+    assert {item["id"] for item in everyone.json()["items"]} == {
+        str(own),
+        str(october_orders["0002"]),
+        str(october_orders["0003"]),
+    }

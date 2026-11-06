@@ -56,6 +56,8 @@ function event(overrides: Partial<AuditEventOut> = {}): AuditEventOut {
     from_status: "ACTIVE",
     to_status: "INACTIVE",
     data: null,
+    business_area: "EMPLOYEES",
+    entity_label: "Trần Minh Khoa (NV014)",
     ...overrides,
   };
 }
@@ -119,9 +121,7 @@ describe("AC-SYS-072 hàng nhật ký nói rõ đối tượng và trạng thái
     renderApp("/audit");
 
     const table = await screen.findByRole("table", { name: "Nhật ký hệ thống" });
-    expect(
-      await within(table).findByText("Nhân viên · Trần Minh Khoa (NV014)"),
-    ).toBeInTheDocument();
+    expect(await within(table).findByText("Nhân viên Trần Minh Khoa (NV014)")).toBeInTheDocument();
     expect(within(table).getByText("Đang hoạt động")).toBeInTheDocument();
     expect(within(table).getByText("Đã khoá")).toBeInTheDocument();
     expect(within(table).queryByText(/ACTIVE/)).not.toBeInTheDocument();
@@ -130,7 +130,7 @@ describe("AC-SYS-072 hàng nhật ký nói rõ đối tượng và trạng thái
 });
 
 describe("AC-SYS-074 mọi bộ lọc tới API; Xoá lọc về trang đầu", () => {
-  test("loại đối tượng, người thực hiện, từ ngày, đến ngày; trang 2 → Xoá lọc → offset 0", async () => {
+  test("nghiệp vụ (M21-04), người thực hiện, từ ngày, đến ngày; trang 2 → Xoá lọc → offset 0", async () => {
     let lastQuery = "";
     signedInAs(AN, ({ request }) => {
       lastQuery = new URL(request.url).search;
@@ -144,12 +144,12 @@ describe("AC-SYS-074 mọi bộ lọc tới API; Xoá lọc về trang đầu", 
       expect(lastQuery).toContain("offset=20");
     });
 
-    await user.selectOptions(screen.getByLabelText("Loại đối tượng"), "EMPLOYEE");
+    await user.selectOptions(screen.getByLabelText("Nghiệp vụ"), "EMPLOYEES");
     await user.selectOptions(await screen.findByLabelText("Người thực hiện"), KHOA_ID);
-    fireEvent.change(screen.getByLabelText("Từ ngày"), { target: { value: "2026-09-01" } });
-    fireEvent.change(screen.getByLabelText("Đến ngày"), { target: { value: "2026-09-20" } });
+    fireEvent.change(screen.getByLabelText("Từ ngày"), { target: { value: "01/09/2026" } });
+    fireEvent.change(screen.getByLabelText("Đến ngày"), { target: { value: "20/09/2026" } });
     await waitFor(() => {
-      expect(lastQuery).toContain("entity_type=EMPLOYEE");
+      expect(lastQuery).toContain("business_area=EMPLOYEES");
       expect(lastQuery).toContain(`actor_id=${KHOA_ID}`);
       expect(lastQuery).toContain("occurred_from=2026-09-01");
       expect(lastQuery).toContain("occurred_to=2026-09-20");
@@ -175,8 +175,8 @@ describe("AC-SYS-074 mọi bộ lọc tới API; Xoá lọc về trang đầu", 
     renderApp("/audit");
     await screen.findByLabelText("Từ ngày");
 
-    fireEvent.change(screen.getByLabelText("Từ ngày"), { target: { value: "2026-09-20" } });
-    fireEvent.change(screen.getByLabelText("Đến ngày"), { target: { value: "2026-09-19" } });
+    fireEvent.change(screen.getByLabelText("Từ ngày"), { target: { value: "20/09/2026" } });
+    fireEvent.change(screen.getByLabelText("Đến ngày"), { target: { value: "19/09/2026" } });
 
     expect(await screen.findByText("Từ ngày không được sau Đến ngày.")).toBeInTheDocument();
     expect(queries.some((q) => q.includes("occurred_to=2026-09-19"))).toBe(false);
@@ -220,7 +220,13 @@ describe("AC-SYS-072 tra tên đối tượng qua mọi trang danh sách nhân v
     signedInAs(AN, () =>
       HttpResponse.json({
         items: [
-          event({ entity_id: newest.id, action: "create", from_status: null, to_status: null }),
+          event({
+            entity_id: newest.id,
+            entity_label: "Đỗ Minh Tâm (NV101)",
+            action: "create",
+            from_status: null,
+            to_status: null,
+          }),
         ],
         total: 1,
         limit: 20,
@@ -237,7 +243,7 @@ describe("AC-SYS-072 tra tên đối tượng qua mọi trang danh sách nhân v
     renderApp("/audit");
 
     const table = await screen.findByRole("table", { name: "Nhật ký hệ thống" });
-    expect(await within(table).findByText("Nhân viên · Đỗ Minh Tâm (NV101)")).toBeInTheDocument();
+    expect(await within(table).findByText("Nhân viên Đỗ Minh Tâm (NV101)")).toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Người thực hiện")).getByRole("option", {
         name: "Đỗ Minh Tâm (NV101)",
@@ -253,8 +259,8 @@ describe("AC-SYS-074 khoảng ngày ngược trước khi tải xong (review vò
       return HttpResponse.json({});
     });
     renderApp("/audit");
-    fireEvent.change(await screen.findByLabelText("Từ ngày"), { target: { value: "2026-09-20" } });
-    fireEvent.change(screen.getByLabelText("Đến ngày"), { target: { value: "2026-09-19" } });
+    fireEvent.change(await screen.findByLabelText("Từ ngày"), { target: { value: "20/09/2026" } });
+    fireEvent.change(screen.getByLabelText("Đến ngày"), { target: { value: "19/09/2026" } });
 
     expect(await screen.findByText("Từ ngày không được sau Đến ngày.")).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Đang tải nhật ký" })).not.toBeInTheDocument();

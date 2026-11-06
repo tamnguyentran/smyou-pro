@@ -434,3 +434,16 @@ def test_page_size_limit_and_export_too_large(
     body = problem(an.get("/api/v1/dashboard/cards/care.customers/export"), 409, "EXPORT_TOO_LARGE")
     assert body["detail"] == "Quá nhiều dòng để xuất (tối đa 2)."
     assert items(an, "care.customers")["total"] == 3
+
+
+@pytest.mark.ac("AC-UI-075")
+def test_care_customers_card_label_is_kh_da_goi(
+    db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
+) -> None:
+    """M20-10: tiêu đề thẻ/popup đổi "Khách hàng đã chăm sóc" → "KH đã gọi"; slug Excel giữ nguyên."""
+    completed(db, people, "DH2609-0041", rating=5, recorded_by="NV023", recorded_at=SEPT_10)
+    an = client_as(app, AN)
+    assert items(an, "care.customers")["label"] == "KH đã gọi"
+    export = an.get("/api/v1/dashboard/cards/care.customers/export")
+    assert export.status_code == 200
+    assert "cskh-kh-da-cham-soc" in export.headers["content-disposition"]

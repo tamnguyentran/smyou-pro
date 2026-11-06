@@ -70,7 +70,8 @@ def decode_access_token(token: str, *, secret: str, now: datetime) -> AccessClai
             token,
             secret,
             algorithms=[_ALGORITHM],
-            options={"verify_exp": False, "require": ["sub", "sid", "pwd", "exp"]},
+            # iat too: PyJWT checks it against the wall clock, not the injected one.
+            options={"verify_exp": False, "verify_iat": False, "require": ["sub", "sid", "pwd", "exp"]},
         )
         if int(payload["exp"]) <= now.timestamp():
             return None

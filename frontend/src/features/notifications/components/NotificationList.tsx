@@ -23,6 +23,7 @@ const TYPE_ICONS: Record<string, LucideIcon> = {
   ORDER_COMPLETED: BadgeCheck,
   ORDER_REVISION_REQUESTED: RotateCcw,
   ORDER_CSK_REVISION_REQUESTED: MessageSquareWarning,
+  ORDER_LINES_CHANGED_ON_SITE: ShoppingBag,
   TASK_ASSIGNED: ClipboardCheck,
   TASK_UPDATED: Wrench,
   TASK_REOPENED: RotateCcw,

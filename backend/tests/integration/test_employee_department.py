@@ -53,7 +53,7 @@ def test_create_with_active_department(app: FastAPI, db: Connection) -> None:
     assert res.status_code == 201, res.text
     assert res.json()["employee"]["department"] == {
         "id": ACCOUNTING,
-        "name": "Kế Toán - tài chính",
+        "name": "Kế Toán - Tài chính",
         "is_active": True,
     }
 
@@ -128,8 +128,11 @@ def test_me_returns_department_id_and_name(app: FastAPI, db: Connection) -> None
     assert body["employee"]["department"] == {"id": TECHNICAL, "name": "Kỹ thuật"}
 
 
-@pytest.mark.ac("AC-EMP-059")
-def test_bootstrap_manager_goes_to_management(monkeypatch: pytest.MonkeyPatch, db: Connection) -> None:
+# M17-02b bootstrap rule ("Ban quản lý") is superseded by M20-07: the legacy departments no longer exist.
+@pytest.mark.ac("AC-EMP-101")
+def test_bootstrap_manager_goes_to_economic_development(
+    monkeypatch: pytest.MonkeyPatch, db: Connection
+) -> None:
     answers: Iterator[str] = iter(["SmYou@2026", "SmYou@2026"])
     monkeypatch.setattr("getpass.getpass", lambda prompt="": next(answers))
     factory = sessionmaker(bind=db, join_transaction_mode="create_savepoint", expire_on_commit=False)
@@ -139,4 +142,4 @@ def test_bootstrap_manager_goes_to_management(monkeypatch: pytest.MonkeyPatch, d
     department_id = db.execute(
         text("SELECT department_id FROM employees WHERE email = :email"), {"email": KHOA.email}
     ).scalar_one()
-    assert str(department_id) == MANAGEMENT
+    assert str(department_id) == ECONOMIC

@@ -92,12 +92,14 @@ def insert_customer(db: Connection, customer: dict[str, object], *, created_by: 
 
 def insert_product(db: Connection, product: dict[str, object]) -> uuid.UUID:
     product_id = uuid.uuid4()
-    row = {"is_active": True, **product}
+    # M21-08: lines can only be sold with a catalog cost price — default to 70% of the price
+    # (rounded half up, as the M21-08 migration); pass `cost_price: None` to model legacy data.
+    row = {"is_active": True, "cost_price": (int(product["price"]) * 7 + 5) // 10, **product}
     db.execute(
         text(
-            "INSERT INTO products (id, sku, name, category, unit, price, vat_rate, price_fixed,"
+            "INSERT INTO products (id, sku, name, category, unit, price, cost_price, vat_rate, price_fixed,"
             " is_active, version)"
-            " VALUES (:id, :sku, :name, :category, :unit, :price, :vat_rate, :price_fixed,"
+            " VALUES (:id, :sku, :name, :category, :unit, :price, :cost_price, :vat_rate, :price_fixed,"
             " :is_active, 1)"
         ),
         {"id": product_id, **row},
@@ -107,12 +109,14 @@ def insert_product(db: Connection, product: dict[str, object]) -> uuid.UUID:
 
 def insert_service(db: Connection, service: dict[str, object]) -> uuid.UUID:
     service_id = uuid.uuid4()
-    row = {"is_active": True, **service}
+    # M21-08: lines can only be sold with a catalog cost price — default to 70% of the price
+    # (rounded half up, as the M21-08 migration); pass `cost_price: None` to model legacy data.
+    row = {"is_active": True, "cost_price": (int(service["price"]) * 7 + 5) // 10, **service}
     db.execute(
         text(
-            "INSERT INTO services (id, code, name, category, unit, price, vat_rate, price_fixed,"
+            "INSERT INTO services (id, code, name, category, unit, price, cost_price, vat_rate, price_fixed,"
             " is_active, version)"
-            " VALUES (:id, :code, :name, :category, :unit, :price, :vat_rate, :price_fixed,"
+            " VALUES (:id, :code, :name, :category, :unit, :price, :cost_price, :vat_rate, :price_fixed,"
             " :is_active, 1)"
         ),
         {"id": service_id, **row},
@@ -1301,9 +1305,14 @@ def test_routes_declare_capability(app: FastAPI) -> None:
             "/api/v1/orders/{order_id}/lines-after-submit/{line_id}/remove",
             "order.edit_lines_after_submit",
         ),
+        ("POST", "/api/v1/orders/{order_id}/lines-on-site", "order.edit_lines_on_site"),
+        ("PATCH", "/api/v1/orders/{order_id}/lines-on-site/{line_id}", "order.edit_lines_on_site"),
+        ("POST", "/api/v1/orders/{order_id}/lines-on-site/{line_id}/remove", "order.edit_lines_on_site"),
         ("GET", "/api/v1/orders/csat-summary", "customer_care.manage_feedback"),
         ("POST", "/api/v1/orders/{order_id}/csat", "customer_care.manage_feedback"),
         ("POST", "/api/v1/orders/{order_id}/revision-requests", "customer_care.manage_feedback"),
+        ("POST", "/api/v1/orders/{order_id}/customer-potential", "customer.potential.record"),  # M21-05a
+        ("GET", "/api/v1/orders/{order_id}/customer-potential", "order.read"),  # M21-05a
     }
 
 

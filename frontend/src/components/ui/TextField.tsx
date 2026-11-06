@@ -4,6 +4,8 @@ import { cn } from "../../lib/cn";
 export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string | undefined;
+  /** Announce `error` at once (role=alert) — for errors that arrive from the server after an action. */
+  errorAlert?: boolean;
   hint?: string;
   ref?: Ref<HTMLInputElement>;
   /** Rendered inside the input box on the right (e.g. show-password button). */
@@ -13,6 +15,7 @@ export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
 export function TextField({
   label,
   error,
+  errorAlert,
   hint,
   id,
   trailing,
@@ -54,7 +57,11 @@ export function TextField({
         </p>
       ) : null}
       {error ? (
-        <p id={`${inputId}-error`} className="text-xs font-medium text-urgent-fg">
+        <p
+          id={`${inputId}-error`}
+          role={errorAlert ? "alert" : undefined}
+          className="text-xs font-medium text-urgent-fg"
+        >
           {error}
         </p>
       ) : null}

@@ -337,6 +337,7 @@ def add_assignee(
     task_id: uuid.UUID,
     body: TaskAddAssignee,
     *,
+    now: datetime,
     specs: Specs,
     request_id: str | None = None,
 ) -> TaskDetail:
@@ -382,6 +383,9 @@ def add_assignee(
     )
     order.version += 1  # Order is the aggregate root (Q62).
     session.flush()
+    # fire_order_reevaluate (Q90) — đơn đã lùi PENDING_DISPATCH vì mọi người bị gỡ/từ chối quay lại
+    # IN_PROGRESS khi có người mới (UAT BUG-01).
+    orders_service.reevaluate_dispatch_state(session, order, actor, now=now, request_id=request_id)
 
     notifications.notify_task_assigned(session, task, order, [body.employee_id])
     audit.record(

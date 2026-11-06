@@ -447,6 +447,75 @@ describe("AC-CUS-020/021 trường mở rộng theo loại khách hàng", () => 
   });
 });
 
+describe("AC-UI-101 ô ngày khách hàng dùng DateField (M21-06b)", () => {
+  test("sửa công ty: gõ Ngày thành lập 15032015 → gửi founded_date=2015-03-15", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([KIM_LONG])));
+    let body: Record<string, unknown> = {};
+    server.use(
+      http.patch("/api/v1/customers/:id", async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          ...customer({ id, founded_date: "2015-03-15", version: 2 }),
+          duplicate_phone_matches: [],
+        });
+      }),
+    );
+    renderApp("/customers");
+    await openMenu();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByText("Cty Kim Long"));
+    const dialog = await screen.findByRole("dialog", { name: "Sửa khách hàng" });
+    const founded = within(dialog).getByLabelText("Ngày thành lập");
+    expect(founded).not.toHaveAttribute("type", "date");
+    await user.type(founded, "15032015");
+    expect(founded).toHaveValue("15/03/2015");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+    await waitFor(() => {
+      expect(body.founded_date).toBe("2015-03-15");
+    });
+  });
+
+  test("mở lại form công ty có founded_date → ô hiện 15/03/2015", async () => {
+    signedInAs(AN, () =>
+      HttpResponse.json(page([customer({ id, code: "KH00003", founded_date: "2015-03-15" })])),
+    );
+    renderApp("/customers");
+    await openMenu();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByText("Cty Kim Long"));
+    const dialog = await screen.findByRole("dialog", { name: "Sửa khách hàng" });
+    expect(within(dialog).getByLabelText("Ngày thành lập")).toHaveValue("15/03/2015");
+  });
+
+  test("tạo khách cá nhân: gõ Ngày sinh 20051995 → gửi date_of_birth=1995-05-20", async () => {
+    signedInAs(AN, () => HttpResponse.json(page([])));
+    let body: Record<string, unknown> = {};
+    server.use(
+      http.post("/api/v1/customers", async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...customer(), duplicate_phone_matches: [] }, { status: 201 });
+      }),
+    );
+    renderApp("/customers");
+    await openMenu();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Thêm khách hàng" }));
+    const dialog = await screen.findByRole("dialog", { name: "Thêm khách hàng" });
+    await user.selectOptions(within(dialog).getByLabelText("Loại khách hàng"), "Cá nhân");
+    await user.type(within(dialog).getByLabelText("Tên khách hàng"), "Chị Lan");
+    await user.type(within(dialog).getByLabelText("Số điện thoại"), "0987654321");
+    await user.type(within(dialog).getByLabelText("Ngày sinh"), "20051995");
+    expect(within(dialog).getByLabelText("Ngày sinh")).toHaveValue("20/05/1995");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+    await waitFor(() => {
+      expect(body.date_of_birth).toBe("1995-05-20");
+    });
+  });
+});
+
 describe("AC-CUS-024 loại khách hàng bất biến khi sửa", () => {
   test("Sheet sửa khách hàng: ô Loại khách hàng bị khoá", async () => {
     signedInAs(AN, () => HttpResponse.json(page([KIM_LONG])));
@@ -560,5 +629,53 @@ describe("AC-CUS-012 phân quyền trang", () => {
     signedInAs(KHOA);
     renderApp("/customers");
     expect(await screen.findByText("Bạn không có quyền truy cập trang này.")).toBeInTheDocument();
+  });
+});
+
+describe("AC-CUS-037/038 nút Xuất Excel", () => {
+  test("AC-CUS-037 href theo bộ lọc đang chọn, không kèm limit/offset; bỏ lọc → URL gốc", async () => {
+    mockViewport(true);
+    signedInAs(AN, () => HttpResponse.json(page([KIM_LONG], 25)));
+    const user = userEvent.setup();
+    renderApp("/customers");
+    await openMenu();
+    await screen.findByRole("table");
+
+    await user.type(screen.getByLabelText("Tìm kiếm"), "Minh");
+    await user.selectOptions(screen.getByLabelText("Loại khách hàng"), "COMPANY");
+    await user.click(await screen.findByRole("button", { name: "Trang sau" }));
+
+    const link = screen.getByRole("link", { name: "Xuất Excel" });
+    await waitFor(() => {
+      expect(link).toHaveAttribute("href", "/api/v1/customers/export?q=Minh&type=COMPANY");
+    });
+    expect(link.querySelector("svg")).not.toBeNull();
+    expect(link).toHaveClass("min-h-11");
+
+    await user.clear(screen.getByLabelText("Tìm kiếm"));
+    await user.selectOptions(screen.getByLabelText("Loại khách hàng"), "");
+    await waitFor(() => {
+      expect(link).toHaveAttribute("href", "/api/v1/customers/export");
+    });
+  });
+
+  test("AC-CUS-038 nút chỉ hiện từ lg (ẩn trên điện thoại)", async () => {
+    mockViewport(false);
+    signedInAs(AN, () => HttpResponse.json(page([KIM_LONG])));
+    renderApp("/customers");
+    await openMenu();
+
+    const link = await screen.findByRole("link", { name: "Xuất Excel" });
+    expect(link).toHaveClass("hidden", "lg:inline-flex");
+  });
+
+  test("AC-CUS-037 TECH_LEAD (không có customer.manage) không thấy nút", async () => {
+    mockViewport(true);
+    signedInAs(TUAN, () => HttpResponse.json(page([KIM_LONG])));
+    renderApp("/customers");
+    await openMenu();
+    await screen.findByRole("table");
+
+    expect(screen.queryByRole("link", { name: "Xuất Excel" })).toBeNull();
   });
 });

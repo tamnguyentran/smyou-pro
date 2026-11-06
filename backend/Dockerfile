@@ -37,6 +37,8 @@ COPY --from=build /opt/venv /opt/venv
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY app ./app
+# UAT reset, run on the server until go-live (DEPLOYMENT.md §10) — only this script, not the e2e seeds.
+COPY scripts/__init__.py scripts/reset_uat_data.py ./scripts/
 # Business-rule source of truth, loaded at startup (named build context: --build-context spec=spec).
 COPY --from=spec . /spec
 USER app

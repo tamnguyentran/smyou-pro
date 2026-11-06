@@ -34,7 +34,7 @@ from app.modules.dashboard.schemas import (
 from app.modules.dispatch.models import OPEN_TASK_STATUSES_EXCLUDE, TASK_STATUSES, Assignment, Task
 from app.modules.identity.models import Employee, EmployeeRole
 from app.modules.orders.models import STATUSES as ORDER_STATUSES
-from app.modules.orders.models import Order, OrderRevision
+from app.modules.orders.models import Order, OrderLine, OrderRevision
 
 _DASHBOARD_ROLES_FOR_CUSTOMER_SECTIONS = {"MANAGER", "TECH_LEAD", "SALE", "CUSTOMER_CARE"}
 
@@ -326,6 +326,31 @@ def care_where(now: datetime) -> dict[str, list[ColumnElement[bool]]]:
     }
 
 
+def credited_line_where(actor: Actor) -> list[ColumnElement[bool]] | None:
+    """M21-03 (Q152): dòng hàng "ghi doanh số cho CSKH" mà actor được xem — Manager: mọi NV đang có
+    vai trò CUSTOMER_CARE; CSKH (không phải Manager): chính mình; vai trò khác: `None`."""
+    if "MANAGER" in actor.roles:
+        care_staff = select(EmployeeRole.employee_id).where(EmployeeRole.role == "CUSTOMER_CARE")
+        return [OrderLine.credited_employee_id.in_(care_staff)]
+    if "CUSTOMER_CARE" in actor.roles:
+        return [OrderLine.credited_employee_id == actor.id]
+    return None
+
+
+def credited_orders_where(actor: Actor, now: datetime) -> list[ColumnElement[bool]] | None:
+    """M21-03 (AC-DASH-123…125, Q151): đơn tạo trong tháng hiện tại (giờ VN), không Nháp/Huỷ, có
+    ≥1 dòng thuộc `credited_line_where` — dùng chung cho số trên thẻ và popup."""
+    if (lines := credited_line_where(actor)) is None:
+        return None
+    month_start, month_end = _current_month_vn_bounds(now)
+    return [
+        Order.created_at >= month_start,
+        Order.created_at < month_end,
+        Order.status.notin_(("DRAFT", "CANCELLED")),
+        select(OrderLine.id).where(OrderLine.order_id == Order.id, *lines).exists(),
+    ]
+
+
 def _top_customers(session: Session, *, now: datetime) -> list[TopCustomerOut]:
     """M15-04 (AC-DASH-054/055, Q94): company-wide — không áp `apply_scope`/scope riêng cho
     actor, khác mọi section khác của dashboard. Đơn không có `customer_id` (khách lẻ) bị loại
@@ -415,4 +440,6 @@ def get_dashboard(session: Session, actor: Actor, *, now: datetime) -> Dashboard
         out.care_summary = _care_summary(session, now=now)
         out.care_staff_count = _care_staff_count(session, now=now)
         out.orders_needing_revision_count = _orders_needing_revision_count(session, now=now)
+    if (credited := credited_orders_where(actor, now)) is not None:
+        out.care_credited_order_count = _count(session, Order, *credited)
     return out

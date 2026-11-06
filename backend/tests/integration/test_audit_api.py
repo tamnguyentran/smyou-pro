@@ -78,6 +78,8 @@ def test_list_shape_sorted_desc_and_limit_validation(api: TestClient, db: Connec
         "from_status",
         "to_status",
         "data",
+        "business_area",  # M21-04
+        "entity_label",  # M21-04
     }
     assert seeded[0]["actor"] == {"id": str(an), "code": "NV001", "full_name": "Nguyễn Văn An"}
     assert seeded[1]["actor"] is None

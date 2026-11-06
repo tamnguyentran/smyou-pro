@@ -8,6 +8,7 @@ import { Button } from "../../../components/ui/Button";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { PasswordField } from "../../../components/ui/PasswordField";
 import { useToast } from "../../../components/ui/Toast";
+import { AuthLayout } from "../AuthLayout";
 import { useDocumentTitle } from "../../../lib/useDocumentTitle";
 import { useResetPassword } from "../api";
 import { ApiError, fieldErrors, formError } from "../errors";
@@ -61,7 +62,7 @@ export function ResetPasswordPage() {
   });
 
   return (
-    <main className="flex min-h-dvh items-center justify-center p-4">
+    <AuthLayout>
       <section className="w-full rounded-2xl bg-card p-7 shadow-card md:max-w-md md:p-8">
         <BrandHeader />
         <h2 className="mt-6 text-lg font-semibold text-heading lg:text-xl">Đặt lại mật khẩu</h2>
@@ -94,6 +95,6 @@ export function ResetPasswordPage() {
           </form>
         )}
       </section>
-    </main>
+    </AuthLayout>
   );
 }

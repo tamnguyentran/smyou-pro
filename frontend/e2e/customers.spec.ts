@@ -127,3 +127,48 @@ test("AC-CUS-013 không cuộn ngang ở 360px (danh sách, form thêm)", async 
   await form.getByLabel("Số điện thoại").fill("0987000111");
   await noHorizontalScroll(); // form thêm khách hàng
 });
+
+test("AC-CUS-037 AC-CUS-038 AC-CUS-039 nút Xuất Excel: desktop tải CSV theo bộ lọc, điện thoại ẩn", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER);
+  await expect(page.getByText("E2E-KH-001")).toBeVisible();
+  const exportLink = page.getByRole("link", { name: "Xuất Excel" });
+
+  if (info.project.name === "mobile") {
+    await expect(exportLink).toBeHidden();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    return;
+  }
+
+  await expect(exportLink).toBeVisible();
+  expect((await exportLink.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await expect(exportLink).toHaveAttribute("href", /\/api\/v1\/customers\/export$/);
+
+  // Giống kpi.spec.ts: không dựa vào Download API của trình duyệt — gọi lại đúng href bằng
+  // page.request (chung cookie phiên) để kiểm tên file + nội dung.
+  const href = await exportLink.getAttribute("href");
+  if (href === null) throw new Error("export link missing href");
+  await exportLink.click();
+  await expect(page.getByRole("heading", { level: 1, name: "Khách hàng" })).toBeVisible();
+  const response = await page.request.get(href);
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-disposition"] ?? "").toMatch(
+    /filename="khach-hang-\d{4}-\d{2}-\d{2}\.csv"/,
+  );
+  const body = await response.body();
+  expect([...body.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
+  expect(body.subarray(3).toString("utf-8")).toMatch(/^Mã KH,Loại,Tên khách hàng/);
+  expect(body.toString("utf-8")).toContain("E2E-KH-001");
+
+  await page.getByLabel("Tìm kiếm").fill("Sáng Tạo");
+  await page.getByLabel("Loại khách hàng").selectOption("COMPANY");
+  await expect(exportLink).toHaveAttribute(
+    "href",
+    /\/api\/v1\/customers\/export\?q=S%C3%A1ng\+T%E1%BA%A1o&type=COMPANY$/,
+  );
+});

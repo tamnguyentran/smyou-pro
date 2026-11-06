@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import type { components } from "../../lib/api/schema";
+import { resolveBasePath } from "../../lib/basePath";
 import { toApiError } from "../auth/errors";
 
 export type Employee = components["schemas"]["EmployeeOut"];
@@ -18,6 +19,20 @@ export interface EmployeeFilters {
 }
 
 export const EMPLOYEES_KEY = "employees";
+
+/** M20-08: CSV of every employee matching the list filters (no paging) — a plain download link. */
+export function employeesExportUrl(
+  filters: Pick<EmployeeFilters, "q" | "role" | "is_active">,
+): string {
+  const apiPrefix = resolveBasePath(import.meta.env.BASE_URL).apiPrefix;
+  const params = new URLSearchParams();
+  const q = filters.q.trim();
+  if (q) params.set("q", q);
+  if (filters.role) params.set("role", filters.role);
+  if (filters.is_active) params.set("is_active", filters.is_active);
+  const query = params.toString();
+  return `${apiPrefix}/api/v1/employees/export${query ? `?${query}` : ""}`;
+}
 
 /** Paginated, searched, filtered list — kept while the next page loads (no flash back to Skeleton). */
 export function useEmployees(filters: EmployeeFilters, { enabled = true } = {}) {

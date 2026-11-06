@@ -46,7 +46,7 @@ def test_username_backfill_and_downgrade(migrated: None) -> None:
                     text(
                         "INSERT INTO employees (id, code, full_name, email, department_id, password_hash,"
                         " created_at) VALUES (:id, :code, :name, :email,"
-                        " 'd1111111-1111-4111-8111-111111111111', 'x', :created_at)"
+                        " 'd4444444-4444-4444-8444-444444444444', 'x', :created_at)"
                     ),
                     {
                         "id": employee_id,

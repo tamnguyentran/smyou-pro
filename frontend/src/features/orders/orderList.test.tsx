@@ -448,8 +448,45 @@ describe("M15-02b — CSKH tra cứu + CSAT trên /orders", () => {
     const range = defaultMonthToDateRange();
     expect(lastQuery).toContain(`from=${range.from}`);
     expect(lastQuery).toContain(`to=${range.to}`);
-    expect(screen.getByLabelText("Từ ngày")).toHaveValue(range.from);
-    expect(screen.getByLabelText("Đến ngày")).toHaveValue(range.to);
+    expect(screen.getByLabelText("Từ ngày")).toHaveValue(range.from.split("-").reverse().join("/"));
+    expect(screen.getByLabelText("Đến ngày")).toHaveValue(range.to.split("-").reverse().join("/"));
+  });
+
+  test("AC-UI-098: gõ Từ ngày 01102026, Đến ngày 31102026 → ô dd/MM/yyyy, API from/to yyyy-MM-dd; xoá Từ ngày → bỏ lọc from", async () => {
+    signedInAs(lanId, LAN);
+    let lastQuery = "";
+    server.use(
+      http.get("/api/v1/orders", ({ request }) => {
+        lastQuery = new URL(request.url).search;
+        return HttpResponse.json({ items: [summary()], total: 1, limit: 20, offset: 0 });
+      }),
+      http.get("/api/v1/orders/csat-summary", () =>
+        HttpResponse.json({ "5": 0, "4": 0, "3": 0, "2": 0, "1": 0, none: 0 }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderApp("/orders");
+    await screen.findByText("DH2609-0001");
+
+    const from = screen.getByLabelText("Từ ngày");
+    const to = screen.getByLabelText("Đến ngày");
+    expect(from).not.toHaveAttribute("type", "date");
+    await user.clear(from);
+    await user.type(from, "01102026");
+    await user.clear(to);
+    await user.type(to, "31102026");
+    expect(from).toHaveValue("01/10/2026");
+    expect(to).toHaveValue("31/10/2026");
+    await waitFor(() => {
+      expect(lastQuery).toContain("from=2026-10-01");
+      expect(lastQuery).toContain("to=2026-10-31");
+    });
+
+    await user.clear(from);
+    await waitFor(() => {
+      expect(lastQuery).not.toMatch(/[?&]from=\d/);
+    });
+    expect(lastQuery).toContain("to=2026-10-31");
   });
 
   test("AC-CSK-011: tô nền dòng theo csat_rating (xanh/vàng/hồng/mặc định)", async () => {
@@ -512,6 +549,89 @@ describe("M15-02b — CSKH tra cứu + CSAT trên /orders", () => {
     await waitFor(() => {
       expect(lastQuery).toContain("csat_rating=3");
     });
+  });
+});
+
+describe('M20-02 — thẻ "Chưa đánh giá" lọc danh sách', () => {
+  function setup() {
+    signedInAs(lanId, LAN);
+    const queries: URLSearchParams[] = [];
+    server.use(
+      http.get("/api/v1/orders", ({ request }) => {
+        queries.push(new URL(request.url).searchParams);
+        return HttpResponse.json({ items: [summary()], total: 1, limit: 20, offset: 0 });
+      }),
+      http.get("/api/v1/orders/csat-summary", () =>
+        HttpResponse.json({ "5": 3, "4": 2, "3": 1, "2": 1, "1": 1, none: 2 }),
+      ),
+    );
+    renderApp("/orders");
+    const last = () => queries[queries.length - 1] ?? new URLSearchParams();
+    return { last, user: userEvent.setup() };
+  }
+  const unratedTile = () => screen.getByRole("button", { name: /Chưa đánh giá/ });
+
+  test("AC-CSK-030: bấm 'Chưa đánh giá' → aria-pressed, gọi csat_unrated=true, giữ ngày, về trang 1", async () => {
+    const { last, user } = setup();
+    await screen.findByText("DH2609-0001");
+    expect(unratedTile()).toBeEnabled();
+
+    await user.click(unratedTile());
+    await waitFor(() => {
+      expect(last().get("csat_unrated")).toBe("true");
+    });
+    const range = defaultMonthToDateRange();
+    expect(last().get("csat_rating")).toBeNull();
+    expect(last().get("from")).toBe(range.from);
+    expect(last().get("to")).toBe(range.to);
+    expect(last().get("offset")).toBe("0");
+    expect(unratedTile()).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("AC-CSK-030: ô đang chọn có viền chọn nhìn thấy được (không chỉ aria-pressed/hover)", async () => {
+    const { user } = setup();
+    await screen.findByText("DH2609-0001");
+    expect(unratedTile()).not.toHaveClass("ring-2");
+
+    await user.click(unratedTile());
+    await waitFor(() => {
+      expect(unratedTile()).toHaveAttribute("aria-pressed", "true");
+    });
+    expect(unratedTile()).toHaveClass("ring-2", "ring-brand");
+  });
+
+  test("AC-CSK-031: đang chọn 'Chưa đánh giá' → bấm '3★' chuyển sang csat_rating=3", async () => {
+    const { last, user } = setup();
+    await screen.findByText("DH2609-0001");
+    await user.click(unratedTile());
+    await waitFor(() => {
+      expect(last().get("csat_unrated")).toBe("true");
+    });
+
+    const three = screen.getByRole("button", { name: /3★/ });
+    await user.click(three);
+    await waitFor(() => {
+      expect(last().get("csat_rating")).toBe("3");
+    });
+    expect(last().get("csat_unrated")).toBeNull();
+    expect(three).toHaveAttribute("aria-pressed", "true");
+    expect(unratedTile()).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("AC-CSK-032: bấm lại 'Chưa đánh giá' → gỡ lọc", async () => {
+    const { last, user } = setup();
+    await screen.findByText("DH2609-0001");
+    await user.click(unratedTile());
+    await waitFor(() => {
+      expect(last().get("csat_unrated")).toBe("true");
+    });
+
+    await user.click(unratedTile());
+    await waitFor(() => {
+      expect(last().get("csat_unrated")).toBeNull();
+    });
+    expect(last().get("csat_rating")).toBeNull();
+    expect(unratedTile()).toHaveAttribute("aria-pressed", "false");
   });
 });
 

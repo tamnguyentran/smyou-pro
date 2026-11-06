@@ -16,6 +16,12 @@ export function formatDateTime(iso: string): string {
   return `${part.day}/${part.month}/${part.year} ${part.hour}:${part.minute}`;
 }
 
+/** ISO timestamp (UTC) → `HH:mm dd/MM/yyyy` in Asia/Ho_Chi_Minh — time first, for "hết hạn lúc …". */
+export function formatTimeDate(iso: string): string {
+  const [date, time] = formatDateTime(iso).split(" ");
+  return `${time ?? ""} ${date ?? ""}`;
+}
+
 const DATE_ONLY = new Intl.DateTimeFormat("vi-VN", {
   timeZone: "Asia/Ho_Chi_Minh",
   day: "2-digit",
@@ -36,6 +42,13 @@ const CURRENCY = new Intl.NumberFormat("vi-VN");
 /** VND integer → `12.500.000 ₫` (UI_GUIDELINES §6, CLAUDE.md #6: tiền là số nguyên VND). */
 export function formatCurrency(amount: number): string {
   return `${CURRENCY.format(amount)} ₫`;
+}
+
+const QUANTITY = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 });
+
+/** Decimal string từ API (`"2.00"`, `"1.50"`) → `2`, `1,5` (kiểu vi-VN). */
+export function formatQuantity(quantity: string): string {
+  return QUANTITY.format(Number(quantity));
 }
 
 /** "0932068787" → "0932 06 8787" (spec §UI). Số chưa chuẩn hoá thì để nguyên. */

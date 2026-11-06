@@ -113,3 +113,17 @@ test("AC-AUTH-027 AC-UI-041 @a11y @screenshot đăng nhập và đổi mật kh�
     await page.setViewportSize(info.project.use.viewport ?? { width: 390, height: 844 });
   }
 });
+
+test("AC-AUTH-086 @screenshot mật khẩu tạm đã hết hạn → báo hết hạn, ở lại trang đăng nhập", async ({
+  page,
+}, info) => {
+  // seed_e2e.py: het.han@smyou.vn chờ đổi mật khẩu, temp_password_expires_at đã qua.
+  await page.goto("./dang-nhap");
+  await login(page, "het.han@smyou.vn", "TamThoi#E2E1");
+  await expect(page.getByRole("alert")).toHaveText(
+    "Mật khẩu tạm đã hết hạn. Vui lòng liên hệ Quản lý để được cấp lại.",
+  );
+  await expect(page).toHaveURL(/dang-nhap/);
+  await noHorizontalScroll(page);
+  await page.screenshot({ path: shot(info, "login-temp-password-expired.png"), fullPage: true });
+});

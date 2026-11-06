@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Ban, ClipboardList, RotateCcw, UserMinus, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { Controller, useForm, type Resolver } from "react-hook-form";
 import { Alert } from "../../../components/ui/Alert";
 import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
@@ -10,6 +10,7 @@ import { EmptyState } from "../../../components/ui/EmptyState";
 import { Select } from "../../../components/ui/Select";
 import { Sheet } from "../../../components/ui/Sheet";
 import { Textarea } from "../../../components/ui/Textarea";
+import { DateField } from "../../../components/ui/DateField";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
 import { ApiError } from "../../auth/errors";
@@ -89,7 +90,7 @@ export function TaskEditSheet({
   const [reopenError, setReopenError] = useState<string | null>(null);
   const [reopenStale, setReopenStale] = useState(false);
 
-  const { register, handleSubmit, formState, reset } = useForm<TaskEditFormValues>({
+  const { register, handleSubmit, formState, reset, control } = useForm<TaskEditFormValues>({
     resolver: zodResolver(taskUpdateSchema) as Resolver<TaskEditFormValues>,
     defaultValues: {
       title: "",
@@ -336,12 +337,20 @@ export function TaskEditSheet({
                 error={formState.errors.estimated_hours?.message}
                 {...register("estimated_hours")}
               />
-              <TextField
-                label="Hạn hoàn thành"
-                type="datetime-local"
-                disabled={!canManage}
-                error={formState.errors.due_at?.message}
-                {...register("due_at")}
+              <Controller
+                control={control}
+                name="due_at"
+                render={({ field }) => (
+                  <DateField
+                    mode="datetime"
+                    label="Hạn hoàn thành"
+                    disabled={!canManage}
+                    error={formState.errors.due_at?.message}
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
               />
               <Select label="Mức ưu tiên" disabled={!canManage} {...register("priority")}>
                 {PRIORITY_ORDER.map((priority) => (

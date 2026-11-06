@@ -137,6 +137,7 @@ def add_assignee(
         order_id,
         task_id,
         body,
+        now=request.app.state.clock(),
         specs=request.app.state.specs,
         request_id=get_request_id(request),
     )
