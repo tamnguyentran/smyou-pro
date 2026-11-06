@@ -13,8 +13,9 @@ import {
 } from "recharts";
 import { ChipGroup } from "../../../components/ui/Chip";
 import { formatCurrency } from "../../../lib/format";
-import { useBusinessResults, type BusinessResults, type Metric, type Period } from "../api";
+import { useBusinessResults, type BusinessResults, type Metric } from "../api";
 import { formatPercent, monthTick, periodLabel, shortMoney } from "../format";
+import { useCardRange, type CardPeriod } from "./cardPeriod";
 import {
   AXIS_TICK,
   COLOR,
@@ -24,6 +25,7 @@ import {
   ChartLegend,
   SERIES,
   TabQuery,
+  isFailed,
   TooltipBox,
 } from "./chartKit";
 
@@ -46,31 +48,49 @@ const DIMENSION_LABEL: Record<Dimension, string> = {
   by_customer_type: "loại khách hàng",
 };
 
-/** AC-RPT-125…127: tab "Kết quả kinh doanh" — one `GET .../results`. */
-export function ResultsTab({ period }: { period: Period }) {
-  const query = useBusinessResults(period);
+/** AC-RPT-125…127: tab "Kết quả kinh doanh" — each card its own period and `GET .../results`
+ * (M25-01: 3 months / this month / this month; same periods share one request). */
+export function ResultsTab() {
+  const monthly = useCardRange(3);
+  const composition = useCardRange(1);
+  const customers = useCardRange(1);
+  const queries = [
+    useBusinessResults(monthly.period),
+    useBusinessResults(composition.period),
+    useBusinessResults(customers.period),
+  ] as const;
   return (
-    <TabQuery query={query}>
-      {(data) => (
-        <>
-          <MonthlyCard data={data} period={period} />
-          <CompositionCard data={data} period={period} />
-          <CustomersCard data={data} period={period} />
-        </>
-      )}
+    <TabQuery queries={[...queries]}>
+      <MonthlyCard data={queries[0].data} failed={isFailed(queries[0])} picker={monthly} />
+      <CompositionCard data={queries[1].data} failed={isFailed(queries[1])} picker={composition} />
+      <CustomersCard data={queries[2].data} failed={isFailed(queries[2])} picker={customers} />
     </TabQuery>
   );
 }
 
-function MonthlyCard({ data, period }: { data?: BusinessResults; period: Period }) {
+interface CardProps {
+  data?: BusinessResults;
+  failed: boolean;
+  picker: CardPeriod;
+}
+
+function MonthlyCard({ data, failed, picker }: CardProps) {
+  const { period } = picker;
   const rows = (data?.monthly ?? []).map((m) => ({ ...m, tick: monthTick(m.month) }));
   return (
-    <ChartCard title="Doanh thu & Lợi nhuận theo tháng" className="lg:col-span-2" loading={!data}>
+    <ChartCard
+      title="Doanh thu & Lợi nhuận theo tháng"
+      className="lg:col-span-2"
+      loading={!data}
+      failed={failed}
+      invalid={!period.valid}
+      period={picker.controls}
+    >
       <ChartFrame label={`Doanh thu và lợi nhuận theo tháng, ${periodLabel(period)}`}>
         <ComposedChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid stroke={COLOR.grid} vertical={false} />
-          <XAxis dataKey="tick" tick={AXIS_TICK} />
-          <YAxis tick={AXIS_TICK} tickFormatter={shortMoney} width={56} />
+          <XAxis stroke={COLOR.axisLine} dataKey="tick" tick={AXIS_TICK} />
+          <YAxis stroke={COLOR.axisLine} tick={AXIS_TICK} tickFormatter={shortMoney} width={56} />
           <Bar dataKey="revenue" name="Doanh thu" fill={COLOR.revenue} isAnimationActive={false} />
           <Line
             dataKey="profit"
@@ -78,6 +98,7 @@ function MonthlyCard({ data, period }: { data?: BusinessResults; period: Period 
             stroke={COLOR.profit}
             strokeWidth={2}
             isAnimationActive={false}
+            activeDot={{ fill: COLOR.profit, stroke: COLOR.surface }}
             dot={(props: { cx?: number; cy?: number; index?: number; value?: number }) => (
               <circle
                 key={props.index}
@@ -89,6 +110,7 @@ function MonthlyCard({ data, period }: { data?: BusinessResults; period: Period 
             )}
           />
           <Tooltip
+            cursor={{ fill: COLOR.cursor, stroke: COLOR.cursor }}
             isAnimationActive={false}
             content={({ active, payload, label }) =>
               active && payload.length ? (
@@ -113,7 +135,8 @@ function MonthlyCard({ data, period }: { data?: BusinessResults; period: Period 
   );
 }
 
-function CompositionCard({ data, period }: { data?: BusinessResults; period: Period }) {
+function CompositionCard({ data, failed, picker }: CardProps) {
+  const { period } = picker;
   const [metric, setMetric] = useState<Metric>("revenue");
   const [dimension, setDimension] = useState<Dimension>("by_group");
   // A pie cannot draw a loss: shares are of the positive slices only.
@@ -130,6 +153,9 @@ function CompositionCard({ data, period }: { data?: BusinessResults; period: Per
     <ChartCard
       title={`Cơ cấu ${metricWord}`}
       loading={!data}
+      failed={failed}
+      invalid={!period.valid}
+      period={picker.controls}
       controls={
         <>
           <ChipGroup label="Chỉ số" value={metric} options={METRICS} onChange={setMetric} />
@@ -146,6 +172,7 @@ function CompositionCard({ data, period }: { data?: BusinessResults; period: Per
           >
             <PieChart>
               <Pie
+                stroke={COLOR.surface}
                 data={slices}
                 dataKey="value"
                 nameKey="label"
@@ -154,6 +181,7 @@ function CompositionCard({ data, period }: { data?: BusinessResults; period: Per
                 isAnimationActive={false}
               />
               <Tooltip
+                cursor={{ fill: COLOR.cursor, stroke: COLOR.cursor }}
                 isAnimationActive={false}
                 content={({ active, payload }) => {
                   const item = payload[0];
@@ -182,15 +210,22 @@ function CompositionCard({ data, period }: { data?: BusinessResults; period: Per
   );
 }
 
-function CustomersCard({ data, period }: { data?: BusinessResults; period: Period }) {
+function CustomersCard({ data, failed, picker }: CardProps) {
+  const { period } = picker;
   const rows = (data?.customers_monthly ?? []).map((m) => ({ ...m, tick: monthTick(m.month) }));
   return (
-    <ChartCard title="Khách hàng mới & quay lại" loading={!data}>
+    <ChartCard
+      title="Khách hàng mới & quay lại"
+      loading={!data}
+      failed={failed}
+      invalid={!period.valid}
+      period={picker.controls}
+    >
       <ChartFrame label={`Khách hàng mới và quay lại theo tháng, ${periodLabel(period)}`}>
         <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid stroke={COLOR.grid} vertical={false} />
-          <XAxis dataKey="tick" tick={AXIS_TICK} />
-          <YAxis tick={AXIS_TICK} allowDecimals={false} width={40} />
+          <XAxis stroke={COLOR.axisLine} dataKey="tick" tick={AXIS_TICK} />
+          <YAxis stroke={COLOR.axisLine} tick={AXIS_TICK} allowDecimals={false} width={40} />
           <Bar
             dataKey="new_count"
             name="Khách mới"
@@ -204,6 +239,7 @@ function CustomersCard({ data, period }: { data?: BusinessResults; period: Perio
             isAnimationActive={false}
           />
           <Tooltip
+            cursor={{ fill: COLOR.cursor, stroke: COLOR.cursor }}
             isAnimationActive={false}
             content={({ active, payload, label }) =>
               active && payload.length ? (

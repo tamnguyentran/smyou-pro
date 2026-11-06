@@ -46,7 +46,7 @@ capabilities:
   order.edit_lines_after_submit: { MANAGER: all, SALE: own }  # Q09: until COMPLETED/CANCELLED, audited
   order.edit_lines_on_site: { TECHNICIAN: assigned }  # M19-01a: chỉ dòng mình thêm, đơn IN_PROGRESS/REVISION, phân công ACCEPTED/IN_PROGRESS
   order.submit:          { MANAGER: all, SALE: own }
-  order.cancel:          { MANAGER: all, SALE: own }
+  order.cancel:          { MANAGER: all, SALE: own, CUSTOMER_CARE: own }  # Q183 (UAT-02): CSKH huỷ đơn do mình tạo
   order.cancel_active:   { MANAGER: all }
   order.upload_confirmation: { TECH_LEAD: all, TECHNICIAN: assigned }
   order.complete:        { TECH_LEAD: all, TECHNICIAN: assigned }  # Q04
@@ -69,7 +69,7 @@ capabilities:
   kpi_target.manage:     { MANAGER: all }   # M21-01a: monthly "Thu nhập thuần" targets per employee (Q146)
   report.kpi_sales.read: { MANAGER: all }   # M21-02a: company-wide monthly KPI sales report (Q150); own figures via /me/kpi-sales (profile.manage)
   report.business_charts.read: { MANAGER: all }   # M23a: company-wide business charts (Q157–Q160, Q165–Q172)
-  notification.read:     { MANAGER: self, SALE: self, TECH_LEAD: self, TECHNICIAN: self }
+  notification.read:     { MANAGER: self, SALE: self, CUSTOMER_CARE: self, TECH_LEAD: self, TECHNICIAN: self }  # Q184 (UAT-02)
 
 public_routes:
   - GET /api/v1/health
@@ -143,6 +143,7 @@ menu:
       - { id: reports-kpi-sales,        label: Báo cáo KPI,                icon: Target,    path: /reports/kpi-sales,           capability: report.kpi_sales.read }  # M21-02b
       - { id: reports-revenue-customer, label: Doanh thu theo khách hàng,  icon: Users,     path: /reports/revenue-by-customer, capability: report.revenue.read }
       - { id: reports-revenue-employee, label: Doanh thu theo nhân viên,   icon: UserCog,   path: /reports/revenue-by-employee, capability: report.revenue.read }
+      - { id: reports-revenue-product,  label: Doanh thu theo SP/DV,       icon: Package,   path: /reports/revenue-by-product,  capability: report.revenue.read }  # M24-01b
       - { id: reports-customer-gift,    label: Chi phí quà tặng KH,        icon: Gift,      path: /reports/customer-gifts,      capability: report.customer_gift.read }
   # Group without a capability of its own (like reports): each child carries its own, so the group
   # shows to whoever holds at least one of them.

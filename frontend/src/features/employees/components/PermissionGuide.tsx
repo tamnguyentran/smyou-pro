@@ -29,6 +29,7 @@ const PRINCIPLES = [
     &gt; Của mình / Được giao).
   </>,
   "Tick Quản lý chung sẽ tự kèm Nhân viên kinh doanh, Chăm sóc khách hàng, Quản lý kỹ thuật và không thể đồng thời là Nhân viên kỹ thuật.",
+  "Người tạo đơn (Nhân viên kinh doanh hoặc Chăm sóc khách hàng) được huỷ đơn của mình khi đơn chưa điều phối hoặc mọi đầu việc đã huỷ, và nhận thông báo về đơn đó.",
   "Báo cáo KPI (doanh số mọi nhân viên) chỉ Quản lý chung xem; mỗi nhân viên xem KPI doanh số của chính mình ở Thông tin tài khoản.",
   "Biểu đồ kinh doanh (số liệu toàn công ty) chỉ Quản lý chung xem.",
   "Menu chỉ hiện mục mà người dùng có quyền. Quyền được kiểm tra lại ở máy chủ mỗi lần thao tác, nên ẩn menu không phải là cách duy nhất chặn truy cập.",

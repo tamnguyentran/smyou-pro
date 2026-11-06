@@ -1861,6 +1861,57 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/reports/revenue-by-product": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Báo cáo doanh thu theo nhóm SP/DV hoặc từng SP/DV */
+    get: operations["get_revenue_by_product_report"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/reports/revenue-by-product/export": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Xuất CSV báo cáo doanh thu theo SP/DV */
+    get: operations["export_revenue_by_product_report"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/reports/revenue-by-product/lines": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách dòng hàng của 1 nhóm SP/DV hoặc 1 SP/DV (drilldown) */
+    get: operations["get_revenue_by_product_lines"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/services": {
     parameters: {
       query?: never;
@@ -4391,6 +4442,57 @@ export interface components {
       offset: number;
       /** Total */
       total: number;
+    };
+    /** ProductRevenueReportOut */
+    ProductRevenueReportOut: {
+      /**
+       * From
+       * Format: date
+       */
+      from: string;
+      /** Items */
+      items: components["schemas"]["ProductRevenueRowOut"][];
+      /**
+       * Mode
+       * @enum {string}
+       */
+      mode: "group" | "item";
+      summary: components["schemas"]["ProductRevenueSummaryOut"];
+      /**
+       * To
+       * Format: date
+       */
+      to: string;
+      /** Total */
+      total: number;
+    };
+    /** ProductRevenueRowOut */
+    ProductRevenueRowOut: {
+      /** Code */
+      code: string | null;
+      /** Item Type */
+      item_type: ("PRODUCT" | "SERVICE" | "CUSTOM") | null;
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+      /** Order Count */
+      order_count: number;
+      /** Profit */
+      profit: number | null;
+      /** Quantity */
+      quantity: string | null;
+      /** Subtotal Revenue */
+      subtotal_revenue: number;
+      /** Unit */
+      unit: string | null;
+    };
+    /** ProductRevenueSummaryOut */
+    ProductRevenueSummaryOut: {
+      /** Profit */
+      profit: number | null;
+      /** Subtotal Revenue */
+      subtotal_revenue: number;
     };
     /** ProductServiceGroupCreate */
     ProductServiceGroupCreate: {
@@ -10214,6 +10316,112 @@ export interface operations {
         from?: string | null;
         to?: string | null;
         status?: "COMPLETED" | "NOT_COMPLETED";
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RevenueLineOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_revenue_by_product_report: {
+    parameters: {
+      query?: {
+        mode?: "group" | "item";
+        from?: string | null;
+        to?: string | null;
+        status?: "COMPLETED" | "NOT_COMPLETED";
+        group_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProductRevenueReportOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  export_revenue_by_product_report: {
+    parameters: {
+      query?: {
+        mode?: "group" | "item";
+        from?: string | null;
+        to?: string | null;
+        status?: "COMPLETED" | "NOT_COMPLETED";
+        group_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_revenue_by_product_lines: {
+    parameters: {
+      query: {
+        mode: "group" | "item";
+        key: string;
+        from?: string | null;
+        to?: string | null;
+        status?: "COMPLETED" | "NOT_COMPLETED";
+        group_id?: string | null;
       };
       header?: never;
       path?: never;

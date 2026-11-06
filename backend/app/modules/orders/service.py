@@ -135,6 +135,7 @@ _GUARD_MESSAGES = {
     "has_lines_or_description": "Đơn cần có ít nhất 1 dòng hàng hoặc mô tả công việc.",
     "service_address_present": "Đơn cần có địa chỉ thi công.",
     "order_has_no_tasks": "Đơn đang có đầu việc, không thể thực hiện thao tác này.",
+    "order_has_no_live_tasks": "Đơn đang có đầu việc, không thể thực hiện thao tác này.",
     "reason_present": "Vui lòng nhập lý do (ít nhất 5 ký tự).",
     "confirmation_attachment_in_current_revision": (
         "Cần tải ảnh phiếu xác nhận có chữ ký khách trước khi hoàn tất đơn."
@@ -330,7 +331,7 @@ def _recompute_order_totals(order: Order) -> None:
     order.total = totals.total
 
 
-def _line_out(line: OrderLine, *, can_edit_on_site: bool = False) -> OrderLineOut:
+def _line_out(line: OrderLine, *, can_edit_on_site: bool = False, can_read_cost: bool = True) -> OrderLineOut:
     return OrderLineOut(
         id=line.id,
         position=line.position,
@@ -343,7 +344,8 @@ def _line_out(line: OrderLine, *, can_edit_on_site: bool = False) -> OrderLineOu
         specs_snapshot=line.specs_snapshot,
         warranty_months_snapshot=line.warranty_months_snapshot,
         catalog_price_snapshot=line.catalog_price_snapshot,
-        cost_price_snapshot=line.cost_price_snapshot,
+        # Q125 / UAT BUG-02: no `catalog.read_cost` (TECHNICIAN) → cost price never leaves the server.
+        cost_price_snapshot=line.cost_price_snapshot if can_read_cost else None,
         price_fixed=line.price_fixed,
         vat_rate=line.vat_rate,
         quantity=line.quantity,
@@ -448,6 +450,7 @@ def _has_pending_revision_request(session: Session, order: Order) -> bool:
 def _out(session: Session, order: Order, actor: Actor, specs: Specs) -> OrderDetail:
     lines = sorted(order.lines, key=lambda line: line.position)
     on_site = _can_add_lines_on_site(session, order, actor, specs)
+    can_read_cost = bool(effective_scopes(specs.permissions, actor.roles, "catalog.read_cost"))
     return OrderDetail(
         id=order.id,
         code=order.code,
@@ -477,7 +480,11 @@ def _out(session: Session, order: Order, actor: Actor, specs: Specs) -> OrderDet
         created_by=order.created_by,
         version=order.version,
         lines=[
-            _line_out(line, can_edit_on_site=on_site and line.added_on_site and line.added_by_id == actor.id)
+            _line_out(
+                line,
+                can_edit_on_site=on_site and line.added_on_site and line.added_by_id == actor.id,
+                can_read_cost=can_read_cost,
+            )
             for line in lines
         ],
         allowed_commands=_allowed_commands(order, actor, specs),
@@ -928,6 +935,13 @@ def _check_guards(
                 select(func.count()).select_from(Task).where(Task.order_id == order.id)
             )
             ok = GUARDS[name](task_count or 0)
+        elif name == "order_has_no_live_tasks":
+            live_task_count = session.scalar(
+                select(func.count())
+                .select_from(Task)
+                .where(Task.order_id == order.id, Task.status != "CANCELLED")
+            )
+            ok = GUARDS[name](live_task_count or 0)
         elif name == "reason_present":
             ok = GUARDS[name](reason)
         elif (

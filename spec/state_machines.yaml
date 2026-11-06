@@ -30,7 +30,7 @@ order:
       capability: order.submit
       guards: [order_has_no_tasks]
       effects: [audit]
-    # system: re-evaluated after every task/assignment change (create/cancel a task; reject/remove
+    # system: re-evaluated after every task/assignment change (create/cancel a task; add/reject/remove
     # an assignment) — Q90 (2026-10-19, reverses Q81): the order moves to "Đang thực hiện" as soon
     # as it has ≥1 non-rejected/non-removed assignment, independent of whether anyone has clicked
     # "Bắt đầu" yet (`assignment.transitions[start]` no longer has any order-level effect).
@@ -75,7 +75,7 @@ order:
       from: [DRAFT, PENDING_DISPATCH]
       to: CANCELLED
       capability: order.cancel
-      guards: [reason_present, order_has_no_tasks]
+      guards: [reason_present, order_has_no_live_tasks]  # Q183 (UAT-02): cancelled tasks don't block
       effects: [audit]
     # guards (Q90, 2026-10-19): cancel_active is wired to POST /orders/{id}/cancel-active for the
     # first time in this item (Q76) — previously declared but unreachable. Blocked once the
@@ -122,7 +122,7 @@ task:
       capability: task.manage
       allowed_task_status: [NEEDS_ASSIGNEE, PENDING_ACCEPTANCE, ACCEPTED, IN_PROGRESS]
       guards: [order_in_dispatchable_state, assignees_are_active_technicians, not_already_active_assignee]
-      effects: [notify_assignees, audit]
+      effects: [fire_order_reevaluate, notify_assignees, audit]  # UAT BUG-01: re-dispatch after undispatch (Q90)
     - command: reopen
       capability: task.reopen
       allowed_task_status: [DONE]
@@ -190,6 +190,7 @@ guards:
   has_lines_or_description: order has ≥1 line OR a non-empty work description
   service_address_present: service address is non-empty
   order_has_no_tasks: order has zero tasks (including cancelled)
+  order_has_no_live_tasks: order has zero tasks that are not CANCELLED (Q183)
   has_active_tasks: order has ≥1 task not CANCELLED
   all_active_tasks_done: every non-cancelled task has derived status DONE
   revision_has_work_if_revision: if order is REVISION, ≥1 task was created or reopened in the current revision

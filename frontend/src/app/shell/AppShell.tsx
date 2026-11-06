@@ -11,6 +11,7 @@ import { cn } from "../../lib/cn";
 import { useMediaQuery } from "../../lib/useMediaQuery";
 import { primaryAction, roleLabels, visibleMenu } from "../menu";
 import { BottomNav } from "./BottomNav";
+import { HelpButton } from "./HelpButton";
 import { MeError } from "./MeError";
 import { NavMenu } from "./NavMenu";
 import { NotificationBell } from "./NotificationBell";
@@ -223,6 +224,7 @@ export function AppShell() {
                 {titleAction}
               </div>
               <div className="flex items-center gap-2">
+                <HelpButton />
                 <NotificationBell />
                 <PrimaryAction />
               </div>
@@ -254,6 +256,7 @@ export function AppShell() {
             <h1 className="min-w-0 truncate text-lg font-semibold text-heading">{title}</h1>
             {titleAction}
           </div>
+          <HelpButton />
           <NotificationBell />
         </header>
         <Content className="pb-24">

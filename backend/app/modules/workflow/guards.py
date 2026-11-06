@@ -28,6 +28,11 @@ def order_has_no_tasks(task_count: int) -> bool:
     return task_count == 0
 
 
+def order_has_no_live_tasks(live_task_count: int) -> bool:
+    """Q183 (UAT-02): an order whose tasks were all cancelled can still be cancelled."""
+    return live_task_count == 0
+
+
 def reason_present(reason: str | None) -> bool:
     return reason is not None and len(reason.strip()) >= 5
 
@@ -125,6 +130,7 @@ GUARDS: dict[str, Callable[..., bool]] = {
     "has_lines_or_description": has_lines_or_description,
     "service_address_present": service_address_present,
     "order_has_no_tasks": order_has_no_tasks,
+    "order_has_no_live_tasks": order_has_no_live_tasks,
     "reason_present": reason_present,
     "order_in_dispatchable_state": order_in_dispatchable_state,
     "at_least_one_assignee": at_least_one_assignee,

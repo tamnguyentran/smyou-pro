@@ -95,6 +95,7 @@ STANDARD_GROUP_IDS = [
     uuid.UUID("a2222222-2222-4222-8222-222222222222"),
     uuid.UUID("a3333333-3333-4333-8333-333333333333"),
 ]
+OFFICE_GROUP_ID, SECURITY_GROUP_ID = STANDARD_GROUP_IDS[0], STANDARD_GROUP_IDS[1]
 RETIRED_GROUPS = ["Thiết bị mạng", "Máy in cũ"]
 CUSTOMERS = [
     ("E2E-KH-001", "COMPANY", "Cty Sáng Tạo Mới E2E", "0909123456", "0312345678"),
@@ -265,6 +266,10 @@ def main(session_factory: sessionmaker[Session] | None = None) -> int:
                 session.execute(delete(DefectRecord).where(DefectRecord.task_id.in_(stale_task_ids)))
                 session.execute(delete(Assignment).where(Assignment.task_id.in_(stale_task_ids)))
                 session.execute(delete(Task).where(Task.id.in_(stale_task_ids)))
+            # M21-05 notes reference their order with ON DELETE RESTRICT (left behind by UAT runs).
+            session.execute(
+                delete(CustomerPotentialNote).where(CustomerPotentialNote.order_id.in_(stale_order_ids))
+            )
             session.execute(delete(OrderRevision).where(OrderRevision.order_id.in_(stale_order_ids)))
             session.execute(delete(OrderLine).where(OrderLine.order_id.in_(stale_order_ids)))
             session.execute(delete(Order).where(Order.id.in_(stale_order_ids)))
@@ -566,6 +571,8 @@ def main(session_factory: sessionmaker[Session] | None = None) -> int:
         dashboard_order.total = 12_000_000
         dashboard_order.completed_at = now
         dashboard_order.csat_rating = 5
+        # M24-01b AC-RPT-160: báo cáo theo SP/DV cần đơn hoàn tất ở 2 nhóm khác nhau.
+        dashboard_order.division_id = SECURITY_GROUP_ID
         # M20-02: thẻ "Chưa đánh giá" trên /orders (CSKH) cần ≥1 đơn COMPLETED trong tháng hiện tại
         # chưa có csat_rating để AC-CSK-033 có dữ liệu lọc.
         unrated_order = session.scalars(select(Order).where(Order.code == "E2E-DH-M2002A")).one_or_none()
@@ -603,6 +610,45 @@ def main(session_factory: sessionmaker[Session] | None = None) -> int:
                     line_gross=12_000_000,
                     line_vat=0,
                     line_total=12_000_000,
+                    credited_employee_id=creator_id,
+                )
+            )
+        # M24-01b AC-RPT-160: nhóm thứ 2 ("Thiết bị văn phòng") cho báo cáo doanh thu theo SP/DV.
+        office_order = session.scalars(select(Order).where(Order.code == "E2E-DH-M2401A")).one_or_none()
+        if office_order is None:
+            office_order = Order(
+                code="E2E-DH-M2401A",
+                status="COMPLETED",
+                customer_name="Cty Văn Phòng Xanh E2E",
+                customer_phone="0909240101",
+                service_address="5 Pasteur, P. Bến Nghé, Q.1, TP.HCM",
+                created_by=creator_id,
+            )
+            session.add(office_order)
+        office_order.status = "COMPLETED"
+        office_order.division_id = OFFICE_GROUP_ID
+        office_order.total = 3_000_000
+        office_order.completed_at = now
+        session.flush()
+        if (
+            session.scalars(
+                select(OrderLine.id).where(OrderLine.order_id == office_order.id).limit(1)
+            ).one_or_none()
+            is None
+        ):
+            session.add(
+                OrderLine(
+                    order_id=office_order.id,
+                    position=1,
+                    item_type="CUSTOM",
+                    name_snapshot="Máy in văn phòng E2E",
+                    unit_snapshot="cái",
+                    vat_rate=Decimal("0"),
+                    quantity=Decimal("2"),
+                    unit_price=1_500_000,
+                    line_gross=3_000_000,
+                    line_vat=0,
+                    line_total=3_000_000,
                     credited_employee_id=creator_id,
                 )
             )

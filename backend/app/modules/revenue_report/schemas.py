@@ -3,6 +3,7 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -78,4 +79,34 @@ class EmployeeRevenueReportOut(BaseModel):
     from_: date = Field(alias="from")
     to: date
     items: list[EmployeeRevenueRowOut]
+    total: int
+
+
+class ProductRevenueRowOut(BaseModel):
+    # M24-01a: `mode=group` → `key="group:<id>"` / `"ungrouped"`, `item_type/quantity/code/unit=None`;
+    # `mode=item` → `key="product:<id>"` / `"service:<id>"` / `"custom:<name_snapshot>"`.
+    key: str
+    label: str
+    code: str | None
+    item_type: Literal["PRODUCT", "SERVICE", "CUSTOM"] | None
+    unit: str | None
+    quantity: Decimal | None
+    order_count: int
+    subtotal_revenue: int
+    profit: int | None
+
+
+class ProductRevenueSummaryOut(BaseModel):
+    subtotal_revenue: int
+    profit: int | None
+
+
+class ProductRevenueReportOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    from_: date = Field(alias="from")
+    to: date
+    mode: Literal["group", "item"]
+    items: list[ProductRevenueRowOut]
+    summary: ProductRevenueSummaryOut
     total: int

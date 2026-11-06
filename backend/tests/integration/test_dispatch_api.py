@@ -794,6 +794,113 @@ def test_remove_last_active_assignee_sets_needs_assignee(
     assert undispatch_events[0].actor_id == people["NV010"]  # TUAN — the manager who fired `remove`
 
 
+def _order_version(client: TestClient, order_id: uuid.UUID) -> int:
+    version: int = client.get(f"/api/v1/orders/{order_id}").json()["version"]
+    return version
+
+
+@pytest.mark.ac("AC-DSP-131")
+@pytest.mark.parametrize("drop", ["remove", "reject"])
+def test_add_assignee_to_needs_assignee_task_redispatches_order(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], drop: str
+) -> None:
+    """UAT BUG-01: người duy nhất bị gỡ/từ chối → đơn lùi `PENDING_DISPATCH`; thêm người mới phải
+    đánh giá lại (Q90) → đơn quay lại `IN_PROGRESS`."""
+    order_id = insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code="DH2610-0131")
+    tuan = client_as(app, TUAN)
+    created = tuan.post(
+        f"/api/v1/orders/{order_id}/tasks",
+        json=_valid_body(people, assignee_ids=[str(people["NV014"])]),
+    ).json()
+    task_id = created["id"]
+    khoa_assignment_id = assignee_id_of(created, people["NV014"])
+    if drop == "remove":
+        dropped = tuan.post(
+            f"/api/v1/orders/{order_id}/tasks/{task_id}/assignees/{khoa_assignment_id}/remove",
+            json={"version": created["order_version"]},
+        )
+    else:
+        dropped = client_as(app, KHOA).post(
+            f"/api/v1/assignments/{khoa_assignment_id}/reject",
+            json={
+                "version": created["order_version"],
+                "reason_code": "BUSY",
+                "reason_text": "Đang ở công trình khác",
+            },
+        )
+    assert dropped.status_code == 200, dropped.text
+    assert tuan.get(f"/api/v1/orders/{order_id}").json()["status"] == "PENDING_DISPATCH"
+    duc_id = seed(db, DUC)
+
+    res = tuan.post(
+        f"/api/v1/orders/{order_id}/tasks/{task_id}/assignees",
+        json={"version": _order_version(tuan, order_id), "employee_id": str(duc_id)},
+    )
+
+    assert res.status_code == 200, res.text
+    assert res.json()["status"] == "PENDING_ACCEPTANCE"
+    assert tuan.get(f"/api/v1/orders/{order_id}").json()["status"] == "IN_PROGRESS"
+    start_events = [e for e in audit_rows(db, order_id) if e.action == "start_dispatch"]
+    assert len(start_events) == 2
+    assert start_events[-1].actor_id == people["NV010"]
+
+
+@pytest.mark.ac("AC-DSP-132")
+def test_readded_assignee_completing_task_moves_order_to_awaiting_confirmation(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    order_id = insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code="DH2610-0132")
+    tuan = client_as(app, TUAN)
+    created = tuan.post(
+        f"/api/v1/orders/{order_id}/tasks",
+        json=_valid_body(people, assignee_ids=[str(people["NV014"])]),
+    ).json()
+    task_id = created["id"]
+    khoa_assignment_id = assignee_id_of(created, people["NV014"])
+    tuan.post(
+        f"/api/v1/orders/{order_id}/tasks/{task_id}/assignees/{khoa_assignment_id}/remove",
+        json={"version": created["order_version"]},
+    )
+    duc_id = seed(db, DUC)
+    added = tuan.post(
+        f"/api/v1/orders/{order_id}/tasks/{task_id}/assignees",
+        json={"version": _order_version(tuan, order_id), "employee_id": str(duc_id)},
+    ).json()
+    duc_assignment_id = assignee_id_of(added, duc_id)
+    duc = client_as(app, DUC)
+
+    for command in ("accept", "start", "complete"):
+        res = duc.post(
+            f"/api/v1/assignments/{duc_assignment_id}/{command}",
+            json={"version": _order_version(tuan, order_id)},
+        )
+        assert res.status_code == 200, f"{command}: {res.text}"
+
+    assert tuan.get(f"/api/v1/orders/{order_id}").json()["status"] == "AWAITING_CONFIRMATION"
+
+
+@pytest.mark.ac("AC-DSP-133")
+def test_add_assignee_to_in_progress_order_does_not_refire_start_dispatch(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    order_id = insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code="DH2610-0133")
+    tuan = client_as(app, TUAN)
+    created = tuan.post(
+        f"/api/v1/orders/{order_id}/tasks",
+        json=_valid_body(people, assignee_ids=[str(people["NV014"])]),
+    ).json()
+    duc_id = seed(db, DUC)
+
+    res = tuan.post(
+        f"/api/v1/orders/{order_id}/tasks/{created['id']}/assignees",
+        json={"version": created["order_version"], "employee_id": str(duc_id)},
+    )
+
+    assert res.status_code == 200, res.text
+    assert tuan.get(f"/api/v1/orders/{order_id}").json()["status"] == "IN_PROGRESS"
+    assert len([e for e in audit_rows(db, order_id) if e.action == "start_dispatch"]) == 1
+
+
 @pytest.mark.ac("AC-DSP-047")
 def test_remove_assignment_invalid_transition_when_already_removed(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
@@ -1057,3 +1164,131 @@ def test_get_task_detail_technician_scope(app: FastAPI, db: Connection, people: 
     seed(db, DUC)  # active TECHNICIAN, never assigned to this task
     duc = client_as(app, DUC)
     problem(duc.get(f"/api/v1/orders/{order_id}/tasks/{task_id}"), 404, "NOT_FOUND")
+
+
+# ---------------- UAT-02 (Q183/Q184): huỷ đơn có đầu việc đã huỷ; CSKH huỷ + thông báo ----------------
+CSKH = Person("thu.cskh@smyou.vn", "Thu@SmYou26", ("CUSTOMER_CARE",), "NV030", "Ngô Thị Thu", "SALES")
+NO_LIVE_TASKS = "Đơn đang có đầu việc, không thể thực hiện thao tác này."
+
+
+def _order_with_cancelled_task(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], code: str
+) -> uuid.UUID:
+    """PENDING_DISPATCH order of Hoa whose only task was cancelled (order fell back via undispatch)."""
+    order_id = insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code=code)
+    tuan = client_as(app, TUAN)
+    created = tuan.post(f"/api/v1/orders/{order_id}/tasks", json=_valid_body(people)).json()
+    res = tuan.post(
+        f"/api/v1/orders/{order_id}/tasks/{created['id']}/cancel",
+        json={"version": created["order_version"], "reason": "Khách hoãn, huỷ đầu việc"},
+    )
+    assert res.status_code == 200, res.text
+    assert tuan.get(f"/api/v1/orders/{order_id}").json()["status"] == "PENDING_DISPATCH"
+    return order_id
+
+
+@pytest.mark.ac("AC-ORD-269")
+@pytest.mark.ac("AC-ORD-270")
+@pytest.mark.parametrize("who", ["owner_sale", "manager"])
+def test_cancel_order_whose_tasks_are_all_cancelled(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], who: str
+) -> None:
+    order_id = _order_with_cancelled_task(app, db, people, f"DH2611-269{who[0]}")
+    client = client_as(app, HOA if who == "owner_sale" else AN)
+    version = client.get(f"/api/v1/orders/{order_id}").json()["version"]
+
+    res = client.post(
+        f"/api/v1/orders/{order_id}/cancel", json={"version": version, "reason": "Khách huỷ hẳn"}
+    )
+
+    assert res.status_code == 200, res.text
+    assert res.json()["status"] == "CANCELLED"
+    assert [e.action for e in audit_rows(db, order_id)].count("cancel") == 1
+
+
+@pytest.mark.ac("AC-ORD-271")
+def test_cancel_still_blocked_by_live_task(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    order_id = insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code="DH2611-0271")
+    tuan = client_as(app, TUAN)
+    created = tuan.post(f"/api/v1/orders/{order_id}/tasks", json=_valid_body(people)).json()
+    tuan.post(
+        f"/api/v1/orders/{order_id}/tasks/{created['id']}/assignees/"
+        f"{assignee_id_of(created, people['NV014'])}/remove",
+        json={"version": created["order_version"]},
+    )
+    hoa = client_as(app, HOA)
+    order = hoa.get(f"/api/v1/orders/{order_id}").json()
+    assert order["status"] == "PENDING_DISPATCH"  # task NEEDS_ASSIGNEE, not cancelled
+
+    body = problem(
+        hoa.post(
+            f"/api/v1/orders/{order_id}/cancel", json={"version": order["version"], "reason": "Khách huỷ"}
+        ),
+        409,
+        "GUARD_FAILED",
+    )
+    assert body["guard"] == "order_has_no_live_tasks"
+    assert body["detail"] == NO_LIVE_TASKS
+
+
+@pytest.mark.ac("AC-ORD-272")
+def test_recall_still_blocked_by_cancelled_task(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    order_id = _order_with_cancelled_task(app, db, people, "DH2611-0272")
+    hoa = client_as(app, HOA)
+    version = hoa.get(f"/api/v1/orders/{order_id}").json()["version"]
+
+    body = problem(
+        hoa.post(f"/api/v1/orders/{order_id}/recall", json={"version": version}), 409, "GUARD_FAILED"
+    )
+    assert body["guard"] == "order_has_no_tasks"
+
+
+@pytest.mark.ac("AC-ORD-273")
+@pytest.mark.parametrize("status", ["DRAFT", "PENDING_DISPATCH"])
+def test_customer_care_cancels_own_order(app: FastAPI, db: Connection, status: str) -> None:
+    thu_id = seed(db, CSKH)
+    order_id = insert_order(db, created_by=thu_id, status=status, code=f"DH2611-273{status[0]}")
+    thu = client_as(app, CSKH)
+    assert "cancel" in thu.get(f"/api/v1/orders/{order_id}").json()["allowed_commands"]
+
+    res = thu.post(f"/api/v1/orders/{order_id}/cancel", json={"version": 1, "reason": "Khách đổi ý"})
+
+    assert res.status_code == 200, res.text
+    assert res.json()["status"] == "CANCELLED"
+
+
+@pytest.mark.ac("AC-ORD-274")
+def test_customer_care_cannot_cancel_someone_elses_order(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    seed(db, CSKH)
+    order_id = insert_order(db, created_by=people["NV005"], status="PENDING_DISPATCH", code="DH2611-0274")
+    thu = client_as(app, CSKH)
+    detail = thu.get(f"/api/v1/orders/{order_id}")
+    if detail.status_code == 200:
+        assert "cancel" not in detail.json()["allowed_commands"]
+
+    res = thu.post(f"/api/v1/orders/{order_id}/cancel", json={"version": 1, "reason": "Khách đổi ý"})
+
+    assert res.status_code in (403, 404), res.text
+    assert client_as(app, HOA).get(f"/api/v1/orders/{order_id}").json()["status"] == "PENDING_DISPATCH"
+
+
+@pytest.mark.ac("AC-NTF-053")
+def test_customer_care_reads_notifications_of_own_order(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
+) -> None:
+    thu_id = seed(db, CSKH)
+    order_id = insert_order(db, created_by=thu_id, status="PENDING_DISPATCH", code="DH2611-0053")
+    client_as(app, TUAN).post(f"/api/v1/orders/{order_id}/tasks", json=_valid_body(people))
+    thu = client_as(app, CSKH)
+
+    assert "notification.read" in thu.get("/api/v1/me").json()["capabilities"]
+    res = thu.get("/api/v1/notifications?limit=50")
+    assert res.status_code == 200, res.text
+    titles = [n["title"] for n in res.json()["items"] if "DH2611-0053" in f"{n['title']} {n['body']}"]
+    assert "Đơn hàng đã bắt đầu thực hiện" in titles

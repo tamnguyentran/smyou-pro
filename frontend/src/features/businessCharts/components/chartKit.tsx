@@ -12,6 +12,11 @@ export const COLOR = {
   returningCustomers: "var(--color-brand)",
   minor: "var(--color-placeholder)",
   grid: "var(--color-line)",
+  axisLine: "var(--color-line)",
+  /** Gaps between pie slices / around dots: the card's own background. */
+  surface: "var(--color-card)",
+  /** Hover band/line behind the tooltip. */
+  cursor: "var(--color-sidebar-sub)",
   axis: "var(--color-muted)",
 } as const;
 
@@ -39,16 +44,26 @@ export function useChartHeight(): number {
 
 export function ChartCard({
   title,
+  period,
   controls,
   className,
   loading = false,
+  invalid = false,
+  failed = false,
   children,
 }: {
   title: string;
+  /** M25-01: the card's period picker — beside the title from `lg` (the title wraps first). */
+  period?: ReactNode;
+  /** Other controls (metric/dimension chips): their own row under the title. */
   controls?: ReactNode;
   className?: string;
   /** Data not here yet: a skeleton the chart's height stands in for `children`. */
   loading?: boolean;
+  /** The card's own period is invalid (M25-01): only the picker and its error show. */
+  invalid?: boolean;
+  /** The card's request failed: the picker stays so another period can be chosen (the tab shows the error). */
+  failed?: boolean;
   children: ReactNode;
 }) {
   const id = useId();
@@ -57,13 +72,14 @@ export function ChartCard({
       aria-labelledby={id}
       className={`min-w-0 space-y-3 rounded-2xl bg-card p-4 shadow-card ${className ?? ""}`}
     >
-      <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-start lg:justify-between">
-        <h2 id={id} className="shrink-0 text-base font-semibold text-heading">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <h2 id={id} className="min-w-0 text-base font-semibold text-heading">
           {title}
         </h2>
-        {controls ? <div className="flex flex-wrap gap-3">{controls}</div> : null}
+        {period ? <div className="lg:shrink-0">{period}</div> : null}
       </div>
-      {loading ? <ChartSkeleton /> : children}
+      {controls ? <div className="flex flex-wrap gap-3">{controls}</div> : null}
+      {invalid || failed ? null : loading ? <ChartSkeleton /> : children}
     </section>
   );
 }
@@ -184,23 +200,32 @@ export function TruncatedTick({
   );
 }
 
-/** A tab's query: one error block for the whole tab; otherwise the cards, each showing a skeleton
- * of the chart's own height until `data` arrives (AC-RPT-134). */
-export function TabQuery<T>({
-  query,
+/** A tab's queries (one per card since M25-01): one error block on top if any failed (AC-RPT-134),
+ * while every card stays — a failed card keeps its picker, the others their charts; until its data
+ * arrives a card shows a skeleton of the chart's own height. */
+export function TabQuery({
+  queries,
   children,
 }: {
-  query: { data: T | undefined; isError: boolean; refetch: () => unknown };
-  children: (data: T | undefined) => ReactNode;
+  queries: { data: unknown; isError: boolean; refetch: () => unknown }[];
+  children: ReactNode;
 }) {
-  if (query.data === undefined && query.isError) {
-    return (
-      <ChartError
-        onRetry={() => {
-          void query.refetch();
-        }}
-      />
-    );
-  }
-  return <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">{children(query.data)}</div>;
+  const failed = queries.filter((q) => q.data === undefined && q.isError);
+  return (
+    <div className="space-y-4">
+      {failed.length > 0 ? (
+        <ChartError
+          onRetry={() => {
+            for (const q of failed) void q.refetch();
+          }}
+        />
+      ) : null}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">{children}</div>
+    </div>
+  );
+}
+
+/** A card's request failed and has nothing to show (see `TabQuery`). */
+export function isFailed(query: { data: unknown; isError: boolean }) {
+  return query.data === undefined && query.isError;
 }

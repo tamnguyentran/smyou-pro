@@ -44,6 +44,13 @@ export function formatCurrency(amount: number): string {
   return `${CURRENCY.format(amount)} ₫`;
 }
 
+const QUANTITY = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 });
+
+/** Decimal string từ API (`"2.00"`, `"1.50"`) → `2`, `1,5` (kiểu vi-VN). */
+export function formatQuantity(quantity: string): string {
+  return QUANTITY.format(Number(quantity));
+}
+
 /** "0932068787" → "0932 06 8787" (spec §UI). Số chưa chuẩn hoá thì để nguyên. */
 export function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");

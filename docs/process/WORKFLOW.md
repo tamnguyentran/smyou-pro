@@ -56,6 +56,7 @@
 - Làm song song 2 item độc lập: dùng `git worktree` (hoặc `claude --worktree`) mỗi item một thư mục/một phiên.
 - AI **phải dừng và hỏi** khi: spec thiếu/mâu thuẫn; cần thêm thư viện; cần sửa `spec/*.yaml`, `docs/product/*`, migration đã merge, CI/hook; cùng một lỗi sửa 2 lần chưa được.
 - AI không được tuyên bố "xong" mà không dán tóm tắt output `make verify`.
+- Tính năng làm đổi thao tác người dùng (nút, bước, màn hình) → cập nhật nội dung Hướng dẫn sử dụng (`frontend/src/features/guide/content/`) trong cùng thay đổi (M26-01). Test `AC-HELP-007` chặn mục nhắc tới màn hình vai trò đó không vào được.
 
 ## 4. Mẫu spec tính năng
 Xem `docs/specs/_TEMPLATE.md`. AC viết để **kiểm chứng được bằng máy**: có dữ liệu đầu vào cụ thể, người thao tác (vai trò), kết quả quan sát được (HTTP code, trạng thái, text trên màn hình).

@@ -16,6 +16,7 @@ import { RevisionQueuePage } from "../features/dispatch/pages/RevisionQueuePage"
 import { TaskBoardPage } from "../features/dispatch/pages/TaskBoardPage";
 import { WorkloadPage } from "../features/dispatch/pages/WorkloadPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
+import { GuidePage } from "../features/guide/pages/GuidePage";
 import { EmployeesPage } from "../features/employees/pages/EmployeesPage";
 import { KpiReportPage } from "../features/kpi/pages/KpiReportPage";
 import { KpiSalesReportPage } from "../features/kpiSales/pages/KpiSalesReportPage";
@@ -29,6 +30,7 @@ import { ProductsPage } from "../features/products/pages/ProductsPage";
 import { ProfilePage } from "../features/profile/pages/ProfilePage";
 import { RevenueByCustomerReportPage } from "../features/revenueReport/pages/RevenueByCustomerReportPage";
 import { RevenueByEmployeeReportPage } from "../features/revenueReport/pages/RevenueByEmployeeReportPage";
+import { RevenueByProductReportPage } from "../features/revenueReport/pages/RevenueByProductReportPage";
 import { RevenueSkeleton } from "../features/revenueReport/components/RevenueSkeleton";
 import { ServicesPage } from "../features/services/pages/ServicesPage";
 import { menuPages } from "./menu";
@@ -61,6 +63,7 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/reports/revenue-by-customer" is real (M15-09b), same capability (report.revenue.read) as the
 // menu entry added in M15-11.
 // "/reports/revenue-by-employee" is real (M15-10b), same reasoning as above.
+// "/reports/revenue-by-product" is real (M24-01b), same reasoning as above.
 // "/catalog/groups" is real (M16-07), same capability (catalog.manage on the menu entry,
 // catalog.read_cost on the route) as "/catalog/products"/"/catalog/services".
 // "/reports/customer-gifts" is real (M16-02b), same capability (report.customer_gift.read) as the
@@ -82,6 +85,7 @@ const REAL_PAGES = new Set([
   "/reports/kpi-sales",
   "/reports/revenue-by-customer",
   "/reports/revenue-by-employee",
+  "/reports/revenue-by-product",
   "/reports/customer-gifts",
   "/reports/business-charts",
   "/audit",
@@ -150,6 +154,7 @@ export const routes: RouteObject[] = [
       { path: "/reports/kpi-sales", element: <KpiSalesReportPage /> },
       { path: "/reports/revenue-by-customer", element: <RevenueByCustomerReportPage /> },
       { path: "/reports/revenue-by-employee", element: <RevenueByEmployeeReportPage /> },
+      { path: "/reports/revenue-by-product", element: <RevenueByProductReportPage /> },
       { path: "/reports/customer-gifts", element: <CustomerGiftReportPage /> },
       {
         path: "/reports/business-charts",
@@ -181,6 +186,7 @@ export const routes: RouteObject[] = [
       { path: "/orders/:id", element: <DraftOrderPage /> },
       { path: "/ca-nhan", element: <ProfilePage /> },
       { path: "/thong-bao", element: <NotificationsPage /> },
+      { path: "/huong-dan", element: <GuidePage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

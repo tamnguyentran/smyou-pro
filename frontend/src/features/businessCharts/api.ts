@@ -9,6 +9,9 @@ export type BusinessStaff = components["schemas"]["BusinessStaffOut"];
 export type Share = components["schemas"]["ShareOut"];
 export type Metric = "revenue" | "profit";
 
+/** M25-01: cards whose periods overlap reuse each other's numbers instead of refetching (B2-10). */
+const STALE_MS = 60_000;
+
 /** `YYYY-MM` bounds; `valid` false → the query stays disabled (AC-RPT-132). */
 export interface Period {
   from: string;
@@ -21,6 +24,7 @@ export function useBusinessResults(period: Period) {
   const query = { from: period.from, to: period.to };
   return useQuery({
     enabled: period.valid,
+    staleTime: STALE_MS,
     queryKey: ["business-charts", "results", query],
     queryFn: async () => {
       const { data, error, response } = await api.GET("/api/v1/reports/business-charts/results", {
@@ -37,6 +41,7 @@ export function useBusinessSales(period: Period, metric: Metric) {
   const query = { from: period.from, to: period.to, metric };
   return useQuery({
     enabled: period.valid,
+    staleTime: STALE_MS,
     queryKey: ["business-charts", "sales", query],
     // Switching the Pareto metric keeps the old chart on screen instead of flashing skeletons.
     placeholderData: (previous: BusinessSales | undefined) =>
@@ -56,6 +61,7 @@ export function useBusinessStaff(period: Period) {
   const query = { from: period.from, to: period.to };
   return useQuery({
     enabled: period.valid,
+    staleTime: STALE_MS,
     queryKey: ["business-charts", "staff", query],
     queryFn: async () => {
       const { data, error, response } = await api.GET("/api/v1/reports/business-charts/staff", {

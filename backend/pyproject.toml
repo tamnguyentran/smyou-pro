@@ -52,6 +52,8 @@ known-third-party = ["alembic"]  # the local alembic/ migrations folder is not a
 "tests/**" = ["S101", "S105", "S106"]
 # One-off CLI tool: its entire job is printing values to copy into .env (M10-05).
 "scripts/generate_vapid_keys.py" = ["T201"]
+# UAT reset (production only with --allow-production, until go-live): the shared UAT password is public on purpose.
+"scripts/reset_uat_data.py" = ["S105"]
 
 # ---------------- mypy ----------------
 [tool.mypy]

@@ -1,56 +1,70 @@
 import { Bar, BarChart, LabelList, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
 import { formatCurrency } from "../../../lib/format";
 import { monthLabel } from "../../kpiTargets/month";
-import { useBusinessStaff, type BusinessStaff, type Period } from "../api";
-import { formatDecimal, formatPercent, periodLabel } from "../format";
+import { useBusinessStaff, type BusinessStaff } from "../api";
+import { formatDecimal, formatPercent } from "../format";
+import { useCardMonth, type CardPeriod } from "./cardPeriod";
 import {
   COLOR,
   ChartCard,
   ChartEmpty,
   ChartFrame,
   TabQuery,
+  isFailed,
   TooltipBox,
   TruncatedTick,
 } from "./chartKit";
 
-/** AC-RPT-131: tab "Nhân sự & KPI" — one `GET .../staff`. */
-export function StaffTab({ period }: { period: Period }) {
-  const query = useBusinessStaff(period);
+/** AC-RPT-131: tab "Nhân sự & KPI" — each card picks one month (M25-01) for `GET .../staff`. */
+export function StaffTab() {
+  const hours = useCardMonth();
+  const kpi = useCardMonth();
+  const queries = [useBusinessStaff(hours.period), useBusinessStaff(kpi.period)] as const;
   return (
-    <TabQuery query={query}>
-      {(data) => (
-        <>
-          <HoursCard data={data} period={period} />
-          <KpiCard data={data} period={period} />
-        </>
-      )}
+    <TabQuery queries={[...queries]}>
+      <HoursCard data={queries[0].data} failed={isFailed(queries[0])} picker={hours} />
+      <KpiCard data={queries[1].data} failed={isFailed(queries[1])} picker={kpi} />
     </TabQuery>
   );
+}
+
+interface CardProps {
+  data?: BusinessStaff;
+  failed: boolean;
+  picker: CardPeriod;
 }
 
 function hoursLabel(hours: number): string {
   return `${formatDecimal(hours)} giờ`;
 }
 
-function HoursCard({ data, period }: { data?: BusinessStaff; period: Period }) {
+function HoursCard({ data, failed, picker }: CardProps) {
+  const { period } = picker;
   const rows = (data?.hours_by_technician ?? []).map((row) => ({
     ...row,
     shown: hoursLabel(row.assigned_hours),
   }));
   const title = "Giờ được phân công theo kỹ thuật viên";
   return (
-    <ChartCard title={title} loading={!data}>
+    <ChartCard
+      title={title}
+      loading={!data}
+      failed={failed}
+      invalid={!period.valid}
+      period={picker.controls}
+    >
       {rows.length === 0 ? (
         <ChartEmpty />
       ) : (
-        <ChartFrame label={`${title}, ${periodLabel(period)}`}>
+        <ChartFrame label={`${title}, tháng ${monthLabel(period.from)}`}>
           <BarChart
             data={rows}
             layout="vertical"
             margin={{ top: 4, right: 56, bottom: 4, left: 0 }}
           >
-            <XAxis type="number" hide />
+            <XAxis stroke={COLOR.axisLine} type="number" hide />
             <YAxis
+              stroke={COLOR.axisLine}
               type="category"
               dataKey="employee_name"
               width={150}
@@ -66,6 +80,7 @@ function HoursCard({ data, period }: { data?: BusinessStaff; period: Period }) {
               <LabelList dataKey="shown" position="right" fill={COLOR.axis} fontSize={12} />
             </Bar>
             <Tooltip
+              cursor={{ fill: COLOR.cursor, stroke: COLOR.cursor }}
               isAnimationActive={false}
               content={({ active, payload }) => {
                 const row = payload[0]?.payload as (typeof rows)[number] | undefined;
@@ -84,7 +99,8 @@ function HoursCard({ data, period }: { data?: BusinessStaff; period: Period }) {
   );
 }
 
-function KpiCard({ data, period }: { data?: BusinessStaff; period: Period }) {
+function KpiCard({ data, failed, picker }: CardProps) {
+  const { period } = picker;
   // M23a: KPI is for the period's last month.
   const { month, rows } = data?.kpi_completion ?? { month: period.to, rows: [] };
   const charted = rows.flatMap((row) =>
@@ -100,7 +116,13 @@ function KpiCard({ data, period }: { data?: BusinessStaff; period: Period }) {
         ],
   );
   return (
-    <ChartCard title={`Tỷ lệ hoàn thành KPI theo nhân viên — ${monthLabel(month)}`} loading={!data}>
+    <ChartCard
+      title={`Tỷ lệ hoàn thành KPI theo nhân viên — ${monthLabel(month)}`}
+      loading={!data}
+      failed={failed}
+      invalid={!period.valid}
+      period={picker.controls}
+    >
       {rows.length === 0 ? (
         <ChartEmpty />
       ) : (
@@ -115,11 +137,13 @@ function KpiCard({ data, period }: { data?: BusinessStaff; period: Period }) {
                 margin={{ top: 16, right: 64, bottom: 4, left: 0 }}
               >
                 <XAxis
+                  stroke={COLOR.axisLine}
                   type="number"
                   hide
                   domain={[0, (max: number) => Math.max(100, Math.ceil(max / 10) * 10)]}
                 />
                 <YAxis
+                  stroke={COLOR.axisLine}
                   type="category"
                   dataKey="employee_name"
                   width={150}
@@ -136,6 +160,7 @@ function KpiCard({ data, period }: { data?: BusinessStaff; period: Period }) {
                   label={{ value: "100%", position: "top", fill: COLOR.danger, fontSize: 12 }}
                 />
                 <Tooltip
+                  cursor={{ fill: COLOR.cursor, stroke: COLOR.cursor }}
                   isAnimationActive={false}
                   content={({ active, payload }) => {
                     const row = payload[0]?.payload as (typeof charted)[number] | undefined;

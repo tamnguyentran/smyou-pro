@@ -15,8 +15,9 @@ import { ChipGroup } from "../../../components/ui/Chip";
 import { formatCurrency } from "../../../lib/format";
 import { UNIT_LABELS as PRODUCT_UNITS } from "../../products/schemas";
 import { UNIT_LABELS as SERVICE_UNITS } from "../../services/schemas";
-import { useBusinessSales, type BusinessSales, type Metric, type Period } from "../api";
+import { useBusinessSales, type BusinessSales, type Metric } from "../api";
 import { formatDecimal, formatPercent, periodLabel, shortMoney } from "../format";
+import { useCardRange, type CardPeriod } from "./cardPeriod";
 import {
   AXIS_TICK,
   COLOR,
@@ -25,6 +26,7 @@ import {
   ChartFrame,
   ChartLegend,
   TabQuery,
+  isFailed,
   TooltipBox,
   TruncatedTick,
 } from "./chartKit";
@@ -42,40 +44,66 @@ function unitLabel(unit: string): string {
   return labels[unit] ?? unit;
 }
 
-/** AC-RPT-128…130: tab "Bán hàng & sản phẩm" — one `GET .../sales?metric=…` per metric. */
-export function SalesTab({ period }: { period: Period }) {
+/** AC-RPT-128…130: tab "Bán hàng & sản phẩm" — each card its own period (M25-01: last 3 months,
+ * Q181) and `GET .../sales?metric=…`; the top lists ignore `metric`, so they ask for revenue. */
+export function SalesTab() {
   const [metric, setMetric] = useState<Metric>("revenue");
-  const query = useBusinessSales(period, metric);
+  const pareto = useCardRange(3);
+  const top = useCardRange(3);
+  const slow = useCardRange(3);
+  const queries = [
+    useBusinessSales(pareto.period, metric),
+    useBusinessSales(top.period, "revenue"),
+    useBusinessSales(slow.period, "revenue"),
+  ] as const;
   return (
-    <TabQuery query={query}>
-      {(data) => (
-        <>
-          <ParetoCard data={data} period={period} metric={metric} onMetric={setMetric} />
-          <QuantityCard title="Top bán chạy" items={data?.top_selling} period={period} />
-          <QuantityCard title="Top bán chậm" items={data?.slow_selling} period={period} />
-        </>
-      )}
+    <TabQuery queries={[...queries]}>
+      <ParetoCard
+        data={queries[0].data}
+        failed={isFailed(queries[0])}
+        picker={pareto}
+        metric={metric}
+        onMetric={setMetric}
+      />
+      <QuantityCard
+        title="Top bán chạy"
+        items={queries[1].data?.top_selling}
+        failed={isFailed(queries[1])}
+        picker={top}
+      />
+      <QuantityCard
+        title="Top bán chậm"
+        items={queries[2].data?.slow_selling}
+        failed={isFailed(queries[2])}
+        picker={slow}
+      />
     </TabQuery>
   );
 }
 
 function ParetoCard({
   data,
-  period,
+  failed,
+  picker,
   metric,
   onMetric,
 }: {
   data?: BusinessSales;
-  period: Period;
+  failed: boolean;
+  picker: CardPeriod;
   metric: Metric;
   onMetric: (metric: Metric) => void;
 }) {
+  const { period } = picker;
   const metricWord = metric === "revenue" ? "doanh thu" : "lợi nhuận";
   return (
     <ChartCard
       title="Phân tích Pareto 80/20"
       className="lg:col-span-2"
       loading={!data}
+      failed={failed}
+      invalid={!period.valid}
+      period={picker.controls}
       controls={<ChipGroup label="Chỉ số" value={metric} options={METRICS} onChange={onMetric} />}
     >
       {!data || data.pareto.length === 0 ? (
@@ -94,13 +122,21 @@ function ParetoCard({
             >
               <CartesianGrid stroke={COLOR.grid} vertical={false} />
               <XAxis
+                stroke={COLOR.axisLine}
                 dataKey="label"
                 tick={<TruncatedTick max={12} anchor="middle" />}
                 interval={0}
                 height={30}
               />
-              <YAxis yAxisId="value" tick={AXIS_TICK} tickFormatter={shortMoney} width={48} />
               <YAxis
+                stroke={COLOR.axisLine}
+                yAxisId="value"
+                tick={AXIS_TICK}
+                tickFormatter={shortMoney}
+                width={48}
+              />
+              <YAxis
+                stroke={COLOR.axisLine}
                 yAxisId="pct"
                 orientation="right"
                 domain={[0, 100]}
@@ -121,6 +157,8 @@ function ParetoCard({
                 dataKey="cumulative_pct"
                 stroke={COLOR.profit}
                 strokeWidth={2}
+                dot={{ fill: COLOR.surface, stroke: COLOR.profit, strokeWidth: 2 }}
+                activeDot={{ fill: COLOR.profit, stroke: COLOR.surface }}
                 isAnimationActive={false}
               />
               <ReferenceLine
@@ -136,6 +174,7 @@ function ParetoCard({
                 }}
               />
               <Tooltip
+                cursor={{ fill: COLOR.cursor, stroke: COLOR.cursor }}
                 isAnimationActive={false}
                 content={({ active, payload }) => {
                   const item = payload[0]?.payload as BusinessSales["pareto"][number] | undefined;
@@ -165,13 +204,30 @@ function ParetoCard({
   );
 }
 
-function QuantityCard({ title, items, period }: { title: string; items?: Item[]; period: Period }) {
+function QuantityCard({
+  title,
+  items,
+  failed,
+  picker,
+}: {
+  title: string;
+  items?: Item[];
+  failed: boolean;
+  picker: CardPeriod;
+}) {
+  const { period } = picker;
   const rows = (items ?? []).map((item) => ({
     ...item,
     shown: `${formatDecimal(item.quantity)} ${unitLabel(item.unit)}`,
   }));
   return (
-    <ChartCard title={title} loading={!items}>
+    <ChartCard
+      title={title}
+      loading={!items}
+      failed={failed}
+      invalid={!period.valid}
+      period={picker.controls}
+    >
       {rows.length === 0 ? (
         <ChartEmpty />
       ) : (
@@ -181,8 +237,9 @@ function QuantityCard({ title, items, period }: { title: string; items?: Item[];
             layout="vertical"
             margin={{ top: 4, right: 56, bottom: 4, left: 0 }}
           >
-            <XAxis type="number" hide allowDecimals={false} />
+            <XAxis stroke={COLOR.axisLine} type="number" hide allowDecimals={false} />
             <YAxis
+              stroke={COLOR.axisLine}
               type="category"
               dataKey="label"
               width={150}
@@ -199,6 +256,7 @@ function QuantityCard({ title, items, period }: { title: string; items?: Item[];
               <LabelList dataKey="shown" position="right" fill={COLOR.axis} fontSize={12} />
             </Bar>
             <Tooltip
+              cursor={{ fill: COLOR.cursor, stroke: COLOR.cursor }}
               isAnimationActive={false}
               content={({ active, payload }) => {
                 const item = payload[0]?.payload as (typeof rows)[number] | undefined;

@@ -4,6 +4,21 @@ Trạng thái: `[ ]` chưa làm · `[S]` spec đang viết · `[A]` spec Approve
 Mỗi item là **lát cắt dọc** (DB → API → UI → test) giao được trong 1 phiên. Làm theo thứ tự; item sau phụ thuộc item trước.
 Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatch), `ASG`, `CMP` (completion/revision), `NTF`, `DASH` (dashboard), `KPI`, `UI` (style thuần, xuyên module, không đổi API/quyền).
 
+## M26 — Hướng dẫn sử dụng theo vai trò (2026-11-06)
+- `[x]` M26-01a — Nút ? trên đầu trang, trang `/huong-dan` (tab theo vai trò; Quản lý chung xem cả 5 bản), phần chung + bản Nhân viên kỹ thuật + Nhân viên kinh doanh. `docs/specs/M26-01-role-user-guide.md` (Approved).
+- `[x]` M26-01b — Bản Chăm sóc khách hàng, Quản lý kỹ thuật, Quản lý chung. Phụ thuộc M26-01a.
+
+## UAT — Sửa lỗi từ lượt AI tự test (2026-11-06)
+- `[~]` UAT-01 — BUG-01: thêm người cho đầu việc "Cần giao lại" phải đưa đơn về lại "Đang thực hiện" (Q90); BUG-02: API chi tiết đơn không trả giá vốn cho KTV (Q125); BUG-03: nút "Huỷ đơn" cho đơn đang thực hiện (`cancel_active`, UI chưa từng làm). `docs/specs/UAT-01-ai-uat-bugfixes.md` (7 AC). KB-01…07 sửa ở `scripts/build_uat_workbook.py`; lượt AI test 2: 136/136 Đạt (`docs/uat/AI_tu_test.xlsx`, ảnh `reports/uat-ai-2/`). Workbook khách hàng bổ sung case thiếu (mục 13 CS7, NS/DM/PQ/BC) → 170 bước; Q183–Q185 đã chốt → UAT-02.
+- `[~]` UAT-02 — Q183: huỷ được đơn có mọi đầu việc đã huỷ (guard `order_has_no_live_tasks`), CSKH huỷ đơn mình tạo; Q184: CSKH đọc thông báo; Q185: migration bổ sung Sale/CSKH/QLKT cho mọi Manager. `docs/specs/UAT-02-cancel-notify-manager-roles.md` (9 AC). Workbook khách hàng 175 bước.
+
+## M25 — Biểu đồ kinh doanh: thời gian tra cứu theo từng card (2026-11-04)
+- `[~]` M25-01 — Bỏ bộ lọc tháng chung; mỗi card biểu đồ có bộ chọn riêng (Từ–Đến tháng hoặc 1 tháng) với mặc định riêng; chỉ frontend. `docs/specs/M25-01-business-charts-per-card-period.md` (10 AC; Q180–Q182).
+
+## M24 — Báo cáo doanh thu theo nhóm SP/DV & theo sản phẩm (2026-11-04)
+- `[~]` M24-01a — API báo cáo doanh thu theo nhóm SP/DV hoặc từng SP/DV (`mode=group|item`), drilldown dòng hàng, CSV; dùng lại `report.revenue.read`. `docs/specs/M24-01a-revenue-by-product-report-api.md` (13 AC; Q176–Q178).
+- `[~]` M24-01b — UI trang "Doanh thu theo SP/DV" ngay dưới "Doanh thu theo nhân viên", radio chuyển 2 kiểu xem. `docs/specs/M24-01b-revenue-by-product-report-ui.md` (9 AC; Q179). Phụ thuộc M24-01a.
+
 ## M23 — Báo cáo kinh doanh dạng biểu đồ, chỉ Manager (2026-11-03, Q157–Q160)
 - M23 (gốc) — 3 nhóm biểu đồ: (1) Kết quả KD: combo Doanh thu + Lợi nhuận theo tháng; tròn cơ cấu doanh thu/lợi nhuận (radio) theo nhóm DV, SP, loại KH Cá nhân/Tổ chức; cột KH mới vs quay lại. (2) Bán hàng & SP: Pareto 80/20 doanh thu/lợi nhuận theo SP/DV; cột ngang Top bán chạy & bán chậm. (3) Nhân sự & KPI: cột giờ được phân công theo KTV; cột/bảng tỷ lệ hoàn thành KPI theo NV. Giá vốn trống → 70% giá bán (làm tròn). Chưa có spec — tách lát ở `/spec`.
 - `[x]` M23a — API 3 nhóm số liệu biểu đồ (`/reports/business-charts/results|sales|staff`), capability `report.business_charts.read` (Manager), menu. `docs/specs/M23a-business-charts-api.md` (23 AC; Q165–Q172 theo mặc định) — `make verify` xanh 2026-11-04; /review PASS 2026-11-04 (reports/review-M23a.md); chưa commit, theo đợt.

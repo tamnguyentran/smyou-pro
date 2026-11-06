@@ -22,7 +22,8 @@
 | In "Hoá đơn bán hàng" A5 (`order.print`, M17-04 · Q109; CSKH cũng in được) | tất cả | tất cả | tất cả | đơn có task được giao |
 | Xem giá tiền | ✅ | ✅ | ✅ | đơn được giao (Q03) |
 | Sửa đơn giá dòng khi tạo/sửa đơn | chỉ dòng **không** cố định giá | chỉ dòng **không** cố định giá | — | — |
-| Tạo/sửa nháp/gửi/huỷ đơn chưa điều phối | ✅ | đơn của mình | — | — |
+| Tạo/sửa nháp/gửi/huỷ đơn chưa điều phối (huỷ được cả khi mọi đầu việc đã huỷ — Q183/UAT-02; CSKH cũng huỷ được đơn do mình tạo, không gửi đơn) | ✅ | đơn của mình | — | — |
+| Đọc thông báo của mình (`notification.read`; CSKH được thêm ở Q184/UAT-02 để nhận thông báo đơn mình tạo) | ✅ | ✅ | ✅ | ✅ |
 | Huỷ đơn đang thực hiện | ✅ | — | — | — |
 | Tạo/sửa/giao/huỷ task | — | — | ✅ | — |
 | Chuyển "Chỉnh sửa", mở lại task | — | — | ✅ | — |

@@ -1603,3 +1603,86 @@ describe("M15-03 — CSKH gửi yêu cầu chỉnh sửa đơn", () => {
     expect(screen.queryByText("Đã gửi yêu cầu chỉnh sửa (chưa xử lý)")).not.toBeInTheDocument();
   });
 });
+
+describe("UAT-01 BUG-03 huỷ đơn đang thực hiện (cancel_active)", () => {
+  test("AC-ORD-267 Manager: nút Huỷ đơn gọi POST /cancel-active với lý do", async () => {
+    signedInAs(anId, AN);
+    let body: unknown = null;
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ status: "IN_PROGRESS", allowed_commands: ["cancel_active"] })),
+      ),
+      http.get("/api/v1/orders/:id/history", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 50, offset: 0 }),
+      ),
+      http.post("/api/v1/orders/:id/cancel-active", async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json(order({ status: "CANCELLED", allowed_commands: [], version: 2 }));
+      }),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Huỷ đơn" }));
+    const dialog = await screen.findByRole("dialog", { name: "Huỷ đơn DH2609-0001?" });
+    await user.type(within(dialog).getByRole("textbox"), "Khách hoãn dự án");
+    await user.click(within(dialog).getByRole("button", { name: "Xác nhận huỷ" }));
+
+    expect(await screen.findByText("Đã huỷ đơn DH2609-0001.")).toBeInTheDocument();
+    expect(body).toEqual({ version: 1, reason: "Khách hoãn dự án" });
+  });
+
+  test("AC-ORD-267 409 GUARD_FAILED (đã có ảnh khách ký) → dialog vẫn mở, hiện message server", async () => {
+    signedInAs(anId, AN);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(
+          order({ status: "AWAITING_CONFIRMATION", allowed_commands: ["cancel_active"] }),
+        ),
+      ),
+      http.get("/api/v1/orders/:id/history", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 50, offset: 0 }),
+      ),
+      http.post("/api/v1/orders/:id/cancel-active", () =>
+        HttpResponse.json(
+          {
+            status: 409,
+            code: "GUARD_FAILED",
+            guard: "confirmation_attachment_not_uploaded",
+            detail: "Đơn đã có ảnh khách ký xác nhận, không thể huỷ.",
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Huỷ đơn" }));
+    const dialog = await screen.findByRole("dialog", { name: "Huỷ đơn DH2609-0001?" });
+    await user.type(within(dialog).getByRole("textbox"), "Khách đổi ý");
+    await user.click(within(dialog).getByRole("button", { name: "Xác nhận huỷ" }));
+
+    expect(
+      await within(dialog).findByText("Đơn đã có ảnh khách ký xác nhận, không thể huỷ."),
+    ).toBeInTheDocument();
+  });
+
+  test("AC-ORD-268 Sale chủ đơn: đơn đang thực hiện không có nút Huỷ đơn", async () => {
+    signedInAs(hoaId, HOA);
+    server.use(
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(order({ status: "IN_PROGRESS", allowed_commands: [] })),
+      ),
+      http.get("/api/v1/orders/:id/history", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 50, offset: 0 }),
+      ),
+    );
+    renderApp(`/orders/${orderId}`);
+    await screen.findByText("DH2609-0001");
+
+    expect(screen.queryByRole("button", { name: "Huỷ đơn" })).not.toBeInTheDocument();
+  });
+});

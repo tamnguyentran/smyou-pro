@@ -1155,6 +1155,17 @@ describe("AC-EMP-087 nguyên tắc Quản lý chung", () => {
   });
 });
 
+describe("AC-EMP-126 nguyên tắc người tạo đơn (UAT-02)", () => {
+  test("AC-EMP-126 có câu luật huỷ đơn + nhận thông báo của người tạo đơn", async () => {
+    const region = await openGuide();
+    expect(
+      within(region).getByText(
+        "Người tạo đơn (Nhân viên kinh doanh hoặc Chăm sóc khách hàng) được huỷ đơn của mình khi đơn chưa điều phối hoặc mọi đầu việc đã huỷ, và nhận thông báo về đơn đó.",
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("AC-EMP-088 màn hình được vào theo menu.json", () => {
   test("AC-EMP-088 KTV: Tổng quan, Việc của tôi, Báo cáo › Báo cáo KPI; Sale có Khách hàng, không có Danh mục", async () => {
     mockViewport(false);

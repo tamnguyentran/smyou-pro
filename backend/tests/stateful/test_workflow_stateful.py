@@ -449,15 +449,21 @@ class WorkflowMachine(RuleBasedStateMachine):
             if order is None:
                 return
             employee_id = self.technician_ids[employee_index]
+            before_status = order.status
             try:
-                dispatch_service.add_assignee(
+                detail = dispatch_service.add_assignee(
                     session,
                     self.lead_actor_task,
                     task["order_id"],
                     task["task_id"],
                     TaskAddAssignee(version=order.version, employee_id=employee_id),
+                    now=self._now(),
                     specs=SPECS,
                 )
+                if detail.order_status != before_status:
+                    self._transition_audit_count += (
+                        1  # system-triggered start_dispatch side effect (UAT BUG-01)
+                    )
             except AppError as err:
                 self._expect_rejected(err)
 

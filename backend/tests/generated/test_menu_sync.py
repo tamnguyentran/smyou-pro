@@ -64,6 +64,8 @@ def test_reports_menu_group_has_no_capability_of_its_own() -> None:
         "reports-kpi-sales",
         "reports-revenue-customer",
         "reports-revenue-employee",
+        # M24-01b AC-RPT-152: right below "Doanh thu theo nhân viên".
+        "reports-revenue-product",
         "reports-customer-gift",
     ]
     assert [c["capability"] for c in reports["children"]] == [
@@ -72,8 +74,22 @@ def test_reports_menu_group_has_no_capability_of_its_own() -> None:
         "report.kpi_sales.read",
         "report.revenue.read",
         "report.revenue.read",
+        "report.revenue.read",
         "report.customer_gift.read",
     ]
+
+
+@pytest.mark.ac("AC-RPT-152")
+def test_revenue_by_product_menu_item_follows_revenue_by_employee() -> None:
+    doc = menu_document(load_specs(REPO_SPEC_DIR).permissions)
+    children = next(item for item in doc["menu"] if item["id"] == "reports")["children"]
+    ids = [c["id"] for c in children]
+    item = children[ids.index("reports-revenue-employee") + 1]
+    assert item["id"] == "reports-revenue-product"
+    assert item["label"] == "Doanh thu theo SP/DV"
+    assert item["path"] == "/reports/revenue-by-product"
+    assert item["icon"] == "Package"
+    assert item["capability"] == "report.revenue.read"
 
 
 @pytest.mark.ac("AC-SYS-034")

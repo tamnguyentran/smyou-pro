@@ -121,3 +121,21 @@ docker system df             # kiểm tra dung lượng trước khi dọn mạn
 - [ ] CI xanh trên commit cần deploy (gồm job `image` amd64 smoke)
 - [ ] `pg_dump` trước deploy thành công
 - [ ] `up -d` → healthcheck OK → đăng nhập thử 1 tài khoản mỗi vai trò (script `scripts/smoke_prod.sh`)
+
+## 10. Dữ liệu UAT trên server (tạm thời, tới khi go-live)
+Chủ dự án chốt 2026-11-05: khách nghiệm thu UAT ngay trên server production; trước khi chạy chính thức sẽ xoá dữ liệu UAT. Script `backend/scripts/reset_uat_data.py` có sẵn trong image backend (chỉ file này, không có seed e2e). Với `APP_ENV=production` script **từ chối chạy** nếu thiếu cờ `--allow-production`.
+
+Lệnh này **xoá mọi đơn hàng, khách hàng, sản phẩm/dịch vụ, nhân viên** ngoài bộ UAT (9 NV, 3 KH, 5 SP/DV, 3 nhóm — xem đầu script) và đặt mật khẩu chung `Uat@SmYou2026`. Nếu DB server thiếu bất kỳ bản ghi nào trong bộ UAT, script dừng và không thay đổi gì.
+
+```bash
+cd /opt/smyou
+# 1. Backup riêng (tên có giờ phút, không đè bản backup hằng ngày)
+docker compose -f compose.prod.yml --env-file .env.prod exec -T db \
+  sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' > backups/truoc-uat-$(date +%Y%m%d-%H%M).dump
+# 2. Đưa dữ liệu về bộ UAT
+docker compose -f compose.prod.yml --env-file .env.prod exec -T backend \
+  python -m scripts.reset_uat_data --allow-production
+```
+Trên máy dev: `make reset-uat-data` (không cần cờ). Kịch bản test: `docs/uat/SMYou-Pro-UAT.xlsx`.
+
+**Trước go-live:** xoá dữ liệu UAT theo kế hoạch chạy chính thức, đổi mật khẩu mọi tài khoản thật, và bỏ dòng `COPY scripts/...reset_uat_data.py` khỏi `backend/Dockerfile` để image chính thức không còn lệnh này.

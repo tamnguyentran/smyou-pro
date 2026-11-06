@@ -218,10 +218,12 @@ async function openPage(path = PAGE) {
   return router;
 }
 
-async function setPeriod(from: string, to: string) {
+/** M25-01: each card has its own "Từ tháng – Đến tháng" picker. */
+async function setPeriod(cardName: string | RegExp, from: string, to: string) {
   const user = userEvent.setup();
-  const fromInput = screen.getByLabelText("Từ tháng");
-  const toInput = screen.getByLabelText("Đến tháng");
+  const region = await screen.findByRole("region", { name: cardName });
+  const fromInput = within(region).getByLabelText("Từ tháng");
+  const toInput = within(region).getByLabelText("Đến tháng");
   await user.clear(fromInput);
   await user.type(fromInput, from.replace("/", ""));
   await user.clear(toInput);
@@ -253,7 +255,7 @@ function legendItems(region: HTMLElement): string[] {
 }
 
 describe("Biểu đồ kinh doanh (/reports/business-charts)", () => {
-  test("AC-RPT-123 menu Báo cáo → Biểu đồ kinh doanh: URL, tiêu đề, tab mặc định, kỳ 12/2025–11/2026", async () => {
+  test("AC-RPT-123 menu Báo cáo → Biểu đồ kinh doanh: URL, tiêu đề, tab mặc định, kỳ mặc định theo card (M25-01)", async () => {
     vi.setSystemTime(new Date("2026-11-04T03:00:00Z"));
     signedInAs(anId, AN);
     const calls = mockCharts();
@@ -277,10 +279,14 @@ describe("Biểu đồ kinh doanh (/reports/business-charts)", () => {
       "aria-selected",
       "true",
     );
-    expect(screen.getByLabelText("Từ tháng")).toHaveValue("12/2025");
-    expect(screen.getByLabelText("Đến tháng")).toHaveValue("11/2026");
+    const monthly = card("Doanh thu & Lợi nhuận theo tháng");
+    expect(within(monthly).getByLabelText("Từ tháng")).toHaveValue("09/2026");
+    expect(within(monthly).getByLabelText("Đến tháng")).toHaveValue("11/2026");
     await waitFor(() => {
-      expect(calls.results).toEqual(["?from=2025-12&to=2026-11"]);
+      expect([...calls.results].sort()).toEqual([
+        "?from=2026-09&to=2026-11",
+        "?from=2026-11&to=2026-11",
+      ]);
     });
     expect(calls.sales).toEqual([]);
     expect(calls.staff).toEqual([]);
@@ -301,7 +307,7 @@ describe("Biểu đồ kinh doanh (/reports/business-charts)", () => {
   test("AC-RPT-125 biểu đồ kết hợp: nhóm T9/T10, tooltip tháng 10 doanh thu/lợi nhuận, trục Y rút gọn", async () => {
     const calls = mockCharts();
     await openPage();
-    await setPeriod("09/2026", "10/2026");
+    await setPeriod("Doanh thu & Lợi nhuận theo tháng", "09/2026", "10/2026");
     await waitFor(() => {
       expect(calls.results).toContain("?from=2026-09&to=2026-10");
     });
@@ -331,7 +337,7 @@ describe("Biểu đồ kinh doanh (/reports/business-charts)", () => {
   test("AC-RPT-126 Cơ cấu: radio Lợi nhuận + chiều Loại khách hàng → tròn theo Cá nhân/Tổ chức, % 1 chữ số, không gọi lại API", async () => {
     const calls = mockCharts();
     await openPage();
-    await setPeriod("09/2026", "10/2026");
+    await setPeriod("Cơ cấu doanh thu", "09/2026", "10/2026");
     const region = await screen.findByRole("region", { name: "Cơ cấu doanh thu" });
     await within(region).findByRole("img");
     const before = calls.results.length;
@@ -358,7 +364,7 @@ describe("Biểu đồ kinh doanh (/reports/business-charts)", () => {
   test("AC-RPT-127 Khách hàng mới & quay lại: 2 cột/tháng khác màu, chú giải, tooltip số khách", async () => {
     mockCharts();
     await openPage();
-    await setPeriod("09/2026", "10/2026");
+    await setPeriod("Khách hàng mới & quay lại", "09/2026", "10/2026");
     const region = card("Khách hàng mới & quay lại");
     const chart = await within(region).findByRole("img");
     await within(chart).findByText("T10/2026");
@@ -388,7 +394,7 @@ describe("Biểu đồ kinh doanh (/reports/business-charts)", () => {
     const region = card("Phân tích Pareto 80/20");
     const chart = await within(region).findByRole("img");
     await within(chart).findByText("SP 1");
-    expect(calls.sales).toEqual(["?from=2025-12&to=2026-11&metric=revenue"]);
+    expect(calls.sales).toEqual(["?from=2026-09&to=2026-11&metric=revenue"]);
 
     const fills = barFills(chart);
     expect(fills).toHaveLength(5);
@@ -413,7 +419,7 @@ describe("Biểu đồ kinh doanh (/reports/business-charts)", () => {
     await user.click(within(region).getByRole("radio", { name: "Lợi nhuận" }));
 
     await waitFor(() => {
-      expect(calls.sales).toContain("?from=2025-12&to=2026-11&metric=profit");
+      expect(calls.sales).toContain("?from=2026-09&to=2026-11&metric=profit");
     });
     expect(await within(region).findByText("LN 1")).toBeInTheDocument();
     expect(within(region).queryByText("SP 1")).toBeNull();
@@ -465,24 +471,24 @@ describe("Biểu đồ kinh doanh (/reports/business-charts)", () => {
     expect(maiRow).not.toBeNull();
     expect(maiRow).toHaveTextContent("—");
     expect(within(table).getByText("Lê Minh Tuấn").closest("tr")).toHaveTextContent("125,0%");
-    expect(calls.staff).toEqual(["?from=2025-12&to=2026-11"]);
+    expect(calls.staff).toEqual(["?from=2026-11&to=2026-11"]);
   });
 
   test("AC-RPT-132 kỳ sai thứ tự / quá 24 tháng: báo lỗi dưới ô, không gọi API", async () => {
     const calls = mockCharts();
     await openPage();
     await waitFor(() => {
-      expect(calls.results).toEqual(["?from=2025-12&to=2026-11"]);
+      expect(calls.results).toContain("?from=2026-09&to=2026-11");
     });
 
-    await setPeriod("11/2026", "09/2026");
+    await setPeriod("Doanh thu & Lợi nhuận theo tháng", "11/2026", "09/2026");
     expect(
       await screen.findByText("Tháng bắt đầu phải trước hoặc bằng tháng kết thúc"),
     ).toBeInTheDocument();
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(calls.results).not.toContain("?from=2026-11&to=2026-09");
 
-    await setPeriod("01/2024", "10/2026");
+    await setPeriod("Doanh thu & Lợi nhuận theo tháng", "01/2024", "10/2026");
     expect(await screen.findByText("Chỉ xem tối đa 24 tháng")).toBeInTheDocument();
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(calls.results).not.toContain("?from=2024-01&to=2026-10");
@@ -561,7 +567,13 @@ describe("Biểu đồ kinh doanh (/reports/business-charts)", () => {
   test("AC-RPT-137 mỗi biểu đồ role=img + aria-label tóm tắt; màu từ token UI_GUIDELINES", async () => {
     mockCharts();
     await openPage();
-    await setPeriod("09/2026", "10/2026");
+    for (const name of [
+      "Doanh thu & Lợi nhuận theo tháng",
+      "Cơ cấu doanh thu",
+      "Khách hàng mới & quay lại",
+    ]) {
+      await setPeriod(name, "09/2026", "10/2026");
+    }
     const user = userEvent.setup();
 
     const monthly = await screen.findByRole("img", {
@@ -581,16 +593,16 @@ describe("Biểu đồ kinh doanh (/reports/business-charts)", () => {
 
     await user.click(screen.getByRole("tab", { name: "Bán hàng & sản phẩm" }));
     for (const name of [
-      "Pareto doanh thu theo sản phẩm – dịch vụ, 09/2026–10/2026",
-      "Top bán chạy theo số lượng, 09/2026–10/2026",
-      "Top bán chậm theo số lượng, 09/2026–10/2026",
+      "Pareto doanh thu theo sản phẩm – dịch vụ, 09/2026–11/2026",
+      "Top bán chạy theo số lượng, 09/2026–11/2026",
+      "Top bán chậm theo số lượng, 09/2026–11/2026",
     ]) {
       expect(await screen.findByRole("img", { name })).toBeInTheDocument();
     }
 
     await user.click(screen.getByRole("tab", { name: "Nhân sự & KPI" }));
     for (const name of [
-      "Giờ được phân công theo kỹ thuật viên, 09/2026–10/2026",
+      "Giờ được phân công theo kỹ thuật viên, tháng 11/2026",
       "Tỷ lệ hoàn thành KPI theo nhân viên, tháng 10/2026",
     ]) {
       expect(await screen.findByRole("img", { name })).toBeInTheDocument();
@@ -599,5 +611,251 @@ describe("Biểu đồ kinh doanh (/reports/business-charts)", () => {
       const fill = el.getAttribute("fill");
       if (fill && fill !== "none") expect(fill).toMatch(/^var\(--color-[a-z_-]+\)$/);
     }
+  });
+});
+
+describe("M25-01 khoảng thời gian riêng cho từng card", () => {
+  const MONTHLY = "Doanh thu & Lợi nhuận theo tháng";
+  const HOURS = "Giờ được phân công theo kỹ thuật viên";
+  const KPI = /^Tỷ lệ hoàn thành KPI theo nhân viên/;
+
+  function inputs(name: string | RegExp) {
+    const region = card(name);
+    return [
+      within(region).getByLabelText("Từ tháng"),
+      within(region).getByLabelText("Đến tháng"),
+    ].map((el) => (el as HTMLInputElement).value);
+  }
+
+  async function setMonth(cardName: string | RegExp, month: string) {
+    const user = userEvent.setup();
+    const input = within(await screen.findByRole("region", { name: cardName })).getByLabelText(
+      "Tháng",
+    );
+    await user.clear(input);
+    await user.type(input, month.replace("/", ""));
+  }
+
+  test("AC-RPT-161 không còn bộ lọc chung; card theo tháng mặc định 3 tháng gần nhất", async () => {
+    const calls = mockCharts();
+    await openPage();
+    await screen.findByRole("region", { name: MONTHLY });
+
+    const panel = screen.getByRole("tabpanel");
+    // Every month input on the page sits inside a chart card.
+    expect(screen.getAllByLabelText("Từ tháng").every((el) => panel.contains(el))).toBe(true);
+    expect(screen.getAllByLabelText("Từ tháng")).toHaveLength(3);
+    expect(inputs(MONTHLY)).toEqual(["09/2026", "11/2026"]);
+    await waitFor(() => {
+      expect(calls.results).toContain("?from=2026-09&to=2026-11");
+    });
+    expect(
+      await screen.findByRole("img", {
+        name: "Doanh thu và lợi nhuận theo tháng, 09/2026–11/2026",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("AC-RPT-162 Cơ cấu và Khách hàng mới & quay lại mặc định tháng hiện tại", async () => {
+    const calls = mockCharts();
+    await openPage();
+    await screen.findByRole("region", { name: "Cơ cấu doanh thu" });
+
+    expect(inputs("Cơ cấu doanh thu")).toEqual(["11/2026", "11/2026"]);
+    expect(inputs("Khách hàng mới & quay lại")).toEqual(["11/2026", "11/2026"]);
+    await waitFor(() => {
+      expect(calls.results).toContain("?from=2026-11&to=2026-11");
+    });
+    expect(calls.results.filter((q) => q === "?from=2026-11&to=2026-11")).toHaveLength(1);
+    expect(
+      await screen.findByRole("img", { name: "Cơ cấu doanh thu theo nhóm SP/DV, 11/2026–11/2026" }),
+    ).toBeInTheDocument();
+  });
+
+  test("AC-RPT-163 tab Bán hàng: Pareto, Top bán chạy, Top bán chậm mặc định 09/2026–11/2026", async () => {
+    const calls = mockCharts();
+    await openPage(`${PAGE}?tab=sales`);
+    await screen.findByRole("region", { name: "Phân tích Pareto 80/20" });
+
+    for (const name of ["Phân tích Pareto 80/20", "Top bán chạy", "Top bán chậm"]) {
+      expect(inputs(name)).toEqual(["09/2026", "11/2026"]);
+    }
+    await waitFor(() => {
+      expect(calls.sales).toEqual(["?from=2026-09&to=2026-11&metric=revenue"]);
+    });
+  });
+
+  test("AC-RPT-164 tab Nhân sự & KPI: mỗi card 1 ô chọn tháng, mặc định 11/2026", async () => {
+    const calls = mockCharts();
+    await openPage(`${PAGE}?tab=staff`);
+    const hours = await screen.findByRole("region", { name: HOURS });
+
+    expect(within(hours).getByLabelText("Tháng")).toHaveValue("11/2026");
+    expect(within(hours).queryByLabelText("Từ tháng")).toBeNull();
+    const kpi = await screen.findByRole("region", { name: KPI });
+    expect(within(kpi).getByLabelText("Tháng")).toHaveValue("11/2026");
+    expect(within(kpi).queryByLabelText("Từ tháng")).toBeNull();
+    await waitFor(() => {
+      expect(calls.staff).toEqual(["?from=2026-11&to=2026-11"]);
+    });
+  });
+
+  test("AC-RPT-165 đổi tháng card Giờ phân công → chỉ card đó gọi lại, KPI giữ 11/2026", async () => {
+    const calls = mockCharts();
+    await openPage(`${PAGE}?tab=staff`);
+    await within(await screen.findByRole("region", { name: HOURS })).findByRole("img");
+
+    await setMonth(HOURS, "08/2026");
+
+    await waitFor(() => {
+      expect(calls.staff).toContain("?from=2026-08&to=2026-08");
+    });
+    expect(await screen.findByRole("img", { name: `${HOURS}, tháng 08/2026` })).toBeInTheDocument();
+    expect(within(card(KPI)).getByLabelText("Tháng")).toHaveValue("11/2026");
+    expect(calls.staff.filter((q) => q === "?from=2026-11&to=2026-11")).toHaveLength(1);
+  });
+
+  test("AC-RPT-166 đổi kỳ card Cơ cấu → card theo tháng giữ 09–11/2026", async () => {
+    const calls = mockCharts();
+    await openPage();
+    await within(await screen.findByRole("region", { name: MONTHLY })).findByRole("img");
+
+    await setPeriod("Cơ cấu doanh thu", "01/2026", "06/2026");
+
+    await waitFor(() => {
+      expect(calls.results).toContain("?from=2026-01&to=2026-06");
+    });
+    expect(
+      await screen.findByRole("img", { name: "Cơ cấu doanh thu theo nhóm SP/DV, 01/2026–06/2026" }),
+    ).toBeInTheDocument();
+    expect(inputs(MONTHLY)).toEqual(["09/2026", "11/2026"]);
+    expect(
+      screen.getByRole("img", { name: "Doanh thu và lợi nhuận theo tháng, 09/2026–11/2026" }),
+    ).toBeInTheDocument();
+    expect(calls.results.filter((q) => q === "?from=2026-09&to=2026-11")).toHaveLength(1);
+  });
+
+  test("AC-RPT-167 Top bán chậm: Từ sau Đến → lỗi trong card, không gọi API; Top bán chạy vẫn hiện", async () => {
+    const calls = mockCharts();
+    await openPage(`${PAGE}?tab=sales`);
+    await within(await screen.findByRole("region", { name: "Top bán chạy" })).findByRole("img");
+
+    await setPeriod("Top bán chậm", "10/2026", "08/2026");
+
+    const slow = card("Top bán chậm");
+    expect(await within(slow).findByRole("alert")).toHaveTextContent(
+      "Tháng bắt đầu phải trước hoặc bằng tháng kết thúc",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(calls.sales).not.toContain("?from=2026-10&to=2026-08&metric=revenue");
+    expect(within(card("Top bán chạy")).queryByRole("alert")).toBeNull();
+    expect(within(card("Top bán chạy")).getByRole("img")).toBeInTheDocument();
+  });
+
+  test("AC-RPT-168 card theo tháng: 01/2024–11/2026 → 'Chỉ xem tối đa 24 tháng', không gọi API", async () => {
+    const calls = mockCharts();
+    await openPage();
+    await within(await screen.findByRole("region", { name: MONTHLY })).findByRole("img");
+
+    await setPeriod(MONTHLY, "01/2024", "11/2026");
+
+    expect(await within(card(MONTHLY)).findByRole("alert")).toHaveTextContent(
+      "Chỉ xem tối đa 24 tháng",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(calls.results).not.toContain("?from=2024-01&to=2026-11");
+  });
+
+  test("AC-RPT-169 Pareto kỳ 06–08/2026 + radio Lợi nhuận → metric=profit cùng kỳ của card", async () => {
+    const calls = mockCharts();
+    await openPage(`${PAGE}?tab=sales`);
+    const region = await screen.findByRole("region", { name: "Phân tích Pareto 80/20" });
+    await within(region).findByText("SP 1");
+
+    await setPeriod("Phân tích Pareto 80/20", "06/2026", "08/2026");
+    await waitFor(() => {
+      expect(calls.sales).toContain("?from=2026-06&to=2026-08&metric=revenue");
+    });
+    const user = userEvent.setup();
+    await user.click(
+      within(card("Phân tích Pareto 80/20")).getByRole("radio", { name: "Lợi nhuận" }),
+    );
+
+    await waitFor(() => {
+      expect(calls.sales).toContain("?from=2026-06&to=2026-08&metric=profit");
+    });
+    expect(inputs("Phân tích Pareto 80/20")).toEqual(["06/2026", "08/2026"]);
+    expect(inputs("Top bán chạy")).toEqual(["09/2026", "11/2026"]);
+  });
+
+  test("AC-RPT-166 card chọn đúng kỳ card khác đã tải → dùng lại số liệu, không gọi lại API (B2-10)", async () => {
+    const calls = mockCharts();
+    await openPage();
+    await within(await screen.findByRole("region", { name: MONTHLY })).findByRole("img");
+    await within(card("Cơ cấu doanh thu")).findByRole("img");
+    const before = calls.results.length;
+
+    await setPeriod("Cơ cấu doanh thu", "09/2026", "11/2026");
+
+    expect(
+      await screen.findByRole("img", { name: "Cơ cấu doanh thu theo nhóm SP/DV, 09/2026–11/2026" }),
+    ).toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Only the intermediate periods typed on the way (e.g. 09/2026–11/2026 never refetched).
+    expect(calls.results.slice(before)).not.toContain("?from=2026-09&to=2026-11");
+  });
+
+  test("AC-RPT-134 1 card lỗi 500 → các card khác vẫn hiện, card lỗi giữ bộ chọn kỳ để đổi lại (review M25-01)", async () => {
+    let fail = true;
+    server.use(
+      http.get("/api/v1/reports/business-charts/results", ({ request }) =>
+        fail && new URL(request.url).search === "?from=2026-09&to=2026-11"
+          ? HttpResponse.json({ status: 500, title: "Lỗi" }, { status: 500 })
+          : HttpResponse.json(results()),
+      ),
+    );
+    await openPage();
+
+    expect(await screen.findByText("Không tải được số liệu")).toBeInTheDocument();
+    await within(card("Cơ cấu doanh thu")).findByRole("img");
+    await within(card("Khách hàng mới & quay lại")).findByRole("img");
+    const monthly = card(MONTHLY);
+    expect(within(monthly).queryByRole("img")).toBeNull();
+    expect(within(monthly).queryByLabelText("Đang tải biểu đồ")).toBeNull();
+    expect(within(monthly).getByLabelText("Từ tháng")).toBeInTheDocument();
+
+    fail = false;
+    await setPeriod(MONTHLY, "10/2026", "11/2026");
+    expect(
+      await within(card(MONTHLY)).findByRole("img", { name: /10\/2026–11\/2026/ }),
+    ).toBeInTheDocument();
+  });
+
+  test("AC-RPT-137 không còn màu cứng của thư viện (#666, #fff…) ở trục, viền lát bánh, chấm đường (D3)", async () => {
+    mockCharts();
+    await openPage();
+    const user = userEvent.setup();
+    const hex = /#[0-9a-f]{3,8}\b|rgb\(/i;
+    const offenders = () =>
+      Array.from(screen.getByRole("tabpanel").querySelectorAll("svg *")).flatMap((el) =>
+        ["fill", "stroke"].flatMap((attr) => {
+          const value = el.getAttribute(attr);
+          return value && hex.test(value) ? [`${el.tagName}.${attr}=${value}`] : [];
+        }),
+      );
+
+    await within(await screen.findByRole("region", { name: MONTHLY })).findByRole("img");
+    await within(card("Cơ cấu doanh thu")).findByRole("img");
+    expect(offenders()).toEqual([]);
+
+    await user.click(screen.getByRole("tab", { name: "Bán hàng & sản phẩm" }));
+    await within(await screen.findByRole("region", { name: "Phân tích Pareto 80/20" })).findByText(
+      "SP 1",
+    );
+    expect(offenders()).toEqual([]);
+
+    await user.click(screen.getByRole("tab", { name: "Nhân sự & KPI" }));
+    await within(await screen.findByRole("region", { name: HOURS })).findByText("8 giờ");
+    expect(offenders()).toEqual([]);
   });
 });

@@ -31,7 +31,7 @@ fe = $(if $(HAS_FE),cd frontend && $(1),@echo "⏭  skip frontend step (not scaf
 .PHONY: help setup up down logs ps db-shell migrate migration \
         lint format typecheck test-unit test contract ac migrations-check \
         check-fast check-fast-changed check e2e e2e-a11y screenshots verify mutation mutation-changed \
-        build-prod smoke-prod
+        build-prod smoke-prod reset-uat-data reset-test-data reset-test-db
 
 help: ## List targets
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-18s\033[0m %s\n",$$1,$$2}'
@@ -120,7 +120,13 @@ e2e: ## Dev Docker stack health + Playwright (mobile + desktop, axe)
 	$(if $(wildcard backend/scripts/seed_e2e.py),$(COMPOSE) exec -T backend python -m scripts.seed_e2e)
 	$(call fe,npx playwright test)
 
-reset-test-data: ## Xoá dữ liệu đơn/task/audit, chỉ giữ 3 KH + 6 NV test cố định (KHÔNG chạy ở production)
+reset-uat-data: ## Đưa DB dev về bộ dữ liệu UAT cố định (9 NV, 3 KH, 5 SP/DV, 3 nhóm, chỉ tiêu KPI); chạy lại sau mỗi make e2e/verify (server: DEPLOYMENT.md §10)
+	$(COMPOSE) exec -T backend python -m scripts.reset_uat_data
+
+reset-test-db: ## Tạo lại DB test smyou_test (khi bảng bị chạm giới hạn 1600 cột do upgrade/downgrade lặp lại)
+	$(COMPOSE) exec -T db sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -c "DROP DATABASE IF EXISTS smyou_test" -c "CREATE DATABASE smyou_test"'
+
+reset-test-data: ##Xoá dữ liệu đơn/task/audit, chỉ giữ 3 KH + 6 NV test cố định (KHÔNG chạy ở production)
 	$(COMPOSE) exec -T backend python -m scripts.reset_test_data
 
 e2e-a11y: ## Only accessibility checks

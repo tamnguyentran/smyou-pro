@@ -208,6 +208,15 @@
           "children": []
         },
         {
+          "id": "reports-revenue-product",
+          "label": "Doanh thu theo SP/DV",
+          "icon": "Package",
+          "path": "/reports/revenue-by-product",
+          "capability": "report.revenue.read",
+          "badge": null,
+          "children": []
+        },
+        {
           "id": "reports-customer-gift",
           "label": "Chi phí quà tặng KH",
           "icon": "Gift",

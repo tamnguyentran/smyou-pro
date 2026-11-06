@@ -732,3 +732,44 @@ def test_catalog_menu_hidden_for_technician() -> None:
     catalog = next(item for item in menu["menu"] if item["id"] == "catalog")
     assert "TECHNICIAN" not in permissions.capabilities[catalog["capability"]]
     assert "TECHNICIAN" in permissions.capabilities["catalog.read"]
+
+
+def set_cost_price_snapshot(db: Connection, order_id: uuid.UUID, cost_price: int) -> None:
+    db.execute(
+        text("UPDATE order_lines SET cost_price_snapshot = :cost WHERE order_id = :id"),
+        {"id": order_id, "cost": cost_price},
+    )
+
+
+@pytest.mark.ac("AC-ORD-265")
+def test_technician_never_receives_cost_price_snapshot(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], items: dict[str, uuid.UUID], site: dict
+) -> None:
+    """UAT BUG-02: KTV không có `catalog.read_cost` (Q125) → API chi tiết đơn không trả giá vốn."""
+    insert_line(db, site["order"], items["CAM"], position=1, added_by_id=None, added_on_site=False)
+    set_cost_price_snapshot(db, site["order"], 630_000)
+    binh = client_as(app, BINH)
+
+    added = add_ssd(binh, site["order"], items)
+    fetched = get_order(binh, site["order"])
+
+    stored = db.execute(
+        text("SELECT cost_price_snapshot FROM order_lines WHERE order_id = :id"), {"id": site["order"]}
+    ).scalars()
+    assert None not in list(stored)  # both lines really hold a cost — the API must be what hides it
+
+    for body in (added, fetched):
+        assert len(body["lines"]) == 2
+        assert [line["cost_price_snapshot"] for line in body["lines"]] == [None, None]
+
+
+@pytest.mark.ac("AC-ORD-266")
+def test_cost_price_snapshot_still_visible_to_roles_with_read_cost(
+    app: FastAPI, db: Connection, people: dict[str, uuid.UUID], items: dict[str, uuid.UUID], site: dict
+) -> None:
+    insert_line(db, site["order"], items["CAM"], position=1, added_by_id=None, added_on_site=False)
+    set_cost_price_snapshot(db, site["order"], 630_000)
+
+    for person in (HOA, AN):
+        body = get_order(client_as(app, person), site["order"])
+        assert [line["cost_price_snapshot"] for line in body["lines"]] == [630000]

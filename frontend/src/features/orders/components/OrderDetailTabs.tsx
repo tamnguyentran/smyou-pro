@@ -9,6 +9,7 @@ import { cn } from "../../../lib/cn";
 import { ApiError } from "../../auth/errors";
 import { OrderTasksTab } from "../../dispatch/components/OrderTasksTab";
 import {
+  useCancelActiveOrder,
   useCancelOrder,
   useCompleteOrder,
   useConfirmationAttachments,
@@ -83,7 +84,8 @@ export function OrderDetailTabs({
   const [reviseError, setReviseError] = useState<string | null>(null);
   const [reviseStale, setReviseStale] = useState(false);
   const recallOrder = useRecallOrder();
-  const cancelOrder = useCancelOrder();
+  const cancelDispatchable = useCancelOrder();
+  const cancelActive = useCancelActiveOrder();
   const completeOrder = useCompleteOrder();
   const reviseOrder = useReviseOrder();
   // Query key shared with `ConfirmationAttachmentsTab` (React Query dedupes/caches by key) — needed
@@ -92,7 +94,11 @@ export function OrderDetailTabs({
   const attachments = useConfirmationAttachments(order.id);
 
   const canRecall = order.allowed_commands.includes("recall");
-  const canCancel = order.allowed_commands.includes("cancel");
+  // UAT BUG-03: DRAFT/PENDING_DISPATCH → `cancel`; đã điều phối/đang thực hiện → `cancel_active`
+  // (Manager). Cùng một nút "Huỷ đơn" + form lý do; server quyết định lệnh nào được phép.
+  const cancelIsActive = order.allowed_commands.includes("cancel_active");
+  const canCancel = cancelIsActive || order.allowed_commands.includes("cancel");
+  const cancelOrder = cancelIsActive ? cancelActive : cancelDispatchable;
   const canComplete =
     order.allowed_commands.includes("complete") &&
     order.can_complete &&

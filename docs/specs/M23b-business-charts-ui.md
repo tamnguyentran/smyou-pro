@@ -5,6 +5,8 @@
 - **Phụ thuộc:** M23a (3 endpoint `/reports/business-charts/*`, menu, capability), M21-06a (`DateField` kiểu tháng)
 - **Liên quan:** docs/design/UI_GUIDELINES.md §2 (token màu), §4 (mobile), §8 (a11y); ADR mới — thư viện biểu đồ (Q173)
 
+> **Cập nhật bởi M25-01 (2026-11-04):** bộ lọc "Từ tháng – Đến tháng" chung cho cả trang (mặc định 12 tháng) đã bị bỏ; mỗi card có bộ chọn kỳ riêng — xem `docs/specs/M25-01-business-charts-per-card-period.md`. Phần "kỳ" trong AC-RPT-123/125–129/131/137 và toàn bộ AC-RPT-132 nay áp dụng cho bộ chọn trong từng card; test đã cập nhật theo (chủ SP đồng ý 2026-11-04).
+
 ## 1. Mục tiêu
 Là Manager, tôi muốn xem trên một màn các biểu đồ doanh thu/lợi nhuận, cơ cấu, khách mới/quay lại, Pareto, bán chạy/bán chậm, giờ phân công và tỷ lệ KPI theo kỳ tôi chọn, để nắm nhanh tình hình kinh doanh trên cả điện thoại lẫn máy tính.
 

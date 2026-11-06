@@ -16,6 +16,7 @@ from fastapi import FastAPI
 from sqlalchemy import Connection, Engine, create_engine, text
 
 from app.modules.departments.models import LEGACY_DEPARTMENT_IDS
+from app.modules.employees.domain import MANAGER_BUNDLE
 from tests.conftest import TEST_DATABASE_URL
 from tests.integration.conftest import Person, seed
 from tests.integration.test_departments_api import client_as, problem
@@ -38,6 +39,7 @@ LEGACY = {
 MGR = Person("mig.mgr@smyou.vn", "SmYou@2026", ("MANAGER",), "NV-MIGMGR", "Quản lý kiểm thử", "ECONOMIC")
 
 # key -> (full name, role, department key, is_active, version)
+# A MANAGER always holds the whole MANAGER_BUNDLE (UAT-02 backfill enforces it at head).
 EMPLOYEES = {
     "an": ("Nguyễn Văn An", "MANAGER", "MANAGEMENT", True, 2),
     "binh": ("Lê Văn Bình", "SALE", "SALES", True, 1),
@@ -149,9 +151,10 @@ def consolidated(migrated: None) -> Iterator[dict[str, Any]]:
                         "version": version,
                     },
                 )
+                roles = sorted(MANAGER_BUNDLE) if role == "MANAGER" else [role]
                 conn.execute(
                     text("INSERT INTO employee_roles (employee_id, role) VALUES (:id, :role)"),
-                    {"id": employee_ids[key], "role": role},
+                    [{"id": employee_ids[key], "role": r} for r in roles],
                 )
 
         before = {

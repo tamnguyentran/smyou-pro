@@ -332,6 +332,22 @@ export function useCancelOrder() {
   });
 }
 
+/** AC-ORD-267 (UAT BUG-03): Manager huỷ đơn đã điều phối/đang thực hiện — `cancel_active`. */
+export function useCancelActiveOrder() {
+  const setOrder = useSetOrder();
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: OrderCancelBody }) => {
+      const { data, error, response } = await api.POST("/api/v1/orders/{order_id}/cancel-active", {
+        params: { path: { order_id: id } },
+        body,
+      });
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: setOrder,
+  });
+}
+
 /** AC-ORD-125: AWAITING_CONFIRMATION → COMPLETED. */
 export function useCompleteOrder() {
   const setOrder = useSetOrder();

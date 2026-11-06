@@ -198,7 +198,8 @@
           "id": "order.cancel",
           "roles": {
             "MANAGER": "all",
-            "SALE": "own"
+            "SALE": "own",
+            "CUSTOMER_CARE": "own"
           }
         },
         {
@@ -352,6 +353,7 @@
           "roles": {
             "MANAGER": "self",
             "SALE": "self",
+            "CUSTOMER_CARE": "self",
             "TECH_LEAD": "self",
             "TECHNICIAN": "self"
           }
