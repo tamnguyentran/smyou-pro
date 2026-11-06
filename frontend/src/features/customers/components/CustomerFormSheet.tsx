@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Save, TriangleAlert, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
@@ -205,11 +206,18 @@ export function CustomerFormSheet({
         if (error.problem.code === "STALE_VERSION") setShowReload(true);
         setFormMessage(formError(error, SHOWN_FIELDS));
         const byField = fieldErrors(error);
-        setServerErrors(byField);
-        // AC-UI-069: the form is long — focusing (and so scrolling to) the first field the server
+        // Render the error text first: focusing in the same tick scrolls just the input into view,
+        // and the error line below it could stay off-screen.
+        flushSync(() => {
+          setServerErrors(byField);
+        });
+        // AC-UI-069: the form is long — focusing (and centring) the first field the server
         // rejected shows the error without the user hunting for it, like RHF does client-side.
         const firstField = SHOWN_FIELDS.find((field) => field in byField);
-        if (firstField) setFocus(firstField as keyof CustomerFormValues);
+        if (firstField) {
+          setFocus(firstField as keyof CustomerFormValues);
+          document.activeElement?.scrollIntoView({ block: "center" });
+        }
       } else {
         setFormMessage("Không thực hiện được. Vui lòng thử lại.");
       }

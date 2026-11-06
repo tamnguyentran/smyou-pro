@@ -21,6 +21,13 @@ class NoopWebSocket {
 }
 globalThis.WebSocket = NoopWebSocket as unknown as typeof WebSocket;
 
+/** jsdom has no layout, so it does not implement `scrollIntoView`; forms that centre the first
+ * server-rejected field (AC-UI-069) call it after focusing. No-op here, real in Playwright. */
+if (typeof Element !== "undefined") {
+  // node-environment suites (build/config checks) share this setup file but have no DOM
+  Element.prototype.scrollIntoView = function scrollIntoView() {};
+}
+
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "error" });
 });

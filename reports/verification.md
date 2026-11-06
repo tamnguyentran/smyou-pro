@@ -1,16 +1,20 @@
-# Verification — M26-01 (review round) — 2026-11-06 17:20
+# Verification — CI e2e fixes (AC-UI-069, AC-KPI-054) — 2026-11-06
 
 | Gate | Command | Result |
 |---|---|---|
-| Lint BE/FE | make lint | ✅ ruff/import-linter/eslint/prettier clean (after prettier fix in guide tests) |
-| Typecheck | make typecheck | ✅ mypy 140 files, tsc clean |
-| Unit | make test-unit | ✅ 265 passed (BE) |
-| Integration + generated + stateful | make test | ✅ 1532 passed, 29 deselected, coverage 96.95%; FE vitest 1034 passed (98 files) |
-| Contract drift | make contract | ❌ drift = `permissionMatrix.json` regenerated for UAT-02 (CUSTOMER_CARE order.cancel / notifications) not yet in git index — batch kept uncommitted by owner's instruction |
-| Migrations up/down | make migrations-check | ✅ no new upgrade operations |
-| AC traceability | make ac | ✅ 1686/1686 enforced ACs covered (M26-01: 13/13) |
-| E2E mobile + desktop + axe | make e2e | ⚠️ full suite not run in this round (verify stopped at contract). `frontend/e2e/guide.spec.ts` run by ui-reviewer: 4/4 passed, 0 axe violations |
+| Lint BE/FE | make lint | ✅ |
+| Typecheck | make typecheck | ✅ |
+| Unit + integration + generated + stateful | make test | ✅ BE 1532 passed, coverage 96.95%; FE 1034 passed (98 files) |
+| Contract drift | make contract | ✅ clean |
+| Migrations up/down | make migrations-check | ✅ |
+| AC traceability | make ac | ✅ 1686/1686 enforced ACs covered |
+| E2E mobile + desktop + axe | make e2e | ✅ 312 passed, 2 flaky (passed on retry: dashboard-drilldown AC-UI-071/072 desktop, orders AC-ORD-024… desktop) |
 
-Screenshots: reports/screenshots/mobile/guide-*.png, reports/screenshots/desktop/guide-*.png
-Failures / skipped gates: contract (git-index drift only, file content correct); full `make e2e` not run.
-Fixed during verify: `test_consolidate_departments_migration.py` seeded MANAGER with only one role, conflicting with UAT-02 backfill migration at head → seed now uses MANAGER_BUNDLE (assertions unchanged).
+`make verify` exit 0.
+Screenshots: reports/screenshots/{mobile,desktop}/
+Failures / skipped gates: none.
+
+Fixes in this round:
+- `CustomerFormSheet.tsx`: server 422 errors are rendered (`flushSync`) before focusing the first rejected field, which is then centred (`scrollIntoView({block:"center"})`) — error line no longer left off-screen on mobile (CI failure of AC-UI-069).
+- `e2e/kpi-targets.spec.ts`: `getByLabel("Phòng ban", { exact: true })` — leftover e2e employee "QA Phòng ban" made the locator ambiguous (CI failure of AC-KPI-054). Assertion unchanged.
+- `src/test/setup.ts`: no-op `scrollIntoView` for jsdom.

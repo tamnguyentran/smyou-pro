@@ -43,7 +43,7 @@ test("AC-KPI-054 @a11y @screenshot Thiết lập doanh thu KPI: thẻ (mobile) /
     page.getByRole("heading", { level: 1, name: "Thiết lập doanh thu KPI" }),
   ).toBeVisible();
   await expect(page.getByLabel("Tháng", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Phòng ban")).toBeVisible();
+  await expect(page.getByLabel("Phòng ban", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Tìm")).toBeVisible();
   const copy = page.getByRole("button", { name: "Copy sang tháng sau" });
   expect((await copy.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
