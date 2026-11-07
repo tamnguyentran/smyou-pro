@@ -36,14 +36,17 @@ def insert_order(
     code: str | None = None,
     completed_at: datetime | None = None,
     csat_rating: int | None = None,
+    created_at: datetime | None = None,
 ) -> uuid.UUID:
+    """`created_at` defaults to `completed_at` (created and completed the same day), else now() —
+    UAT-03 (Q186): the `from`/`to` filters of `GET /orders` + `csat-summary` read `created_at`."""
     order_id = uuid.uuid4()
     db.execute(
         text(
             "INSERT INTO orders (id, code, status, created_by, service_address, work_description,"
-            " priority, version, completed_at, csat_rating)"
+            " priority, version, completed_at, csat_rating, created_at)"
             " VALUES (:id, :code, :status, :created_by, '12 Lê Lợi, Q1', 'Lắp đặt', 'NORMAL', 1,"
-            " :completed_at, :csat_rating)"
+            " :completed_at, :csat_rating, COALESCE(:created_at, now()))"
         ),
         {
             "id": order_id,
@@ -51,6 +54,7 @@ def insert_order(
             "status": status,
             "created_by": created_by,
             "completed_at": completed_at,
+            "created_at": created_at or completed_at,
             "csat_rating": csat_rating,
         },
     )
@@ -233,10 +237,11 @@ def test_order_list_includes_csat_rating(app: FastAPI, db: Connection, people: d
 
 @pytest.mark.ac("AC-CSK-010")
 @pytest.mark.ac("AC-CSK-012")
-def test_order_list_filters_by_completed_at_range_and_csat_rating(
+def test_order_list_filters_by_date_range_and_csat_rating(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID]
 ) -> None:
-    """M15-02b: GET /orders lọc theo `from`/`to` (Order.completed_at, khớp Q92) và `csat_rating`."""
+    """M15-02b: GET /orders lọc theo `from`/`to` và `csat_rating`. UAT-03 (Q186, thay Q92): `from`/`to`
+    đọc `created_at` — các đơn ở đây tạo cùng ngày hoàn tất; đơn chưa hoàn tất tạo hôm nay."""
     in_range_5 = insert_order(
         db,
         created_by=people["NV001"],
@@ -373,3 +378,68 @@ def test_order_list_unrated_combines_with_mine(
         str(october_orders["0002"]),
         str(october_orders["0003"]),
     }
+
+
+ALL_ORDER_STATUSES = (
+    "DRAFT",
+    "PENDING_DISPATCH",
+    "IN_PROGRESS",
+    "AWAITING_CONFIRMATION",
+    "COMPLETED",
+    "REVISION",
+    "CANCELLED",
+)
+
+
+@pytest.fixture
+def september_by_created(db: Connection, people: dict[str, uuid.UUID]) -> dict[str, uuid.UUID]:
+    """UAT-03: 1 đơn tạo 10/09/2026 ở mỗi trạng thái (đơn COMPLETED có 3★, hoàn tất 20/09) + 1 đơn
+    tạo 15/08 nhưng hoàn tất 15/09 (3★)."""
+    created = datetime(2026, 9, 10, 3, 0, tzinfo=UTC)
+    orders = {
+        status: insert_order(
+            db,
+            created_by=people["NV001"],
+            status=status,
+            code=f"DH2609-{500 + i:04d}",
+            created_at=created,
+            completed_at=datetime(2026, 9, 20, 3, 0, tzinfo=UTC) if status == "COMPLETED" else None,
+            csat_rating=3 if status == "COMPLETED" else None,
+        )
+        for i, status in enumerate(ALL_ORDER_STATUSES)
+    }
+    orders["created_august"] = insert_order(
+        db,
+        created_by=people["NV001"],
+        status="COMPLETED",
+        code="DH2608-0500",
+        created_at=datetime(2026, 8, 15, 3, 0, tzinfo=UTC),
+        completed_at=datetime(2026, 9, 15, 3, 0, tzinfo=UTC),
+        csat_rating=3,
+    )
+    return orders
+
+
+@pytest.mark.ac("AC-ORD-275")
+def test_order_list_date_range_filters_by_created_at_every_status(
+    app: FastAPI, september_by_created: dict[str, uuid.UUID]
+) -> None:
+    res = client_as(app, LAN).get("/api/v1/orders?from=2026-09-01&to=2026-09-26&limit=50")
+    assert res.status_code == 200, res.text
+    ids = {item["id"] for item in res.json()["items"]}
+    assert ids == {str(september_by_created[status]) for status in ALL_ORDER_STATUSES}
+    assert str(september_by_created["created_august"]) not in ids
+
+
+@pytest.mark.ac("AC-ORD-276")
+def test_csat_summary_counts_by_created_at_and_matches_rating_filter(
+    app: FastAPI, september_by_created: dict[str, uuid.UUID]
+) -> None:
+    lan = client_as(app, LAN)
+
+    summary = lan.get("/api/v1/orders/csat-summary?from=2026-09-01&to=2026-09-26").json()
+    rows = lan.get("/api/v1/orders?from=2026-09-01&to=2026-09-26&csat_rating=3").json()
+
+    assert summary["3"] == 1
+    assert [item["id"] for item in rows["items"]] == [str(september_by_created["COMPLETED"])]
+    assert rows["total"] == summary["3"]

@@ -44,7 +44,7 @@ export interface OrderFilters {
 
 /** AC-ORD-069: danh sách đơn — tìm theo mã/tên khách/SĐT, lọc theo trạng thái.
  * AC-DASH-022/023/024/025 (M10-03): `mine` lọc hẹp thêm theo `created_by` sau scope hiện có.
- * AC-CSK-010/012 (M15-02b): `dateFrom`/`dateTo` lọc theo `Order.completed_at` (Q92), `csatRating`
+ * AC-CSK-010/012 (M15-02b): `dateFrom`/`dateTo` lọc theo `Order.created_at` (UAT-03, Q186), `csatRating`
  * lọc theo 1 mức sao — cùng tham số với `GET /orders/csat-summary` để số đếm luôn khớp danh sách.
  * AC-CSK-030 (M20-02): `csatUnrated` lọc đơn đã hoàn thành chưa đánh giá (ô "none"). */
 export function useOrders(filters: OrderFilters, { enabled = true }: { enabled?: boolean } = {}) {

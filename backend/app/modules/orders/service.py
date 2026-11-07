@@ -773,10 +773,12 @@ def list_orders(
         query = query.where(Order.status == status)
     if mine:
         query = query.where(Order.created_by == actor.id)
+    # UAT-03 (Q186, replaces Q92): the list's date range is the order's creation date, so orders in
+    # every status show — `get_csat_summary` uses the same column so a tile's count == its rows.
     if date_from is not None:
-        query = query.where(Order.completed_at >= _vn_day_start_utc(date_from))
+        query = query.where(Order.created_at >= _vn_day_start_utc(date_from))
     if date_to is not None:
-        query = query.where(Order.completed_at < _vn_day_start_utc(date_to + timedelta(days=1)))
+        query = query.where(Order.created_at < _vn_day_start_utc(date_to + timedelta(days=1)))
     if csat_rating is not None:
         query = query.where(Order.csat_rating == csat_rating)
     if csat_unrated:
@@ -1341,8 +1343,8 @@ def get_csat_summary(
         select(Order.csat_rating, func.count())
         .where(
             Order.status == "COMPLETED",
-            Order.completed_at >= _vn_day_start_utc(date_from),
-            Order.completed_at < _vn_day_start_utc(date_to + timedelta(days=1)),
+            Order.created_at >= _vn_day_start_utc(date_from),
+            Order.created_at < _vn_day_start_utc(date_to + timedelta(days=1)),
         )
         .group_by(Order.csat_rating),
         actor,

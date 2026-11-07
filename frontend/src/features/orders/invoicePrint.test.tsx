@@ -304,6 +304,61 @@ describe("AC-ORD-206 đơn đã huỷ", () => {
   });
 });
 
+/** Gives the sheet `heightMm` of layout height (jsdom has no layout, every box is 0 × 0). */
+function sheetHeight(heightMm: number) {
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+    this: HTMLElement,
+  ) {
+    const height = this.dataset.testid === "invoice-print" ? heightMm * (96 / 25.4) : 0;
+    return DOMRect.fromRect({ width: 0, height });
+  });
+}
+
+async function printOnce() {
+  mockViewport(true);
+  signedInAs(thuyId, THUY);
+  serveOrder(order({ status: "DRAFT", allowed_commands: ["submit", "cancel"] }));
+  server.use(http.get("/api/v1/orders/:id/invoice-print", () => HttpResponse.json(printData())));
+  const seen: { paper?: string; a4Rule: boolean }[] = [];
+  vi.spyOn(window, "print").mockImplementation(() => {
+    seen.push({
+      paper: screen.getByTestId("invoice-print").dataset.paper,
+      a4Rule: [...document.head.querySelectorAll("style")].some((el) =>
+        /@page\s*{[^}]*size:\s*A4 portrait/.test(el.textContent),
+      ),
+    });
+  });
+  renderApp(`/orders/${orderId}`);
+  await userEvent.setup().click(await screen.findByRole("button", { name: "In" }));
+  await waitFor(() => {
+    expect(seen).toHaveLength(1);
+  });
+  return seen[0];
+}
+
+describe("AC-ORD-278/279 khổ giấy theo chiều dài hoá đơn", () => {
+  test("AC-ORD-278 bản in vừa 1 trang A5 ngang → data-paper=A5, không có quy tắc A4", async () => {
+    sheetHeight(120);
+    expect(await printOnce()).toEqual({ paper: "A5", a4Rule: false });
+  });
+
+  test("AC-ORD-278 bản in dài hơn 1 trang A5 ngang → data-paper=A4 + @page A4 portrait", async () => {
+    sheetHeight(200);
+    expect(await printOnce()).toEqual({ paper: "A4", a4Rule: true });
+  });
+
+  test("AC-ORD-279 hộp thoại in đóng → gỡ quy tắc A4", async () => {
+    sheetHeight(200);
+    await printOnce();
+    window.dispatchEvent(new Event("afterprint"));
+    const rules = [...document.head.querySelectorAll("style")].filter((el) =>
+      /A4 portrait/.test(el.textContent),
+    );
+    expect(rules).toHaveLength(0);
+    expect(screen.queryByTestId("invoice-print")).not.toBeInTheDocument();
+  });
+});
+
 describe("AC-ORD-209 in đơn nháp đã lưu", () => {
   test("AC-ORD-209 bấm In → gọi API in rồi window.print với dữ liệu đã lưu", async () => {
     mockViewport(true);

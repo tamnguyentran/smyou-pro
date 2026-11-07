@@ -32,7 +32,7 @@ Là CSKH, tôi muốn thấy ngay trên danh sách đơn đơn nào đã đượ
 
 ## 4. API
 Không có route mới — dùng `GET /orders`, `GET /orders/csat-summary`, `POST /orders/{id}/csat` từ M15-02a. `GET /orders` hiện **chưa** có tham số `from`/`to` (ngày) hay `csat_rating`, và `OrderSummary` (item danh sách) chưa có trường `csat_rating` — mở rộng route hiện có (không phải route mới) để đáp ứng AC-CSK-010/011/012:
-- Thêm query `from`/`to` (alias trùng `GET /orders/csat-summary`, lọc theo `Order.completed_at` — khớp Q92: đơn chưa `COMPLETED` sẽ không có trong danh sách khi đặt bộ lọc ngày) và `csat_rating: int | None` (lọc chính xác 1 mức sao).
+- Thêm query `from`/`to` (alias trùng `GET /orders/csat-summary`, lọc theo `Order.completed_at` — khớp Q92: đơn chưa `COMPLETED` sẽ không có trong danh sách khi đặt bộ lọc ngày) — **thay bởi UAT-03 (Q186, 2026-11-07): lọc theo `Order.created_at`**, cả `GET /orders` lẫn `csat-summary` và `csat_rating: int | None` (lọc chính xác 1 mức sao).
 - Thêm trường `csat_rating: int | None` vào `OrderSummary` để FE tô màu dòng/thẻ mà không phải gọi thêm API theo từng đơn.
 
 ## 5. Dữ liệu / Migration

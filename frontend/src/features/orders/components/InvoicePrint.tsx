@@ -58,7 +58,7 @@ function TotalRow({
   );
 }
 
-/** "Hoá đơn bán hàng" A5 ngang theo mẫu giấy công ty (M17-04 §6). Dòng hàng/tổng lấy từ `order`
+/** "Hoá đơn bán hàng" A5 ngang theo mẫu giấy công ty (M17-04 §6); dài hơn 1 trang A5 → A4 dọc (UAT-04). Dòng hàng/tổng lấy từ `order`
  * (GET /orders/{id}); `data` chỉ mang phần riêng của bản in. Chỉ hiện khi in — xem `.invoice-print`
  * trong styles/index.css. */
 export function InvoicePrint({ order, data }: { order: Order; data: InvoicePrintData }) {
@@ -79,33 +79,38 @@ export function InvoicePrint({ order, data }: { order: Order; data: InvoicePrint
       className="invoice-print bg-white text-[8pt] leading-snug text-black"
       style={{ fontFamily: "system-ui, Arial, sans-serif" }}
     >
-      <header className="flex items-start gap-3 border-b border-black pb-2">
+      <header className="flex items-start gap-3 border-b border-black pb-1">
         {company.logo_url ? (
           <img
             src={company.logo_url}
             alt="Logo công ty"
-            className="h-14 w-auto shrink-0 object-contain"
+            className="h-10 w-auto shrink-0 object-contain"
           />
         ) : null}
-        <div className="min-w-0 space-y-0.5">
+        <div className="min-w-0">
           <p className="text-[10pt] font-bold uppercase">{company.name}</p>
           <p>Địa chỉ: {company.address}</p>
           <p>{contacts.join(" - ")}</p>
         </div>
       </header>
 
-      <h1 className="my-3 text-center text-[13pt] font-bold">HÓA ĐƠN BÁN HÀNG</h1>
+      <h1 className="my-1.5 text-center text-[13pt] font-bold">HÓA ĐƠN BÁN HÀNG</h1>
 
       <section className="grid grid-cols-[1fr_auto] gap-x-4">
-        <div className="min-w-0 space-y-0.5">
-          <Field label="Tên khách hàng" value={order.customer_name} />
-          <Field label="Địa chỉ" value={order.service_address} />
+        {/* UAT-04: paired fields share a row so a short order fits one A5 landscape page. */}
+        <div className="grid min-w-0 grid-cols-2 gap-x-4">
+          <div className="col-span-2">
+            <Field label="Tên khách hàng" value={order.customer_name} />
+          </div>
+          <div className="col-span-2">
+            <Field label="Địa chỉ" value={order.service_address} />
+          </div>
           <Field label="Mã số thuế" value={order.customer_tax_code} />
           <Field label="Điện thoại" value={order.customer_phone} />
           <Field label="Email" value={order.customer_email} />
           <Field label="Diễn giải" value={order.work_description} />
         </div>
-        <div className="space-y-0.5">
+        <div>
           <Field label="Ngày xuất" value={printedOn} />
           <Field label="Số phiếu" value={data.slip_no} />
           <Field label="Loại tiền" value="VND" />
@@ -114,7 +119,7 @@ export function InvoicePrint({ order, data }: { order: Order; data: InvoicePrint
 
       {/* 2px narrower than the sheet: with collapsed borders half of the outer border lies outside the
           table box, and at exactly 100% the page edge clipped the right border on paper. */}
-      <table className="mx-px mt-3 w-[calc(100%-2px)] border-collapse text-[8pt]">
+      <table className="mx-px mt-1.5 w-[calc(100%-2px)] border-collapse text-[8pt]">
         <thead className="table-header-group">
           <tr>
             {COLUMNS.map(({ label, className }) => (
@@ -152,19 +157,21 @@ export function InvoicePrint({ order, data }: { order: Order; data: InvoicePrint
         </tbody>
       </table>
 
-      <div data-testid="invoice-totals" className="ml-auto mt-2 w-1/2 space-y-0.5">
-        {/* Chủ dự án 2026-10-29: always these 4 lines = column sums 9, 8, 10, 11 of the table
+      <div className="mt-1.5 flex items-start gap-4">
+        <p className="min-w-0 flex-1">
+          Số tiền bằng chữ: <span className="font-semibold italic">{vndToWords(order.total)}</span>
+        </p>
+        <div data-testid="invoice-totals" className="w-1/2 shrink-0">
+          {/* Chủ dự án 2026-10-29: always these 4 lines = column sums 9, 8, 10, 11 of the table
             (chưa VAT − chiết khấu + VAT = thanh toán). */}
-        <TotalRow label="Tổng tiền chưa có VAT:" amount={order.subtotal} />
-        <TotalRow label="Tổng chiết khấu:" amount={order.discount_amount} />
-        <TotalRow label="Tổng tiền VAT:" amount={order.vat_amount} />
-        <TotalRow label="Tổng tiền thanh toán đã có VAT:" amount={order.total} strong />
+          <TotalRow label="Tổng tiền chưa có VAT:" amount={order.subtotal} />
+          <TotalRow label="Tổng chiết khấu:" amount={order.discount_amount} />
+          <TotalRow label="Tổng tiền VAT:" amount={order.vat_amount} />
+          <TotalRow label="Tổng tiền thanh toán đã có VAT:" amount={order.total} strong />
+        </div>
       </div>
-      <p className="mt-2">
-        Số tiền bằng chữ: <span className="font-semibold italic">{vndToWords(order.total)}</span>
-      </p>
 
-      <footer className="mt-3 grid break-inside-avoid grid-cols-2 text-center">
+      <footer className="mt-2 grid break-inside-avoid grid-cols-2 text-center">
         <div>
           {/* Same height as the date line on the right, so both signature titles sit on one row. */}
           <p aria-hidden="true">&nbsp;</p>
@@ -175,7 +182,7 @@ export function InvoicePrint({ order, data }: { order: Order; data: InvoicePrint
           <p className="italic">{`Ngày ${day} tháng ${month} năm ${year}`}</p>
           <p className="font-bold">Người lập</p>
           <p className="italic">(Ký, ghi rõ họ tên)</p>
-          <p className="mt-14 font-semibold">{data.issuer_name}</p>
+          <p className="mt-10 font-semibold">{data.issuer_name}</p>
         </div>
       </footer>
     </div>

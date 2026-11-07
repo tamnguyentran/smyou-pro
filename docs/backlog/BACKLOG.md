@@ -11,6 +11,8 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 ## UAT — Sửa lỗi từ lượt AI tự test (2026-11-06)
 - `[~]` UAT-01 — BUG-01: thêm người cho đầu việc "Cần giao lại" phải đưa đơn về lại "Đang thực hiện" (Q90); BUG-02: API chi tiết đơn không trả giá vốn cho KTV (Q125); BUG-03: nút "Huỷ đơn" cho đơn đang thực hiện (`cancel_active`, UI chưa từng làm). `docs/specs/UAT-01-ai-uat-bugfixes.md` (7 AC). KB-01…07 sửa ở `scripts/build_uat_workbook.py`; lượt AI test 2: 136/136 Đạt (`docs/uat/AI_tu_test.xlsx`, ảnh `reports/uat-ai-2/`). Workbook khách hàng bổ sung case thiếu (mục 13 CS7, NS/DM/PQ/BC) → 170 bước; Q183–Q185 đã chốt → UAT-02.
 - `[~]` UAT-02 — Q183: huỷ được đơn có mọi đầu việc đã huỷ (guard `order_has_no_live_tasks`), CSKH huỷ đơn mình tạo; Q184: CSKH đọc thông báo; Q185: migration bổ sung Sale/CSKH/QLKT cho mọi Manager. `docs/specs/UAT-02-cancel-notify-manager-roles.md` (9 AC). Workbook khách hàng 175 bước.
+- `[~]` UAT-03 — Q186: danh sách đơn + ô thống kê sao lọc ngày theo ngày tạo đơn (thay Q92); Q187: lịch ô ngày giờ chọn được cả giờ/phút (mặc định 17:00); Q188: dòng giải thích ở tab "Tệp đính kèm" khi đơn chưa "Chờ KH xác nhận". `docs/specs/UAT-03-order-list-created-date-due-time.md` (7 AC).
+- `[~]` UAT-04 — Hoá đơn bán hàng dài hơn 1 trang A5 ngang tự in khổ A4 dọc (đo chiều cao bản in trước khi in); thu gọn mẫu A5 để đơn ≤ ~6 dòng vừa 1 trang. `docs/specs/UAT-04-invoice-auto-a4.md` (4 AC).
 
 ## M25 — Biểu đồ kinh doanh: thời gian tra cứu theo từng card (2026-11-04)
 - `[~]` M25-01 — Bỏ bộ lọc tháng chung; mỗi card biểu đồ có bộ chọn riêng (Từ–Đến tháng hoặc 1 tháng) với mặc định riêng; chỉ frontend. `docs/specs/M25-01-business-charts-per-card-period.md` (10 AC; Q180–Q182).

@@ -307,6 +307,74 @@ describe("DateField mode datetime", () => {
     expect(screen.getByLabelText("Bắt đầu")).toHaveValue("05/11/2026 14:30");
     expect(spy).toHaveBeenLastCalledWith("2026-11-05T14:30");
   });
+
+  test("AC-UI-108 ô trống, chọn ngày 05 trên lịch → điền giờ 17:00", async () => {
+    const spy = vi.fn();
+    const user = userEvent.setup();
+    render(<Controlled mode="datetime" label="Hạn hoàn thành" spy={spy} />);
+    await user.click(screen.getByRole("button", { name: "Chọn ngày" }));
+    const dialog = screen.getByRole("dialog", { name: "Chọn ngày" });
+    await user.click(within(dialog).getByRole("button", { name: "5" }));
+    expect(screen.getByLabelText("Hạn hoàn thành")).toHaveValue("05/11/2026 17:00");
+    expect(spy).toHaveBeenLastCalledWith("2026-11-05T17:00");
+  });
+
+  test("AC-UI-110 lịch có chọn giờ/phút: chọn ngày 05, Giờ 09, Phút 30 → 05/11/2026 09:30; Xong đóng lịch", async () => {
+    const spy = vi.fn();
+    const user = userEvent.setup();
+    render(<Controlled mode="datetime" label="Hạn hoàn thành" spy={spy} />);
+    await user.click(screen.getByRole("button", { name: "Chọn ngày" }));
+    const dialog = screen.getByRole("dialog", { name: "Chọn ngày" });
+    await user.click(within(dialog).getByRole("button", { name: "5" }));
+    expect(screen.getByRole("dialog", { name: "Chọn ngày" })).toBeInTheDocument();
+    await user.selectOptions(within(dialog).getByLabelText("Giờ"), "09");
+    await user.selectOptions(within(dialog).getByLabelText("Phút"), "30");
+    expect(screen.getByLabelText("Hạn hoàn thành")).toHaveValue("05/11/2026 09:30");
+    expect(spy).toHaveBeenLastCalledWith("2026-11-05T09:30");
+    await user.click(within(dialog).getByRole("button", { name: "Xong" }));
+    expect(screen.queryByRole("dialog", { name: "Chọn ngày" })).not.toBeInTheDocument();
+  });
+
+  test("AC-UI-111 ô trống, chọn Giờ 08 trước khi chọn ngày → ngày hôm nay 08:00; ô giờ hiện giờ đã có", async () => {
+    const spy = vi.fn();
+    const user = userEvent.setup();
+    render(<Controlled mode="datetime" label="Hạn hoàn thành" spy={spy} />);
+    await user.click(screen.getByRole("button", { name: "Chọn ngày" }));
+    const dialog = screen.getByRole("dialog", { name: "Chọn ngày" });
+    expect(within(dialog).getByLabelText("Giờ")).toHaveValue("17");
+    expect(within(dialog).getByLabelText("Phút")).toHaveValue("00");
+    await user.selectOptions(within(dialog).getByLabelText("Giờ"), "08");
+    expect(screen.getByLabelText("Hạn hoàn thành")).toHaveValue("04/11/2026 08:00");
+    expect(spy).toHaveBeenLastCalledWith("2026-11-04T08:00");
+  });
+
+  test("AC-UI-111 giờ đã gõ 14:37 (lẻ) → ô Phút có 37 và giữ nguyên", async () => {
+    const user = userEvent.setup();
+    render(
+      <Controlled
+        mode="datetime"
+        label="Hạn hoàn thành"
+        initial="2026-11-04T14:37"
+        spy={vi.fn()}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Chọn ngày" }));
+    const dialog = screen.getByRole("dialog", { name: "Chọn ngày" });
+    expect(within(dialog).getByLabelText("Giờ")).toHaveValue("14");
+    expect(within(dialog).getByLabelText("Phút")).toHaveValue("37");
+  });
+
+  test("AC-UI-109 giờ gõ chưa đủ (0411202614), chọn ngày 05 → giờ 17:00", async () => {
+    const spy = vi.fn();
+    const user = userEvent.setup();
+    render(<Controlled mode="datetime" label="Hạn hoàn thành" spy={spy} />);
+    await user.type(screen.getByLabelText("Hạn hoàn thành"), "0411202614");
+    await user.click(screen.getByRole("button", { name: "Chọn ngày" }));
+    const dialog = screen.getByRole("dialog", { name: "Chọn ngày" });
+    await user.click(within(dialog).getByRole("button", { name: "5" }));
+    expect(screen.getByLabelText("Hạn hoàn thành")).toHaveValue("05/11/2026 17:00");
+    expect(spy).toHaveBeenLastCalledWith("2026-11-05T17:00");
+  });
 });
 
 describe("DateField lỗi/gợi ý/disabled/kích thước", () => {

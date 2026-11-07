@@ -64,6 +64,6 @@ Không có.
 - Giả định A1: gợi ý "Tháng 11/2026" dưới ô ở 2 trang KPI **giữ nguyên** (dù trùng ý với ô) — để không đổi các test đã có (AC-KPI-047, AC-RPT liên quan).
 - Giả định A2 (ảnh hưởng test đã commit): 2 test component đang kiểm `getByLabelText("Tháng")` `toHaveValue("2026-11")` và `fireEvent.change(..., "2026-12")` (`kpiTargets.test.tsx:192,309`, `kpiSales.test.tsx:181`) gắn với chi tiết của ô native. Sau thay đổi ô hiển thị `11/2026`, nên các dòng này phải đổi sang `toHaveValue("11/2026")` / gõ `122026` — **ý nghĩa AC không đổi** (vẫn kiểm tháng mặc định & đổi tháng). Đây là sửa test theo spec mới, không phải làm yếu test; cần chủ SP đồng ý khi duyệt spec.
 - Giả định A3: tuần bắt đầu **thứ Hai** (T2…CN) theo thói quen VN; không có nút "Hôm nay" (đơn giản hoá) — chỉ đánh viền ngày hôm nay.
-- Giả định A4: datetime trong 06a chỉ chỉnh giờ bằng gõ tay (không có bộ chọn giờ); đủ cho ô tạo/sửa task ở 06b.
+- Giả định A4: datetime trong 06a chỉ chỉnh giờ bằng gõ tay (không có bộ chọn giờ); đủ cho ô tạo/sửa task ở 06b. **Thay bởi UAT-03 (Q187, 2026-11-07): khung lịch có ô Giờ/Phút.**
 - Không có câu hỏi nghiệp vụ mới (thuần UI, chủ SP đã chốt định dạng 2026-11-02) → không thêm dòng vào `OPEN_QUESTIONS.md`.
 - Ước lượng: ~300 dòng code (component + 2 chỗ dùng) — không cần tách nhỏ thêm.

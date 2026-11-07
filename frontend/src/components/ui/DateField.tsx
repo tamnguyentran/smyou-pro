@@ -2,6 +2,7 @@ import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
 import { vnToday } from "../../lib/dateRange";
 import { cn } from "../../lib/cn";
+import { Select } from "./Select";
 
 export type DateFieldMode = "month" | "date" | "datetime";
 
@@ -96,6 +97,14 @@ function toDigits(value: string, mode: DateFieldMode, withSeconds: boolean): str
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
+/** HHmm the picker starts from in datetime mode when no complete time is typed (Q187). */
+const DEFAULT_TIME = "1700";
+const HOURS = Array.from({ length: 24 }, (_, h) => pad(h));
+/** 5-minute steps, plus an odd typed minute so the select still shows it. */
+function minuteOptions(current: string): string[] {
+  const steps = Array.from({ length: 12 }, (_, i) => pad(i * 5));
+  return steps.includes(current) || !/^[0-5]\d$/.test(current) ? steps : [...steps, current].sort();
+}
 const vnDate = (iso: string) => iso.split("-").reverse().join("/");
 
 /** `yyyy-MM-dd` outside [min, max] → the Vietnamese error to show; inside (or unbounded) → null. */
@@ -232,6 +241,21 @@ export function DateField({
     setView({ year: year ?? 1970, month: month ?? 1 });
   }
 
+  /** Picker's time (HHmm[ss]): the typed one when complete, else 17:00 (Q187). */
+  const timeLength = total(p) - 8;
+  const typedTime = digits.slice(8);
+  const time =
+    mode !== "datetime"
+      ? ""
+      : typedTime.length === timeLength
+        ? typedTime
+        : DEFAULT_TIME.padEnd(timeLength, "0");
+
+  /** Time picked before any day → today's date. */
+  function setTime(next: string) {
+    commit(`${toDigits(current.slice(0, 10) || today, "date", false)}${next}`);
+  }
+
   function pick(next: string) {
     commit(next);
     setView(null);
@@ -355,11 +379,53 @@ export function DateField({
                 max={bounded ? max : undefined}
                 onShift={shiftMonth}
                 onPick={(day) => {
-                  // Datetime keeps whatever time was already typed (time is edited by typing).
-                  pick(`${pad(day)}${pad(view.month)}${String(view.year)}${digits.slice(8)}`);
+                  const date = `${pad(day)}${pad(view.month)}${String(view.year)}`;
+                  // Datetime stays open so the time can be picked next (UAT-03, Q187).
+                  if (mode === "datetime") commit(`${date}${time}`);
+                  else pick(date);
                 }}
               />
             )}
+            {mode === "datetime" ? (
+              <div className="mt-2 flex items-end gap-2 border-t border-line pt-2">
+                <Select
+                  label="Giờ"
+                  value={time.slice(0, 2)}
+                  onChange={(event) => {
+                    setTime(`${event.target.value}${time.slice(2)}`);
+                  }}
+                >
+                  {HOURS.map((hh) => (
+                    <option key={hh} value={hh}>
+                      {hh}
+                    </option>
+                  ))}
+                </Select>
+                <Select
+                  label="Phút"
+                  value={time.slice(2, 4)}
+                  onChange={(event) => {
+                    setTime(`${time.slice(0, 2)}${event.target.value}${time.slice(4)}`);
+                  }}
+                >
+                  {minuteOptions(time.slice(2, 4)).map((mi) => (
+                    <option key={mi} value={mi}>
+                      {mi}
+                    </option>
+                  ))}
+                </Select>
+                <button
+                  type="button"
+                  className="min-h-11 shrink-0 rounded-xl bg-brand px-4 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+                  onClick={() => {
+                    setView(null);
+                    triggerRef.current?.focus();
+                  }}
+                >
+                  Xong
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
