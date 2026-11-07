@@ -3,9 +3,10 @@
 import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from app.core.authz import Actor, require
+from app.core.csv_export import VIETNAM
 from app.core.db import DbSession
 from app.core.request_id import get_request_id
 from app.modules.customers import service
@@ -46,6 +47,30 @@ def list_customers(
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> CustomerPage:
     return service.list_customers(session, actor, q=q, customer_type=type, limit=limit, offset=offset)
+
+
+# Declared before `/{customer_id}` so "export" isn't parsed as a UUID (→ 422).
+@router.get(
+    "/export",
+    operation_id="customers_export",
+    summary="Xuất CSV toàn bộ khách hàng theo bộ lọc (M20-05)",
+    response_class=Response,
+    responses={200: {"content": {"text/csv": {}}}},
+)
+def export_customers(
+    request: Request,
+    session: DbSession,
+    actor: Manager,
+    q: Annotated[str | None, Query(max_length=100)] = None,
+    type: CustomerType | None = None,
+) -> Response:
+    csv_bytes = service.export_customers(session, actor, q=q, customer_type=type)
+    today = request.app.state.clock().astimezone(VIETNAM).date()
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="khach-hang-{today.isoformat()}.csv"'},
+    )
 
 
 @router.get(

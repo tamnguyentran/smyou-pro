@@ -188,15 +188,15 @@ test("AC-DASH-054 AC-DASH-056 AC-DASH-058 AC-DASH-059 @a11y @screenshot An (MANA
   await evidence(page, info, "dashboard-top-customers-feedback-summary.png");
 });
 
-test("AC-DASH-116 AC-DASH-120 AC-DASH-122 @a11y @screenshot Lan (CSKH) bấm 'Khách hàng đã chăm sóc' + '2★' → popup phản hồi; mobile là sheet, không Excel", async ({
+test("AC-DASH-116 AC-DASH-120 AC-DASH-122 @a11y @screenshot Lan (CSKH) bấm 'KH đã gọi' + '2★' → popup phản hồi; mobile là sheet, không Excel", async ({
   page,
 }, info) => {
   await signIn(page, CUSTOMER_CARE, "/");
   await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
   const desktop = (page.viewportSize()?.width ?? 0) >= 1024;
 
-  const tile = await openPopup(page, "Chăm sóc khách hàng (tháng này)", /Khách hàng đã chăm sóc/);
-  const care = page.getByRole("dialog", { name: /^Khách hàng đã chăm sóc \([1-9]\d*\)$/ });
+  const tile = await openPopup(page, "Chăm sóc khách hàng (tháng này)", /KH đã gọi/);
+  const care = page.getByRole("dialog", { name: /^KH đã gọi \([1-9]\d*\)$/ });
   await expect(care).toBeVisible();
   await expect(page).toHaveURL(/\/$/);
   await expect(care.getByRole("link").first()).toHaveAttribute("href", /\/orders\//);
@@ -239,4 +239,181 @@ test("AC-DASH-119 AC-DASH-120 AC-DASH-122 @a11y @screenshot An (MANAGER) bấm k
   }
   await noHorizontalScroll(page);
   await evidence(page, info, "dashboard-card-popup-top-customer.png");
+});
+
+/** Top of each tile's bounding box in the section grid, in DOM order. */
+async function tileBoxes(page: Page, section: string, count = 4) {
+  const block = page.locator("section", { has: page.getByRole("heading", { name: section }) });
+  const tiles = block.locator(".grid > button");
+  await expect(tiles).toHaveCount(count);
+  for (const tile of await tiles.all()) await expect(tile).toBeVisible();
+  // Measure all tiles in one frame: sections above can finish loading and shift
+  // the layout between per-tile boundingBox() calls.
+  const measured = await tiles.evaluateAll((els) =>
+    els.map((el) => {
+      const r = el.getBoundingClientRect();
+      // Grid items stretch anyway; the visible coloured card inside must fill the button too.
+      const card = el.firstElementChild?.getBoundingClientRect().height ?? 0;
+      return { x: r.x, y: r.y, width: r.width, height: r.height, card };
+    }),
+  );
+  expect(measured).toHaveLength(count);
+  for (const { height, card } of measured) {
+    expect(Math.abs(card - height), `${section}: thẻ màu lấp đầy ô lưới`).toBeLessThanOrEqual(1);
+  }
+  const boxes = measured.map(({ x, y, width, height }) => ({ x, y, width, height }));
+  return { tiles, boxes };
+}
+
+test("AC-UI-054 AC-UI-055 @screenshot Tuấn (TECH_LEAD): 'Điều phối' + 'Nhân sự kỹ thuật' 2×2 trên điện thoại, 1 hàng 4 thẻ trên tablet/desktop", async ({
+  page,
+}, info) => {
+  await signIn(page, TECH_LEAD, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+  const desktop = (page.viewportSize()?.width ?? 0) >= 1024;
+  const widths = desktop ? [1440, 768] : [page.viewportSize()?.width ?? 390];
+
+  for (const width of widths) {
+    if (desktop) await page.setViewportSize({ width, height: 900 });
+    for (const section of ["Điều phối", "Nhân sự kỹ thuật"]) {
+      const { tiles, boxes } = await tileBoxes(page, section);
+      type Box = { x: number; y: number; width: number; height: number };
+      const [a, b, c, d] = boxes as [Box, Box, Box, Box];
+      if (desktop) {
+        const where = `AC-UI-055 ${section} @${String(width)}px`;
+        expect(new Set(boxes.map((box) => Math.round(box.y))).size, where).toBe(1);
+        expect(new Set(boxes.map((box) => Math.round(box.width))).size, where).toBe(1);
+        for (const tile of await tiles.all()) {
+          const label = tile.locator("p").first();
+          const overflow = await label.evaluate((el) => el.scrollWidth > el.clientWidth);
+          expect(overflow).toBe(false);
+        }
+      } else {
+        expect(Math.round(a.y)).toBe(Math.round(b.y));
+        expect(Math.round(c.y)).toBe(Math.round(d.y));
+        expect(c.y).toBeGreaterThan(a.y);
+      }
+      for (const box of boxes) expect(box.height).toBeGreaterThanOrEqual(44);
+    }
+    await noHorizontalScroll(page);
+  }
+  if (desktop) await page.setViewportSize({ width: 1440, height: 900 });
+  await evidence(page, info, "dashboard-dispatch-staff-grid.png");
+});
+
+type Box = { x: number; y: number; width: number; height: number };
+
+function sameHeight(boxes: Box[], where: string) {
+  const heights = boxes.map((box) => box.height);
+  expect(Math.max(...heights) - Math.min(...heights), where).toBeLessThanOrEqual(1);
+}
+
+test("AC-UI-071 AC-UI-072 @screenshot 'Chăm sóc khách hàng': thẻ 'KH đã gọi' trọn hàng 1 trên điện thoại, 3 thẻ 1 hàng cao đều trên tablet/desktop", async ({
+  page,
+}, info) => {
+  const desktop = (page.viewportSize()?.width ?? 0) >= 1024;
+  // M21-03: Manager/CSKH có thêm thẻ thứ 4 (test AC-DASH-129 bên dưới); SALE/QLKT giữ 3 thẻ.
+  await signIn(page, desktop ? TECH_LEAD : SALE, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+  const section = "Chăm sóc khách hàng (tháng này)";
+  const widths = desktop ? [1440, 768] : [page.viewportSize()?.width ?? 390];
+
+  for (const width of widths) {
+    if (desktop) await page.setViewportSize({ width, height: 900 });
+    const { tiles, boxes } = await tileBoxes(page, section, 3);
+    const [first, second, third] = boxes as [Box, Box, Box];
+    await expect(tiles.first().locator("p").first()).toHaveText("KH đã gọi");
+    await expect(tiles.first()).toContainText(/Hôm nay: \d+/);
+    if (desktop) {
+      const where = `AC-UI-072 @${String(width)}px`;
+      expect(new Set(boxes.map((box) => Math.round(box.y))).size, where).toBe(1);
+      expect(new Set(boxes.map((box) => Math.round(box.width))).size, where).toBe(1);
+      sameHeight(boxes, where);
+      for (const tile of await tiles.all()) {
+        const label = tile.locator("p").first();
+        const overflow = await label.evaluate((el) => el.scrollWidth > el.clientWidth);
+        expect(overflow, where).toBe(false);
+      }
+    } else {
+      const grid = page
+        .locator("section", { has: page.getByRole("heading", { name: section }) })
+        .locator(".grid");
+      const gridWidth = (await grid.boundingBox())?.width ?? 0;
+      expect(Math.abs(first.width - gridWidth), "AC-UI-071 thẻ 1 rộng cả lưới").toBeLessThanOrEqual(
+        1,
+      );
+      expect(Math.round(second.y)).toBe(Math.round(third.y));
+      expect(second.y).toBeGreaterThan(first.y + first.height - 1);
+      expect(Math.round(second.width)).toBe(Math.round(third.width));
+      sameHeight([second, third], "AC-UI-071 hàng 2");
+    }
+    for (const box of boxes) expect(box.height).toBeGreaterThanOrEqual(44);
+    await noHorizontalScroll(page);
+  }
+  if (desktop) await page.setViewportSize({ width: 1440, height: 900 });
+  await evidence(page, info, "dashboard-care-section-grid.png");
+  // Full-page capture crops the inner scroll area / overlays the fixed bottom nav: also shoot the section alone.
+  await page
+    .locator("section", { has: page.getByRole("heading", { name: section }) })
+    .screenshot({ path: shot(info, "dashboard-care-section-only.png") });
+});
+
+test("AC-DASH-129 @a11y @screenshot 'Chăm sóc khách hàng' có thẻ 'Đơn ghi doanh số': 2×2 trên điện thoại (CSKH), 1 hàng 4 thẻ cao đều trên tablet/desktop (Manager)", async ({
+  page,
+}, info) => {
+  const desktop = (page.viewportSize()?.width ?? 0) >= 1024;
+  await signIn(page, desktop ? MANAGER : CUSTOMER_CARE, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+  const section = "Chăm sóc khách hàng (tháng này)";
+  // 1440 last: resizing re-mounts the section, so the screenshot below must not follow a resize.
+  const widths = desktop ? [768, 1440] : [page.viewportSize()?.width ?? 390];
+
+  for (const width of widths) {
+    if (desktop) await page.setViewportSize({ width, height: 900 });
+    const { tiles, boxes } = await tileBoxes(page, section, 4);
+    const credited = tiles.nth(3);
+    await expect(credited.locator("p").first()).toHaveText("Đơn ghi doanh số");
+    await expect(credited).toContainText(desktop ? "Của CSKH" : "Của tôi");
+    const [a, b, c, d] = boxes as [Box, Box, Box, Box];
+    const where = `AC-DASH-129 @${String(width)}px`;
+    if (desktop) {
+      expect(new Set(boxes.map((box) => Math.round(box.y))).size, where).toBe(1);
+      expect(new Set(boxes.map((box) => Math.round(box.width))).size, where).toBe(1);
+      sameHeight(boxes, where);
+    } else {
+      expect(Math.round(a.y), where).toBe(Math.round(b.y));
+      expect(Math.round(c.y), where).toBe(Math.round(d.y));
+      expect(c.y, where).toBeGreaterThan(a.y);
+      sameHeight([a, b], `${where} hàng 1`);
+      sameHeight([c, d], `${where} hàng 2`);
+    }
+    for (const box of boxes) expect(box.height).toBeGreaterThanOrEqual(44);
+    await noHorizontalScroll(page);
+  }
+  await page
+    .locator("section", { has: page.getByRole("heading", { name: section }) })
+    .screenshot({ path: shot(info, "dashboard-care-credited-orders.png") });
+
+  await page.getByRole("button", { name: /Đơn ghi doanh số/ }).click();
+  await expect(page.getByRole("dialog", { name: /^Đơn ghi doanh số/ })).toBeVisible();
+  await evidence(page, info, "dashboard-card-popup-credited-orders.png");
+});
+
+test("AC-UI-073 Tuấn (TECH_LEAD): 'Điều phối' sau khi thẻ h-full — thẻ cùng hàng cao bằng nhau, không cao bất thường", async ({
+  page,
+}) => {
+  await signIn(page, TECH_LEAD, "/");
+  await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
+  const desktop = (page.viewportSize()?.width ?? 0) >= 1024;
+  const { boxes } = await tileBoxes(page, "Điều phối");
+  const [a, b, c, d] = boxes as [Box, Box, Box, Box];
+  if (desktop) {
+    expect(new Set(boxes.map((box) => Math.round(box.y))).size).toBe(1);
+    sameHeight(boxes, "AC-UI-073 1 hàng");
+  } else {
+    sameHeight([a, b], "AC-UI-073 hàng 1");
+    sameHeight([c, d], "AC-UI-073 hàng 2");
+  }
+  // Thẻ 1 số (nhãn + số lớn, p-5) ~ 100px; h-full không được kéo giãn theo phần tử khác.
+  for (const box of boxes) expect(box.height).toBeLessThanOrEqual(160);
 });

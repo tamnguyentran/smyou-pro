@@ -1,5 +1,6 @@
 import { ROLE_LABELS } from "../../../app/menu";
 import { Badge } from "../../../components/ui/Badge";
+import { formatDate } from "../../../lib/format";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
 import type { Employee } from "../api";
 
@@ -45,7 +46,16 @@ export function EmployeeList({
       <table className="w-full overflow-hidden rounded-2xl border border-line bg-card text-left text-sm">
         <thead className="bg-sidebar-sub text-xs font-semibold text-body uppercase">
           <tr>
-            {["Mã", "Họ tên", "Email", "SĐT", "Vai trò", "Trạng thái"].map((heading) => (
+            {[
+              "Mã",
+              "Họ tên",
+              "Tài khoản đăng nhập",
+              "Email",
+              "SĐT",
+              "Ngày sinh",
+              "Vai trò",
+              "Trạng thái",
+            ].map((heading) => (
               <th key={heading} scope="col" className="px-4 py-3">
                 {heading}
               </th>
@@ -66,10 +76,13 @@ export function EmployeeList({
                 >
                   {employee.full_name}
                 </button>
-                <p className="text-xs text-muted">{employee.username}</p>
               </td>
+              <td className="px-4 py-3 text-body">{employee.username}</td>
               <td className="px-4 py-3 text-body">{employee.email ?? "—"}</td>
               <td className="px-4 py-3 text-body">{employee.phone ?? "—"}</td>
+              <td className="px-4 py-3 text-body">
+                {employee.birth_date ? formatDate(employee.birth_date) : "—"}
+              </td>
               <td className="px-4 py-3">
                 <RoleBadges roles={employee.roles} />
               </td>
@@ -98,9 +111,12 @@ export function EmployeeList({
               <p className="font-semibold text-heading">{employee.full_name}</p>
               <span className="text-xs font-medium text-muted">{employee.code}</span>
             </div>
-            <p className="text-xs text-muted">{employee.username}</p>
+            <p className="text-xs text-muted">Tài khoản: {employee.username}</p>
             {employee.email ? <p className="mt-1 text-sm text-body">{employee.email}</p> : null}
             {employee.phone ? <p className="text-sm text-body">{employee.phone}</p> : null}
+            {employee.birth_date ? (
+              <p className="text-sm text-body">Ngày sinh: {formatDate(employee.birth_date)}</p>
+            ) : null}
             <div className="mt-2 flex flex-wrap items-center gap-1">
               <RoleBadges roles={employee.roles} />
               <StatusBadges employee={employee} />

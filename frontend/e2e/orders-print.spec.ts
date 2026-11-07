@@ -97,7 +97,7 @@ test("AC-ORD-207 AC-ORD-208 @screenshot nút In chỉ có trên desktop (chi ti�
   await expect(page.getByRole("button", { name: "In", exact: true })).toHaveCount(0);
 });
 
-test("AC-ORD-215 @screenshot bản in A5 ngang 25 dòng: chỉ bản in hiện, tiêu đề cột lặp lại", async ({
+test("AC-ORD-215 AC-ORD-280 @screenshot bản in 25 dòng: chỉ bản in hiện, tiêu đề cột lặp lại, khổ A4 dọc", async ({
   page,
 }, info) => {
   await signIn(page, SALE);
@@ -123,6 +123,8 @@ test("AC-ORD-215 @screenshot bản in A5 ngang 25 dòng: chỉ bản in hiện, 
 
   const sheet = page.getByTestId("invoice-print");
   await expect(sheet).toBeHidden();
+  // UAT-04: 25 dòng dài hơn 1 trang A5 ngang → khổ A4 dọc (đọc trước khi in PDF: in xong bản in bị gỡ).
+  await expect(sheet).toHaveAttribute("data-paper", "A4");
   await page.emulateMedia({ media: "print" });
   await expect(sheet).toBeVisible();
   // Lay the sheet out at the printable width of A5 landscape (210 − 2 × 8 mm side margins = 194 mm
@@ -141,15 +143,50 @@ test("AC-ORD-215 @screenshot bản in A5 ngang 25 dòng: chỉ bản in hiện, 
   expect(await sheet.locator("thead").evaluate((el) => getComputedStyle(el).display)).toBe(
     "table-header-group",
   );
-  await page.screenshot({ path: shot(info, "order-invoice-print-a5.png"), fullPage: true });
+  await page.screenshot({ path: shot(info, "order-invoice-print-a4.png"), fullPage: true });
 
   const pdf = await page.pdf({ preferCSSPageSize: true });
-  // Bằng chứng khổ giấy thật (ảnh chụp ở trên là khung nhìn màn hình, không phải trang A5).
+  // Bằng chứng khổ giấy thật (ảnh chụp ở trên là khung nhìn màn hình, không phải trang giấy).
+  await writeFile(shot(info, "order-invoice-print-a4.pdf"), pdf);
+  // UAT-04: A4 dọc = 210 × 297 mm ≈ 595.3 × 841.9 pt.
+  const box = mediaBox(pdf);
+  expect(box.width).toBeCloseTo(595.3, -0.3); // ± 1pt (Chromium rounds paper sizes)
+  expect(box.height).toBeCloseTo(841.9, -0.3);
+});
+
+test("AC-ORD-280 đơn 3 dòng vừa 1 trang → in A5 ngang 1 trang", async ({ page }, info) => {
+  await signIn(page, SALE);
+  const draft = await createDraft(page, 3);
+  await page.goto(`./orders/${draft.id}`);
+  await expect(page.getByRole("button", { name: "Lưu nháp" })).toBeVisible();
+  if (isMobile(info)) {
+    // In chỉ có trên desktop (AC-ORD-208).
+    await expect(page.getByRole("button", { name: "In", exact: true })).toHaveCount(0);
+    return;
+  }
+  await page.evaluate(() => {
+    window.print = () => undefined;
+  });
+  await page.getByRole("button", { name: "In", exact: true }).click();
+  const sheet = page.getByTestId("invoice-print");
+  await expect(sheet).toHaveAttribute("data-paper", "A5");
+
+  await page.emulateMedia({ media: "print" });
+  const pdf = await page.pdf({ preferCSSPageSize: true });
   await writeFile(shot(info, "order-invoice-print-a5.pdf"), pdf);
-  // A5 ngang = 210 × 148 mm ≈ 595.3 × 419.5 pt; 25 dòng tràn sang trang 2.
+  // A5 ngang = 210 × 148 mm ≈ 595.3 × 419.5 pt.
+  const box = mediaBox(pdf);
+  expect(box.width).toBeCloseTo(595.3, -0.3);
+  expect(box.height).toBeCloseTo(419.5, -0.3);
+  expect(box.pages).toBe(1);
+});
+
+function mediaBox(pdf: Buffer) {
   const text = pdf.toString("latin1");
   const box = /\/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/.exec(text);
-  expect(Number(box?.[1])).toBeCloseTo(595.3, -0.3); // ± 1pt (Chromium rounds A5 to 594.96 / 420)
-  expect(Number(box?.[2])).toBeCloseTo(419.5, -0.3);
-  expect((text.match(/\/Type \/Page\b/g) ?? []).length).toBeGreaterThanOrEqual(2);
-});
+  return {
+    width: Number(box?.[1]),
+    height: Number(box?.[2]),
+    pages: (text.match(/\/Type \/Page\b/g) ?? []).length,
+  };
+}

@@ -250,6 +250,43 @@ describe("AC-EMP-050 ngừng / mở lại hoạt động", () => {
   });
 });
 
+describe("AC-EMP-103 ngừng phòng còn nhân viên", () => {
+  test("409 DEPARTMENT_HAS_EMPLOYEES → hộp thoại giữ mở + hiện lỗi, badge giữ nguyên, không toast", async () => {
+    const message =
+      "Phòng ban còn 4 nhân viên đang hoạt động, hãy chuyển họ sang phòng khác trước khi ngừng hoạt động.";
+    mockViewport(true);
+    signedInAs(AN);
+    departmentsBackend([department({ name: "Phát Triển Kinh Tế" })]);
+    server.use(
+      http.post("/api/v1/departments/:id/:command", () =>
+        HttpResponse.json(
+          {
+            type: "about:blank",
+            title: "Conflict",
+            status: 409,
+            code: "DEPARTMENT_HAS_EMPLOYEES",
+            detail: message,
+          },
+          { status: 409, headers: { "Content-Type": "application/problem+json" } },
+        ),
+      ),
+    );
+    renderApp("/settings/departments");
+    const user = userEvent.setup();
+
+    const table = await screen.findByRole("table");
+    const row = await within(table).findByRole("row", { name: /Phát Triển Kinh Tế/ });
+    await user.click(within(row).getByRole("button", { name: "Ngừng hoạt động" }));
+    const dialog = await screen.findByRole("dialog", { name: "Ngừng hoạt động" });
+    await user.click(within(dialog).getByRole("button", { name: "Ngừng hoạt động" }));
+
+    expect(await within(dialog).findByText(message)).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Ngừng hoạt động" })).toBeInTheDocument();
+    expect(within(row).getByText("Đang hoạt động")).toBeInTheDocument();
+    expect(screen.queryByText("Đã ngừng hoạt động phòng ban.")).not.toBeInTheDocument();
+  });
+});
+
 describe("AC-EMP-051 chỉ Manager", () => {
   test("Manager thấy mục menu Phòng ban", async () => {
     mockViewport(true);

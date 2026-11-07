@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     login_max_failed: int = 5
     login_lock_minutes: int = 15
+    # M20-09: a temporary password (new employee / Manager reset) stops working after this long.
+    temp_password_ttl_hours: int = 24
     # URL prefix the app is served under ("" in dev, "/smyoutask" in production — ADR-014).
     base_path: str = ""
     # Attachment storage (DOMAIN_MODEL §11); volume mounted by compose.*.yml.

@@ -89,6 +89,7 @@ function employee(overrides: Partial<Employee> = {}): Employee {
     is_active: true,
     is_locked: false,
     must_change_password: false,
+    temp_password_expires_at: null,
     birth_date: null,
     birth_place: null,
     gender: null,
@@ -233,7 +234,7 @@ describe("Trang Ghi nhận quà tặng KH (/customer-gifts)", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "Thêm quà tặng" });
     await user.type(within(dialog).getByLabelText("Dịp/lễ"), "Tết 2027");
-    await user.type(within(dialog).getByLabelText("Ngày thực hiện"), "2027-01-20");
+    await user.type(within(dialog).getByLabelText("Ngày thực hiện"), "20/01/2027");
     await user.type(within(dialog).getByLabelText("Tên gói quà"), "Giỏ quà Tết");
     await user.clear(within(dialog).getByLabelText("Số lượng"));
     await user.type(within(dialog).getByLabelText("Số lượng"), "2");
@@ -263,7 +264,7 @@ describe("Trang Ghi nhận quà tặng KH (/customer-gifts)", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "Thêm quà tặng" });
     await user.type(within(dialog).getByLabelText("Dịp/lễ"), "Tết 2027");
-    await user.type(within(dialog).getByLabelText("Ngày thực hiện"), "2027-01-20");
+    await user.type(within(dialog).getByLabelText("Ngày thực hiện"), "20/01/2027");
     await user.type(within(dialog).getByLabelText("Tên gói quà"), "Giỏ quà Tết");
     await user.clear(within(dialog).getByLabelText("Số lượng"));
     await user.type(within(dialog).getByLabelText("Số lượng"), "2");
@@ -294,7 +295,7 @@ describe("Trang Ghi nhận quà tặng KH (/customer-gifts)", () => {
     const dialog = await screen.findByRole("dialog", { name: "Thêm quà tặng" });
     await selectCustomerInSheet(user, dialog);
     await user.type(within(dialog).getByLabelText("Dịp/lễ"), "Tết 2027");
-    await user.type(within(dialog).getByLabelText("Ngày thực hiện"), "2027-01-20");
+    await user.type(within(dialog).getByLabelText("Ngày thực hiện"), "20/01/2027");
     await user.type(within(dialog).getByLabelText("Tên gói quà"), "Giỏ quà Tết");
     await user.clear(within(dialog).getByLabelText("Số lượng"));
     await user.type(within(dialog).getByLabelText("Số lượng"), "2");
@@ -319,6 +320,89 @@ describe("Trang Ghi nhận quà tặng KH (/customer-gifts)", () => {
     });
     expect(payload).not.toHaveProperty("total_amount");
     expect(await screen.findByText("Giỏ quà Tết")).toBeInTheDocument();
+  });
+
+  test("AC-UI-102 Ngày thực hiện: trống → lỗi bắt buộc; chọn 04/11/2026 bằng lịch → gửi performed_date", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-04T03:00:00Z"));
+    try {
+      signedInAs(anId, AN);
+      let payload: unknown;
+      stub();
+      server.use(
+        http.post("/api/v1/customer-gifts", async ({ request }) => {
+          payload = await request.json();
+          return HttpResponse.json(gift(), { status: 201 });
+        }),
+      );
+      const user = await openPage();
+      await selectCustomer(user);
+      await user.click(screen.getByRole("button", { name: "Thêm quà tặng" }));
+
+      const dialog = await screen.findByRole("dialog", { name: "Thêm quà tặng" });
+      await user.type(within(dialog).getByLabelText("Dịp/lễ"), "Tri ân");
+      await user.type(within(dialog).getByLabelText("Tên gói quà"), "Giỏ quà");
+      await user.clear(within(dialog).getByLabelText("Đơn giá"));
+      await user.type(within(dialog).getByLabelText("Đơn giá"), "500000");
+      await selectEmployeeInSheet(user, dialog, "Người thực hiện");
+      await selectEmployeeInSheet(user, dialog, "Người yêu cầu");
+      await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+      expect(await within(dialog).findByText("Vui lòng nhập ngày thực hiện.")).toBeInTheDocument();
+      expect(payload).toBeUndefined();
+
+      const dateInput = within(dialog).getByLabelText("Ngày thực hiện");
+      expect(dateInput).not.toHaveAttribute("type", "date");
+      const field = dateInput.parentElement;
+      if (!field) throw new Error("no DateField wrapper");
+      await user.click(within(field).getByRole("button", { name: "Chọn ngày" }));
+      await user.click(
+        within(within(field).getByRole("dialog", { name: "Chọn ngày" })).getByRole("button", {
+          name: "4",
+        }),
+      );
+      expect(dateInput).toHaveValue("04/11/2026");
+      await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+      await waitFor(() => {
+        expect(payload).toMatchObject({ performed_date: "2026-11-04" });
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("AC-UI-102 lỗi server performed_date hiện dưới ô Ngày thực hiện", async () => {
+    signedInAs(anId, AN);
+    stub();
+    server.use(
+      http.post("/api/v1/customer-gifts", () =>
+        HttpResponse.json(
+          {
+            code: "VALIDATION_ERROR",
+            detail: "Dữ liệu không hợp lệ.",
+            errors: [
+              { field: "performed_date", code: "invalid", message: "Ngày thực hiện không hợp lệ." },
+            ],
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    const user = await openPage();
+    await selectCustomer(user);
+    await user.click(screen.getByRole("button", { name: "Thêm quà tặng" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Thêm quà tặng" });
+    await user.type(within(dialog).getByLabelText("Dịp/lễ"), "Tri ân");
+    await user.type(within(dialog).getByLabelText("Ngày thực hiện"), "20012027");
+    await user.type(within(dialog).getByLabelText("Tên gói quà"), "Giỏ quà");
+    await user.clear(within(dialog).getByLabelText("Đơn giá"));
+    await user.type(within(dialog).getByLabelText("Đơn giá"), "500000");
+    await selectEmployeeInSheet(user, dialog, "Người thực hiện");
+    await selectEmployeeInSheet(user, dialog, "Người yêu cầu");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+
+    expect(await within(dialog).findByText("Ngày thực hiện không hợp lệ.")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Ngày thực hiện")).toHaveAttribute("aria-invalid", "true");
   });
 
   test("AC-GFT-024 tải ảnh: progress rồi thumbnail, POST đúng gift id", async () => {

@@ -115,6 +115,7 @@ function employee(overrides: Partial<EmployeeOut> = {}): EmployeeOut {
     is_active: true,
     is_locked: false,
     must_change_password: false,
+    temp_password_expires_at: null,
     birth_date: null,
     birth_place: null,
     gender: null,
@@ -171,10 +172,37 @@ describe("Báo cáo doanh thu theo nhân viên", () => {
     await waitFor(() => {
       expect(requests).toContain("?from=2026-09-01&to=2026-09-15&status=COMPLETED");
     });
-    expect(screen.getByLabelText("Từ ngày")).toHaveValue("2026-09-01");
-    expect(screen.getByLabelText("Đến ngày")).toHaveValue("2026-09-15");
+    expect(screen.getByLabelText("Từ ngày")).toHaveValue("01/09/2026");
+    expect(screen.getByLabelText("Đến ngày")).toHaveValue("15/09/2026");
     expect(screen.getByLabelText("Trạng thái")).toHaveValue("COMPLETED");
     expect(screen.getByLabelText("Nhân viên")).toHaveValue("");
+  });
+
+  test("AC-UI-100 Doanh thu theo NV: Từ ngày/Đến ngày là DateField, gõ tay → API nhận yyyy-MM-dd", async () => {
+    signedInAs(anId, AN);
+    const requests: string[] = [];
+    mockReport([row()], (search) => {
+      requests.push(search);
+    });
+    mockEmployeesList();
+    renderApp("/reports/revenue-by-employee");
+    const user = userEvent.setup();
+    const from = await screen.findByLabelText("Từ ngày");
+    const to = screen.getByLabelText("Đến ngày");
+    expect(document.querySelector('input[type="date"]')).toBeNull();
+    await user.clear(from);
+    await user.type(from, "01082026");
+    await user.clear(to);
+    await user.type(to, "20082026");
+    expect(from).toHaveValue("01/08/2026");
+    expect(to).toHaveValue("20/08/2026");
+    await waitFor(() => {
+      expect(requests.at(-1)).toContain("from=2026-08-01");
+      expect(requests.at(-1)).toContain("to=2026-08-20");
+    });
+    expect(screen.getByRole("link", { name: /Xuất Excel/i }).getAttribute("href")).toContain(
+      "from=2026-08-01&to=2026-08-20",
+    );
   });
 
   test("AC-RPT-030 Manager thấy danh sách nhân viên trong dropdown (GET /employees đúng limit backend cho phép)", async () => {

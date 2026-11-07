@@ -23,6 +23,16 @@ const HOA: Person = {
   roles: ["SALE"],
   capabilities: { "dashboard.read": all, "order.read": all, "order.create": all },
 };
+// M20-03: SALE/CUSTOMER_CARE mặc định tick "Chỉ đơn của tôi" khi URL không có `mine` — ca
+// "không có mine → không tick" của M10-03 kiểm bằng MANAGER (vai trò giữ mặc định tắt).
+const anId = "a0000000-0000-4000-8000-000000000001";
+const AN: Person = {
+  code: "NV001",
+  full_name: "Nguyễn Văn An",
+  email: "an.nguyen@smyou.vn",
+  roles: ["MANAGER"],
+  capabilities: { "dashboard.read": all, "order.read": all, "order.create": all },
+};
 
 function signedInAs(id: string, person: Person) {
   server.use(
@@ -81,7 +91,7 @@ describe("/orders đọc status/mine từ URL lúc tải", () => {
   });
 
   test("M10-03 (URL /orders, giữ sau M18-01a) ?status=COMPLETED (không mine): checkbox không tick, request không có mine", async () => {
-    signedInAs(hoaId, HOA);
+    signedInAs(anId, AN);
     let lastQuery = "";
     server.use(
       http.get("/api/v1/orders", ({ request }) => {

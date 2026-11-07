@@ -38,6 +38,7 @@ const HOA: Person = {
     "order.edit_draft": own,
     "customer.read": all,
     "catalog.read": all,
+    "catalog.read_cost": all,
     "profile.manage": self,
   },
 };
@@ -106,6 +107,10 @@ function orderLine(overrides: Partial<OrderLine> = {}): OrderLine {
     cost_price_snapshot: null,
     credited_employee_id: null,
     credited_employee_name: null,
+    added_by_id: null,
+    added_by_name: null,
+    added_on_site: false,
+    can_edit_on_site: false,
     price_fixed: true,
     vat_rate: "8",
     quantity: "1",
@@ -153,6 +158,7 @@ function order(overrides: Partial<Order> = {}): Order {
     allowed_commands: [],
     can_edit_contact: false,
     can_edit_lines_after_submit: false,
+    can_add_lines_on_site: false,
     can_upload_confirmation: false,
     can_complete: false,
     can_revise: false,
@@ -602,7 +608,9 @@ describe("AC-ORD-032 xoá dòng", () => {
     const dialog = await screen.findByRole("dialog", { name: "Xoá dòng hàng" });
     await user.click(within(dialog).getByRole("button", { name: "Xoá" }));
 
-    expect(await within(row).findByText("Đơn không còn ở trạng thái nháp.")).toBeInTheDocument();
+    // AC-UI-062 (M20-04): lỗi hiện trong dialog đang mở, không còn đóng dialog rồi báo trong dòng.
+    expect(await within(dialog).findByText("Đơn không còn ở trạng thái nháp.")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Xoá dòng hàng" })).toBeInTheDocument();
     expect(screen.getByTestId(`order-line-${dellLineId}`)).toBeInTheDocument();
   });
 });
@@ -704,5 +712,53 @@ describe("AC-ORD-033 lỗi 422/409 khi thêm dòng hiện đúng chỗ", () => {
     expect(
       await within(sheet).findByText("Thông tin đã bị người khác thay đổi. Vui lòng tải lại."),
     ).toBeInTheDocument();
+  });
+});
+
+describe("AC-ORD-263 (M21-08) SP/DV chưa có giá vốn — lỗi ngay dưới ô chọn", () => {
+  const costMissing =
+    "Sản phẩm/dịch vụ này chưa có giá vốn trong danh mục nên không thể bán. Vui lòng liên hệ Quản lý cập nhật giá vốn.";
+
+  test("422 ITEM_COST_MISSING: sheet vẫn mở, lỗi role=alert màu lỗi dưới ô Tìm sản phẩm, giữ ô tìm", async () => {
+    signedInAsHoa();
+    server.use(
+      http.get("/api/v1/products", () =>
+        HttpResponse.json({
+          items: [dellProduct({ name: "Camera Hikvision 2MP", sku: "CAM-H265", cost_price: null })],
+          total: 1,
+          limit: 20,
+          offset: 0,
+        }),
+      ),
+      http.post("/api/v1/orders/:id/lines", () =>
+        HttpResponse.json(
+          {
+            status: 422,
+            code: "ITEM_COST_MISSING",
+            detail: costMissing,
+            errors: [{ field: "product_id", code: "cost_missing", message: costMissing }],
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    await openExisting(order({ lines: [] }));
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Thêm dòng hàng" }));
+    const sheet = await screen.findByRole("dialog", { name: "Thêm dòng hàng" });
+    const search = within(sheet).getByLabelText("Tìm sản phẩm");
+    await user.type(search, "cam");
+    await user.click(await within(sheet).findByRole("button", { name: /Camera Hikvision 2MP/ }));
+
+    const alert = await within(sheet).findByRole("alert");
+    expect(alert).toHaveTextContent(costMissing);
+    expect(alert.className).toContain("text-urgent-fg");
+    expect(search.getAttribute("aria-describedby")).toContain(alert.id);
+    expect(search).toHaveAttribute("aria-invalid", "true");
+    expect(search.compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getAllByText(costMissing)).toHaveLength(1);
+    expect(screen.getByRole("dialog", { name: "Thêm dòng hàng" })).toBeInTheDocument();
+    expect(search).toHaveValue("cam");
   });
 });

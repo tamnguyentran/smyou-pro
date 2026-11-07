@@ -1,7 +1,7 @@
 import { Button } from "../../../components/ui/Button";
 import { ChipGroup } from "../../../components/ui/Chip";
 import { Select } from "../../../components/ui/Select";
-import { TextField } from "../../../components/ui/TextField";
+import { DateField } from "../../../components/ui/DateField";
 import type { Employee } from "../../employees/api";
 import { PRIORITY_LABELS, PRIORITY_ORDER } from "../../orders/schemas";
 import type { TaskBoardFilters as Filters } from "../api";
@@ -81,20 +81,20 @@ export function TaskBoardFilters({
             </option>
           ))}
         </Select>
-        <TextField
-          type="date"
+        <DateField
+          mode="date"
           label="Từ ngày"
           value={filters.dueFrom}
-          onChange={(event) => {
-            set("dueFrom", event.target.value);
+          onChange={(value) => {
+            set("dueFrom", value);
           }}
         />
-        <TextField
-          type="date"
+        <DateField
+          mode="date"
           label="Đến ngày"
           value={filters.dueTo}
-          onChange={(event) => {
-            set("dueTo", event.target.value);
+          onChange={(value) => {
+            set("dueTo", value);
           }}
         />
       </div>

@@ -794,11 +794,11 @@ const FEEDBACK = "Phản hồi – đánh giá từ khách hàng (tháng này)";
 const TOP = "Top 10 khách hàng (tháng này)";
 
 describe("Popup chi tiết khối CSKH / Phản hồi / Top 10 (M18-01c)", () => {
-  test("AC-DASH-116 Linh desktop bấm 'Khách hàng đã chăm sóc' → popup phản hồi, Excel, link đơn, URL không đổi", async () => {
+  test("AC-DASH-116 Linh desktop bấm 'KH đã gọi' → popup phản hồi, Excel, link đơn, URL không đổi", async () => {
     signedInAs("linh-id", LINH);
     mockDashboard(CUSTOMER_SECTIONS);
     const calls = mockItems(
-      feedbackItems("care.customers", "Khách hàng đã chăm sóc", [
+      feedbackItems("care.customers", "KH đã gọi", [
         feedbackRow(1),
         feedbackRow(2, { csat_rating: 3, csat_comment: null, recorded_by_name: "Vũ Thị Mai" }),
         feedbackRow(3, { csat_rating: 4 }),
@@ -806,9 +806,9 @@ describe("Popup chi tiết khối CSKH / Phản hồi / Top 10 (M18-01c)", () =>
     );
     const router = renderApp("/");
 
-    await openTile(/Khách hàng đã chăm sóc/, CARE);
+    await openTile(/KH đã gọi/, CARE);
 
-    const dialog = await screen.findByRole("dialog", { name: "Khách hàng đã chăm sóc (3)" });
+    const dialog = await screen.findByRole("dialog", { name: "KH đã gọi (3)" });
     expect(router.state.location.pathname).toBe("/");
     expect(calls[0]?.card).toBe("care.customers");
     expect(headersOf(dialog)).toEqual([

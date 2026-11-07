@@ -12,7 +12,8 @@ function toneClass(rating: number | "none", active: boolean) {
 }
 
 /** AC-CSK-012: 5 ô theo mức sao + "Chưa đánh giá" trên `/orders`; bấm 1 ô → lọc danh sách theo
- * đúng mức sao đó (hoặc gỡ lọc nếu bấm lại ô đang chọn). Lưới 2x3 ở mobile, 1 dòng ở desktop
+ * đúng mức sao đó (hoặc gỡ lọc nếu bấm lại ô đang chọn). AC-CSK-030 (M20-02): ô "Chưa đánh giá"
+ * cũng lọc được (`"none"`), loại trừ với ô sao. Lưới 2x3 ở mobile, 1 dòng ở desktop
  * (UI_GUIDELINES §6 — xem spec M15-02b mục 6). */
 export function CsatSummaryStats({
   summary,
@@ -20,8 +21,8 @@ export function CsatSummaryStats({
   onSelect,
 }: {
   summary: CsatSummary;
-  selected: number | undefined;
-  onSelect: (rating: number | undefined) => void;
+  selected: number | "none" | undefined;
+  onSelect: (rating: number | "none" | undefined) => void;
 }) {
   const tiles: { key: number | "none"; label: string; value: number }[] = [
     ...STARS.map((n) => ({ key: n, label: `${String(n)}★`, value: summary[String(n)] ?? 0 })),
@@ -31,21 +32,19 @@ export function CsatSummaryStats({
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
       {tiles.map((tile) => {
-        const isSelected = tile.key !== "none" && selected === tile.key;
+        const isSelected = selected === tile.key;
         return (
           <button
             key={tile.key}
             type="button"
             aria-pressed={isSelected}
             onClick={() => {
-              if (tile.key === "none") return;
               onSelect(isSelected ? undefined : tile.key);
             }}
-            disabled={tile.key === "none"}
             className={cn(
-              "min-h-11 rounded-2xl p-4 text-left transition duration-200",
-              tile.key !== "none" && "cursor-pointer hover:brightness-95",
+              "min-h-11 cursor-pointer rounded-2xl p-4 text-left transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
               toneClass(tile.key, tile.value > 0 || isSelected),
+              isSelected && "ring-2 ring-brand ring-offset-2",
             )}
           >
             <p className="text-sm font-medium">{tile.label}</p>

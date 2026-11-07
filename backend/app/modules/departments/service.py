@@ -12,6 +12,7 @@ from app.core.errors import AppError
 from app.modules.audit import service as audit
 from app.modules.departments.models import Department
 from app.modules.departments.schemas import DepartmentOut, DepartmentPage, DepartmentUpdate
+from app.modules.identity.models import Employee
 
 DUPLICATE_NAME = "Tên phòng ban đã tồn tại."
 # employee.read / employee.manage are `all` for every role holding them — see employees/service.py.
@@ -147,6 +148,20 @@ def set_active(
     if department.is_active == active:
         message = "Phòng ban đang hoạt động." if active else "Phòng ban đã ngừng hoạt động."
         raise AppError(409, "INVALID_STATE", message)
+    if not active:
+        # M20-07 (Q138): only employees still working here block it; those who left keep the link.
+        staff = session.scalar(
+            select(func.count())
+            .select_from(Employee)
+            .where(Employee.department_id == department.id, Employee.is_active)
+        )
+        if staff:
+            raise AppError(
+                409,
+                "DEPARTMENT_HAS_EMPLOYEES",
+                f"Phòng ban còn {staff} nhân viên đang hoạt động, hãy chuyển họ sang phòng khác"
+                " trước khi ngừng hoạt động.",
+            )
     department.is_active = active
     department.version += 1
     return _save(session, actor, department, "activate" if active else "deactivate", {}, request_id)

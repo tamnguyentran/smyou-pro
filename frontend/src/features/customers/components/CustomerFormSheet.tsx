@@ -2,12 +2,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Save, TriangleAlert, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { useForm, useWatch, type Resolver } from "react-hook-form";
+import { flushSync } from "react-dom";
+import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { Select } from "../../../components/ui/Select";
 import { Sheet } from "../../../components/ui/Sheet";
 import { Textarea } from "../../../components/ui/Textarea";
+import { DateField } from "../../../components/ui/DateField";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
 import { ApiError, formError } from "../../auth/errors";
@@ -203,7 +205,25 @@ export function CustomerFormSheet({
       if (error instanceof ApiError) {
         if (error.problem.code === "STALE_VERSION") setShowReload(true);
         setFormMessage(formError(error, SHOWN_FIELDS));
-        setServerErrors(fieldErrors(error));
+        const byField = fieldErrors(error);
+        // Render the error text first: focusing in the same tick scrolls just the input into view,
+        // and the error line below it could stay off-screen.
+        flushSync(() => {
+          setServerErrors(byField);
+        });
+        // AC-UI-069: the form is long — focusing (and centring) the first field the server
+        // rejected shows the error without the user hunting for it, like RHF does client-side.
+        const firstField = SHOWN_FIELDS.find((field) => field in byField);
+        // Focus without the browser's own scroll (WebKit scrolls the input to the nearest edge,
+        // under the pinned action row, overriding a later centre), then centre the error line itself.
+        const input = firstField
+          ? document.querySelector<HTMLElement>(`[name="${firstField}"]`)
+          : null;
+        if (input) {
+          input.focus({ preventScroll: true });
+          const errorLine = document.getElementById(`${input.id}-error`) ?? input;
+          errorLine.scrollIntoView({ block: "center" });
+        }
       } else {
         setFormMessage("Không thực hiện được. Vui lòng thử lại.");
       }
@@ -218,38 +238,44 @@ export function CustomerFormSheet({
       wide={!readOnly}
       dismissible={!(create.isPending || update.isPending)}
       footer={
-        readOnly ? undefined : showReload ? (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              invalidateList();
-              onClose();
-            }}
-          >
-            Tải lại
-          </Button>
-        ) : (
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              className="flex-1"
-              icon={<X aria-hidden="true" className="size-4" />}
-              disabled={create.isPending || update.isPending}
-              onClick={onClose}
-            >
-              Huỷ
-            </Button>
-            <Button
-              type="submit"
-              form={FORM_ID}
-              className="flex-1"
-              icon={<Save aria-hidden="true" className="size-4" />}
-              loading={create.isPending || update.isPending}
-            >
-              Lưu
-            </Button>
+        readOnly ? undefined : (
+          <div className="space-y-3">
+            {/* AC-UI-069: the general error sits right above the buttons, never scrolled away. */}
+            {formMessage ? <Alert>{formMessage}</Alert> : null}
+            {showReload ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  invalidateList();
+                  onClose();
+                }}
+              >
+                Tải lại
+              </Button>
+            ) : (
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1"
+                  icon={<X aria-hidden="true" className="size-4" />}
+                  disabled={create.isPending || update.isPending}
+                  onClick={onClose}
+                >
+                  Huỷ
+                </Button>
+                <Button
+                  type="submit"
+                  form={FORM_ID}
+                  className="flex-1"
+                  icon={<Save aria-hidden="true" className="size-4" />}
+                  loading={create.isPending || update.isPending}
+                >
+                  Lưu
+                </Button>
+              </div>
+            )}
           </div>
         )
       }
@@ -302,7 +328,6 @@ export function CustomerFormSheet({
           onSubmit={(event) => void onSubmit(event)}
           className="space-y-4"
         >
-          {formMessage ? <Alert>{formMessage}</Alert> : null}
           <DuplicatePhoneWarning matches={duplicateMatches} />
 
           <FieldGroup divider={false}>
@@ -341,19 +366,35 @@ export function CustomerFormSheet({
               {...register("tax_code")}
             />
             {selectedType === "COMPANY" ? (
-              <TextField
-                label="Ngày thành lập"
-                type="date"
-                error={formState.errors.founded_date?.message ?? serverErrors.founded_date}
-                {...register("founded_date")}
+              <Controller
+                control={control}
+                name="founded_date"
+                render={({ field }) => (
+                  <DateField
+                    mode="date"
+                    label="Ngày thành lập"
+                    error={formState.errors.founded_date?.message ?? serverErrors.founded_date}
+                    name={field.name}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                  />
+                )}
               />
             ) : (
               <>
-                <TextField
-                  label="Ngày sinh"
-                  type="date"
-                  error={formState.errors.date_of_birth?.message ?? serverErrors.date_of_birth}
-                  {...register("date_of_birth")}
+                <Controller
+                  control={control}
+                  name="date_of_birth"
+                  render={({ field }) => (
+                    <DateField
+                      mode="date"
+                      label="Ngày sinh"
+                      error={formState.errors.date_of_birth?.message ?? serverErrors.date_of_birth}
+                      name={field.name}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                    />
+                  )}
                 />
                 <Select
                   label="Giới tính"

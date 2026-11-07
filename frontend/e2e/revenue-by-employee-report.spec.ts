@@ -62,8 +62,8 @@ test("AC-RPT-033 Manager bấm 'Xuất Excel' → tải đúng tham số lọc h
   ).toBeVisible();
   await expect(page.getByRole("button", { name: /Nguyễn Văn An/ })).toBeVisible();
 
-  const from = await page.getByLabel("Từ ngày").inputValue();
-  const to = await page.getByLabel("Đến ngày").inputValue();
+  const from = (await page.getByLabel("Từ ngày").inputValue()).split("/").reverse().join("-");
+  const to = (await page.getByLabel("Đến ngày").inputValue()).split("/").reverse().join("-");
 
   const exportLink = page.getByRole("link", { name: "Xuất Excel" });
   const href = await exportLink.getAttribute("href");
@@ -85,4 +85,27 @@ test("AC-RPT-033 Manager bấm 'Xuất Excel' → tải đúng tham số lọc h
   );
   const content = await response.text();
   expect(content).toContain("Nguyễn Văn An");
+});
+
+test("AC-UI-100 Từ ngày/Đến ngày gõ kiểu dd/MM/yyyy → API và link xuất dùng yyyy-MM-dd", async ({
+  page,
+}) => {
+  await signIn(page, MANAGER, "/reports/revenue-by-employee");
+  const from = page.getByLabel("Từ ngày");
+  const to = page.getByLabel("Đến ngày");
+  await expect(page.locator('input[type="date"]')).toHaveCount(0);
+  await from.fill("");
+  await from.pressSequentially("01102026");
+  await to.fill("");
+  const loaded = page.waitForRequest(
+    (r) =>
+      r.url().includes("/api/v1/reports/revenue-by-employee?") && r.url().includes("to=2026-10-31"),
+  );
+  await to.pressSequentially("31102026");
+  expect((await loaded).url()).toContain("from=2026-10-01");
+  await expect(from).toHaveValue("01/10/2026");
+  await expect(to).toHaveValue("31/10/2026");
+  const href = await page.getByRole("link", { name: /Xuất Excel/ }).getAttribute("href");
+  expect(href).toContain("from=2026-10-01");
+  expect(href).toContain("to=2026-10-31");
 });

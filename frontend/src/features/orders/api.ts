@@ -37,14 +37,16 @@ export interface OrderFilters {
   dateFrom?: string;
   dateTo?: string;
   csatRating?: number;
+  csatUnrated?: boolean;
   limit: number;
   offset: number;
 }
 
 /** AC-ORD-069: danh sách đơn — tìm theo mã/tên khách/SĐT, lọc theo trạng thái.
  * AC-DASH-022/023/024/025 (M10-03): `mine` lọc hẹp thêm theo `created_by` sau scope hiện có.
- * AC-CSK-010/012 (M15-02b): `dateFrom`/`dateTo` lọc theo `Order.completed_at` (Q92), `csatRating`
- * lọc theo 1 mức sao — cùng tham số với `GET /orders/csat-summary` để số đếm luôn khớp danh sách. */
+ * AC-CSK-010/012 (M15-02b): `dateFrom`/`dateTo` lọc theo `Order.created_at` (UAT-03, Q186), `csatRating`
+ * lọc theo 1 mức sao — cùng tham số với `GET /orders/csat-summary` để số đếm luôn khớp danh sách.
+ * AC-CSK-030 (M20-02): `csatUnrated` lọc đơn đã hoàn thành chưa đánh giá (ô "none"). */
 export function useOrders(filters: OrderFilters, { enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     enabled,
@@ -60,6 +62,7 @@ export function useOrders(filters: OrderFilters, { enabled = true }: { enabled?:
             from: filters.dateFrom,
             to: filters.dateTo,
             csat_rating: filters.csatRating,
+            csat_unrated: filters.csatUnrated || undefined,
             limit: filters.limit,
             offset: filters.offset,
           },
@@ -73,13 +76,20 @@ export function useOrders(filters: OrderFilters, { enabled = true }: { enabled?:
 
 export const CSAT_SUMMARY_KEY = "orders-csat-summary";
 
-/** AC-CSK-012 (M15-02b): ô thống kê theo mức sao trên `/orders`, cùng `from`/`to` của danh sách. */
-export function useCsatSummary(filters: { dateFrom?: string; dateTo?: string }) {
+/** AC-CSK-012 (M15-02b): ô thống kê theo mức sao trên `/orders`, cùng `from`/`to` của danh sách.
+ * AC-ORD-244/249 (M20-03): `createdBy` khớp checkbox "Chỉ đơn của tôi" để số thẻ khớp danh sách. */
+export function useCsatSummary(
+  filters: { dateFrom?: string; dateTo?: string; createdBy?: string },
+  { enabled = true }: { enabled?: boolean } = {},
+) {
   return useQuery({
+    enabled,
     queryKey: [CSAT_SUMMARY_KEY, filters],
     queryFn: async () => {
       const { data, error, response } = await api.GET("/api/v1/orders/csat-summary", {
-        params: { query: { from: filters.dateFrom, to: filters.dateTo } },
+        params: {
+          query: { from: filters.dateFrom, to: filters.dateTo, created_by: filters.createdBy },
+        },
       });
       if (!data) throw toApiError(response, error);
       return data;
@@ -158,6 +168,43 @@ export function useConfirmationAttachments(orderId: string | undefined) {
       );
       if (!data) throw toApiError(response, error);
       return data;
+    },
+  });
+}
+
+export type CustomerPotentialNote = components["schemas"]["CustomerPotentialNoteOut"];
+export const CUSTOMER_POTENTIAL_KEY = "order-customer-potential";
+
+/** AC-CUS-052/056 (M21-05b): lịch sử tiềm năng của khách hàng chủ đơn, mới nhất trước (M21-05a). */
+export function useCustomerPotentialNotes(orderId: string, { enabled }: { enabled: boolean }) {
+  return useQuery({
+    queryKey: [CUSTOMER_POTENTIAL_KEY, orderId],
+    enabled,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET(
+        "/api/v1/orders/{order_id}/customer-potential",
+        { params: { path: { order_id: orderId } } },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+  });
+}
+
+/** AC-CUS-053 (M21-05b): KTV ghi tiềm năng — không đổi đơn, nên chỉ refetch lịch sử ghi chú. */
+export function useRecordCustomerPotential() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, note }: { id: string; note: string }) => {
+      const { data, error, response } = await api.POST(
+        "/api/v1/orders/{order_id}/customer-potential",
+        { params: { path: { order_id: id } }, body: { note } },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: (_data, { id }) => {
+      void queryClient.invalidateQueries({ queryKey: [CUSTOMER_POTENTIAL_KEY, id] });
     },
   });
 }
@@ -275,6 +322,22 @@ export function useCancelOrder() {
   return useMutation({
     mutationFn: async ({ id, body }: { id: string; body: OrderCancelBody }) => {
       const { data, error, response } = await api.POST("/api/v1/orders/{order_id}/cancel", {
+        params: { path: { order_id: id } },
+        body,
+      });
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: setOrder,
+  });
+}
+
+/** AC-ORD-267 (UAT BUG-03): Manager huỷ đơn đã điều phối/đang thực hiện — `cancel_active`. */
+export function useCancelActiveOrder() {
+  const setOrder = useSetOrder();
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: OrderCancelBody }) => {
+      const { data, error, response } = await api.POST("/api/v1/orders/{order_id}/cancel-active", {
         params: { path: { order_id: id } },
         body,
       });
@@ -448,6 +511,70 @@ export function useRemoveLineAfterSubmit() {
     }) => {
       const { data, error, response } = await api.POST(
         "/api/v1/orders/{order_id}/lines-after-submit/{line_id}/remove",
+        { params: { path: { order_id: id, line_id: lineId } }, body: { version } },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: setOrder,
+  });
+}
+
+/** AC-ORD-236: KTV thêm dòng tại hiện trường (M19-01a's `order.edit_lines_on_site`). */
+export function useAddLineOnSite() {
+  const setOrder = useSetOrder();
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: OrderLineCreateBody }) => {
+      const { data, error, response } = await api.POST("/api/v1/orders/{order_id}/lines-on-site", {
+        params: { path: { order_id: id } },
+        body,
+      });
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: setOrder,
+  });
+}
+
+/** AC-ORD-239: KTV sửa dòng mình thêm. */
+export function useUpdateLineOnSite() {
+  const setOrder = useSetOrder();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      lineId,
+      body,
+    }: {
+      id: string;
+      lineId: string;
+      body: OrderLineUpdateBody;
+    }) => {
+      const { data, error, response } = await api.PATCH(
+        "/api/v1/orders/{order_id}/lines-on-site/{line_id}",
+        { params: { path: { order_id: id, line_id: lineId } }, body },
+      );
+      if (!data) throw toApiError(response, error);
+      return data;
+    },
+    onSuccess: setOrder,
+  });
+}
+
+/** AC-ORD-239: KTV xoá dòng mình thêm. */
+export function useRemoveLineOnSite() {
+  const setOrder = useSetOrder();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      lineId,
+      version,
+    }: {
+      id: string;
+      lineId: string;
+      version: number;
+    }) => {
+      const { data, error, response } = await api.POST(
+        "/api/v1/orders/{order_id}/lines-on-site/{line_id}/remove",
         { params: { path: { order_id: id, line_id: lineId } }, body: { version } },
       );
       if (!data) throw toApiError(response, error);

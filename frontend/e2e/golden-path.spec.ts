@@ -145,7 +145,7 @@ test("AC-SYS-096 AC-SYS-097 @screenshot golden path: tạo đơn → điều ph�
     (() => {
       const d = new Date(Date.now() + 2 * 86_400_000);
       const pad = (n: number) => String(n).padStart(2, "0");
-      return `${String(d.getFullYear())}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T09:00`;
+      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${String(d.getFullYear())} 09:00`;
     })(),
   );
   await panel.getByRole("checkbox", { name: new RegExp(KHOA.code) }).check();
@@ -182,7 +182,7 @@ test("AC-SYS-096 AC-SYS-097 @screenshot golden path: tạo đơn → điều ph�
     (() => {
       const d = new Date(Date.now() + 2 * 86_400_000);
       const pad = (n: number) => String(n).padStart(2, "0");
-      return `${String(d.getFullYear())}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T09:00`;
+      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${String(d.getFullYear())} 09:00`;
     })(),
   );
   await panel.getByRole("checkbox", { name: new RegExp(MINH.code) }).check();

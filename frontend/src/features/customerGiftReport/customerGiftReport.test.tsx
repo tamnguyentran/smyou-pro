@@ -98,10 +98,36 @@ describe("Báo cáo chi phí quà tặng KH", () => {
     await waitFor(() => {
       expect(requests).toContain("?from=2026-09-01&to=2026-09-15");
     });
-    expect(screen.getByLabelText("Từ ngày")).toHaveValue("2026-09-01");
-    expect(screen.getByLabelText("Đến ngày")).toHaveValue("2026-09-15");
+    expect(screen.getByLabelText("Từ ngày")).toHaveValue("01/09/2026");
+    expect(screen.getByLabelText("Đến ngày")).toHaveValue("15/09/2026");
     expect(screen.getByText("KH00001")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
+  });
+
+  test("AC-UI-100 Chi phí quà tặng KH: Từ ngày/Đến ngày là DateField, gõ tay → API nhận yyyy-MM-dd", async () => {
+    signedInAs(anId, AN);
+    const requests: string[] = [];
+    mockReport([row()], (search) => {
+      requests.push(search);
+    });
+    renderApp("/reports/customer-gifts");
+    const user = userEvent.setup();
+    const from = await screen.findByLabelText("Từ ngày");
+    const to = screen.getByLabelText("Đến ngày");
+    expect(document.querySelector('input[type="date"]')).toBeNull();
+    await user.clear(from);
+    await user.type(from, "01082026");
+    await user.clear(to);
+    await user.type(to, "20082026");
+    expect(from).toHaveValue("01/08/2026");
+    expect(to).toHaveValue("20/08/2026");
+    await waitFor(() => {
+      expect(requests.at(-1)).toContain("from=2026-08-01");
+      expect(requests.at(-1)).toContain("to=2026-08-20");
+    });
+    expect(screen.getByRole("link", { name: "Xuất Excel" }).getAttribute("href")).toContain(
+      "from=2026-08-01&to=2026-08-20",
+    );
   });
 
   test("AC-GFT-041 bấm 1 dòng → drilldown hiện đúng danh sách lần tặng", async () => {

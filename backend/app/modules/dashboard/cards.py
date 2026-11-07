@@ -1,6 +1,6 @@
 """M18-01a/b: danh sách chi tiết + xuất CSV cho từng thẻ trên Tổng quan (khối "Đơn theo trạng thái",
 "Điều phối", "Đầu việc theo trạng thái", "Nhân sự kỹ thuật", "Việc của tôi") và M18-01c ("Chăm sóc
-khách hàng", "Phản hồi - đánh giá", "Top 10 khách hàng").
+khách hàng", "Phản hồi - đánh giá", "Top 10 khách hàng"), M21-03 ("Đơn ghi doanh số").
 
 Điều kiện lọc lấy từ đúng các hàm mà `service.get_dashboard` dùng để đếm (`order_scope_where`,
 `order_overdue_where`, `dispatch_where`, `staff_where`, `my_task_where`, `care_where`,
@@ -26,6 +26,7 @@ from app.modules.customers.models import Customer
 from app.modules.dashboard.schemas import (
     DashboardCardItemsOut,
     DashboardCareStaffRow,
+    DashboardCreditedOrderRow,
     DashboardFeedbackRow,
     DashboardOrderRow,
     DashboardStaffRow,
@@ -35,6 +36,8 @@ from app.modules.dashboard.service import (
     OPEN_ASSIGNMENT_STATUSES,
     VIETNAM,
     care_where,
+    credited_line_where,
+    credited_orders_where,
     dispatch_where,
     feedback_where,
     my_task_where,
@@ -48,7 +51,7 @@ from app.modules.dashboard.service import (
 )
 from app.modules.dispatch.models import Assignment, Task
 from app.modules.identity.models import Employee
-from app.modules.orders.models import Order
+from app.modules.orders.models import Order, OrderLine
 
 EXPORT_MAX_ROWS = 5000
 # Same notion of "active" assignee as dispatch/service.py's _INACTIVE_ASSIGNMENT_STATUSES.
@@ -69,11 +72,13 @@ Where = list[ColumnElement[bool]]
 class _Card:
     label: str
     slug: str  # tên file xuất: tong-quan-<slug>-<ngày>.csv
-    kind: Literal["order", "task", "staff", "feedback", "care_staff"]
+    kind: Literal["order", "task", "staff", "feedback", "care_staff", "credited_order"]
     # `None` → vai trò của actor không thấy khối chứa thẻ này.
     where: Callable[[Actor, datetime], Where | None]
     # Thẻ khối "Việc của tôi": dòng đầu việc kèm trạng thái phân công của chính người gọi.
     personal: bool = False
+    # M21-03 (AC-DASH-128): vai trò không thấy thẻ nhận 403 thay vì 404.
+    forbidden_when_hidden: bool = False
 
 
 def _order_card(extra: Callable[[datetime], Where]) -> Callable[[Actor, datetime], Where | None]:
@@ -199,12 +204,17 @@ CARDS: dict[str, _Card] = {
     "mine.awaiting_confirmation": _Card(
         "Chờ KH xác nhận", "viec-cua-toi-cho-kh-xac-nhan", "order", _my_card("awaiting_confirmation")
     ),
-    "care.customers": _Card(
-        "Khách hàng đã chăm sóc", "cskh-kh-da-cham-soc", "feedback", _care_card("customers")
-    ),
+    "care.customers": _Card("KH đã gọi", "cskh-kh-da-cham-soc", "feedback", _care_card("customers")),
     "care.staff": _Card("NV đã gọi điện CSKH", "cskh-nv-goi-dien", "care_staff", _care_card("staff")),
     "care.revision_orders": _Card(
         "Đơn hàng phải sửa", "cskh-don-phai-sua", "order", _care_card("revision_orders")
+    ),
+    "care.credited_orders": _Card(
+        "Đơn ghi doanh số",
+        "cskh-don-ghi-doanh-so",
+        "credited_order",
+        credited_orders_where,
+        forbidden_when_hidden=True,
     ),
     **{
         f"feedback.{n}": _Card(f"Đánh giá {n}★", f"danh-gia-{n}-sao", "feedback", _feedback_card(n))
@@ -212,7 +222,14 @@ CARDS: dict[str, _Card] = {
     },
 }
 
-_ENTITIES = {"order": Order, "task": Task, "staff": Employee, "feedback": Order, "care_staff": Employee}
+_ENTITIES = {
+    "order": Order,
+    "task": Task,
+    "staff": Employee,
+    "feedback": Order,
+    "care_staff": Employee,
+    "credited_order": Order,
+}
 _TOP_CUSTOMER_PREFIX = "top."
 
 
@@ -239,6 +256,8 @@ def _resolve(session: Session, card: str, actor: Actor, now: datetime) -> tuple[
     else:
         definition = CARDS.get(card)
     where = definition.where(actor, now) if definition is not None else None
+    if definition is not None and where is None and definition.forbidden_when_hidden:
+        raise AppError(403, "FORBIDDEN", "Bạn không có quyền thực hiện thao tác này.")
     if definition is None or where is None:
         raise AppError(404, "NOT_FOUND", "Không tìm thấy tài nguyên.")
     return definition, where
@@ -455,6 +474,26 @@ def _care_staff_rows(
     ]
 
 
+def _credited_order_rows(
+    session: Session, where: Where, actor: Actor, *, offset: int, limit: int | None
+) -> list[DashboardCreditedOrderRow]:
+    lines = credited_line_where(actor) or []
+    credited_total = (
+        select(func.coalesce(func.sum(OrderLine.line_total), 0))
+        .where(OrderLine.order_id == Order.id, *lines)
+        .scalar_subquery()
+    )
+    rows = session.execute(
+        select(Order.id, Order.code, Order.customer_name, Order.created_at, Order.status, credited_total)
+        .where(*where)
+        .order_by(Order.created_at.desc(), Order.code.desc())
+        .offset(offset)
+        .limit(limit)
+    ).all()
+    fields = list(DashboardCreditedOrderRow.model_fields)
+    return [DashboardCreditedOrderRow(**dict(zip(fields, row, strict=True))) for row in rows]
+
+
 def list_items(
     session: Session,
     actor: Actor,
@@ -483,6 +522,8 @@ def list_items(
         out.feedback_items = _feedback_rows(session, where, offset=offset, limit=page_size)
     elif definition.kind == "care_staff":
         out.care_staff_items = _care_staff_rows(session, where, now=now, offset=offset, limit=page_size)
+    elif definition.kind == "credited_order":
+        out.credited_order_items = _credited_order_rows(session, where, actor, offset=offset, limit=page_size)
     else:
         personal_for = actor.id if definition.personal else None
         out.task_items = _task_rows(session, where, offset=offset, limit=page_size, personal_for=personal_for)
@@ -567,6 +608,18 @@ def export_csv(
         table.extend(
             [_cell(e.employee_code), _cell(e.full_name), e.care_count, _vn_time(e.last_recorded_at)]
             for e in _care_staff_rows(session, where, now=now, offset=0, limit=None)
+        )
+    elif definition.kind == "credited_order":
+        table = [["Mã đơn", "Khách hàng", "Ngày tạo", "Trạng thái", "Doanh số ghi cho CSKH"]]
+        table.extend(
+            [
+                _cell(o.order_code),
+                _cell(o.customer_name),
+                _vn_time(o.created_at),
+                _ORDER_STATUS_CARDS.get(o.status, (o.status,))[0],
+                o.credited_total,
+            ]
+            for o in _credited_order_rows(session, where, actor, offset=0, limit=None)
         )
     elif definition.personal:
         table = [["Mã đầu việc", "Đầu việc", "Mã đơn", "Khách hàng", "Hạn", "Trạng thái"]]

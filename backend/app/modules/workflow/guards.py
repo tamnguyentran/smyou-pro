@@ -28,6 +28,11 @@ def order_has_no_tasks(task_count: int) -> bool:
     return task_count == 0
 
 
+def order_has_no_live_tasks(live_task_count: int) -> bool:
+    """Q183 (UAT-02): an order whose tasks were all cancelled can still be cancelled."""
+    return live_task_count == 0
+
+
 def reason_present(reason: str | None) -> bool:
     return reason is not None and len(reason.strip()) >= 5
 
@@ -114,11 +119,18 @@ def revision_has_work_if_revision(order_status: str, has_matching_task: bool) ->
     return order_status != "REVISION" or has_matching_task
 
 
+# The rule itself (ACCEPTED/IN_PROGRESS assignment, current cycle, task not cancelled) is computed
+# by orders.service._has_active_work; this entry only names the guard for state_machines.yaml.
+def actor_has_active_work_on_order(has_active_work: bool) -> bool:
+    return has_active_work
+
+
 GUARDS: dict[str, Callable[..., bool]] = {
     "customer_present": customer_present,
     "has_lines_or_description": has_lines_or_description,
     "service_address_present": service_address_present,
     "order_has_no_tasks": order_has_no_tasks,
+    "order_has_no_live_tasks": order_has_no_live_tasks,
     "reason_present": reason_present,
     "order_in_dispatchable_state": order_in_dispatchable_state,
     "at_least_one_assignee": at_least_one_assignee,
@@ -138,6 +150,7 @@ GUARDS: dict[str, Callable[..., bool]] = {
     "revision_has_work_if_revision": revision_has_work_if_revision,
     "has_active_assignment": has_active_assignment,
     "no_active_assignment": no_active_assignment,
+    "actor_has_active_work_on_order": actor_has_active_work_on_order,
 }
 
 PENDING_GUARDS: dict[str, str] = {}

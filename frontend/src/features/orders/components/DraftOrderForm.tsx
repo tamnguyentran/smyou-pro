@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useForm, useWatch, type Resolver } from "react-hook-form";
+import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { usePageTitle } from "../../../app/shell/pageTitle";
 import { NotFoundPage } from "../../../app/shell/StatusPage";
@@ -11,6 +11,7 @@ import { ChipGroup } from "../../../components/ui/Chip";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { Select } from "../../../components/ui/Select";
 import { Textarea } from "../../../components/ui/Textarea";
+import { DateField } from "../../../components/ui/DateField";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
 import { formatCurrency } from "../../../lib/format";
@@ -129,6 +130,7 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
   const [addLineOpen, setAddLineOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitStale, setSubmitStale] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [cancelStale, setCancelStale] = useState(false);
@@ -237,7 +239,8 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
     setReloadConfirmOpen(false);
   }
 
-  /** AC-ORD-061/062: submit guard failures stay on this form as a banner (order data untouched). */
+  /** AC-ORD-061/062, AC-UI-057/058: any submit failure keeps the confirm dialog open with the error
+   * inside it (order data untouched); only a success closes it. */
   function doSubmit() {
     if (!order) return;
     setSubmitError(null);
@@ -249,9 +252,8 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
           toast(`Đã gửi đơn ${updated.code}.`);
         },
         onError: (err: unknown) => {
-          setSubmitOpen(false);
           if (err instanceof ApiError && err.problem.code === "STALE_VERSION") {
-            setStaleVersion(true);
+            setSubmitStale(true);
           } else {
             setSubmitError(
               err instanceof ApiError && err.problem.detail
@@ -329,7 +331,6 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
         className="space-y-6 lg:col-start-1 lg:row-start-1 xl:col-span-2"
       >
         {formError ? <Alert>{formError}</Alert> : null}
-        {submitError ? <Alert>{submitError}</Alert> : null}
         {staleVersion ? (
           <div className="space-y-2">
             <Alert>Thông tin đã bị người khác thay đổi. Vui lòng tải lại.</Alert>
@@ -391,11 +392,19 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
                   </option>
                 ))}
               </Select>
-              <TextField
-                label="Ngày hẹn"
-                type="date"
-                error={formState.errors.requested_date?.message}
-                {...register("requested_date")}
+              <Controller
+                control={control}
+                name="requested_date"
+                render={({ field }) => (
+                  <DateField
+                    mode="date"
+                    label="Ngày hẹn"
+                    error={formState.errors.requested_date?.message}
+                    name={field.name}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                  />
+                )}
               />
               <div className="col-span-full">
                 <TextField
@@ -546,11 +555,22 @@ export function DraftOrderForm({ orderId }: { orderId?: string }) {
           open={submitOpen}
           onClose={() => {
             setSubmitOpen(false);
+            setSubmitError(null);
+            setSubmitStale(false);
           }}
           title="Gửi đơn?"
           message={`Gửi đơn ${order.code} tới Quản lý kỹ thuật?`}
           confirmLabel="Gửi đơn"
           loading={submitOrder.isPending}
+          error={submitError}
+          staleVersion={submitStale}
+          onReload={() => {
+            setSubmitOpen(false);
+            setSubmitStale(false);
+            // Same unsaved-changes guard as the page's own "Tải lại" banner (AC-ORD-035).
+            if (isDirty) setReloadConfirmOpen(true);
+            else void doReload();
+          }}
           onConfirm={doSubmit}
         />
       ) : null}

@@ -1,5 +1,5 @@
 import { Download } from "lucide-react";
-import { TextField } from "../../../components/ui/TextField";
+import { DateField } from "../../../components/ui/DateField";
 import { CustomerSearchField } from "../../revenueReport/components/CustomerSearchField";
 import type { CustomerGiftReportFilters as Filters } from "../api";
 import { customerGiftReportExportUrl } from "../api";
@@ -21,20 +21,20 @@ export function CustomerGiftReportFilters({
   return (
     <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div className="grid gap-3 sm:grid-cols-3">
-        <TextField
-          type="date"
+        <DateField
+          mode="date"
           label="Từ ngày"
           value={filters.from}
-          onChange={(event) => {
-            set("from", event.target.value);
+          onChange={(value) => {
+            set("from", value);
           }}
         />
-        <TextField
-          type="date"
+        <DateField
+          mode="date"
           label="Đến ngày"
           value={filters.to}
-          onChange={(event) => {
-            set("to", event.target.value);
+          onChange={(value) => {
+            set("to", value);
           }}
         />
         <CustomerSearchField

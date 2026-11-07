@@ -35,6 +35,7 @@ const THUY: Person = {
     "order.edit_draft": ["own"],
     "customer.read": all,
     "catalog.read": all,
+    "catalog.read_cost": all,
     "profile.manage": ["self"],
   },
 };
@@ -55,6 +56,10 @@ function line(overrides: Partial<OrderLine> = {}): OrderLine {
     cost_price_snapshot: null,
     credited_employee_id: null,
     credited_employee_name: null,
+    added_by_id: null,
+    added_by_name: null,
+    added_on_site: false,
+    can_edit_on_site: false,
     price_fixed: false,
     vat_rate: "0",
     quantity: "1",
@@ -115,6 +120,7 @@ function order(overrides: Partial<Order> = {}): Order {
     allowed_commands: [],
     can_edit_contact: false,
     can_edit_lines_after_submit: false,
+    can_add_lines_on_site: false,
     can_upload_confirmation: false,
     can_complete: false,
     can_revise: false,
@@ -295,6 +301,61 @@ describe("AC-ORD-206 đơn đã huỷ", () => {
 
     expect(await screen.findByText("DH2609-0012")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "In" })).not.toBeInTheDocument();
+  });
+});
+
+/** Gives the sheet `heightMm` of layout height (jsdom has no layout, every box is 0 × 0). */
+function sheetHeight(heightMm: number) {
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+    this: HTMLElement,
+  ) {
+    const height = this.dataset.testid === "invoice-print" ? heightMm * (96 / 25.4) : 0;
+    return DOMRect.fromRect({ width: 0, height });
+  });
+}
+
+async function printOnce() {
+  mockViewport(true);
+  signedInAs(thuyId, THUY);
+  serveOrder(order({ status: "DRAFT", allowed_commands: ["submit", "cancel"] }));
+  server.use(http.get("/api/v1/orders/:id/invoice-print", () => HttpResponse.json(printData())));
+  const seen: { paper?: string; a4Rule: boolean }[] = [];
+  vi.spyOn(window, "print").mockImplementation(() => {
+    seen.push({
+      paper: screen.getByTestId("invoice-print").dataset.paper,
+      a4Rule: [...document.head.querySelectorAll("style")].some((el) =>
+        /@page\s*{[^}]*size:\s*A4 portrait/.test(el.textContent),
+      ),
+    });
+  });
+  renderApp(`/orders/${orderId}`);
+  await userEvent.setup().click(await screen.findByRole("button", { name: "In" }));
+  await waitFor(() => {
+    expect(seen).toHaveLength(1);
+  });
+  return seen[0];
+}
+
+describe("AC-ORD-278/279 khổ giấy theo chiều dài hoá đơn", () => {
+  test("AC-ORD-278 bản in vừa 1 trang A5 ngang → data-paper=A5, không có quy tắc A4", async () => {
+    sheetHeight(120);
+    expect(await printOnce()).toEqual({ paper: "A5", a4Rule: false });
+  });
+
+  test("AC-ORD-278 bản in dài hơn 1 trang A5 ngang → data-paper=A4 + @page A4 portrait", async () => {
+    sheetHeight(200);
+    expect(await printOnce()).toEqual({ paper: "A4", a4Rule: true });
+  });
+
+  test("AC-ORD-279 hộp thoại in đóng → gỡ quy tắc A4", async () => {
+    sheetHeight(200);
+    await printOnce();
+    window.dispatchEvent(new Event("afterprint"));
+    const rules = [...document.head.querySelectorAll("style")].filter((el) =>
+      /A4 portrait/.test(el.textContent),
+    );
+    expect(rules).toHaveLength(0);
+    expect(screen.queryByTestId("invoice-print")).not.toBeInTheDocument();
   });
 });
 

@@ -1,5 +1,5 @@
-import { Lock, Package, Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { HardHat, Lock, Package, Trash2 } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
 import { Alert } from "../../../components/ui/Alert";
 import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
@@ -14,20 +14,23 @@ import { ApiError } from "../../auth/errors";
 import {
   useRemoveLine,
   useRemoveLineAfterSubmit,
+  useRemoveLineOnSite,
   useUpdateLine,
   useUpdateLineAfterSubmit,
+  useUpdateLineOnSite,
   type Order,
   type OrderLine,
   type OrderLineUpdateBody,
 } from "../api";
 import { computeLineTotal } from "../pricing";
 import { discountFieldSchema, quantityFieldSchema, vatOtherFieldSchema } from "../schemas";
-import { isStaleAfterSubmit, type RunOrderWrite } from "./writeQueue";
+import { StaleReloadedMessage } from "./StaleReloadedMessage";
+import { isStaleAfterSubmit, isStaleOnSubmittedOrder, type RunOrderWrite } from "./writeQueue";
 
-/** Which route family a line write goes to — "draft" (M3-02a, `.../lines*`) or "after-submit"
- * (M3-04a, `.../lines-after-submit*`). Both hooks for the active pair are always called (Rules of
- * Hooks); only the matching one actually fires a request. */
-export type LineEndpoint = "draft" | "after-submit";
+/** Which route family a line write goes to — "draft" (M3-02a, `.../lines*`), "after-submit"
+ * (M3-04a, `.../lines-after-submit*`) or "on-site" (M19-01a, `.../lines-on-site*`, KTV). Every hook
+ * is always called (Rules of Hooks); only the matching one actually fires a request. */
+export type LineEndpoint = "draft" | "after-submit" | "on-site";
 
 interface Draft {
   quantity: string;
@@ -63,6 +66,7 @@ function OrderLineRow({
   runWrite,
   lineEndpoint = "draft",
   onStaleVersion,
+  onReload,
 }: {
   line: OrderLine;
   canEdit: boolean;
@@ -71,6 +75,8 @@ function OrderLineRow({
   /** AC-ORD-103: when given (post-submit mode), a STALE_VERSION on this row defers to the caller's
    * own tab-level banner instead of the draft-mode inline row message. */
   onStaleVersion?: () => void;
+  /** AC-UI-062: background re-fetch after a STALE_VERSION in the delete dialog (post-submit mode). */
+  onReload?: () => void;
 }) {
   // Re-derive the editable draft when the server's own fields change (a mutation settling, or a
   // background refetch) — done during render (React's documented pattern for "adjusting state when
@@ -96,13 +102,31 @@ function OrderLineRow({
   const [discountError, setDiscountError] = useState<string>();
   const [rowError, setRowError] = useState<string>();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<ReactNode>(null);
+  const onSite = lineEndpoint === "on-site";
   const updateLineDraft = useUpdateLine();
   const updateLineAfterSubmit = useUpdateLineAfterSubmit();
-  const updateLine = lineEndpoint === "after-submit" ? updateLineAfterSubmit : updateLineDraft;
+  const updateLineOnSite = useUpdateLineOnSite();
+  const updateLine = onSite
+    ? updateLineOnSite
+    : lineEndpoint === "after-submit"
+      ? updateLineAfterSubmit
+      : updateLineDraft;
   const removeLineDraft = useRemoveLine();
   const removeLineAfterSubmit = useRemoveLineAfterSubmit();
-  const removeLine = lineEndpoint === "after-submit" ? removeLineAfterSubmit : removeLineDraft;
+  const removeLineOnSite = useRemoveLineOnSite();
+  const removeLine = onSite
+    ? removeLineOnSite
+    : lineEndpoint === "after-submit"
+      ? removeLineAfterSubmit
+      : removeLineDraft;
   const toast = useToast();
+
+  // AC-ORD-240: ở chế độ KTV (on-site), lỗi server hiện bằng toast thay vì Alert trong dòng.
+  function showError(err: unknown) {
+    if (onSite) toast(describeError(err));
+    else setRowError(describeError(err));
+  }
 
   // The server zeroes unit_price while is_gift (service.py's `_resolve_pricing`) and has no other
   // record of what it was — turning "Tặng kèm" back off must resend a real price alongside
@@ -139,14 +163,18 @@ function OrderLineRow({
         lineId: line.id,
         body: { version: order.version, ...patch },
       }),
-    ).catch((err: unknown) => {
-      setDraft(toDraft(serverSnapshot));
-      if (isStaleAfterSubmit(err, lineEndpoint, onStaleVersion)) {
-        onStaleVersion?.();
-        return;
-      }
-      setRowError(describeError(err));
-    });
+    )
+      .then(() => {
+        if (onSite) toast("Đã cập nhật dòng hàng.");
+      })
+      .catch((err: unknown) => {
+        setDraft(toDraft(serverSnapshot));
+        if (isStaleAfterSubmit(err, lineEndpoint, onStaleVersion)) {
+          onStaleVersion?.();
+          return;
+        }
+        showError(err);
+      });
   }
 
   const readOnlyPrice = line.price_fixed || draft.isGift;
@@ -172,6 +200,12 @@ function OrderLineRow({
           </span>
         ) : null}
         {draft.isGift ? <Badge tone="completed">Tặng kèm</Badge> : null}
+        {line.added_on_site ? (
+          <Badge tone="review">
+            <HardHat aria-hidden="true" className="mr-1 size-3.5" />
+            {`KTV thêm · ${line.added_by_name ?? ""}`}
+          </Badge>
+        ) : null}
       </div>
 
       <div className="md:col-span-2">
@@ -291,7 +325,10 @@ function OrderLineRow({
           draft.isGift ? "col-span-2 md:col-span-6" : "col-span-2 md:col-span-3 lg:col-span-4"
         }
       >
-        {canEdit ? (
+        {canEdit && onSite ? (
+          // Q124: dòng KTV thêm luôn ghi doanh số cho chính KTV — chỉ hiện chữ, không cho chọn.
+          <p className="text-sm text-body">{`Ghi doanh số: ${line.credited_employee_name ?? "—"}`}</p>
+        ) : canEdit ? (
           <EmployeeSearchField
             label="Người nhận doanh số"
             employeeId={draft.creditedEmployeeId}
@@ -360,13 +397,19 @@ function OrderLineRow({
           open={confirmOpen}
           onClose={() => {
             setConfirmOpen(false);
+            setDeleteError(null);
           }}
           title="Xoá dòng hàng"
-          message={`Xoá dòng ${line.name_snapshot}? Không thể hoàn tác.`}
+          message={
+            onSite
+              ? `Xoá dòng ${line.name_snapshot} khỏi đơn?`
+              : `Xoá dòng ${line.name_snapshot}? Không thể hoàn tác.`
+          }
           confirmLabel="Xoá"
           loading={removeLine.isPending}
+          error={deleteError}
           onConfirm={() => {
-            setRowError(undefined);
+            setDeleteError(null);
             runWrite((order) =>
               removeLine.mutateAsync({ id: order.id, lineId: line.id, version: order.version }),
             )
@@ -375,12 +418,13 @@ function OrderLineRow({
                 toast("Đã xoá dòng hàng.");
               })
               .catch((err: unknown) => {
-                setConfirmOpen(false);
-                if (isStaleAfterSubmit(err, lineEndpoint, onStaleVersion)) {
-                  onStaleVersion?.();
+                // AC-UI-062: every failure stays in the dialog; STALE also reloads in the background.
+                if (onReload && isStaleOnSubmittedOrder(err, lineEndpoint)) {
+                  onReload();
+                  setDeleteError(<StaleReloadedMessage retryLabel="Xoá" />);
                   return;
                 }
-                setRowError(describeError(err));
+                setDeleteError(describeError(err));
               });
           }}
         />
@@ -389,7 +433,9 @@ function OrderLineRow({
   );
 }
 
-/** Section 2 (AC-ORD-026..033/037): editable when the actor may edit this draft, read-only otherwise. */
+/** Section 2 (AC-ORD-026..033/037): editable when the actor may edit this draft, read-only otherwise.
+ * M19-01b: in "on-site" mode `canEdit` only shows the add button; each row is editable when the
+ * server flags it `can_edit_on_site` (a line the technician added themself). */
 export function OrderLinesSection({
   order,
   canEdit,
@@ -397,6 +443,7 @@ export function OrderLinesSection({
   runWrite,
   lineEndpoint = "draft",
   onStaleVersion,
+  onReload,
 }: {
   order: Order | undefined;
   canEdit: boolean;
@@ -404,6 +451,7 @@ export function OrderLinesSection({
   runWrite: RunOrderWrite;
   lineEndpoint?: LineEndpoint;
   onStaleVersion?: () => void;
+  onReload?: () => void;
 }) {
   return (
     <section className="space-y-3">
@@ -423,10 +471,11 @@ export function OrderLinesSection({
             <OrderLineRow
               key={line.id}
               line={line}
-              canEdit={canEdit}
+              canEdit={lineEndpoint === "on-site" ? line.can_edit_on_site : canEdit}
               runWrite={runWrite}
               lineEndpoint={lineEndpoint}
               onStaleVersion={onStaleVersion}
+              onReload={onReload}
             />
           ))}
         </ul>

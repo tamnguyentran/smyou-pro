@@ -118,6 +118,12 @@ export function ConfirmationAttachmentsTab({ order }: { order: Order }) {
           ) : null}
           {error ? <Alert>{error}</Alert> : null}
         </div>
+      ) : order.status === "IN_PROGRESS" || order.status === "REVISION" ? (
+        // UAT-03 (Q188): explains why there's no upload yet instead of leaving the tab silent.
+        <p className="text-sm text-muted">
+          Tải được ảnh phiếu xác nhận khi mọi đầu việc của đơn đã hoàn thành (đơn chuyển sang
+          &quot;Chờ KH xác nhận&quot;).
+        </p>
       ) : null}
 
       {attachments.isPending ? (

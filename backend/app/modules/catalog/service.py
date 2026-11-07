@@ -252,7 +252,8 @@ def update_product(
 ) -> ProductOut:
     product = _locked(session, actor, product_id, body.version)
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
-    if product.cost_price is None and changes.get("cost_price") is None:
+    # M21-08: an explicit `cost_price: null` must not clear an existing cost either.
+    if changes.get("cost_price", product.cost_price) is None:
         raise _cost_price_required()
     old_price, old_cost_price = product.price, product.cost_price
     changed_fields = sorted(f for f, value in changes.items() if getattr(product, f) != value)
@@ -508,7 +509,8 @@ def update_service(
 ) -> ServiceOut:
     service = _service_locked(session, actor, service_id, body.version)
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
-    if service.cost_price is None and changes.get("cost_price") is None:
+    # M21-08: an explicit `cost_price: null` must not clear an existing cost either.
+    if changes.get("cost_price", service.cost_price) is None:
         raise _cost_price_required()
     old_price, old_cost_price = service.price, service.cost_price
     changed_fields = sorted(f for f, value in changes.items() if getattr(service, f) != value)

@@ -4,10 +4,10 @@ import type { components } from "../../lib/api/schema";
 import { toApiError } from "../auth/errors";
 
 export type AuditEventOut = components["schemas"]["AuditEventOut"];
-export type EntityType = components["schemas"]["EntityType"];
+export type BusinessArea = components["schemas"]["BusinessArea"];
 
 export interface AuditEventFilters {
-  entityType: EntityType | "";
+  businessArea: BusinessArea | "";
   actorId: string;
   occurredFrom: string;
   occurredTo: string;
@@ -26,7 +26,7 @@ export function useAuditEvents(filters: AuditEventFilters, { enabled = true } = 
       const { data, error, response } = await api.GET("/api/v1/audit-events", {
         params: {
           query: {
-            entity_type: filters.entityType || undefined,
+            business_area: filters.businessArea || undefined,
             actor_id: filters.actorId || undefined,
             occurred_from: filters.occurredFrom || undefined,
             occurred_to: filters.occurredTo || undefined,

@@ -57,6 +57,7 @@ function detail(overrides: Partial<OrderDetail> = {}): OrderDetail {
     allowed_commands: [],
     can_edit_contact: false,
     can_edit_lines_after_submit: false,
+    can_add_lines_on_site: false,
     can_upload_confirmation: true,
     can_complete: false,
     can_revise: false,
@@ -168,6 +169,33 @@ describe("Tab Tệp đính kèm trên trang chi tiết đơn", () => {
       screen.queryByLabelText("Tải ảnh phiếu xác nhận", { exact: false }),
     ).not.toBeInTheDocument();
     expect(await screen.findByText("Chưa có ảnh phiếu xác nhận.")).toBeInTheDocument();
+  });
+
+  test.each(["IN_PROGRESS", "REVISION"] as const)(
+    "AC-CMP-015 đơn %s → không có control, có dòng giải thích khi nào tải được ảnh",
+    async (status) => {
+      signedInAs(khoaId, KHOA_TECH);
+      stub({ order: detail({ status, can_upload_confirmation: false }) });
+      await openAttachmentsTab();
+
+      expect(
+        await screen.findByText(
+          'Tải được ảnh phiếu xác nhận khi mọi đầu việc của đơn đã hoàn thành (đơn chuyển sang "Chờ KH xác nhận").',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByLabelText("Tải ảnh phiếu xác nhận", { exact: false }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test("AC-CMP-015 đơn AWAITING_CONFIRMATION có quyền → có control, không có dòng giải thích", async () => {
+    signedInAs(khoaId, KHOA_TECH);
+    stub();
+    await openAttachmentsTab();
+
+    expect(screen.getByLabelText("Tải ảnh phiếu xác nhận", { exact: false })).toBeInTheDocument();
+    expect(screen.queryByText(/Tải được ảnh phiếu xác nhận khi/)).not.toBeInTheDocument();
   });
 
   test("AC-CMP-014 file > 10MB → lỗi tức thì phía client, không gọi API nén/tải", async () => {

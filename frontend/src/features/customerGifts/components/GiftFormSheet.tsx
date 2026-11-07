@@ -1,13 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ImageOff, Save, Upload, X } from "lucide-react";
 import { useState, type ChangeEvent } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { Controller, useForm, type Resolver } from "react-hook-form";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { NumberField } from "../../../components/ui/NumberField";
 import { Sheet } from "../../../components/ui/Sheet";
 import { Textarea } from "../../../components/ui/Textarea";
+import { DateField } from "../../../components/ui/DateField";
 import { TextField } from "../../../components/ui/TextField";
 import { useToast } from "../../../components/ui/Toast";
 import { formatDateTime } from "../../../lib/format";
@@ -184,7 +185,7 @@ export function GiftFormSheet({
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [showReload, setShowReload] = useState(false);
 
-  const { register, handleSubmit, formState, setValue } = useForm<GiftFormValues>({
+  const { register, handleSubmit, formState, setValue, control } = useForm<GiftFormValues>({
     resolver: zodResolver(giftSchema) as Resolver<GiftFormValues>,
     defaultValues: {
       occasion_name: gift?.occasion_name ?? "",
@@ -314,11 +315,19 @@ export function GiftFormSheet({
               error={formState.errors.occasion_name?.message ?? serverErrors.occasion_name}
               {...register("occasion_name")}
             />
-            <TextField
-              label="Ngày thực hiện"
-              type="date"
-              error={formState.errors.performed_date?.message ?? serverErrors.performed_date}
-              {...register("performed_date")}
+            <Controller
+              control={control}
+              name="performed_date"
+              render={({ field }) => (
+                <DateField
+                  mode="date"
+                  label="Ngày thực hiện"
+                  error={formState.errors.performed_date?.message ?? serverErrors.performed_date}
+                  name={field.name}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
             />
             <TextField
               label="Tên gói quà"

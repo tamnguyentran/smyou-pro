@@ -2,8 +2,9 @@
 
 import logging
 import uuid
+from typing import Any
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -12,6 +13,7 @@ from app.core.errors import AppError
 from app.core.sequences import next_value
 from app.modules.audit import service as audit
 from app.modules.customers.domain import customer_code, last_code_number, mismatched_fields
+from app.modules.customers.export import build_csv
 from app.modules.customers.models import Customer
 from app.modules.customers.schemas import (
     CustomerCreate,
@@ -21,6 +23,7 @@ from app.modules.customers.schemas import (
     CustomerUpdate,
     CustomerWritten,
 )
+from app.modules.identity.models import Employee
 
 logger = logging.getLogger(__name__)
 
@@ -123,16 +126,11 @@ def _duplicate_matches(
     return [CustomerMatchOut(id=c.id, code=c.code, name=c.name, phone=c.phone) for c in rows]
 
 
-def list_customers(
-    session: Session,
-    actor: Actor,
-    *,
-    q: str | None,
-    customer_type: str | None,
-    limit: int,
-    offset: int,
-) -> CustomerPage:
-    query = apply_scope(select(Customer), actor, RULES)
+def _filtered[T: tuple[Any, ...]](
+    query: Select[T], actor: Actor, *, q: str | None, customer_type: str | None
+) -> Select[T]:
+    """Shared search/filter of `GET /customers` and its CSV export (M20-05)."""
+    query = apply_scope(query, actor, RULES)
     if q and q.strip():
         pattern = _like(q.strip())
         query = query.where(
@@ -146,10 +144,32 @@ def list_customers(
         )
     if customer_type is not None:
         query = query.where(Customer.type == customer_type)
+    return query
+
+
+def list_customers(
+    session: Session,
+    actor: Actor,
+    *,
+    q: str | None,
+    customer_type: str | None,
+    limit: int,
+    offset: int,
+) -> CustomerPage:
+    query = _filtered(select(Customer), actor, q=q, customer_type=customer_type)
     total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
     ordered = query.order_by(Customer.code)
     rows = session.scalars(ordered.limit(limit).offset(offset)).all()
     return CustomerPage(items=[_out(c) for c in rows], total=total, limit=limit, offset=offset)
+
+
+def export_customers(session: Session, actor: Actor, *, q: str | None, customer_type: str | None) -> bytes:
+    """M20-05: every matching customer (no paging), ordered by code, with the creator's name."""
+    query = select(Customer, Employee.full_name).join(Employee, Employee.id == Customer.created_by)
+    rows = session.execute(
+        _filtered(query, actor, q=q, customer_type=customer_type).order_by(Customer.code)
+    ).tuples()
+    return build_csv(rows)
 
 
 def get_customer(session: Session, actor: Actor, customer_id: uuid.UUID) -> CustomerOut:

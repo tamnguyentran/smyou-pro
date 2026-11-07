@@ -1,5 +1,5 @@
 import { useMediaQuery } from "../../../lib/useMediaQuery";
-import { formatCurrency } from "../../../lib/format";
+import { formatCurrency, formatDate } from "../../../lib/format";
 import type { RevenueRow } from "../api";
 
 const PROFIT_TOOLTIP = "Một số dòng hàng chưa có giá vốn tại thời điểm tạo đơn.";
@@ -9,6 +9,20 @@ function Profit({ profit }: { profit: number | null }) {
     return <span title={PROFIT_TOOLTIP}>—</span>;
   }
   return <>{formatCurrency(profit)}</>;
+}
+
+/** AC-CUS-058 (M21-05b): ghi chú mới nhất, rút gọn 2 dòng — đủ nội dung ở tooltip. */
+function Potential({ note }: { note: string | null | undefined }) {
+  if (!note) return <>—</>;
+  return (
+    <span title={note} className="line-clamp-2 break-words">
+      {note}
+    </span>
+  );
+}
+
+function lastPurchase(row: RevenueRow): string {
+  return row.last_purchase_date ? formatDate(row.last_purchase_date) : "—";
 }
 
 function rowKey(row: RevenueRow): string {
@@ -35,13 +49,21 @@ export function RevenueTable({
       <table className="w-full overflow-hidden rounded-2xl border border-line bg-card text-left text-sm">
         <thead className="bg-sidebar-sub text-xs font-semibold text-body uppercase">
           <tr>
-            {["Mã KH", "Tên KH", "Liên hệ", "Người bán", "Số đơn", "Doanh thu", "Lợi nhuận"].map(
-              (heading) => (
-                <th key={heading} scope="col" className="px-4 py-3">
-                  {heading}
-                </th>
-              ),
-            )}
+            {[
+              "Mã KH",
+              "Tên KH",
+              "Liên hệ",
+              "Người bán",
+              "Số đơn",
+              "Doanh thu",
+              "Lợi nhuận",
+              "Tiềm năng",
+              "Ngày mua hàng cuối",
+            ].map((heading) => (
+              <th key={heading} scope="col" className="px-4 py-3">
+                {heading}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody className="divide-y divide-line">
@@ -71,6 +93,10 @@ export function RevenueTable({
               <td className="px-4 py-3 text-right text-body">
                 <Profit profit={row.profit} />
               </td>
+              <td className="max-w-64 px-4 py-3 text-body">
+                <Potential note={row.potential_note} />
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap text-body">{lastPurchase(row)}</td>
             </tr>
           ))}
         </tbody>
@@ -117,6 +143,15 @@ export function RevenueTable({
                 </dd>
               </div>
             </dl>
+            {row.potential_note ? (
+              <p
+                className="mt-2 line-clamp-2 text-sm break-words text-body"
+                title={row.potential_note}
+              >
+                Tiềm năng: {row.potential_note}
+              </p>
+            ) : null}
+            <p className="mt-1 text-sm text-muted">Mua cuối: {lastPurchase(row)}</p>
           </button>
         </li>
       ))}

@@ -7,6 +7,7 @@ import { useToast } from "../../../components/ui/Toast";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
 import { useMe } from "../../me/api";
 import { fetchInvoicePrint, type InvoicePrintData, type Order } from "../api";
+import { invoicePaper } from "../invoicePaper";
 import { InvoicePrint } from "./InvoicePrint";
 
 // Same breakpoint as AppShell's sidebar (UI_GUIDELINES §3): printing is a desktop-only flow (M17-04).
@@ -27,10 +28,32 @@ function imagesSettled(root: HTMLElement | null): Promise<unknown> {
 // whole AppShell outlet — and a sheet inside that tree would vanish from the paper.
 let printRoot: { el: HTMLDivElement; root: Root } | null = null;
 
+// UAT-04: overrides index.css's `@page { size: A5 landscape }` while a long sheet is printing.
+const A4_PAGE_ID = "invoice-print-a4";
+
 function unmountSheet() {
   printRoot?.root.unmount();
   printRoot?.el.remove();
   printRoot = null;
+  document.getElementById(A4_PAGE_ID)?.remove();
+}
+
+/** Lays the (screen-hidden) sheet out off-screen at the printable width to measure it, then picks
+ * A5 landscape or A4 portrait (AC-ORD-277/278). */
+function choosePaper(el: HTMLDivElement) {
+  const sheet = el.querySelector<HTMLElement>(".invoice-print");
+  if (!sheet) return;
+  el.classList.add("invoice-print-measure");
+  const paper = invoicePaper(sheet.getBoundingClientRect().height);
+  el.classList.remove("invoice-print-measure");
+  sheet.dataset.paper = paper;
+  document.getElementById(A4_PAGE_ID)?.remove();
+  if (paper === "A4") {
+    const style = document.createElement("style");
+    style.id = A4_PAGE_ID;
+    style.textContent = "@media print { @page { size: A4 portrait; margin: 0 8mm; } }";
+    document.head.append(style);
+  }
 }
 
 function mountSheet(order: Order, data: InvoicePrintData): HTMLDivElement {
@@ -76,7 +99,9 @@ export function PrintInvoiceButton({
       toast("Không tải được dữ liệu in. Vui lòng thử lại.");
       return;
     }
-    await imagesSettled(mountSheet(target, data));
+    const el = mountSheet(target, data);
+    await imagesSettled(el);
+    choosePaper(el);
     setLoading(false);
     // Removed once the dialog closes, so a later Ctrl+P on another page prints that page, not this sheet.
     window.addEventListener("afterprint", unmountSheet, { once: true });

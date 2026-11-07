@@ -1,7 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll } from "vitest";
 import { server } from "./msw";
+
+/** The full suite runs ~60 jsdom workers in parallel; under that load a multi-request screen
+ * (e.g. profile → push subscription state) can take longer than Testing Library's 1s default
+ * to settle, making `findBy*` flaky. Same assertions, just more time to reach them. */
+configure({ asyncUtilTimeout: 3000 });
 
 /** jsdom's real `WebSocket` tries an actual network connection — every test that mounts
  * `AppShell` (M7-03's `useNotificationsRealtime`) would otherwise open one against a
@@ -15,6 +20,13 @@ class NoopWebSocket {
   close(): void {}
 }
 globalThis.WebSocket = NoopWebSocket as unknown as typeof WebSocket;
+
+/** jsdom has no layout, so it does not implement `scrollIntoView`; forms that centre the first
+ * server-rejected field (AC-UI-069) call it after focusing. No-op here, real in Playwright. */
+if (typeof Element !== "undefined") {
+  // node-environment suites (build/config checks) share this setup file but have no DOM
+  Element.prototype.scrollIntoView = function scrollIntoView() {};
+}
 
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "error" });

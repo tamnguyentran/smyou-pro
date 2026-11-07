@@ -62,7 +62,9 @@ export function ServicesPage() {
   }
   if (!me.data) return <Waiting />;
   const capabilities = me.data.capabilities;
-  if (!("catalog.read" in capabilities)) return <ForbiddenPage />;
+  // M19-01a: TECHNICIAN has catalog.read only to pick items on site — these catalog screens stay
+  // limited to the roles that held catalog.read before (= catalog.read_cost holders).
+  if (!("catalog.read_cost" in capabilities)) return <ForbiddenPage />;
   const canManage = "catalog.manage" in capabilities;
 
   return (

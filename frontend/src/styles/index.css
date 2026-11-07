@@ -60,6 +60,18 @@
   display: none;
 }
 
+/* UAT-04: off-screen layout at the 194 mm printable width (A5 landscape = A4 portrait) so
+   PrintInvoiceButton can measure the sheet's height before choosing the paper. */
+.invoice-print-measure .invoice-print {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: 194mm;
+  padding: 5mm 0;
+  visibility: hidden;
+}
+
 @media print {
   /* No top/bottom page margin: Chrome prints its own header/footer (tab title, date/time, URL) only
      inside those margins, so this keeps them off the invoice. The vertical white space comes from the
@@ -81,7 +93,7 @@
 
   .invoice-print {
     display: block;
-    padding: 8mm 0;
+    padding: 5mm 0;
     -webkit-box-decoration-break: clone;
     box-decoration-break: clone;
   }

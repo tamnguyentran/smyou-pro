@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from app.core.authz import Actor, require
 from app.core.db import DbSession
 from app.modules.audit import service
-from app.modules.audit.domain import EntityType
+from app.modules.audit.domain import BusinessArea, EntityType
 from app.modules.audit.schemas import AuditEventPage
 
 router = APIRouter(prefix="/api/v1/audit-events", tags=["audit"])
@@ -19,13 +19,14 @@ Reader = Annotated[Actor, Depends(require("audit.read"))]
 @router.get(
     "",
     operation_id="audit_events_list",
-    summary="Nhật ký hệ thống (lọc theo thực thể / người thực hiện / khoảng ngày)",
+    summary="Nhật ký hệ thống (lọc theo nghiệp vụ / thực thể / người thực hiện / khoảng ngày)",
     response_model=AuditEventPage,
 )
 def list_events(
     session: DbSession,
     actor: Reader,
     entity_type: EntityType | None = None,
+    business_area: BusinessArea | None = None,
     actor_id: uuid.UUID | None = None,
     occurred_from: date | None = None,
     occurred_to: date | None = None,
@@ -36,6 +37,7 @@ def list_events(
         session,
         actor,
         entity_type=entity_type,
+        business_area=business_area,
         actor_id=actor_id,
         occurred_from=occurred_from,
         occurred_to=occurred_to,

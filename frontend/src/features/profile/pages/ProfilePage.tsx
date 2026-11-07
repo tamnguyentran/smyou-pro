@@ -9,6 +9,7 @@ import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
 import { formatDate } from "../../../lib/format";
 import { useSignOut } from "../../auth/useSignOut";
+import { MyKpiSalesCard } from "../../kpiSales/components/MyKpiSalesCard";
 import { GENDER_LABELS, MARITAL_STATUS_LABELS } from "../../employees/schemas";
 import { useMe } from "../../me/api";
 import { PushSubscriptionToggle } from "../../notifications/components/PushSubscriptionToggle";
@@ -77,28 +78,33 @@ export function ProfilePage() {
   }
   // Sign-out does not depend on /me, so it stays available when /me cannot be loaded.
   return (
-    <section className="space-y-4 rounded-2xl bg-card p-7 shadow-card md:max-w-md">
-      {details}
-      <Link
-        to="/doi-mat-khau"
-        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-heading transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-      >
-        <KeyRound aria-hidden="true" className="size-4" />
-        Đổi mật khẩu
-      </Link>
-      {me.data?.vapid_public_key ? (
-        <PushSubscriptionToggle vapidPublicKey={me.data.vapid_public_key} />
-      ) : null}
-      {failed ? <Alert>Không đăng xuất được. Vui lòng thử lại.</Alert> : null}
-      <Button
-        variant="secondary"
-        onClick={signOut}
-        loading={pending}
-        icon={<LogOut aria-hidden="true" className="size-4" />}
-        className="w-full"
-      >
-        Đăng xuất
-      </Button>
-    </section>
+    // AC-RPT-099: điện thoại xếp dọc; từ tablet thẻ cá nhân và thẻ KPI cùng 1 hàng.
+    <div className="grid gap-4 md:grid-cols-2 md:items-start lg:max-w-5xl">
+      <section className="space-y-4 rounded-2xl bg-card p-7 shadow-card">
+        {details}
+        <Link
+          to="/doi-mat-khau"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-heading transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+        >
+          <KeyRound aria-hidden="true" className="size-4" />
+          Đổi mật khẩu
+        </Link>
+        {me.data?.vapid_public_key ? (
+          <PushSubscriptionToggle vapidPublicKey={me.data.vapid_public_key} />
+        ) : null}
+        {failed ? <Alert>Không đăng xuất được. Vui lòng thử lại.</Alert> : null}
+        <Button
+          variant="secondary"
+          onClick={signOut}
+          loading={pending}
+          icon={<LogOut aria-hidden="true" className="size-4" />}
+          className="w-full"
+        >
+          Đăng xuất
+        </Button>
+      </section>
+      {/* M21-02b (AC-RPT-096): next to the personal details, every role with profile.manage. */}
+      {me.data ? <MyKpiSalesCard /> : null}
+    </div>
   );
 }

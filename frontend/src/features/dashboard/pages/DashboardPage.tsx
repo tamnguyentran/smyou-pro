@@ -88,6 +88,8 @@ export function DashboardPage() {
           careSummary={data.care_summary}
           careStaffCount={data.care_staff_count}
           ordersNeedingRevisionCount={data.orders_needing_revision_count}
+          creditedOrderCount={data.care_credited_order_count ?? undefined}
+          managerView={me.data.roles.includes("MANAGER")}
         />
       ) : null}
       {data.top_customers || data.feedback_summary ? (

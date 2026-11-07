@@ -8,6 +8,7 @@ import { Button } from "../../../components/ui/Button";
 import { ChipGroup } from "../../../components/ui/Chip";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { Pagination } from "../../../components/ui/Pagination";
+import { DateField } from "../../../components/ui/DateField";
 import { TextField } from "../../../components/ui/TextField";
 import { defaultMonthToDateRange } from "../../../lib/dateRange";
 import { useDebouncedValue } from "../../../lib/useDebouncedValue";
@@ -36,14 +37,20 @@ function Waiting() {
  * từ Tổng quan — không đồng bộ URL ngược lại sau đó (ngoài phạm vi spec §2).
  * AC-CSK-010/012 (M15-02b): CUSTOMER_CARE mặc định bộ lọc ngày = đầu tháng hiện tại → hôm nay —
  * tính thẳng từ vai trò mỗi lần render (không lưu vào state) để không phụ thuộc thời điểm `me`
- * tải xong; `dateFrom`/`dateTo`/`csatRating` chỉ vào state khi người dùng tự đổi. */
+ * tải xong; `dateFrom`/`dateTo`/`csatRating` chỉ vào state khi người dùng tự đổi.
+ * AC-ORD-243..251 (M20-03): "Chỉ đơn của tôi" — `?mine=1`/`?mine=0` thắng; không có thì mặc định
+ * bật cho SALE/CUSTOMER_CARE không kiêm MANAGER (Q128), cùng cách tính theo vai trò như trên; danh
+ * sách chỉ tải khi `me` có dữ liệu để request đầu tiên đã đúng `mine`. */
 export function OrdersListPage() {
   usePageTitle("Danh sách đơn");
   const me = useMe();
   const [searchParams] = useSearchParams();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState(() => searchParams.get("status") ?? "");
-  const [mine, setMine] = useState(() => searchParams.get("mine") === "1");
+  const [mine, setMine] = useState<boolean | undefined>(() => {
+    const param = searchParams.get("mine");
+    return param === "1" ? true : param === "0" ? false : undefined;
+  });
   const [overdue, setOverdue] = useState(() => searchParams.get("overdue") === "1");
   const [dateFrom, setDateFrom] = useState<string | undefined>(
     () => searchParams.get("from") ?? undefined,
@@ -51,7 +58,7 @@ export function OrdersListPage() {
   const [dateTo, setDateTo] = useState<string | undefined>(
     () => searchParams.get("to") ?? undefined,
   );
-  const [csatRating, setCsatRating] = useState<number | undefined>(undefined);
+  const [csatRating, setCsatRating] = useState<number | "none" | undefined>(undefined);
   const [offset, setOffset] = useState(0);
   const debouncedQ = useDebouncedValue(q, 300);
 
@@ -59,20 +66,32 @@ export function OrdersListPage() {
   const csCareDefault = isCustomerCare ? defaultMonthToDateRange() : undefined;
   const effectiveDateFrom = dateFrom ?? csCareDefault?.from;
   const effectiveDateTo = dateTo ?? csCareDefault?.to;
+  const roles = me.data?.roles ?? [];
+  const effectiveMine =
+    mine ??
+    ((roles.includes("SALE") || roles.includes("CUSTOMER_CARE")) && !roles.includes("MANAGER"));
 
   const filters: OrderFilters = {
     q: debouncedQ,
     status,
-    mine,
+    mine: effectiveMine,
     overdue,
     dateFrom: effectiveDateFrom,
     dateTo: effectiveDateTo,
-    csatRating,
+    csatRating: csatRating === "none" ? undefined : csatRating,
+    csatUnrated: csatRating === "none" || undefined,
     limit: PAGE_SIZE,
     offset,
   };
-  const orders = useOrders(filters);
-  const csatSummary = useCsatSummary({ dateFrom: effectiveDateFrom, dateTo: effectiveDateTo });
+  const orders = useOrders(filters, { enabled: me.data !== undefined });
+  const csatSummary = useCsatSummary(
+    {
+      dateFrom: effectiveDateFrom,
+      dateTo: effectiveDateTo,
+      createdBy: effectiveMine ? me.data?.employee.id : undefined,
+    },
+    { enabled: isCustomerCare },
+  );
 
   if (!me.data && me.isError) {
     return (
@@ -124,21 +143,21 @@ export function OrdersListPage() {
         </div>
         {isCustomerCare ? (
           <>
-            <TextField
-              type="date"
+            <DateField
+              mode="date"
               label="Từ ngày"
               value={effectiveDateFrom ?? ""}
-              onChange={(event) => {
-                setDateFrom(event.target.value);
+              onChange={(value) => {
+                setDateFrom(value);
                 setOffset(0);
               }}
             />
-            <TextField
-              type="date"
+            <DateField
+              mode="date"
               label="Đến ngày"
               value={effectiveDateTo ?? ""}
-              onChange={(event) => {
-                setDateTo(event.target.value);
+              onChange={(value) => {
+                setDateTo(value);
                 setOffset(0);
               }}
             />
@@ -169,7 +188,7 @@ export function OrdersListPage() {
         <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-body">
           <input
             type="checkbox"
-            checked={mine}
+            checked={effectiveMine}
             onChange={(event) => {
               setMine(event.target.checked);
               setOffset(0);

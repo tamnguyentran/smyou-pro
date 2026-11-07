@@ -34,6 +34,7 @@ export const TUAN: Person = {
     "task.reopen": all,
     "employee.read": all,
     "catalog.read": all,
+    "catalog.read_cost": all,
     "profile.manage": self,
   },
 };

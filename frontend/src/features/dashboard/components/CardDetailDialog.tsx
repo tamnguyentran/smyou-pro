@@ -1,6 +1,7 @@
 import { FileSpreadsheet, Inbox } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
+import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { Pagination } from "../../../components/ui/Pagination";
@@ -9,6 +10,7 @@ import { useToast } from "../../../components/ui/Toast";
 import { cn } from "../../../lib/cn";
 import { formatCurrency, formatDateTime, formatPhone } from "../../../lib/format";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
+import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, type OrderStatus } from "../../orders/orderStatus";
 import {
   CARD_PAGE_SIZE,
   downloadDashboardCard,
@@ -21,6 +23,7 @@ type TaskRow = NonNullable<DashboardCardItems["task_items"]>[number];
 type StaffRow = NonNullable<DashboardCardItems["staff_items"]>[number];
 type FeedbackRow = NonNullable<DashboardCardItems["feedback_items"]>[number];
 type CareStaffRow = NonNullable<DashboardCardItems["care_staff_items"]>[number];
+type CreditedOrderRow = NonNullable<DashboardCardItems["credited_order_items"]>[number];
 
 /** M18-01b: nhãn trạng thái phân công của chính KTV (thẻ `mine.*`) — các nhóm của "Việc của tôi". */
 const ASSIGNMENT_STATUS_LABEL: Record<string, string> = {
@@ -226,7 +229,65 @@ function CareStaffTable({ rows }: { rows: CareStaffRow[] }) {
   );
 }
 
+/** M21-03: `credited_total` chỉ cộng các dòng ghi cho CSKH người xem được thấy. */
+function CreditedOrderTable({ rows }: { rows: CreditedOrderRow[] }) {
+  return (
+    <table className="w-full">
+      <thead className="border-b border-line">
+        <tr>
+          <th className={TH}>Mã đơn</th>
+          <th className={TH}>Khách hàng</th>
+          <th className={TH}>Ngày tạo</th>
+          <th className={TH}>Trạng thái</th>
+          <th className={cn(TH, "text-right")}>Doanh số ghi cho CSKH</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-line">
+        {rows.map((r) => (
+          <tr key={r.order_id}>
+            <td className={TD_NOWRAP}>
+              <OrderLink id={r.order_id} code={r.order_code} />
+            </td>
+            <td className={TD}>{r.customer_name ?? "—"}</td>
+            <td className={TD_NOWRAP}>{formatDateTime(r.created_at)}</td>
+            <td className={TD_NOWRAP}>
+              <OrderStatusBadge status={r.status} />
+            </td>
+            <td className={cn(TD, "text-right tabular-nums")}>
+              {formatCurrency(r.credited_total)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** API chỉ trả trạng thái đơn hợp lệ (spec/state_machines.yaml#order) — badge như danh sách đơn. */
+function OrderStatusBadge({ status }: { status: string }) {
+  const known = status as OrderStatus;
+  return <Badge tone={ORDER_STATUS_TONE[known]}>{ORDER_STATUS_LABEL[known]}</Badge>;
+}
+
 const CARD_ITEM = "space-y-1 rounded-xl border border-line p-3 text-sm";
+
+function CreditedOrderCards({ rows }: { rows: CreditedOrderRow[] }) {
+  return (
+    <ul className="space-y-2">
+      {rows.map((r) => (
+        <li key={r.order_id} className={CARD_ITEM}>
+          <OrderLink id={r.order_id} code={r.order_code} tap />
+          <p className="text-heading">{r.customer_name ?? "—"}</p>
+          <p className="font-medium text-body tabular-nums">{formatCurrency(r.credited_total)}</p>
+          <div className="flex items-center gap-2">
+            <OrderStatusBadge status={r.status} />
+            <span className="text-muted">{formatDateTime(r.created_at)}</span>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function FeedbackCards({ rows }: { rows: FeedbackRow[] }) {
   return (
@@ -427,6 +488,13 @@ export function CardDetailDialog({
   } else if (data.kind === "care_staff") {
     const careStaff = data.care_staff_items ?? [];
     body = desktop ? <CareStaffTable rows={careStaff} /> : <CareStaffCards rows={careStaff} />;
+  } else if (data.kind === "credited_order") {
+    const credited = data.credited_order_items ?? [];
+    body = desktop ? (
+      <CreditedOrderTable rows={credited} />
+    ) : (
+      <CreditedOrderCards rows={credited} />
+    );
   } else {
     const tasks = data.task_items ?? [];
     const personal = data.card.startsWith("mine.");

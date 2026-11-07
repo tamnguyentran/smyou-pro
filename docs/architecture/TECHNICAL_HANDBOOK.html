@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SMYou Pro — Technical Handbook</title>
+<style>
+  :root{
+    --bg:#ffffff; --fg:#1b2430; --muted:#5b6672; --card:#f6f8fa; --border:#e1e6eb;
+    --accent:#2563eb; --accent-fg:#ffffff; --code-bg:#0f172a; --code-fg:#e2e8f0;
+    --warn-bg:#fff7e6; --warn-border:#f3cf6b; --ok-bg:#eafaf0; --ok-border:#8fd4ab;
+    --danger-bg:#fdecec; --danger-border:#e8a5a5;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0e1420; --fg:#e6ebf1; --muted:#9aa7b4; --card:#161d2b; --border:#273245;
+      --accent:#5b8cff; --accent-fg:#0b1322; --code-bg:#05080f; --code-fg:#d6e0ea;
+      --warn-bg:#2a2210; --warn-border:#6b5620; --ok-bg:#0f2a1c; --ok-border:#2e6b47;
+      --danger-bg:#2a1414; --danger-border:#6b2a2a;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1420; --fg:#e6ebf1; --muted:#9aa7b4; --card:#161d2b; --border:#273245;
+    --accent:#5b8cff; --accent-fg:#0b1322; --code-bg:#05080f; --code-fg:#d6e0ea;
+    --warn-bg:#2a2210; --warn-border:#6b5620; --ok-bg:#0f2a1c; --ok-border:#2e6b47;
+    --danger-bg:#2a1414; --danger-border:#6b2a2a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--fg)}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6;font-size:16px}
+  .layout{display:flex;max-width:1400px;margin:0 auto}
+  nav.toc{width:260px;flex:0 0 260px;position:sticky;top:0;height:100vh;overflow-y:auto;padding:24px 16px;border-right:1px solid var(--border);font-size:13.5px}
+  nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:4px 8px;border-radius:6px;white-space:nowrap}
+  nav.toc a:hover{background:var(--card);color:var(--fg)}
+  nav.toc .lvl2{padding-left:20px;font-size:13px}
+  main{flex:1 1 auto;min-width:0;padding:32px 40px 100px;max-width:980px}
+  h1{font-size:28px;margin:0 0 6px}
+  .subtitle{color:var(--muted);font-size:15px;margin-bottom:28px}
+  h2{font-size:21px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--border)}
+  h2:first-of-type{border-top:none}
+  h3{font-size:16.5px;margin:24px 0 8px;color:var(--fg)}
+  h4{font-size:14.5px;margin:16px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+  p{margin:8px 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--card);padding:2px 6px;border-radius:4px;font-size:.88em;border:1px solid var(--border)}
+  pre{background:var(--code-bg);color:var(--code-fg);padding:14px 16px;border-radius:10px;overflow-x:auto;font-size:13.5px;line-height:1.55}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:1em}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.02em}
+  tr:last-child td{border-bottom:none}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin:14px 0}
+  .note{background:var(--card);border-left:3px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:14.5px}
+  .warn{background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:8px;padding:10px 14px;margin:12px 0;font-size:14.5px}
+  .danger{background:var(--danger-bg);border:1px solid var(--danger-border);border-radius:8px;padding:10px 14px;margin:12px 0;font-size:14.5px}
+  .ok{background:var(--ok-bg);border:1px solid var(--ok-border);border-radius:8px;padding:10px 14px;margin:12px 0;font-size:14.5px}
+  .pill{display:inline-block;background:var(--accent);color:var(--accent-fg);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;margin-left:8px}
+  .diagram{background:var(--code-bg);color:var(--code-fg);border-radius:10px;padding:18px;font-family:ui-monospace,monospace;font-size:13px;overflow-x:auto;white-space:pre}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:860px){
+    .layout{flex-direction:column}
+    nav.toc{position:relative;height:auto;width:100%;flex:none;border-right:none;border-bottom:1px solid var(--border)}
+    main{padding:20px 16px 80px;max-width:100%}
+    .grid2{grid-template-columns:1fr}
+  }
+  ul,ol{padding-left:22px}
+  li{margin:4px 0}
+  a{color:var(--accent)}
+  footer{color:var(--muted);font-size:12.5px;margin-top:60px;border-top:1px solid var(--border);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc">
+  <a href="#overview">1. Tổng quan hệ thống</a>
+  <a href="#stack">2. Stack kỹ thuật</a>
+  <a href="#structure">3. Cấu trúc thư mục & ranh giới</a>
+  <a href="#dataflow">4. Luồng xử lý & luồng dữ liệu</a>
+  <a class="lvl2" href="#dataflow-request">4.1 Luồng 1 request</a>
+  <a class="lvl2" href="#dataflow-business">4.2 Luồng nghiệp vụ lõi</a>
+  <a class="lvl2" href="#dataflow-state">4.3 State machine & permission</a>
+  <a href="#db">5. Database</a>
+  <a href="#api">6. Backend / API</a>
+  <a href="#frontend">7. Frontend</a>
+  <a href="#envs">8. Môi trường & biến cấu hình</a>
+  <a href="#dev">9. Chạy dev trên máy (Mac M2)</a>
+  <a href="#ci">10. Chế độ CI</a>
+  <a href="#deploy-first">11. Triển khai lần đầu (manual)</a>
+  <a href="#deploy-update">12. Cập nhật / vá lỗi sau này</a>
+  <a href="#rollback">13. Rollback & backup</a>
+  <a href="#ops">14. Vận hành & sự cố thường gặp</a>
+  <a href="#refs">15. Tài liệu tham chiếu</a>
+</nav>
+<main>
+  <h1>SMYou Pro — Technical Handbook</h1>
+  <p class="subtitle">Tài liệu kỹ thuật tổng hợp để bất kỳ lập trình viên nào cũng có thể maintain và vận hành hệ thống — từ kiến trúc, luồng dữ liệu, tới build/deploy production (CI &amp; manual), lần đầu và các lần vá lỗi sau. Cập nhật: 2026-10-17.</p>
+
+  <section id="overview">
+  <h2>1. Tổng quan hệ thống</h2>
+  <p>SMYou Pro quản lý luồng <b>đơn hàng → đầu việc kỹ thuật</b> cho công ty bán/lắp máy tính, máy in, camera an ninh. Luồng lõi: Sale tạo đơn → Quản lý kỹ thuật tạo task &amp; giao người → Kỹ thuật viên nhận/từ chối → thực hiện → khách ký xác nhận → đơn hoàn tất.</p>
+  <p>Kiến trúc: <b>modular monolith</b> — 1 backend FastAPI, 1 SPA React, 1 PostgreSQL — chạy bằng Docker Compose. Production đứng sau nginx hệ thống của server, phục vụ dưới subpath <code>https://ilabsviet.com/smyoutask/</code>.</p>
+  <div class="diagram">Browser (mobile/desktop)
+   │ HTTPS (ilabsviet.com, TLS do nginx hệ thống)
+   ▼
+[nginx hệ thống]  — forward nguyên path /smyoutask/*, KHÔNG strip
+   │ 127.0.0.1:6890
+   ▼
+┌─────────────── container "web" (nginx, image smyou-web) ───────────────┐
+│  /smyoutask/            → static SPA (frontend dist, React Router)     │
+│  /smyoutask/api/        → strip prefix → proxy → backend:8000/api/     │
+└──────────────────────────────┬───────────────────────────────────────┘
+                                ▼
+                 container "backend" (FastAPI + uvicorn, image smyou-backend)
+                                │  (sync SQLAlchemy, psycopg3)
+                                ▼
+                 container "db" (PostgreSQL 17, volume pgdata)
+                                │
+                 container "backend" cũng đọc/ghi volume "uploads"
+                 (/data/uploads — ảnh phiếu xác nhận, đính kèm)</div>
+  <p>Hai bộ containers tách biệt hoàn toàn theo môi trường: <code>compose.dev.yml</code> (Mac M2, hot reload, build local) và <code>compose.prod.yml</code> (AlmaLinux, chỉ pull image có sẵn, không build trên server).</p>
+  </section>
+
+  <section id="stack">
+  <h2>2. Stack kỹ thuật</h2>
+  <table>
+    <tr><th>Tầng</th><th>Công nghệ</th><th>Ghi chú</th></tr>
+    <tr><td>Backend</td><td>Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0 (sync), Alembic, psycopg3</td><td>Quản lý deps bằng <code>uv</code> (<code>uv.lock</code> commit); sync (không async) — tải dự kiến ~30 người dùng</td></tr>
+    <tr><td>Auth</td><td>pwdlib[argon2], PyJWT, cookie httpOnly</td><td>access token 15', refresh 7 ngày, rotate</td></tr>
+    <tr><td>Frontend</td><td>React 19 + TypeScript strict + Vite, Tailwind CSS v4, React Router, TanStack Query</td><td>Node 22 LTS, npm (<code>package-lock.json</code> commit)</td></tr>
+    <tr><td>API client FE</td><td><code>openapi-typescript</code> + <code>openapi-fetch</code></td><td>Type sinh tự động từ OpenAPI — <b>không viết tay</b></td></tr>
+    <tr><td>DB</td><td>PostgreSQL 17</td><td>Enum lưu <code>varchar</code> + CHECK; tiền <code>BIGINT</code> VND, không float</td></tr>
+    <tr><td>Test</td><td>pytest + hypothesis + schemathesis (BE); Vitest + Testing Library + Playwright + axe (FE)</td><td><code>make check</code> / <code>make verify</code> chạy toàn bộ</td></tr>
+    <tr><td>Container</td><td>Docker Compose, multi-stage Dockerfile</td><td>Dev build native arm64; prod build <code>linux/amd64</code> trên Mac M2</td></tr>
+  </table>
+  </section>
+
+  <section id="structure">
+  <h2>3. Cấu trúc thư mục &amp; ranh giới module</h2>
+  <div class="diagram">backend/
+  app/
+    main.py              # create_app(), routers, exception handlers
+    core/                # config, db, security, errors, spec_loader, authz
+    modules/
+      identity/ catalog/ customers/ orders/ dispatch/
+      files/ audit/ notifications/ reporting/
+      # mỗi module: domain.py (thuần Python) · models.py (ORM)
+      #             schemas.py (Pydantic) · service.py (use case, transaction, audit)
+      #             router.py (HTTP mỏng) · queries.py (đọc có áp scope)
+  tests/ unit/ integration/ stateful/ contract/ generated/
+frontend/
+  src/
+    app/                 # router, AppShell, menu.ts, auth guard
+    components/ui/       # Button, Badge, StatusBadge, Sheet, DataList, MoneyText...
+    features/<feature>/  # api.ts (hooks), components/, pages/, schemas.ts (zod)
+    lib/api/             # schema.d.ts sinh tự động + client
+  e2e/                   # Playwright
+spec/                    # state_machines.yaml, permissions.yaml — NGUỒN SỰ THẬT máy đọc được
+scripts/                 # check_ac_coverage.py, export_openapi.py, deploy.sh, golive_check.sh...</div>
+  <p><b>Ranh giới bắt buộc</b> (kiểm tra tự động bằng <code>import-linter</code>, chạy trong <code>make lint</code>):</p>
+  <ul>
+    <li><code>domain.py</code> không import gì ngoài stdlib + <code>domain</code> module khác — là logic nghiệp vụ thuần, không đụng FastAPI/SQLAlchemy.</li>
+    <li><code>router.py</code> không import <code>models.py</code> trực tiếp — chỉ gọi qua <code>service.py</code>.</li>
+    <li>Module A chỉ gọi module B qua hàm public của <code>B.service</code>, không đọc thẳng <code>B.models</code> (trừ vài ngoại lệ đã ghi nhận và test trong <code>ARCHITECTURE.md</code> §3 — ví dụ <code>audit</code>/<code>orders</code> được phép <b>đọc</b> <code>identity.models.Employee</code> để join tên).</li>
+  </ul>
+  <p>Vi phạm ranh giới làm <code>make lint</code> fail ngay — không "để sau sửa".</p>
+  </section>
+
+  <section id="dataflow">
+  <h2>4. Luồng xử lý &amp; luồng dữ liệu</h2>
+
+  <h3 id="dataflow-request">4.1 Luồng một request điển hình</h3>
+  <ol>
+    <li>Browser gọi <code>fetch</code> qua hook trong <code>features/&lt;x&gt;/api.ts</code> (TanStack Query) — FE <b>không</b> gọi <code>fetch</code> trực tiếp trong component.</li>
+    <li>Request đi qua nginx hệ thống → container <code>web</code> (nginx) → nếu path khớp <code>/api/</code> thì strip prefix và proxy sang <code>backend</code>; ngược lại trả static SPA (fallback <code>index.html</code> cho client-side routing).</li>
+    <li>FastAPI nhận request tại <code>router.py</code> của module — tầng này <b>mỏng</b>: parse input → <code>require("capability")</code> dependency kiểm quyền → gọi <code>service.py</code> → trả response theo <code>response_model</code>.</li>
+    <li><code>service.py</code> mở transaction (qua dependency <code>get_uow()</code>), gọi logic thuần trong <code>domain.py</code> (tính tiền, validate guard, suy ra trạng thái), ghi DB qua <code>models.py</code>, ghi 1 dòng vào <code>audit_events</code>, rồi commit.</li>
+    <li>Response JSON (snake_case) trả về; FE qua <code>openapi-fetch</code> với type sinh sẵn từ OpenAPI, TanStack Query cache theo key, sau lệnh ghi thì <code>invalidateQueries</code> để refetch.</li>
+  </ol>
+  <div class="note">Không có API nào nhận <code>PATCH status</code> tự do. Mọi chuyển trạng thái là <b>lệnh có tên</b>: <code>POST /orders/{id}/submit</code>, <code>POST /assignments/{id}/reject</code>… kèm <code>version</code> (optimistic lock chống ghi đè).</div>
+
+  <h3 id="dataflow-business">4.2 Luồng nghiệp vụ lõi (đơn → task → KPI)</h3>
+  <div class="diagram">1. Sale/Manager tạo ĐƠN (orders)
+     └─ dòng đơn SNAPSHOT tên/mã/giá/VAT/bảo hành của sản phẩm-dịch vụ tại thời điểm tạo
+        (đổi danh mục sau này không ảnh hưởng đơn cũ — ADR-004)
+
+2. Quản lý kỹ thuật tạo TASK (dispatch) cho đơn, giao ASSIGNMENT cho kỹ thuật viên
+   └─ trạng thái task là DỮ LIỆU SUY RA từ assignment chu kỳ hiện tại (ADR-007)
+      — tính lại mỗi transaction, không tin giá trị lưu cũ
+
+3. Kỹ thuật viên NHẬN / TỪ CHỐI assignment → thực hiện → đánh XONG
+   └─ cần bằng chứng: ảnh phiếu xác nhận gắn revision_no (ADR-005)
+
+4. Khách KÝ XÁC NHẬN → đơn HOÀN TẤT
+   └─ có thể "Chỉnh sửa" → mở lại task, ghi defect_records cho KPI
+
+Mọi bước 1-4 → ghi audit_events (append-only, bất biến)
+                 └─ KPI/dashboard tính lại từ audit_events + assignments + defect_records
+                    (không tính trực tiếp trên bảng trạng thái hiện tại — ADR-006)</div>
+
+  <h3 id="dataflow-state">4.3 State machine &amp; phân quyền — nguồn sự thật bằng dữ liệu</h3>
+  <div class="grid2">
+    <div class="card">
+      <h4>State machine</h4>
+      <p><code>spec/state_machines.yaml</code> là nguồn sự thật. Backend đọc lúc khởi động (<code>core/spec_loader.py</code>); <code>domain.transition(entity, command, ctx)</code> tra bảng, chạy guard theo tên (<code>GUARDS[name]</code>). Guard thiếu implementation → app <b>không khởi động được</b> (bắt lỗi sớm bằng test).</p>
+    </div>
+    <div class="card">
+      <h4>Permission</h4>
+      <p><code>spec/permissions.yaml</code> định nghĩa role → capability + scope. <code>require("capability")</code> trả <code>Actor(id, roles, capability, scopes)</code>; mọi query đọc áp <code>apply_scope(query, actor, RULES)</code> — scope không khai báo luật = không trả dòng nào.</p>
+    </div>
+  </div>
+  <p>Frontend <b>không tự suy luận</b> quyền hay trạng thái cuối. Nút hành động chỉ hiện khi backend trả kèm <code>allowed_commands</code> cho aggregate đó; <code>GET /api/v1/me</code> trả <code>capabilities</code> + <code>counters</code> để FE dựng menu.</p>
+
+  <h3 id="dataflow-notify">4.4 Thông báo realtime &amp; Web Push — luồng ngoài request/response</h3>
+  <div class="diagram">notifications.service._create() ghi 1 dòng `notifications`
+   └─ sau khi transaction COMMIT thành công (hook `after_commit`, cùng điểm cho cả 2 kênh dưới)
+      ├─ 1. WebSocket (realtime.py) — đẩy ngay cho tab đang mở, kết nối còn sống
+      │     (nguồn sự thật cho in-app; FE invalidateQueries khi nhận message)
+      └─ 2. Web Push (push.py) — gửi tới MỌI push_subscriptions của recipient_id
+            đồng bộ, cùng thread với request gốc, timeout 5s/thiết bị
+            └─ cần Settings.VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY đã cấu hình,
+               nếu không thì no-op hoàn toàn (tắt theo mặc định)
+            └─ 404/410 (thiết bị đã gỡ đăng ký) → xoá dòng push_subscriptions, không retry
+            └─ lỗi gửi khác không làm lệnh nghiệp vụ gốc fail (đã commit trước đó)</div>
+  <div class="grid2">
+    <div class="card">
+      <h4>Đăng ký nhận Web Push (client)</h4>
+      <p>Trang "Cá nhân" (<code>/ca-nhan</code>) gọi <code>navigator.serviceWorker.register('/sw.js')</code> rồi <code>pushManager.subscribe({applicationServerKey: vapid_public_key})</code> (<code>frontend/src/features/notifications/webPush.ts</code>). Trình duyệt trả <code>{endpoint, keys: {p256dh, auth}}</code> → gửi lên <code>POST /notifications/push-subscriptions</code>, lưu vào bảng <code>push_subscriptions</code> (khoá theo <code>endpoint</code>, không theo nhân viên — 1 thiết bị = 1 dòng). <code>frontend/public/sw.js</code> xử lý event <code>push</code> (hiện notification OS) và <code>notificationclick</code> (mở/focus tab, điều hướng <code>/orders/{entity_id}</code>).</p>
+    </div>
+    <div class="card">
+      <h4>Khi nào tắt hoàn toàn</h4>
+      <p>Thiếu VAPID key ở server, hoặc trình duyệt không hỗ trợ Push API (vài Safari cũ) → nút "Nhận thông báo trên thiết bị này" ẩn hẳn, không ảnh hưởng kênh in-app/WS đã có. Đây là kênh "tiện lợi thêm" khi đã đóng tab/app — không retry/queue khi gửi thất bại vì lý do khác 404/410 (chỉ log cảnh báo).</p>
+    </div>
+  </div>
+  <p>Chi tiết đầy đủ + Acceptance Criteria: <code>docs/specs/M7-03-notifications-realtime-ws.md</code> (WS) và <code>docs/specs/M10-05-web-push-notifications.md</code> (Web Push).</p>
+
+  <h3 id="vapid-keys">4.5 Sinh khoá VAPID (bắt buộc để Web Push hoạt động)</h3>
+  <p>VAPID (<i>Voluntary Application Server Identification</i>) là cặp khoá để dịch vụ push của trình duyệt (FCM/Mozilla/Apple) xác nhận chính server này được phép gửi tới một <code>endpoint</code> đã đăng ký. Thiếu cặp khoá này, toàn bộ Web Push là no-op (mục 4.4) — không lỗi, chỉ đơn giản là tắt.</p>
+  <div class="warn"><b>Dev và production phải dùng 2 cặp khoá khác nhau, sinh riêng cho mỗi môi trường.</b> Không copy khoá dev sang prod, không commit khoá <code>PRIVATE</code> vào git.</div>
+
+  <h4>Bước 1 — Sinh khoá</h4>
+  <p>Script có sẵn trong repo: <code>backend/scripts/generate_vapid_keys.py</code> (dùng thư viện <code>py_vapid</code>, sinh khoá EC theo chuẩn <code>P-256</code>).</p>
+  <pre><code>cd backend
+uv run python scripts/generate_vapid_keys.py</code></pre>
+  <p>Output ra đúng 2 dòng, dạng <code>KEY=value</code> sẵn để dán vào file env:</p>
+  <pre><code>VAPID_PUBLIC_KEY=BF7c...(87 ký tự, base64url, không padding)
+VAPID_PRIVATE_KEY=3K9z...(43 ký tự, base64url, không padding)</code></pre>
+  <p>Mỗi lần chạy script sinh ra 1 cặp khoá <b>mới</b> — chạy 2 lần sẽ ra 2 cặp khác nhau. Không có lệnh "xem lại khoá cũ"; nếu mất khoá thì phải sinh cặp mới và toàn bộ <code>push_subscriptions</code> hiện có sẽ không nhận được push nữa cho tới khi người dùng bấm "Nhận thông báo" lại (khoá public đổi → <code>applicationServerKey</code> đổi → subscription cũ không còn khớp).</p>
+
+  <h4>Bước 2 — Khai vào file env đúng môi trường</h4>
+  <table>
+    <tr><th></th><th>Dev (Mac M2)</th><th>Production (AlmaLinux)</th></tr>
+    <tr><td>File cần sửa</td><td><code>.env.dev</code> (ở root repo, đã có trong <code>.gitignore</code>)</td><td><code>/opt/smyou/.env.prod</code> trên server (<code>chmod 600</code>, không tồn tại trong repo)</td></tr>
+    <tr><td>Biến cần thêm/sửa</td><td colspan="2"><code>VAPID_PUBLIC_KEY</code>, <code>VAPID_PRIVATE_KEY</code> (dán nguyên giá trị script in ra); <code>VAPID_SUBJECT</code> tuỳ chọn — mặc định <code>mailto:admin@smyou.vn</code> đã khai trong <code>compose.dev.yml</code>/<code>compose.prod.yml</code>, chỉ cần set nếu muốn đổi email liên hệ</td></tr>
+    <tr><td>Áp dụng cho container</td><td><code>compose.dev.yml</code> đọc 2 biến này rồi truyền vào service <code>backend</code> (biến môi trường <code>${VAPID_PUBLIC_KEY:-}</code>) — không cần sửa file compose</td><td><code>compose.prod.yml</code> tương tự, cũng không cần sửa file compose</td></tr>
+  </table>
+  <p><code>VAPID_PUBLIC_KEY</code> không phải secret (frontend đọc công khai qua <code>GET /api/v1/me</code> để gọi <code>pushManager.subscribe()</code>) — nhưng <code>VAPID_PRIVATE_KEY</code> thì có, giữ nguyên nguyên tắc chung "không đọc/ghi <code>.env</code> thật" khi làm việc với agent/CI.</p>
+
+  <h4>Bước 3 — Nạp lại biến môi trường</h4>
+  <pre><code># Dev — restart để container backend đọc .env.dev mới
+make down
+make up
+# hoặc chỉ build lại riêng backend:
+docker compose -f compose.dev.yml --env-file .env.dev up -d --build backend
+
+# Production — theo đúng quy trình cập nhật ở §12, KHÔNG sửa container đang chạy bằng tay
+ssh deploy@server
+cd /opt/smyou
+docker compose -f compose.prod.yml --env-file .env.prod up -d --wait backend</code></pre>
+
+  <h4>Bước 4 — Xác nhận đã nhận khoá</h4>
+  <ol>
+    <li>Gọi <code>GET /api/v1/me</code> (đã đăng nhập) — response phải có field <code>vapid_public_key</code> khác <code>null</code>. Nếu vẫn <code>null</code>: biến chưa nạp đúng (restart lại container, kiểm tra tên biến không gõ sai).</li>
+    <li>Vào <code>/ca-nhan</code> trên trình duyệt — nút "Nhận thông báo trên thiết bị này" phải hiện (trước đó ẩn vì <code>vapid_public_key</code> là <code>null</code>). Push API chỉ hoạt động trên <b>HTTPS hoặc <code>localhost</code></b>, không chạy trên HTTP thường.</li>
+    <li>Bấm nút, cho phép notification ở trình duyệt, rồi trigger 1 <code>notify_*</code> thật (ví dụ Sale <code>submit</code> 1 đơn cho kỹ thuật viên đã đăng ký) → kiểm tra notification hệ điều hành có hiện, kể cả khi đã đóng tab.</li>
+  </ol>
+  </section>
+
+  <section id="db">
+  <h2>5. Database</h2>
+
+  <h3 id="db-flow">5.1 Luồng Màn hình → API → Bảng DB (toàn bộ hệ thống)</h3>
+  <p>Bảng dưới liệt kê theo nhóm nghiệp vụ — mỗi dòng là: màn hình FE người dùng thấy, API chính nó gọi (kèm capability yêu cầu), và bảng DB bị đọc/ghi. Dùng để tra nhanh "sửa màn hình X thì động tới API/bảng nào" hoặc "bảng Y bị ghi từ đâu".</p>
+  <table>
+    <tr><th>Nhóm nghiệp vụ</th><th>Màn hình FE (route)</th><th>API chính (method path — capability)</th><th>Bảng DB chính</th></tr>
+    <tr><td>Đăng nhập / phiên</td><td><code>/dang-nhap</code>, <code>/doi-mat-khau</code>, <code>/quen-mat-khau</code>, <code>/reset-password</code></td><td><code>POST /auth/login</code>, <code>/auth/refresh</code>, <code>/auth/logout</code>, <code>/auth/change-password</code> (<code>profile.manage</code>), <code>/auth/forgot-password</code>, <code>/auth/reset-password</code></td><td><code>employees</code>, <code>auth_sessions</code>, <code>password_reset_tokens</code></td></tr>
+    <tr><td>Hồ sơ cá nhân / Web Push</td><td><code>/ca-nhan</code></td><td><code>GET /me</code>; <code>POST /notifications/push-subscriptions</code>, <code>/push-subscriptions/unsubscribe</code> (<code>notification.read</code>)</td><td><code>push_subscriptions</code>, <code>employees</code></td></tr>
+    <tr><td>Thông báo</td><td><code>/thong-bao</code></td><td><code>GET /notifications</code>, <code>/notifications/unread-count</code>, <code>POST /notifications/{id}/read</code>, <code>/mark-all-read</code> (<code>notification.read</code>)</td><td><code>notifications</code></td></tr>
+    <tr><td>Nhân sự</td><td><code>/employees</code></td><td><code>GET/POST/PATCH /employees</code> (<code>employee.read</code>/<code>manage</code>), <code>POST /{id}/roles</code>, <code>/deactivate</code>, <code>/activate</code>, <code>/reset-password</code></td><td><code>employees</code>, <code>employee_roles</code></td></tr>
+    <tr><td>Danh mục sản phẩm</td><td><code>/catalog/products</code></td><td><code>GET /products</code> (<code>catalog.read</code>); <code>POST/PATCH/{id}/image</code>, <code>/import/preview</code>, <code>/import/commit</code> (<code>catalog.manage</code>)</td><td><code>products</code></td></tr>
+    <tr><td>Danh mục dịch vụ</td><td><code>/catalog/services</code></td><td>cùng router mẫu, prefix <code>/services</code>, cùng 2 capability <code>catalog.read</code>/<code>manage</code></td><td><code>services</code></td></tr>
+    <tr><td>Khách hàng</td><td><code>/customers</code></td><td><code>GET /customers</code> (<code>customer.read</code>); <code>POST/PATCH</code> (<code>customer.manage</code>)</td><td><code>customers</code></td></tr>
+    <tr><td>Đơn hàng</td><td><code>/orders</code>, <code>/orders/:id</code>, <code>/orders/new</code></td><td><code>POST /orders</code> (<code>order.create</code>); <code>GET/{id}</code>, <code>/{id}/history</code> (<code>order.read</code>); <code>PATCH/{id}</code>, <code>POST /{id}/lines</code> (<code>order.edit_draft</code>); <code>POST /{id}/submit</code> (<code>order.submit</code>); <code>/recall</code>, <code>/cancel</code> (<code>order.cancel</code>), <code>/complete</code> (<code>order.complete</code>), <code>/revise</code> (<code>order.revise</code>), <code>/confirmation-attachments</code> (<code>order.upload_confirmation</code>)</td><td><code>orders</code>, <code>order_lines</code>, <code>order_revisions</code></td></tr>
+    <tr><td>Giao việc (Quản lý KT)</td><td><code>/dispatch/queue</code>, <code>/board</code>, <code>/workload</code>, <code>/revisions</code></td><td><code>POST /orders/{id}/tasks</code>, <code>PATCH .../tasks/{id}</code>, <code>POST .../assignees</code>, <code>/assignees/{id}/remove</code>, <code>/cancel</code> (<code>task.manage</code>); <code>POST .../reopen</code> (<code>task.reopen</code>)</td><td><code>tasks</code>, <code>assignments</code>, <code>defect_records</code></td></tr>
+    <tr><td>Đầu việc của tôi (KTV)</td><td><code>/my-tasks</code></td><td><code>GET /assignments/me</code>; <code>POST /assignments/{id}/accept</code>, <code>/reject</code>, <code>/start</code>, <code>/complete</code> (<code>assignment.respond</code>)</td><td><code>assignments</code>, <code>tasks</code></td></tr>
+    <tr><td>KPI</td><td><code>/reports/kpi</code></td><td><code>GET /kpi/report</code>, <code>/kpi/report/export</code> (<code>kpi.read</code>)</td><td>tính lại từ <code>audit_events</code> + <code>assignments</code> + <code>defect_records</code> — <b>không có bảng riêng</b> (ADR-006)</td></tr>
+    <tr><td>Dashboard tổng quan</td><td><code>/</code> (index)</td><td><code>GET /dashboard</code> (<code>dashboard.read</code>)</td><td>tổng hợp <code>orders</code>/<code>tasks</code>/<code>assignments</code>, không bảng riêng</td></tr>
+    <tr><td>Nhật ký hệ thống</td><td><code>/audit</code></td><td><code>GET /audit-events</code> (<code>audit.read</code>)</td><td><code>audit_events</code> (append-only, nguồn KPI)</td></tr>
+    <tr><td>File đính kèm</td><td>nhúng trong Products/Orders</td><td><code>GET /attachments/{id}</code></td><td><code>attachments</code></td></tr>
+    <tr><td>Mã tự sinh (nội bộ)</td><td>—</td><td>— (dùng trong transaction của orders/tasks/employees/customers)</td><td><code>code_sequences(scope, period, last_value)</code> + <code>FOR UPDATE</code></td></tr>
+  </table>
+  <div class="note"><code>audit_events.seq</code> (bigint identity, không phải <code>occurred_at</code>) là cột dùng để sắp thứ tự chính xác — nhiều event trong cùng 1 transaction có thể cùng giá trị <code>now()</code>, sort theo <code>occurred_at</code> sẽ bị đảo thứ tự ngẫu nhiên.</div>
+
+  <h3>5.2 Quy ước bảng/migration</h3>
+  <ul>
+    <li>Bảng số nhiều snake_case; FK <code>&lt;entity&gt;_id</code>; index mọi FK và cột lọc.</li>
+    <li>Enum lưu <code>varchar</code> + CHECK constraint (dễ migrate hơn PG enum).</li>
+    <li><code>created_at/updated_at timestamptz default now()</code> — lưu UTC, hiển thị giờ <code>Asia/Ho_Chi_Minh</code>.</li>
+    <li>Không xoá cứng dữ liệu nghiệp vụ — dùng <code>is_active</code>/<code>cancelled_at</code>.</li>
+    <li>Migration Alembic: tên <code>YYYYMMDD_HHMM_&lt;mô_tả&gt;.py</code>, luôn có <code>downgrade()</code>, <b>không sửa migration đã merge</b>.</li>
+    <li>Migration phải <b>tương thích ngược 1 phiên bản</b> (expand → migrate → contract) để rollback image không phá DB khi deploy.</li>
+  </ul>
+  <pre><code># Tạo migration mới
+make migration name=add_something
+
+# Áp migration vào DB dev
+make migrate
+
+# Kiểm tra upgrade → downgrade -1 → upgrade + drift model/migration (chạy trong make check)
+make migrations-check</code></pre>
+
+  <h3 id="db-connect">5.3 Kết nối DB để chạy SQL thủ công (maintain)</h3>
+  <div class="grid2">
+    <div class="card">
+      <h4>Dev (Mac M2)</h4>
+      <pre><code># Cách nhanh nhất — target có sẵn
+make db-shell
+# tương đương:
+docker compose -f compose.dev.yml --env-file .env.dev exec db \
+  psql -U smyou -d smyou</code></pre>
+      <p>Muốn dùng GUI client (TablePlus/DBeaver/psql trên host) — container <code>db</code> publish ra <code>127.0.0.1:${DB_PORT:-5442}</code>:</p>
+      <pre><code>psql -h 127.0.0.1 -p 5442 -U smyou -d smyou
+# password lấy từ POSTGRES_PASSWORD trong .env.dev</code></pre>
+    </div>
+    <div class="card">
+      <h4>Production (AlmaLinux)</h4>
+      <p>Service <code>db</code> trong <code>compose.prod.yml</code> <b>không publish port</b> ra ngoài container, và firewalld chỉ mở 80/443/SSH (xem <code>DEPLOYMENT.md</code>) — không có cách kết nối từ máy khác. Chỉ chạy trực tiếp trên server, sau khi SSH vào:</p>
+      <pre><code>ssh deploy@server
+cd /opt/smyou
+docker compose -f compose.prod.yml --env-file .env.prod exec db \
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"</code></pre>
+      <div class="warn">Không mở thêm port DB ra ngoài server production (không SSH tunnel để lộ 5432) — kể cả tạm thời. Mọi truy vấn maintain chạy qua <code>exec db psql</code> ngay trên server.</div>
+    </div>
+  </div>
+  <p><b>Backup/restore đã có sẵn</b> (xem <code>docs/architecture/DEPLOYMENT.md</code>): cron 01:00 hằng ngày chạy <code>pg_dump -Fc</code> → <code>/opt/smyou/backups/db-YYYYMMDD.dump</code>, giữ 14 bản; <code>scripts/restore_check.sh</code> kiểm tra khôi phục hằng tháng; bước deploy luôn <code>pg_dump</code> trước khi <code>docker compose up</code>.</p>
+
+  <h3>5.4 SQL mẫu cho maintain</h3>
+  <pre><code>-- 1. Lịch sử audit của 1 đơn hàng cụ thể
+SELECT seq, occurred_at, actor_id, event_type, entity_type, entity_id
+FROM audit_events
+WHERE entity_type = 'order' AND entity_id = '&lt;order-uuid&gt;'
+ORDER BY seq;
+
+-- 2. Nhân viên đang bị khoá đăng nhập
+SELECT id, code, full_name, email, failed_login_count, locked_until
+FROM employees
+WHERE locked_until IS NOT NULL AND locked_until > now();
+
+-- 3. Thiết bị đã đăng ký Web Push của 1 nhân viên
+SELECT id, endpoint, created_at
+FROM push_subscriptions
+WHERE employee_id = '&lt;employee-uuid&gt;';
+
+-- 4. Đếm đầu việc (task) theo trạng thái hiện tại
+SELECT status, count(*) FROM tasks GROUP BY status ORDER BY count(*) DESC;
+
+-- 5. Giá trị code_sequences hiện tại (kiểm tra trước khi nghi ngờ sinh mã bị lệch/trùng)
+SELECT scope, period, last_value FROM code_sequences ORDER BY scope, period;
+
+-- 6. Thông báo chưa đọc của 1 nhân viên
+SELECT id, type, title, created_at
+FROM notifications
+WHERE recipient_id = '&lt;employee-uuid&gt;' AND read_at IS NULL
+ORDER BY created_at DESC;</code></pre>
+  </section>
+
+  <section id="api">
+  <h2>6. Backend / API</h2>
+  <p>Danh sách màn hình → API → bảng DB đầy đủ nằm ở <a href="#db-flow">§5.1</a>. Phần này là quy ước áp dụng cho <b>mọi</b> endpoint, không lặp lại danh sách.</p>
+  <ul>
+    <li>Tiền tố <code>/api/v1</code>, JSON <code>snake_case</code>, ID là UUID (hiển thị dùng <code>code</code>).</li>
+    <li>CRUD list: <code>GET /x?q=&amp;limit=&amp;offset=</code> → <code>{ items, total, limit, offset }</code>, <code>limit ≤ 100</code>.</li>
+    <li>Lỗi theo RFC 9457 <code>application/problem+json</code>:
+      <pre><code>{ "type": "about:blank", "title": "...", "status": 409,
+  "code": "INVALID_TRANSITION",
+  "detail": "Thông điệp tiếng Việt cho người dùng",
+  "errors": [{ "field": "reason", "code": "too_short" }] }</code></pre>
+      Mã chuẩn: <code>VALIDATION_ERROR</code> 422, <code>UNAUTHENTICATED</code> 401, <code>FORBIDDEN</code> 403, <code>NOT_FOUND</code> 404, <code>INVALID_TRANSITION</code>/<code>GUARD_FAILED</code>/<code>STALE_VERSION</code>/<code>CONFLICT</code> 409, <code>FILE_REJECTED</code> 415/413.</li>
+    <li>Mọi route khai báo <code>response_model</code>, <code>summary</code>, <code>operation_id</code> (dạng <code>orders_submit</code>) → client TS sinh tên ổn định.</li>
+    <li>Logging JSON có <code>request_id</code>; <b>không log</b> mật khẩu, token, số điện thoại đầy đủ.</li>
+    <li>Cấu hình qua biến môi trường (<code>.env</code>) — không hard-code secret trong code.</li>
+  </ul>
+  </section>
+
+  <section id="frontend">
+  <h2>7. Frontend</h2>
+  <p>Mỗi route/màn hình ở <a href="#db-flow">§5.1</a> là 1 thư mục trong <code>features/&lt;x&gt;/</code> theo đúng tên module backend tương ứng (ví dụ route <code>/dispatch/*</code> → <code>features/dispatch/</code> → module backend <code>dispatch</code>).</p>
+  <ul>
+    <li>Trang = <code>features/&lt;x&gt;/pages/*Page.tsx</code>; không gọi <code>fetch</code> trực tiếp, luôn qua hook trong <code>api.ts</code>.</li>
+    <li>Trạng thái server quản lý bởi TanStack Query, key dạng <code>['orders', params]</code>; sau lệnh ghi → <code>invalidateQueries</code>.</li>
+    <li>Hiển thị trạng thái qua <code>&lt;StatusBadge machine="order" status={...}/&gt;</code>, nhãn/màu đồng bộ với <code>spec/state_machines.yaml</code> (có test so khớp, tránh lệch khi spec đổi).</li>
+    <li>Mỗi trang có đủ 4 trạng thái UI: loading (Skeleton), empty (EmptyState + CTA), error (thông điệp + thử lại), success.</li>
+    <li>Form dùng zod schema; lỗi 422 từ server map thẳng vào field lỗi.</li>
+    <li>Không <code>any</code>, không dùng <code>useEffect</code> để fetch dữ liệu.</li>
+    <li>Mobile-first: thiết kế từ 390px rồi mới <code>md:</code>/<code>lg:</code>; vùng chạm ≥ 44px; icon dùng <code>lucide-react</code>.</li>
+  </ul>
+  </section>
+
+  <section id="envs">
+  <h2>8. Môi trường &amp; biến cấu hình</h2>
+  <table>
+    <tr><th></th><th>Dev / test (Mac M2)</th><th>Production (AlmaLinux)</th></tr>
+    <tr><td>Compose file</td><td><code>compose.dev.yml</code></td><td><code>compose.prod.yml</code> (chỉ dùng image, <b>không có <code>build:</code></b>)</td></tr>
+    <tr><td>File env</td><td><code>.env.dev</code> (từ <code>.env.dev.example</code>, <code>make setup</code> tự tạo)</td><td><code>/opt/smyou/.env.prod</code> (từ <code>.env.prod.example</code>, <code>chmod 600</code>)</td></tr>
+    <tr><td>Build image</td><td>build local arm64 lúc <code>make up</code></td><td>build trên <b>Mac M2</b> bằng <code>make build-prod</code> (<code>linux/amd64</code>) — <b>không build trên server</b></td></tr>
+    <tr><td>DB port</td><td>publish <code>5442</code> ra host</td><td>không publish ra ngoài container</td></tr>
+    <tr><td>Subpath</td><td><code>BASE_PATH</code> rỗng (root)</td><td><code>BASE_PATH=/smyoutask</code> — nướng vào bundle FE + nginx lúc build, đổi subpath phải build lại image <code>web</code></td></tr>
+  </table>
+  <p>Biến chính trong <code>.env.prod</code> (xem đầy đủ ở <code>.env.prod.example</code>):</p>
+  <pre><code>IMAGE_TAG=...                 # tag image đã build+smoke test, khớp giữa .env.prod và image đã load
+POSTGRES_PASSWORD=...         # long random
+DATABASE_URL=postgresql+psycopg://smyou:...@db:5432/smyou
+JWT_SECRET=...                # python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+COOKIE_SECURE=true            # BẮT BUỘC true ở production
+WEB_BIND=127.0.0.1            # KHÔNG BAO GIỜ 0.0.0.0 — chỉ nginx hệ thống được gọi container web
+WEB_PORT=6890                 # kiểm tra trống bằng `ss -ltnp | grep 6890` trước khi dùng
+BASE_PATH=/smyoutask
+PUBLIC_URL=https://ilabsviet.com/smyoutask
+CORS_ORIGINS=https://ilabsviet.com</code></pre>
+  <div class="warn"><b>scripts/golive_check.sh</b> tự động chặn nếu còn giá trị <code>CHANGE-ME</code>, <code>COOKIE_SECURE</code> ≠ <code>true</code>, hoặc <code>WEB_BIND</code> ≠ <code>127.0.0.1</code> — chạy trước khi cho nhân sự/khách vào thật.</div>
+  </section>
+
+  <section id="dev">
+  <h2>9. Chạy dev trên máy (Mac M2)</h2>
+  <pre><code>make setup   # uv sync, npm ci + playwright browsers, pre-commit install, tạo .env.dev
+make up      # docker compose -f compose.dev.yml up -d --build --wait (db + backend + web)
+make logs    # theo dõi log
+make down    # dừng, giữ volume data
+
+make db-shell          # psql vào DB dev
+make migrate           # alembic upgrade head vào DB dev
+make migration name=x  # tạo migration mới (autogenerate)</code></pre>
+  <p>Các cổng lệnh chất lượng hay dùng khi code (xem toàn bộ trong <code>Makefile</code>):</p>
+  <table>
+    <tr><th>Lệnh</th><th>Khi nào dùng</th></tr>
+    <tr><td><code>make check-fast</code></td><td>lint + typecheck + unit test — chạy tay sau mỗi thay đổi đáng kể</td></tr>
+    <tr><td><code>make check-fast-changed</code></td><td>như trên, FE chỉ test phần đổi (<code>vitest --changed</code>) — Stop hook tự chạy lệnh này</td></tr>
+    <tr><td><code>make check</code></td><td>toàn bộ cổng trước commit/PR: lint, typecheck, test (unit+integration+contract), <code>contract</code> (OpenAPI/TS drift), <code>ac</code> (traceability AC), <code>migrations-check</code></td></tr>
+    <tr><td><code>make e2e</code></td><td>Playwright mobile+desktop trên stack Docker dev</td></tr>
+    <tr><td><code>make verify</code></td><td><code>check</code> + <code>e2e</code> + in báo cáo bằng chứng — bắt buộc trước khi báo "xong"</td></tr>
+  </table>
+  </section>
+
+  <section id="ci">
+  <h2>10. Chế độ CI <span class="pill">tự động, không deploy</span></h2>
+  <p><code>.github/workflows/ci.yml</code> chạy trên mọi PR và push <code>main</code> — đây là <b>cổng chất lượng</b>, CI <b>không</b> tự deploy lên server (deploy luôn là bước thủ công có kiểm soát từ Mac dev, xem §11-12).</p>
+  <table>
+    <tr><th>Job</th><th>Nội dung</th></tr>
+    <tr><td><code>backend</code></td><td>ruff lint/format, import-linter, mypy --strict, migration up/down/up + drift, pytest (unit+integration+contract+stateful) + coverage ≥85%</td></tr>
+    <tr><td><code>frontend</code></td><td>eslint, prettier check, tsc --noEmit, check màu raw, vitest + coverage, <code>npm run build</code></td></tr>
+    <tr><td><code>contract</code></td><td><code>make contract</code> — export OpenAPI, sinh lại TS types, fail nếu khác bản đã commit (ADR-010)</td></tr>
+    <tr><td><code>traceability</code></td><td><code>check_ac_coverage.py</code> — mọi Acceptance Criteria phải có test</td></tr>
+    <tr><td><code>e2e</code></td><td>dựng stack Docker dev + Playwright mobile/desktop + axe a11y</td></tr>
+    <tr><td><code>security</code></td><td>gitleaks (secret leak), pip-audit, npm audit</td></tr>
+    <tr><td><code>image</code></td><td>build production image <b>trên runner amd64</b> (cùng kiến trúc AlmaLinux) bằng đúng <code>make build-prod</code>/<code>make smoke-prod</code> sẽ dùng để deploy, rồi Trivy scan CVE HIGH/CRITICAL — bắt lỗi kiến trúc/CVE <b>trước khi</b> ai đó build thật để deploy</td></tr>
+  </table>
+  <div class="note"><code>nightly.yml</code> (cron 02:00 giờ VN) chạy thêm mutation testing trên <code>domain.py</code> và stateful test profile nặng — không chạy trong CI PR vì chậm.</div>
+  <p>Ý nghĩa thực tế: <b>trước khi build image để deploy thật</b>, hãy đảm bảo commit đó đã có CI xanh (đặc biệt job <code>image</code>) — vì job này chạy đúng Dockerfile/cách build sẽ dùng ở §11-12, nên lỗi build/CVE bị bắt từ xa, không phải lúc đang đứng trước server.</p>
+  </section>
+
+  <section id="deploy-first">
+  <h2>11. Triển khai lần đầu lên production (manual)</h2>
+
+  <h3>11.1 Chuẩn bị server AlmaLinux (một lần)</h3>
+  <pre><code># Cài Docker CE + compose plugin
+dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+dnf install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+systemctl enable --now docker
+
+# User "deploy" thuộc nhóm docker, dùng SSH key (tắt đăng nhập mật khẩu)
+# firewalld: chỉ mở 80/443 + SSH — Postgres KHÔNG publish port ra ngoài
+# SELinux enforcing: dùng named volume; bind-mount thì thêm hậu tố :Z
+# Nginx hệ thống proxy tới cổng localhost cần:
+setsebool -P httpd_can_network_connect 1   # thường đã bật vì server chạy sẵn app khác
+
+mkdir -p /opt/smyou
+# kiểm tra cổng 6890 còn trống TRƯỚC khi dùng (không đoán)
+ss -ltnp | grep 6890</code></pre>
+
+  <h3>11.2 Cấu hình nginx hệ thống (subpath /smyoutask/)</h3>
+  <p>Server dùng chung nginx hệ thống giữ HTTPS cho <code>ilabsviet.com</code> và proxy nhiều app theo subpath. Thêm khối cấu hình (đã có sẵn mẫu + test tự động khớp nội dung ở <code>ops/nginx/smyoutask.conf</code>) vào file nginx của <code>ilabsviet.com</code>:</p>
+  <pre><code>upstream smyoutask_ilabsviet {
+    server 127.0.0.1:6890;
+}
+
+location = /smyoutask { return 301 /smyoutask/; }
+location /smyoutask/ {
+    limit_req zone=perip burst=20 nodelay;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host $host;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_pass http://smyoutask_ilabsviet;   # KHÔNG có "/" cuối — giữ nguyên prefix
+    proxy_connect_timeout 59s;
+    proxy_read_timeout 120s;
+    proxy_send_timeout 120s;
+    proxy_hide_header X-Powered-By;
+    proxy_redirect off;
+    client_max_body_size 12M;   # ảnh phiếu xác nhận ≤ 10MB
+}</code></pre>
+  <pre><code>nginx -t && systemctl reload nginx</code></pre>
+  <div class="danger"><b>Bắt buộc</b> có <code>proxy_set_header X-Real-IP $remote_addr;</code> ở khối nginx hệ thống — container <code>web</code> thay thế (không nối thêm) <code>X-Forwarded-For</code> dựa trên giá trị này; nếu thiếu, khách có thể tự gửi header giả IP.</div>
+
+  <h3>11.3 Build image trên Mac M2</h3>
+  <pre><code>make build-prod TAG=2026.10.17-1          # buildx --platform linux/amd64, build cả backend+web
+make smoke-prod TAG=2026.10.17-1          # chạy thử bằng compose.prod.yml + .env.prod.example qua emulation, tự dọn</code></pre>
+  <div class="note">Emulation amd64 trên M2 chậm ở lần build đầu (vài phút) — bình thường. CI job <code>image</code> (§10) đã build+smoke bằng runner amd64 thật nên lỗi kiến trúc được bắt từ trước.</div>
+
+  <h4>Mục đích của <code>make smoke-prod</code></h4>
+  <p>Đây là <b>buổi tổng duyệt</b> của chính 2 image vừa build bằng <code>make build-prod</code>, chạy bằng đúng <code>compose.prod.yml</code> sẽ dùng khi deploy thật — nhưng chạy ngay trên Mac, dùng giá trị test từ <code>.env.prod.example</code> (không phải secret thật), project Docker riêng <code>smyou-smoke</code> (không đụng tới stack dev đang chạy). Mục tiêu: bắt lỗi "chỉ xảy ra ở cấu hình production" <b>trước khi</b> tốn công <code>docker save | ssh | docker load</code> lên AlmaLinux — ví dụ:</p>
+  <ul>
+    <li>Image build amd64 bị thiếu dependency, không khởi động được (khác hẳn môi trường dev arm64 build trực tiếp từ source).</li>
+    <li>Biến môi trường production (<code>APP_ENV=production</code>, <code>BASE_PATH=/smyoutask</code>, <code>COOKIE_SECURE=true</code>...) làm lộ lỗi mà cấu hình dev không gặp — ví dụ API docs lẽ ra phải tắt ở production.</li>
+    <li>Container <code>backend</code> chạy <code>alembic upgrade head</code> lúc khởi động bị fail trên image production (khác migration chạy tay lúc dev).</li>
+    <li>Subpath <code>/smyoutask</code> nướng sẵn vào bundle FE/nginx của image <code>web</code> lúc build — route sai subpath chỉ lộ ra khi test đúng bằng image đã build, không lộ lúc chạy dev ở root path.</li>
+  </ul>
+  <p>Chạy cụ thể: <code>docker compose -f compose.prod.yml --env-file .env.prod.example -p smyou-smoke up -d --wait</code> rồi chạy bộ test <code>backend/tests/docker</code> (đánh dấu <code>-m docker</code>, loại trừ <code>test_dev_stack.py</code>) nhằm vào <code>http://127.0.0.1:6890</code> (cổng <code>web</code> của stack smoke) — gồm health check, kiểm tra route qua subpath, kiểm tra response từ image thật (không phải code sống như lúc <code>make up</code>). Dù pass/fail, lệnh tự <code>down -v</code> dọn sạch stack smoke ở cuối, không để lại container/volume rác. <b>Không chạy lệnh này nhằm vào DB production thật</b> — nó luôn tự tạo 1 DB Postgres mới, trống, trong container riêng.</p>
+
+  <h3>11.4 Khởi tạo file môi trường trên server</h3>
+  <pre><code>scp .env.prod.example deploy@server:/opt/smyou/.env.prod
+ssh deploy@server 'chmod 600 /opt/smyou/.env.prod'
+# rồi sửa TẤT CẢ giá trị CHANGE-ME trong .env.prod (xem bảng biến ở §8)</code></pre>
+
+  <h3>11.5 Chuyển image + compose file lên server, khởi động</h3>
+  <pre><code># Không cần registry — chuyển trực tiếp qua ssh dữ liệu image được truyền trực tiếp qua stdin vào docker load, nạp thẳng vào Docker engine trên server, không qua bước ghi file tạm nào
+docker save smyou-backend:2026.10.17-1 smyou-web:2026.10.17-1 \
+  | gzip | ssh deploy@server 'gunzip | docker load'
+
+scp compose.prod.yml deploy@server:/opt/smyou/
+
+ssh deploy@server 'cd /opt/smyou \
+  && sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=2026.10.17-1/" .env.prod \
+  && docker compose -f compose.prod.yml --env-file .env.prod up -d --wait'</code></pre>
+  <p>Container <code>backend</code> tự chạy <code>alembic upgrade head</code> khi khởi động — không cần chạy migration tay riêng lần đầu.</p>
+
+  <h3>11.5a Tạo tài khoản Quản lý chung đầu tiên</h3>
+  <p>DB mới chưa có nhân viên nào — phải bootstrap 1 tài khoản Quản lý chung bằng CLI chạy <b>trong container <code>backend</code></b> (các tài khoản sau tạo trong app, M1-04). Thiếu bước này, <code>golive_check.sh</code> ở §11.6 sẽ chặn với lỗi "Chưa có tài khoản Quản lý chung".</p>
+  <pre><code>docker compose -f compose.prod.yml --env-file .env.prod exec backend \
+  python -m app.cli create-manager --email ten@congty.vn --full-name "Họ Tên" --code NV001
+# Lệnh hỏi mật khẩu (2 lần, không hiện ký tự) — mật khẩu không được chứa phần email</code></pre>
+  <div class="note">Chỉ chạy <b>một lần</b> để bootstrap trên DB mới — chạy lại trên DB đã có tài khoản sẽ báo lỗi trùng email/mã nhân viên, không phải lỗi thật.</div>
+
+  <h3>11.6 Go-live check &amp; smoke test</h3>
+  <div class="note"><b>Không cần upload cả thư mục <code>scripts/</code> lên server.</b> <code>scripts/deploy.sh</code> (§11.5/§12) tự chạy <b>trên Mac</b> và chỉ chuyển image (<code>docker save | ssh ... docker load</code>) + 1 file <code>compose.prod.yml</code> qua <code>scp</code>. Chỉ 3 script có comment "run ... ON THE SERVER" mới cần copy lên <code>/opt/smyou/scripts/</code> (rồi <code>chmod +x</code>): <code>golive_check.sh</code> (chạy tay lần đầu, mục này), <code>backup.sh</code> và <code>restore_check.sh</code> (cron hằng ngày/hằng tháng, §11.7). Các script còn lại (<code>check_ac_coverage.py</code>, <code>check_no_raw_colors.py</code>, <code>export_menu.py</code>, <code>export_openapi.py</code>) chỉ dùng cho dev/CI trên Mac, không lên server.
+  <pre><code>scp scripts/golive_check.sh scripts/backup.sh scripts/restore_check.sh \
+  deploy@server:/opt/smyou/scripts/
+ssh deploy@server 'chmod +x /opt/smyou/scripts/*.sh'</code></pre></div>
+  <pre><code># Trên server, trước khi cho người dùng thật vào
+bash scripts/golive_check.sh --env-file /opt/smyou/.env.prod
+# Script tự chặn nếu còn CHANGE-ME, COOKIE_SECURE != true, hoặc WEB_BIND != 127.0.0.1,
+# và kiểm tra container db đang chạy.
+
+curl -fsS http://127.0.0.1:6890/smyoutask/api/v1/health
+# rồi đăng nhập thử bằng 1 tài khoản mỗi vai trò qua https://ilabsviet.com/smyoutask/</code></pre>
+  <p>Có thể dùng sẵn script tổng hợp <code>scripts/deploy.sh TAG</code> (xem §12) — script này đã bao gồm bước dump DB trước deploy + save/load image + reload compose + health check, dùng được cho cả lần đầu và các lần update, miễn là <code>deploy.env</code> đã cấu hình (<code>SERVER_HOST</code>, <code>SERVER_USER</code>, <code>SERVER_PATH</code>).</p>
+  </section>
+
+  <section id="deploy-update">
+  <h2>12. Cập nhật / vá lỗi sau này</h2>
+  <p>Quy trình giống lần đầu nhưng ngắn hơn — dùng <code>scripts/deploy.sh</code> để tự động hoá, chạy từ Mac dev:</p>
+  <pre><code># 1) Build + smoke test image mới (BẮT BUỘC trước khi deploy)
+make build-prod TAG=2026.10.20-1
+make smoke-prod TAG=2026.10.20-1
+
+# 2) Cấu hình đích deploy (chỉ cần làm 1 lần, không commit deploy.env)
+cp deploy.env.example deploy.env
+# điền SERVER_HOST, SERVER_USER, SERVER_PATH=/opt/smyou
+
+# 3) Deploy — script tự: dump DB trước khi đổi, save/load image qua ssh,
+#    copy compose.prod.yml, sed IMAGE_TAG, "up -d --wait", rồi curl healthcheck
+scripts/deploy.sh 2026.10.20-1</code></pre>
+  <div class="note"><b>Lệnh <code>scripts/deploy.sh 2026.10.20-1</code> gõ và Enter trên Mac dev</b> — đúng 1 lệnh, không cần tự SSH trước. Bản thân script chứa nhiều lệnh <code>ssh server '...'</code> bên trong, tự nhảy qua server khi cần rồi quay lại — <b>không phải</b> chạy trực tiếp trên server. File <code>set -euo pipefail</code> ở đầu script: <b>bất kỳ bước nào lỗi, script dừng ngay tại đó</b>, không chạy tiếp các bước sau, không tự rollback bước đã làm trước đó.</div>
+  <div class="card">
+    <h4>scripts/deploy.sh làm gì, từng dòng (đọc trực tiếp trong repo nếu cần sửa)</h4>
+    <ol>
+      <li><b>Validate (chạy trên Mac)</b> — kiểm tra <code>TAG</code> hợp lệ (chỉ chữ/số/<code>.</code>/<code>_</code>/<code>-</code>) và 2 image <code>smyou-backend:$TAG</code>/<code>smyou-web:$TAG</code> đã có trong <code>docker image ls</code> cục bộ. Thiếu image → dừng ngay, báo chạy <code>make build-prod TAG=...</code> trước (chưa chạm server).</li>
+      <li><b>Đọc <code>deploy.env</code> (chạy trên Mac)</b> — lấy <code>SERVER_HOST</code>/<code>SERVER_USER</code>/<code>SERVER_PATH</code> (file này không commit, mỗi máy dev tự tạo từ <code>deploy.env.example</code>).</li>
+      <li><b>Backup DB (nhảy qua server qua <code>ssh "$SERVER" "..."</code>)</b> — chạy
+        <pre><code>docker compose -f compose.prod.yml --env-file .env.prod \
+  exec -T db sh -c 'pg_dump -Fc -U $POSTGRES_USER $POSTGRES_DB' \
+  &gt; backups/predeploy-&lt;timestamp&gt;.dump</code></pre>
+        ngay trên server, dump ra file trước khi đổi bất cứ thứ gì. <b>Đây là bước hay fail nhất</b> — xem hộp cảnh báo dưới.</li>
+      <li><b>Chuyển image (chạy trên Mac, đẩy dữ liệu qua ssh)</b> — <code>docker save backend_image web_image | gzip | ssh "$SERVER" 'gunzip | docker load'</code>: nén 2 image thành 1 luồng byte, bơm qua kết nối SSH, phía server <code>gunzip</code> rồi <code>docker load</code> thẳng vào Docker engine — không ghi file tạm, không cần registry riêng (GHCR/Docker Hub).</li>
+      <li><b><code>scp compose.prod.yml</code> (từ Mac lên server)</b> — phòng trường hợp file compose đổi so với lần deploy trước.</li>
+      <li><b>Đổi tag + khởi động lại (nhảy qua server)</b> —
+        <pre><code>sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$TAG/" .env.prod
+docker compose -f compose.prod.yml --env-file .env.prod up -d --wait</code></pre>
+        <code>sed</code> ghi đè đúng dòng <code>IMAGE_TAG=...</code> trong <code>.env.prod</code> thành tag mới, rồi <code>up -d --wait</code> mới thực sự <b>restart container thật</b> (có downtime ngắn ở đây) — container <code>backend</code> tự chạy <code>alembic upgrade head</code> khi khởi động lại, không cần chạy migration tay.</li>
+      <li><b>Healthcheck (nhảy qua server)</b> — <code>curl -fsS http://127.0.0.1:$WEB_PORT/smyoutask/api/v1/health</code>; fail thì script thoát với lỗi, in gợi ý xem <code>docker compose logs</code> — <b>không tự rollback</b>, bạn phải tự quyết định rollback theo §13 nếu cần.</li>
+    </ol>
+  </div>
+  <div class="warn"><b>Lỗi hay gặp nhất: <code>error while interpolating services.backend.image: required variable IMAGE_TAG is missing a value: required</code></b> — xảy ra ngay ở <b>bước 3 (backup)</b>, trước khi chạm tới image/service thật.<br>
+  <b>Nguyên nhân:</b> <code>compose.prod.yml</code> khai <code>image: smyou-backend:${IMAGE_TAG:?required}</code> (không có default) cho cả service <code>backend</code> và <code>web</code> — cú pháp <code>:?required</code> buộc Compose phải có giá trị, thiếu thì lỗi ngay. Dù bước 3 chỉ cần <code>exec</code> vào service <code>db</code>, Compose vẫn phải đọc/interpolate <b>toàn bộ</b> file để resolve mọi service, nên nếu dòng <code>IMAGE_TAG=...</code> trong <code>.env.prod</code> trên server đang trống/mất/sai cú pháp (ví dụ bị sửa hỏng lúc chỉnh tay thêm biến khác như VAPID key), toàn bộ lệnh <code>docker compose</code> fail ngay từ bước đầu — <b>chưa hề chạm tới <code>docker load</code> hay restart service nào</b>.<br>
+  <b>Vì sao image mới vẫn có thể đã thấy trong <code>docker images</code> trên server:</b> đó là dấu vết của một lần chạy <code>deploy.sh</code>/<code>docker load</code> trước đã tới được bước 4, không liên quan tới lần chạy bị fail ở bước 3 — server lúc đó <b>vẫn đang chạy tag cũ</b>, chưa deploy xong.<br>
+  <b>Cách sửa:</b> <code>ssh</code> vào server, <code>grep -n '^IMAGE_TAG=' /opt/smyou/.env.prod</code> kiểm tra dòng này tồn tại và có giá trị hợp lệ (ví dụ tag đang chạy thật, không phải rỗng/<code>CHANGE-ME</code>); sửa lại nếu hỏng, rồi chạy lại <code>scripts/deploy.sh &lt;tag&gt;</code> từ đầu — <code>docker load</code> lại image đã có sẵn không gây hại gì, chỉ tốn vài giây.</div>
+  <div class="ok"><b>Checklist mỗi lần deploy</b> (DEPLOYMENT.md §9): CI xanh trên commit cần deploy (gồm job <code>image</code>) → <code>pg_dump</code> trước deploy thành công → <code>up -d --wait</code> healthcheck OK → đăng nhập thử 1 tài khoản mỗi vai trò.</div>
+  <p>Có registry riêng (GHCR/registry nội bộ) thì thay bước save/load bằng <code>docker push</code>/<code>docker pull</code> (<code>--push</code> ở buildx) — hiện repo chưa dùng registry, deploy trực tiếp qua ssh.</p>
+  </section>
+
+  <section id="rollback">
+  <h2>13. Rollback &amp; backup</h2>
+  <h3>Rollback</h3>
+  <pre><code># Chạy TỪ MAC DEV — ssh mở 1 kết nối, chạy cả 3 lệnh trong dấu nháy đơn trên server rồi đóng lại
+ssh deploy@server 'cd /opt/smyou \
+  && sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=&lt;tag_cu&gt;/" .env.prod \
+  && docker compose -f compose.prod.yml --env-file .env.prod up -d --wait'</code></pre>
+  <p>Giải thích từng phần — <code>&lt;tag_cu&gt;</code> không phải cú pháp, phải thay bằng tag thật của bản trước (ví dụ <code>2026.10.20-1</code>), lấy từ lịch sử deploy hoặc <code>docker images</code> trên server:</p>
+  <ul>
+    <li><code>ssh deploy@server '...'</code> — mọi lệnh trong cặp nháy đơn chạy <b>trên server</b>, không phải trên Mac; <code>ssh</code> giữ kết nối tới khi cả chuỗi lệnh (nối bằng <code>&amp;&amp;</code>) chạy xong rồi tự đóng.</li>
+    <li><code>cd /opt/smyou</code> — vào đúng thư mục chứa <code>.env.prod</code> và <code>compose.prod.yml</code>; thiếu bước này <code>sed</code>/<code>docker compose</code> ở dòng sau sẽ tìm file sai chỗ.</li>
+    <li><code>sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=&lt;tag_cu&gt;/" .env.prod</code> — sửa <b>tại chỗ</b> (<code>-i</code>, ghi đè luôn file) dòng bắt đầu bằng <code>IMAGE_TAG=</code>, thay toàn bộ phần sau dấu <code>=</code> bằng tag cũ. Regex <code>^IMAGE_TAG=.*</code> khớp đúng 1 dòng dù giá trị hiện tại là gì — không động tới các dòng biến khác trong file.</li>
+    <li><code>docker compose -f compose.prod.yml --env-file .env.prod up -d --wait</code> — khởi động lại container với <code>IMAGE_TAG</code> vừa đổi; vì image cũ vẫn còn trong <code>docker images</code> trên server (Docker không tự xoá khi deploy bản mới), lệnh này chạy ngay, không cần <code>docker load</code> lại. <code>--wait</code> chặn tới khi healthcheck pass.</li>
+  </ul>
+  <p>Vì migration luôn tương thích ngược 1 phiên bản (expand → migrate → contract, §5), image cũ chạy được với schema mới hầu hết trường hợp. Nếu migration mới <b>không</b> tương thích → khôi phục từ dump <code>predeploy-*</code> mà <code>deploy.sh</code> đã tạo trước khi đổi (chỉ đổi <code>IMAGE_TAG</code> là không đủ trong trường hợp này).</p>
+  <h3>Backup định kỳ</h3>
+  <ul>
+    <li>Cron 01:00 hằng ngày: <code>pg_dump -Fc</code> → <code>/opt/smyou/backups/db-YYYYMMDD.dump</code>; <code>tar</code> volume <code>uploads</code>; giữ 14 bản; copy ra ngoài server (rclone/NAS).</li>
+    <li>Mỗi tháng thử khôi phục vào DB tạm: <code>scripts/restore_check.sh</code> — backup chưa thử khôi phục = chưa có backup.</li>
+  </ul>
+  </section>
+
+  <section id="ops">
+  <h2>14. Vận hành &amp; sự cố thường gặp</h2>
+  <table>
+    <tr><th>Việc</th><th>Lệnh trên server</th></tr>
+    <tr><td>Xem log</td><td><code>docker compose -f compose.prod.yml --env-file .env.prod logs -f --tail=200 backend</code></td></tr>
+    <tr><td>Vào psql production</td><td><code>docker compose -f compose.prod.yml --env-file .env.prod exec db psql -U smyou -d smyou</code></td></tr>
+    <tr><td>Kiểm tra container đang chạy</td><td><code>docker compose -f compose.prod.yml --env-file .env.prod ps</code></td></tr>
+    <tr><td>Khởi động lại 1 service</td><td><code>docker compose -f compose.prod.yml --env-file .env.prod restart backend</code></td></tr>
+    <tr><td>Kiểm tra cổng trống trước khi đổi <code>WEB_PORT</code></td><td><code>ss -ltnp | grep &lt;port&gt;</code></td></tr>
+    <tr><td>Healthcheck thủ công</td><td><code>curl -fsS http://127.0.0.1:6890/smyoutask/api/v1/health</code></td></tr>
+  </table>
+  <div class="warn"><b>Không bao giờ</b> publish cổng <code>web</code> ra <code>0.0.0.0</code> hay mở <code>6890</code> trên firewalld — mọi traffic ngoài phải đi qua nginx hệ thống (TLS + rate-limit + <code>X-Real-IP</code> đúng). Không publish port Postgres ra ngoài container trong production.</div>
+  <div class="danger">Nếu nghi image bị sai kiến trúc (lỗi lúc chạy trên AlmaLinux nhưng OK trên Mac) — đây chính là lý do CI job <code>image</code> build trên runner amd64: kiểm tra lại commit đó có qua CI chưa trước khi build lại để deploy.</div>
+  </section>
+
+  <section id="refs">
+  <h2>15. Tài liệu tham chiếu (nguồn sự thật — đọc theo nhu cầu)</h2>
+  <table>
+    <tr><th>Cần biết</th><th>Đọc</th></tr>
+    <tr><td>Kiến trúc, cấu trúc thư mục, quy ước đầy đủ</td><td><code>docs/architecture/ARCHITECTURE.md</code></td></tr>
+    <tr><td>Build/deploy chi tiết Mac M2 → AlmaLinux</td><td><code>docs/architecture/DEPLOYMENT.md</code></td></tr>
+    <tr><td>Các quyết định kiến trúc (ADR)</td><td><code>docs/architecture/DECISIONS.md</code></td></tr>
+    <tr><td>Checklist go-live</td><td><code>docs/architecture/GO_LIVE_CHECKLIST.md</code></td></tr>
+    <tr><td>Trạng thái &amp; chuyển trạng thái (máy đọc được)</td><td><code>spec/state_machines.yaml</code></td></tr>
+    <tr><td>Vai trò, quyền, menu (máy đọc được)</td><td><code>spec/permissions.yaml</code></td></tr>
+    <tr><td>Thực thể, trường dữ liệu, quan hệ</td><td><code>docs/product/DOMAIN_MODEL.md</code></td></tr>
+    <tr><td>Tất cả lệnh make</td><td><code>Makefile</code> (hoặc <code>make help</code>)</td></tr>
+  </table>
+  <footer>SMYou Pro Technical Handbook — tổng hợp từ ARCHITECTURE.md, DEPLOYMENT.md, DECISIONS.md, Makefile, compose.prod.yml, .env.prod.example, scripts/deploy.sh, .github/workflows/ci.yml. Khi tài liệu gốc thay đổi, cập nhật lại file này.</footer>
+  </section>
+</main>
+</div>
+</body>
+</html>

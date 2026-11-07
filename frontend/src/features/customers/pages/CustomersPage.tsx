@@ -1,4 +1,4 @@
-import { Search, UserPlus, Users } from "lucide-react";
+import { Download, Search, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
 import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
@@ -10,7 +10,7 @@ import { Select } from "../../../components/ui/Select";
 import { TextField } from "../../../components/ui/TextField";
 import { useDebouncedValue } from "../../../lib/useDebouncedValue";
 import { useMe } from "../../me/api";
-import { useCustomers, type Customer, type CustomerFilters } from "../api";
+import { customersExportUrl, useCustomers, type Customer, type CustomerFilters } from "../api";
 import { CustomerFormSheet } from "../components/CustomerFormSheet";
 import { CustomerList } from "../components/CustomerList";
 import { TYPE_LABELS, TYPE_ORDER } from "../schemas";
@@ -94,14 +94,27 @@ export function CustomersPage() {
           </Select>
         </div>
         {canManage ? (
-          <Button
-            icon={<UserPlus aria-hidden="true" className="size-4" />}
-            onClick={() => {
-              setSelected("new");
-            }}
-          >
-            Thêm khách hàng
-          </Button>
+          <div className="flex gap-3">
+            {/* M20-05: chỉ desktop (như M18-01a); cùng bộ lọc danh sách, không phân trang. */}
+            <a
+              href={customersExportUrl({ q: debouncedQ, type })}
+              target="_blank"
+              rel="noopener"
+              className="hidden min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-heading transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 lg:inline-flex"
+            >
+              <Download aria-hidden="true" className="size-4" />
+              Xuất Excel
+            </a>
+            <Button
+              className="flex-1 lg:flex-none"
+              icon={<UserPlus aria-hidden="true" className="size-4" />}
+              onClick={() => {
+                setSelected("new");
+              }}
+            >
+              Thêm khách hàng
+            </Button>
+          </div>
         ) : null}
       </div>
 
