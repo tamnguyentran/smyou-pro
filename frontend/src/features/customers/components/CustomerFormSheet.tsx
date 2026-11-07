@@ -114,7 +114,7 @@ export function CustomerFormSheet({
     CustomerWritten["duplicate_phone_matches"]
   >([]);
 
-  const { register, handleSubmit, formState, control, setFocus } = useForm<CustomerFormValues>({
+  const { register, handleSubmit, formState, control } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema) as Resolver<CustomerFormValues>,
     defaultValues: {
       type: (customer?.type as CustomerType | undefined) ?? TYPE_ORDER[0],
@@ -214,9 +214,15 @@ export function CustomerFormSheet({
         // AC-UI-069: the form is long — focusing (and centring) the first field the server
         // rejected shows the error without the user hunting for it, like RHF does client-side.
         const firstField = SHOWN_FIELDS.find((field) => field in byField);
-        if (firstField) {
-          setFocus(firstField as keyof CustomerFormValues);
-          document.activeElement?.scrollIntoView({ block: "center" });
+        // Focus without the browser's own scroll (WebKit scrolls the input to the nearest edge,
+        // under the pinned action row, overriding a later centre), then centre the error line itself.
+        const input = firstField
+          ? document.querySelector<HTMLElement>(`[name="${firstField}"]`)
+          : null;
+        if (input) {
+          input.focus({ preventScroll: true });
+          const errorLine = document.getElementById(`${input.id}-error`) ?? input;
+          errorLine.scrollIntoView({ block: "center" });
         }
       } else {
         setFormMessage("Không thực hiện được. Vui lòng thử lại.");
