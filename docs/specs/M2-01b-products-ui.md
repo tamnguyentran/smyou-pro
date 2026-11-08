@@ -42,4 +42,5 @@ Không có.
 Theo Q42–Q44 (OPEN_QUESTIONS, xem M2-01a §8).
 - **"Điều hướng sang trang chi tiết" (AC-CAT-013)**: app chưa có route theo id nào (kể cả `/employees`, M1-04b) — mọi nơi dùng Sheet, không mở URL riêng `/catalog/products/:id`.
 - **Đóng Sheet sau khi lưu (quyết định 2026-10-20, thay cho giả định cũ "chuyển sang chế độ sửa")**: tạo mới hoặc sửa thành công → đóng Sheet luôn, không giữ mở để chuyển chế độ. Chỉ giữ mở khi lưu lỗi (để sửa) — áp dụng chung cho mọi Sheet thêm/sửa trong app (Sản phẩm, Dịch vụ, Nhân viên, Khách hàng).
+- **Ảnh khi tạo mới — thay bởi M29-01 (2026-11-08, Q198)**: form "Thêm sản phẩm" nay cũng chọn được ảnh (tải lên sau khi tạo xong); tải ảnh lỗi thì sheet chuyển sang chế độ sửa sản phẩm vừa tạo. Ô ảnh trống hiện "Chưa có ảnh" (`ImageOff`). Xem `docs/specs/M29-01-product-image-on-create.md`.
 - **Copy nút "Mở lại kinh doanh"**: spec chỉ cho câu xác nhận khi ngừng. Dùng câu đối xứng: "Sản phẩm sẽ hiện lại khi tạo đơn mới."
