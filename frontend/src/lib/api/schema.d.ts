@@ -277,6 +277,24 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/customer-care-calls": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Danh sách cuộc gọi chăm sóc khách hàng (mới nhất trước) */
+    get: operations["list_customer_care_calls"];
+    put?: never;
+    /** CSKH ghi nhận cuộc gọi chăm sóc khách hàng */
+    post: operations["record_customer_care_call"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/customer-gifts": {
     parameters: {
       query?: never;
@@ -2256,6 +2274,62 @@ export interface components {
       /** To */
       to: string;
     };
+    /** CareCallCreate */
+    CareCallCreate: {
+      /**
+       * Customer Id
+       * Format: uuid
+       */
+      customer_id: string;
+      /** Customer Request */
+      customer_request?: string | null;
+      /** Offered */
+      offered: string;
+    };
+    /** CareCallOut */
+    CareCallOut: {
+      /**
+       * Called At
+       * Format: date-time
+       */
+      called_at: string;
+      /**
+       * Caller Id
+       * Format: uuid
+       */
+      caller_id: string;
+      /** Caller Name */
+      caller_name: string;
+      /**
+       * Customer Id
+       * Format: uuid
+       */
+      customer_id: string;
+      /** Customer Name */
+      customer_name: string;
+      /** Customer Phone */
+      customer_phone: string;
+      /** Customer Request */
+      customer_request: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Offered */
+      offered: string;
+    };
+    /** CareCallPage */
+    CareCallPage: {
+      /** Items */
+      items: components["schemas"]["CareCallOut"][];
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+      /** Total */
+      total: number;
+    };
     /** CareSummaryOut */
     CareSummaryOut: {
       /** Month */
@@ -2695,12 +2769,14 @@ export interface components {
       /** Note */
       note: string;
       /** Order Code */
-      order_code: string;
+      order_code: string | null;
+      /** Order Id */
+      order_id: string | null;
       /**
-       * Order Id
-       * Format: uuid
+       * Source
+       * @enum {string}
        */
-      order_id: string;
+      source: "ORDER" | "CARE_CALL";
     };
     /** CustomerUpdate */
     CustomerUpdate: {
@@ -5776,6 +5852,83 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  list_customer_care_calls: {
+    parameters: {
+      query?: {
+        customer_id?: string | null;
+        caller_id?: string | null;
+        from?: string | null;
+        to?: string | null;
+        q?: string | null;
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CareCallPage"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  record_customer_care_call: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CareCallCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CareCallOut"];
+        };
+      };
+      /** @description problem+json — NOT_FOUND */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
       };
     };
   };

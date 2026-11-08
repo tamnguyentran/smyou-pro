@@ -10,6 +10,7 @@ import { LoginPage } from "../features/auth/pages/LoginPage";
 import { ResetPasswordPage } from "../features/auth/pages/ResetPasswordPage";
 import { CustomerGiftReportPage } from "../features/customerGiftReport/pages/CustomerGiftReportPage";
 import { CustomerGiftsPage } from "../features/customerGifts/pages/CustomerGiftsPage";
+import { CustomerCareCallsPage } from "../features/customerCareCalls/pages/CustomerCareCallsPage";
 import { CustomersPage } from "../features/customers/pages/CustomersPage";
 import { DispatchQueuePage } from "../features/dispatch/pages/DispatchQueuePage";
 import { RevisionQueuePage } from "../features/dispatch/pages/RevisionQueuePage";
@@ -48,6 +49,7 @@ import { NotFoundPage } from "./shell/StatusPage";
 // "/catalog/services" is real (M2-02), same reasoning (AC-CAT-031).
 // "/customers" is real (M3-01) and checks customer.read itself — narrower than the menu entry's
 // customer.manage (AC-CUS-012: TECH_LEAD reads it without seeing the "Khách hàng" menu item).
+// "/customer-care" is real (M27-01b) and checks customer_care.call.read itself, same as the menu entry.
 // "/orders/new" is real (M3-02b) and checks order.create itself, same shape as the menu entry.
 // "/customer-gifts" is real (M16-01b) and checks customer_gift.read itself, same capability as
 // the menu entry added alongside it.
@@ -99,6 +101,7 @@ const REAL_PAGES = new Set([
   "/orders/new",
   "/orders",
   "/customer-gifts",
+  "/customer-care",
   "/dispatch/queue",
   "/dispatch/board",
   "/dispatch/workload",
@@ -173,6 +176,7 @@ export const routes: RouteObject[] = [
       { path: "/catalog/groups", element: <ProductServiceGroupsPage /> },
       { path: "/customers", element: <CustomersPage /> },
       { path: "/customer-gifts", element: <CustomerGiftsPage /> },
+      { path: "/customer-care", element: <CustomerCareCallsPage /> },
       { path: "/dispatch/queue", element: <DispatchQueuePage /> },
       { path: "/dispatch/board", element: <TaskBoardPage /> },
       { path: "/dispatch/workload", element: <WorkloadPage /> },

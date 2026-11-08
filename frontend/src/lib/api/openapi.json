@@ -439,6 +439,126 @@
         "title": "BusinessStaffOut",
         "type": "object"
       },
+      "CareCallCreate": {
+        "properties": {
+          "customer_id": {
+            "format": "uuid",
+            "title": "Customer Id",
+            "type": "string"
+          },
+          "customer_request": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Request"
+          },
+          "offered": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Offered",
+            "type": "string"
+          }
+        },
+        "required": ["customer_id", "offered"],
+        "title": "CareCallCreate",
+        "type": "object"
+      },
+      "CareCallOut": {
+        "properties": {
+          "called_at": {
+            "format": "date-time",
+            "title": "Called At",
+            "type": "string"
+          },
+          "caller_id": {
+            "format": "uuid",
+            "title": "Caller Id",
+            "type": "string"
+          },
+          "caller_name": {
+            "title": "Caller Name",
+            "type": "string"
+          },
+          "customer_id": {
+            "format": "uuid",
+            "title": "Customer Id",
+            "type": "string"
+          },
+          "customer_name": {
+            "title": "Customer Name",
+            "type": "string"
+          },
+          "customer_phone": {
+            "title": "Customer Phone",
+            "type": "string"
+          },
+          "customer_request": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Request"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "offered": {
+            "title": "Offered",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "customer_id",
+          "customer_name",
+          "customer_phone",
+          "caller_id",
+          "caller_name",
+          "offered",
+          "customer_request",
+          "called_at"
+        ],
+        "title": "CareCallOut",
+        "type": "object"
+      },
+      "CareCallPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CareCallOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": ["items", "total", "limit", "offset"],
+        "title": "CareCallPage",
+        "type": "object"
+      },
       "CareSummaryOut": {
         "properties": {
           "month": {
@@ -1726,12 +1846,31 @@
             "type": "string"
           },
           "order_code": {
-            "title": "Order Code",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Code"
           },
           "order_id": {
-            "format": "uuid",
-            "title": "Order Id",
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Id"
+          },
+          "source": {
+            "enum": ["ORDER", "CARE_CALL"],
+            "title": "Source",
             "type": "string"
           }
         },
@@ -1740,6 +1879,7 @@
           "customer_id",
           "order_id",
           "order_code",
+          "source",
           "note",
           "author_id",
           "author_name",
@@ -9629,6 +9769,185 @@
         },
         "summary": "Tải logo Công ty (thay logo cũ)",
         "tags": ["company-profile"]
+      }
+    },
+    "/api/v1/customer-care-calls": {
+      "get": {
+        "operationId": "list_customer_care_calls",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "customer_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Customer Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "caller_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Caller Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareCallPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Danh sách cuộc gọi chăm sóc khách hàng (mới nhất trước)",
+        "tags": ["customer-care-calls"]
+      },
+      "post": {
+        "operationId": "record_customer_care_call",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CareCallCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareCallOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "problem+json — NOT_FOUND"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "CSKH ghi nhận cuộc gọi chăm sóc khách hàng",
+        "tags": ["customer-care-calls"]
       }
     },
     "/api/v1/customer-gifts": {

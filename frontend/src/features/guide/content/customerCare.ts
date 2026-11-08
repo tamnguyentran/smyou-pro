@@ -69,6 +69,17 @@ export const CUSTOMER_CARE_GUIDE: Guide = {
       screens: ["/customer-gifts", "/reports/customer-gifts"],
     },
     {
+      id: "cham-soc-kh",
+      title: "Chăm sóc KH — ghi nhận cuộc gọi",
+      steps: [
+        "Mở Đơn hàng → Chăm sóc KH, bấm Ghi nhận cuộc gọi.",
+        "Tìm khách hàng; khách mới thì bấm Thêm khách hàng, nhập thông tin rồi Lưu — khách vừa thêm được chọn sẵn.",
+        "Ghi Chào sản phẩm/dịch vụ gì và Ghi nhận yêu cầu của KH (nếu có), bấm Lưu.",
+      ],
+      note: "Yêu cầu của khách được ghi thành tiềm năng sử dụng dịch vụ của khách đó. Bạn chỉ xem được các cuộc gọi do mình ghi.",
+      screens: ["/customer-care"],
+    },
+    {
       id: "thong-bao-cskh",
       title: "Thông báo đơn mình tạo",
       body: "Với đơn bạn tạo, bạn được báo khi kỹ thuật viên bắt đầu, khi mọi đầu việc xong, khi đơn hoàn tất hoặc chuyển Chỉnh sửa.",

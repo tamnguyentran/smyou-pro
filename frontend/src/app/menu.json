@@ -114,6 +114,15 @@
           "capability": "customer.manage",
           "badge": null,
           "children": []
+        },
+        {
+          "id": "customer-care",
+          "label": "Chăm sóc KH",
+          "icon": "PhoneCall",
+          "path": "/customer-care",
+          "capability": "customer_care.call.read",
+          "badge": null,
+          "children": []
         }
       ]
     },

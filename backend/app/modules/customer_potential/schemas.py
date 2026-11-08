@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, StringConstraints
 
@@ -18,8 +18,9 @@ class CustomerPotentialNoteCreate(BaseModel):
 class CustomerPotentialNoteOut(BaseModel):
     id: uuid.UUID
     customer_id: uuid.UUID
-    order_id: uuid.UUID
-    order_code: str
+    order_id: uuid.UUID | None
+    order_code: str | None
+    source: Literal["ORDER", "CARE_CALL"]
     note: str
     author_id: uuid.UUID
     author_name: str

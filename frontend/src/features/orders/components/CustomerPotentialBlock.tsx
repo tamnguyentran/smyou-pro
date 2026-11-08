@@ -102,7 +102,9 @@ export function CustomerPotentialBlock({ order }: { order: Order }) {
                 <li key={item.id} className="space-y-1 py-3">
                   <p className="text-sm break-words whitespace-pre-line text-body">{item.note}</p>
                   <p className="text-xs text-muted">
-                    {item.author_name} · {item.order_code} · {formatDateTime(item.created_at)}
+                    {item.author_name} ·{" "}
+                    {item.source === "CARE_CALL" ? "Cuộc gọi CSKH" : item.order_code} ·{" "}
+                    {formatDateTime(item.created_at)}
                   </p>
                 </li>
               ))}
