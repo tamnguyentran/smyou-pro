@@ -239,8 +239,12 @@ async function openPanel(): Promise<{ user: UserEvent; dialog: HTMLElement }> {
 async function fillValidForm(user: UserEvent, dialog: HTMLElement, due = localInput(3)) {
   await user.clear(within(dialog).getByLabelText("Tiêu đề đầu việc"));
   await user.type(within(dialog).getByLabelText("Tiêu đề đầu việc"), "Lắp đặt 4 camera tầng 1");
+  // M28-01: ô Mô tả đã chép sẵn mô tả công việc — xoá để giữ kịch bản "không mô tả".
+  await user.clear(within(dialog).getByLabelText("Mô tả"));
   await user.clear(within(dialog).getByLabelText("Số giờ ước tính"));
   await user.type(within(dialog).getByLabelText("Số giờ ước tính"), "9");
+  // M28-02: ô đã điền sẵn hạn mặc định — xoá trước khi gõ.
+  await user.clear(within(dialog).getByLabelText("Hạn hoàn thành"));
   await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(due));
   await user.click(within(dialog).getByRole("checkbox", { name: /Trần Minh Khoa/ }));
   await user.click(within(dialog).getByRole("checkbox", { name: /Đỗ Văn Minh/ }));
@@ -428,7 +432,8 @@ describe("Panel tạo đầu việc", () => {
   });
 
   test("AC-DSP-023 ô trống/sai → lỗi dưới từng ô, không gọi POST", async () => {
-    const calls = stubQueue({ order: detail({ lines: [] }) });
+    // M28-01: đơn không có mô tả → ô tiêu đề không được điền sẵn, giữ kịch bản "ô trống".
+    const calls = stubQueue({ order: detail({ lines: [], work_description: "" }) });
     const { user, dialog } = await openPanel();
 
     await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
@@ -449,6 +454,10 @@ describe("Panel tạo đầu việc", () => {
       await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
       expect(await within(dialog).findByText(hoursMessage)).toBeInTheDocument();
     }
+
+    // M28-02: ô đã điền sẵn hạn mặc định — xoá trước khi gõ.
+
+    await user.clear(within(dialog).getByLabelText("Hạn hoàn thành"));
 
     await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(localInput(-1)));
     await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
@@ -594,5 +603,150 @@ describe("Panel tạo đầu việc", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
     expect(screen.getByRole("button", { name: DON_I.code })).toHaveFocus();
+  });
+});
+
+describe("M28-01 tiêu đề + mô tả đầu việc mặc định từ mô tả công việc", () => {
+  function fillRest(user: UserEvent, dialog: HTMLElement, due: string) {
+    return (async () => {
+      await user.clear(within(dialog).getByLabelText("Số giờ ước tính"));
+      await user.type(within(dialog).getByLabelText("Số giờ ước tính"), "9");
+      // M28-02: ô đã điền sẵn hạn mặc định — xoá trước khi gõ.
+      await user.clear(within(dialog).getByLabelText("Hạn hoàn thành"));
+      await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(due));
+      await user.click(within(dialog).getByRole("checkbox", { name: /Trần Minh Khoa/ }));
+    })();
+  }
+
+  test("AC-DSP-134 mô tả nhiều dòng → tiêu đề gộp 1 dòng, Mô tả chép nguyên văn; Lưu gửi cả 2", async () => {
+    const calls = stubQueue({
+      order: detail({ work_description: "Lắp 4 camera kho\nĐi dây âm tường" }),
+    });
+    const { user, dialog } = await openPanel();
+
+    const title = within(dialog).getByLabelText("Tiêu đề đầu việc");
+    await waitFor(() => {
+      expect(title).toHaveValue("Lắp 4 camera kho Đi dây âm tường");
+    });
+    expect(within(dialog).getByLabelText("Mô tả")).toHaveValue("Lắp 4 camera kho\nĐi dây âm tường");
+    await fillRest(user, dialog, localInput(3));
+    await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
+    await waitFor(() => {
+      expect(calls.posts).toHaveLength(1);
+    });
+    expect(calls.posts[0]).toMatchObject({
+      title: "Lắp 4 camera kho Đi dây âm tường",
+      description: "Lắp 4 camera kho\nĐi dây âm tường",
+    });
+  });
+
+  test("AC-DSP-135 mô tả 250 ký tự → tiêu đề 100 ký tự đầu (gộp khoảng trắng, bỏ 2 đầu), Mô tả đủ", async () => {
+    const body = "Bảo trì".padEnd(250, "x");
+    const description = `\n   ${body}`;
+    stubQueue({ order: detail({ work_description: description }) });
+    const { dialog } = await openPanel();
+
+    await waitFor(() => {
+      expect(within(dialog).getByLabelText("Tiêu đề đầu việc")).toHaveValue(body.slice(0, 100));
+    });
+    expect(within(dialog).getByLabelText("Mô tả")).toHaveValue(description);
+  });
+
+  test("AC-DSP-136 mô tả trống → tiêu đề trống, Lưu báo lỗi bắt buộc, không gọi API", async () => {
+    const calls = stubQueue({ order: detail({ work_description: "" }) });
+    const { user, dialog } = await openPanel();
+
+    expect(within(dialog).getByLabelText("Tiêu đề đầu việc")).toHaveValue("");
+    await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
+    expect(await within(dialog).findByText("Nhập tiêu đề đầu việc.")).toBeInTheDocument();
+    expect(calls.posts).toHaveLength(0);
+  });
+
+  test("AC-DSP-137 người dùng sửa tiêu đề, xoá Mô tả → gửi giá trị người dùng nhập", async () => {
+    const calls = stubQueue({ order: detail({ work_description: "Lắp 4 camera kho" }) });
+    const { user, dialog } = await openPanel();
+    const title = within(dialog).getByLabelText("Tiêu đề đầu việc");
+    await waitFor(() => {
+      expect(title).toHaveValue("Lắp 4 camera kho");
+    });
+
+    await user.clear(title);
+    await user.type(title, "Khảo sát mặt bằng");
+    await user.clear(within(dialog).getByLabelText("Mô tả"));
+    await fillRest(user, dialog, localInput(3));
+    await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
+    await waitFor(() => {
+      expect(calls.posts).toHaveLength(1);
+    });
+    expect(calls.posts[0]).toMatchObject({ title: "Khảo sát mặt bằng", description: null });
+  });
+});
+
+describe("M28-02 hạn hoàn thành mặc định theo giờ làm việc", () => {
+  // Thứ 4 2026-11-11 10:00 giờ VN.
+  const WED_10AM = new Date("2026-11-11T03:00:00Z");
+
+  test("AC-DSP-143 điền sẵn theo gợi ý 9 giờ, đổi số giờ → tính lại; Lưu gửi due_at đó", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(WED_10AM);
+    try {
+      const calls = stubQueue();
+      const { user, dialog } = await openPanel();
+      const due = within(dialog).getByLabelText("Hạn hoàn thành");
+      await waitFor(() => {
+        expect(due).toHaveValue("12/11/2026 11:00");
+      });
+
+      const hours = within(dialog).getByLabelText("Số giờ ước tính");
+      await user.clear(hours);
+      await user.type(hours, "3");
+      await waitFor(() => {
+        expect(due).toHaveValue("11/11/2026 14:00");
+      });
+
+      await user.click(within(dialog).getByRole("checkbox", { name: /Trần Minh Khoa/ }));
+      await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
+      await waitFor(() => {
+        expect(calls.posts).toHaveLength(1);
+      });
+      expect(calls.posts[0]).toMatchObject({
+        estimated_hours: 3,
+        due_at: "2026-11-11T14:00:00+07:00",
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("AC-DSP-144 đã tự sửa Hạn hoàn thành → đổi số giờ không ghi đè", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(WED_10AM);
+    try {
+      stubQueue();
+      const { user, dialog } = await openPanel();
+      const due = within(dialog).getByLabelText("Hạn hoàn thành");
+      await waitFor(() => {
+        expect(due).toHaveValue("12/11/2026 11:00");
+      });
+
+      await user.clear(due);
+      await user.type(due, "201120261600");
+      const hours = within(dialog).getByLabelText("Số giờ ước tính");
+      await user.clear(hours);
+      await user.type(hours, "3");
+
+      expect(hours).toHaveValue("3");
+      expect(due).toHaveValue("20/11/2026 16:00");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("AC-DSP-145 số giờ trống (đơn không có dịch vụ khai giờ) → hạn trống", async () => {
+    stubQueue({ order: detail({ lines: [] }) });
+    const { dialog } = await openPanel();
+
+    expect(within(dialog).getByLabelText("Số giờ ước tính")).toHaveValue("");
+    expect(within(dialog).getByLabelText("Hạn hoàn thành")).toHaveValue("");
   });
 });

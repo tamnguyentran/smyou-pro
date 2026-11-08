@@ -415,8 +415,12 @@ describe("Tab Đầu việc trên trang chi tiết đơn", () => {
     });
 
     const due = localInput(3);
+    // M28-01: ô đã điền sẵn từ mô tả công việc — xoá trước khi gõ.
+    await user.clear(within(dialog).getByLabelText("Tiêu đề đầu việc"));
     await user.type(within(dialog).getByLabelText("Tiêu đề đầu việc"), "Nghiệm thu với khách");
     await user.type(within(dialog).getByLabelText("Số giờ ước tính"), "1,5");
+    // M28-02: ô đã điền sẵn hạn mặc định — xoá trước khi gõ.
+    await user.clear(within(dialog).getByLabelText("Hạn hoàn thành"));
     await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(due));
     await user.click(within(dialog).getByRole("checkbox", { name: /Trần Minh Khoa/ }));
     await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
@@ -454,6 +458,8 @@ describe("Tab Đầu việc trên trang chi tiết đơn", () => {
 
     await user.click(screen.getByRole("button", { name: "Tạo đầu việc" }));
     const dialog = await screen.findByRole("dialog", { name: `Tạo đầu việc — ${orderCode}` });
+    // M28-01: ô đã điền sẵn từ mô tả công việc — xoá trước khi gõ.
+    await user.clear(within(dialog).getByLabelText("Tiêu đề đầu việc"));
     await user.type(within(dialog).getByLabelText("Tiêu đề đầu việc"), "Lắp đặt 4 camera tầng 1");
     await user.type(within(dialog).getByLabelText("Số giờ ước tính"), "4");
     await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(localInput(2)));
@@ -506,6 +512,8 @@ describe("Tab Đầu việc trên trang chi tiết đơn", () => {
     await screen.findByText(T1.code);
     await user.click(screen.getByRole("button", { name: "Tạo đầu việc" }));
     const dialog = await screen.findByRole("dialog", { name: `Tạo đầu việc — ${orderCode}` });
+    // M28-01: ô đã điền sẵn từ mô tả công việc — xoá trước khi gõ.
+    await user.clear(within(dialog).getByLabelText("Tiêu đề đầu việc"));
     await user.type(within(dialog).getByLabelText("Tiêu đề đầu việc"), "Nghiệm thu với khách");
     await user.type(within(dialog).getByLabelText("Số giờ ước tính"), "2");
     await user.type(within(dialog).getByLabelText("Hạn hoàn thành"), vnTyped(localInput(3)));

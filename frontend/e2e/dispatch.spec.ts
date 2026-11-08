@@ -199,6 +199,8 @@ test("AC-UI-103 AC-UI-105 Ngày hẹn và Hạn hoàn thành nhập kiểu dd/MM
   await panel.getByLabel("Số giờ ước tính").fill("4");
   const due = panel.getByLabel("Hạn hoàn thành");
   await expect(due).not.toHaveAttribute("type", "datetime-local");
+  // M28-02: số giờ vừa điền đã làm ô hạn có giá trị mặc định — xoá trước khi gõ.
+  await due.clear();
   await due.pressSequentially(localInput(2, "17:00").replace(/\D/g, ""));
   await expect(due).toHaveValue(localInput(2, "17:00"));
   await panel.getByRole("checkbox", { name: new RegExp(TECHNICIAN_CODE) }).check();
