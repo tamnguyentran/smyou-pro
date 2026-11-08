@@ -137,7 +137,7 @@ class DashboardStaffRow(BaseModel):
 
 
 class DashboardFeedbackRow(BaseModel):
-    """M18-01c: 1 đơn đã ghi phản hồi — popup "KH đã gọi" và thẻ n★."""
+    """M18-01c: 1 đơn đã ghi phản hồi — popup thẻ n★ (khối Phản hồi - đánh giá)."""
 
     order_id: uuid.UUID
     order_code: str
@@ -151,13 +151,29 @@ class DashboardFeedbackRow(BaseModel):
 
 
 class DashboardCareStaffRow(BaseModel):
-    """M18-01c: 1 nhân viên đã ghi phản hồi trong tháng — popup "NV đã gọi điện CSKH"."""
+    """M18-01c: 1 nhân viên có ≥1 lượt gọi CSKH trong tháng (M27-02a: recheck đơn + trang Chăm sóc KH)
+    — popup "NV đã gọi điện CSKH"; `care_count` = số lượt gọi."""
 
     employee_id: uuid.UUID
     employee_code: str
     full_name: str
     care_count: int
     last_recorded_at: datetime
+
+
+class DashboardCareCallRow(BaseModel):
+    """M27-02a: 1 lượt gọi CSKH — popup "Lượt gọi CSKH"; gộp recheck đơn (`ORDER_RECHECK`) và cuộc gọi
+    trang "Chăm sóc KH" (`CARE_CALL`, không có đơn). `summary`: "n★ — nhận xét" | "Chào: … · Yêu cầu: …"."""
+
+    source: Literal["ORDER_RECHECK", "CARE_CALL"]
+    called_at: datetime
+    customer_id: uuid.UUID | None
+    customer_name: str | None
+    customer_phone: str | None
+    order_id: uuid.UUID | None
+    order_code: str | None
+    caller_name: str | None
+    summary: str
 
 
 class DashboardCreditedOrderRow(BaseModel):
@@ -177,7 +193,7 @@ class DashboardCardItemsOut(BaseModel):
 
     card: str
     label: str
-    kind: Literal["order", "task", "staff", "feedback", "care_staff", "credited_order"]
+    kind: Literal["order", "task", "staff", "feedback", "care_staff", "care_call", "credited_order"]
     total: int
     page: int
     page_size: int
@@ -186,4 +202,5 @@ class DashboardCardItemsOut(BaseModel):
     staff_items: list[DashboardStaffRow] | None = None
     feedback_items: list[DashboardFeedbackRow] | None = None
     care_staff_items: list[DashboardCareStaffRow] | None = None
+    care_call_items: list[DashboardCareCallRow] | None = None
     credited_order_items: list[DashboardCreditedOrderRow] | None = None

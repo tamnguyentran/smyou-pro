@@ -89,3 +89,25 @@ test("AC-CUS-075 AC-CUS-079 @a11y @screenshot CSKH ghi nhận cuộc gọi và t
     path: shot(info, isMobile(info) ? "customer-care-390.png" : "customer-care-1440.png"),
   });
 });
+
+test("AC-CUS-085 @a11y @screenshot checkbox 'Chỉ cuộc gọi của tôi': vùng chạm ≥ 44px, bỏ chọn hiện ô 'Người gọi'", async ({
+  page,
+}, info) => {
+  await signIn(page, CUSTOMER_CARE, "/customer-care");
+  await expect(page.getByRole("heading", { name: "Chăm sóc khách hàng" })).toBeVisible();
+
+  const mine = page.getByRole("checkbox", { name: "Chỉ cuộc gọi của tôi" });
+  await expect(mine).toBeChecked();
+  const label = page.locator("label").filter({ has: mine });
+  expect((await label.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await expect(page.getByLabel("Người gọi")).toHaveCount(0);
+
+  await label.click();
+  await expect(mine).not.toBeChecked();
+  await expect(page).toHaveURL(/[?&]mine=0/);
+  await expect(page.getByLabel("Người gọi")).toBeVisible();
+  await expectAccessible(page, info);
+  await page.screenshot({
+    path: shot(info, isMobile(info) ? "customer-care-all-390.png" : "customer-care-all-1440.png"),
+  });
+});

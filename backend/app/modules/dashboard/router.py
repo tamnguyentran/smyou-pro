@@ -36,6 +36,11 @@ def _show_prices(request: Request, actor: Actor, card: str) -> bool:
     return "all" in scopes or (card.startswith("mine.") and "assigned" in scopes)
 
 
+def _call_scopes(request: Request, actor: Actor) -> tuple[str, ...]:
+    """Q196: dòng cuộc gọi CSKH trong popup `care.customers` theo quyền trang "Chăm sóc KH"."""
+    return effective_scopes(request.app.state.specs.permissions, actor.roles, "customer_care.call.read")
+
+
 @router.get(
     "/cards/{card}/items",
     operation_id="get_dashboard_card_items",
@@ -58,6 +63,7 @@ def get_card_items(
         page=page,
         page_size=page_size,
         show_prices=_show_prices(request, actor, card),
+        call_scopes=_call_scopes(request, actor),
     )
 
 
@@ -68,7 +74,12 @@ def get_card_items(
 )
 def export_card_items(request: Request, session: DbSession, actor: Reader, card: str) -> Response:
     filename, content = cards.export_csv(
-        session, actor, card, now=request.app.state.clock(), show_prices=_show_prices(request, actor, card)
+        session,
+        actor,
+        card,
+        now=request.app.state.clock(),
+        show_prices=_show_prices(request, actor, card),
+        call_scopes=_call_scopes(request, actor),
     )
     return Response(
         content=content,

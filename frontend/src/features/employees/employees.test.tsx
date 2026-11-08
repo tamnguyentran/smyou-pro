@@ -1177,10 +1177,23 @@ describe("AC-EMP-127 quyền cuộc gọi chăm sóc KH (M27-01a)", () => {
         .map((td) => td.textContent);
     // Columns: Quản lý chung, Kinh doanh, CSKH, QLKT, Kỹ thuật. Quản lý chung luôn kèm CSKH → cũng ghi được.
     expect(cellsOf(/^Ghi nhận cuộc gọi chăm sóc KH/)).toEqual(["Tất cả", "—", "Tất cả", "—", "—"]);
-    expect(cellsOf(/^Xem cuộc gọi chăm sóc KH/)).toEqual(["Tất cả", "—", "Của mình", "—", "—"]);
+    // M27-03 (Q197): hàng "Xem cuộc gọi" + câu nguyên tắc được AC-EMP-128 thay thế.
+  });
+});
+
+describe("AC-EMP-128 CSKH xem cuộc gọi của cả nhóm (M27-03)", () => {
+  test("AC-EMP-128 hàng 'Xem cuộc gọi chăm sóc KH': Quản lý + CSKH đều 'Tất cả'; câu nguyên tắc mới", async () => {
+    mockViewport(true);
+    const region = await openGuide();
+    const table = within(region).getByRole("table");
+    const cells = within(within(table).getByRole("row", { name: /^Xem cuộc gọi chăm sóc KH/ }))
+      .getAllByRole("cell")
+      .map((td) => td.textContent);
+    // Columns: Quản lý chung, Kinh doanh, CSKH, QLKT, Kỹ thuật.
+    expect(cells).toEqual(["Tất cả", "—", "Tất cả", "—", "—"]);
     expect(
       within(region).getByText(
-        "Nhân viên CSKH ghi nhận cuộc gọi chăm sóc khách hàng; yêu cầu của khách trở thành tiềm năng sử dụng dịch vụ của khách.",
+        "Nhân viên CSKH ghi nhận cuộc gọi chăm sóc khách hàng và xem được cuộc gọi của cả nhóm (mặc định chỉ hiện cuộc gọi của mình); yêu cầu của khách trở thành tiềm năng sử dụng dịch vụ của khách.",
       ),
     ).toBeInTheDocument();
   });

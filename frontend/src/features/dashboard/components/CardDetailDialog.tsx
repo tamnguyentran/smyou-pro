@@ -23,6 +23,7 @@ type TaskRow = NonNullable<DashboardCardItems["task_items"]>[number];
 type StaffRow = NonNullable<DashboardCardItems["staff_items"]>[number];
 type FeedbackRow = NonNullable<DashboardCardItems["feedback_items"]>[number];
 type CareStaffRow = NonNullable<DashboardCardItems["care_staff_items"]>[number];
+type CareCallRow = NonNullable<DashboardCardItems["care_call_items"]>[number];
 type CreditedOrderRow = NonNullable<DashboardCardItems["credited_order_items"]>[number];
 
 /** M18-01b: nhãn trạng thái phân công của chính KTV (thẻ `mine.*`) — các nhóm của "Việc của tôi". */
@@ -211,7 +212,7 @@ function CareStaffTable({ rows }: { rows: CareStaffRow[] }) {
         <tr>
           <th className={TH}>Mã NV</th>
           <th className={TH}>Họ tên</th>
-          <th className={cn(TH, "text-right")}>Số KH đã chăm sóc</th>
+          <th className={cn(TH, "text-right")}>Số lượt gọi</th>
           <th className={TH}>Lần ghi gần nhất</th>
         </tr>
       </thead>
@@ -222,6 +223,55 @@ function CareStaffTable({ rows }: { rows: CareStaffRow[] }) {
             <td className={TD}>{r.full_name}</td>
             <td className={cn(TD, "text-right tabular-nums")}>{r.care_count}</td>
             <td className={TD_NOWRAP}>{formatDateTime(r.last_recorded_at)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** M27-02b: nguồn của 1 lượt gọi — recheck đơn thì link sang đơn, cuộc gọi "Chăm sóc KH" thì không. */
+function CareCallSource({ row, tap = false }: { row: CareCallRow; tap?: boolean }) {
+  if (row.order_id && row.order_code) {
+    return (
+      <Link
+        to={`/orders/${row.order_id}`}
+        className={cn(CODE_LINK, tap && "inline-flex min-h-11 items-center")}
+      >
+        Recheck {row.order_code}
+      </Link>
+    );
+  }
+  return <span className={cn(tap && "inline-flex min-h-11 items-center")}>Cuộc gọi CSKH</span>;
+}
+
+/** M27-02b (AC-DASH-137): 1 dòng = 1 lượt gọi, gộp recheck đơn + cuộc gọi trang "Chăm sóc KH". */
+function CareCallTable({ rows }: { rows: CareCallRow[] }) {
+  return (
+    <table className="w-full">
+      <thead className="border-b border-line">
+        <tr>
+          <th className={TH}>Thời gian</th>
+          <th className={TH}>Nguồn</th>
+          <th className={TH}>Khách hàng</th>
+          <th className={TH}>SĐT</th>
+          <th className={TH}>Nội dung</th>
+          <th className={TH}>Người gọi</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-line">
+        {rows.map((r, i) => (
+          <tr key={`${r.source}-${r.called_at}-${String(i)}`}>
+            <td className={TD_NOWRAP}>{formatDateTime(r.called_at)}</td>
+            <td className={TD_NOWRAP}>
+              <CareCallSource row={r} />
+            </td>
+            <td className={TD}>{r.customer_name ?? "—"}</td>
+            <td className={TD_NOWRAP}>{r.customer_phone ? formatPhone(r.customer_phone) : "—"}</td>
+            <td className={TD}>
+              <span className="line-clamp-2">{r.summary}</span>
+            </td>
+            <td className={TD}>{r.caller_name ?? "—"}</td>
           </tr>
         ))}
       </tbody>
@@ -307,6 +357,23 @@ function FeedbackCards({ rows }: { rows: FeedbackRow[] }) {
   );
 }
 
+function CareCallCards({ rows }: { rows: CareCallRow[] }) {
+  return (
+    <ul className="space-y-2">
+      {rows.map((r, i) => (
+        <li key={`${r.source}-${r.called_at}-${String(i)}`} className={CARD_ITEM}>
+          <CareCallSource row={r} tap />
+          <p className="text-heading">{r.customer_name ?? "—"}</p>
+          <p className="line-clamp-2 text-body">{r.summary}</p>
+          <p className="text-muted">
+            {r.caller_name ?? "—"} · {formatDateTime(r.called_at)}
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function CareStaffCards({ rows }: { rows: CareStaffRow[] }) {
   return (
     <ul className="space-y-2">
@@ -315,7 +382,7 @@ function CareStaffCards({ rows }: { rows: CareStaffRow[] }) {
           <p className="font-medium text-heading">{r.full_name}</p>
           <p className="text-muted">{r.employee_code}</p>
           <p className="text-body">
-            Đã chăm sóc {r.care_count} KH · {formatDateTime(r.last_recorded_at)}
+            {r.care_count} lượt gọi · {formatDateTime(r.last_recorded_at)}
           </p>
         </li>
       ))}
@@ -379,7 +446,7 @@ function StaffCards({ rows }: { rows: StaffRow[] }) {
 }
 
 /** M18-01a/b/c: popup danh sách chi tiết của 1 thẻ Tổng quan (dòng đơn / đầu việc / nhân viên /
- * phản hồi / nhân viên CSKH). ≥1024px → hộp thoại giữa màn + bảng +
+ * phản hồi / nhân viên CSKH / lượt gọi CSKH). ≥1024px → hộp thoại giữa màn + bảng +
  * "Xuất Excel"; <1024px → sheet từ dưới + danh sách thẻ, không xuất file (AC-DASH-077/078). */
 export function CardDetailDialog({
   open,
@@ -488,6 +555,9 @@ export function CardDetailDialog({
   } else if (data.kind === "care_staff") {
     const careStaff = data.care_staff_items ?? [];
     body = desktop ? <CareStaffTable rows={careStaff} /> : <CareStaffCards rows={careStaff} />;
+  } else if (data.kind === "care_call") {
+    const careCalls = data.care_call_items ?? [];
+    body = desktop ? <CareCallTable rows={careCalls} /> : <CareCallCards rows={careCalls} />;
   } else if (data.kind === "credited_order") {
     const credited = data.credited_order_items ?? [];
     body = desktop ? (

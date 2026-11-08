@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Literal
 
-from sqlalchemy import ColumnElement, func, select
+from sqlalchemy import ColumnElement, Subquery, func, or_, select, true
 from sqlalchemy.orm import Session, aliased
 
 from app.core.authz import Actor
@@ -25,6 +25,7 @@ from app.core.errors import AppError
 from app.modules.customers.models import Customer
 from app.modules.dashboard.schemas import (
     DashboardCardItemsOut,
+    DashboardCareCallRow,
     DashboardCareStaffRow,
     DashboardCreditedOrderRow,
     DashboardFeedbackRow,
@@ -35,6 +36,7 @@ from app.modules.dashboard.schemas import (
 from app.modules.dashboard.service import (
     OPEN_ASSIGNMENT_STATUSES,
     VIETNAM,
+    care_calls_this_month,
     care_where,
     credited_line_where,
     credited_orders_where,
@@ -64,6 +66,7 @@ _ASSIGNMENT_STATUS_LABELS = {
     "IN_PROGRESS": "Đang làm",
     "DONE": "Đã xong",
 }
+_CARE_CALL_SOURCE_LABELS = {"ORDER_RECHECK": "Recheck đơn", "CARE_CALL": "Cuộc gọi CSKH"}
 
 Where = list[ColumnElement[bool]]
 
@@ -72,7 +75,7 @@ Where = list[ColumnElement[bool]]
 class _Card:
     label: str
     slug: str  # tên file xuất: tong-quan-<slug>-<ngày>.csv
-    kind: Literal["order", "task", "staff", "feedback", "care_staff", "credited_order"]
+    kind: Literal["order", "task", "staff", "feedback", "care_staff", "care_call", "credited_order"]
     # `None` → vai trò của actor không thấy khối chứa thẻ này.
     where: Callable[[Actor, datetime], Where | None]
     # Thẻ khối "Việc của tôi": dòng đầu việc kèm trạng thái phân công của chính người gọi.
@@ -115,6 +118,11 @@ def _my_card(key: str) -> Callable[[Actor, datetime], Where | None]:
         return my_task_where(actor, now=now)[key] if "TECHNICIAN" in actor.roles else None
 
     return where
+
+
+def _care_calls_card(actor: Actor, _now: datetime) -> Where | None:
+    """M27-02a: dòng lấy từ `care_calls_this_month` — `[]` chỉ báo actor thấy khối CSKH."""
+    return [] if sees_customer_sections(actor) else None
 
 
 def _care_card(key: str) -> Callable[[Actor, datetime], Where | None]:
@@ -204,7 +212,7 @@ CARDS: dict[str, _Card] = {
     "mine.awaiting_confirmation": _Card(
         "Chờ KH xác nhận", "viec-cua-toi-cho-kh-xac-nhan", "order", _my_card("awaiting_confirmation")
     ),
-    "care.customers": _Card("KH đã gọi", "cskh-kh-da-cham-soc", "feedback", _care_card("customers")),
+    "care.customers": _Card("Lượt gọi CSKH", "cskh-kh-da-cham-soc", "care_call", _care_calls_card),
     "care.staff": _Card("NV đã gọi điện CSKH", "cskh-nv-goi-dien", "care_staff", _care_card("staff")),
     "care.revision_orders": _Card(
         "Đơn hàng phải sửa", "cskh-don-phai-sua", "order", _care_card("revision_orders")
@@ -263,7 +271,27 @@ def _resolve(session: Session, card: str, actor: Actor, now: datetime) -> tuple[
     return definition, where
 
 
-def _total(session: Session, definition: _Card, where: Where) -> int:
+def _visible_care_calls(actor: Actor, call_scopes: tuple[str, ...], calls: Subquery) -> ColumnElement[bool]:
+    """Q196 (AC-DASH-136): dòng `CARE_CALL` theo `customer_care.call.read` như trang "Chăm sóc KH" —
+    "all" mọi cuộc gọi, "own" cuộc gọi actor ghi, không có quyền → chỉ dòng recheck đơn."""
+    if "all" in call_scopes:
+        return true()
+    recheck = calls.c.source == "ORDER_RECHECK"
+    return or_(recheck, calls.c.caller_id == actor.id) if "own" in call_scopes else recheck
+
+
+def _total(
+    session: Session,
+    actor: Actor,
+    definition: _Card,
+    where: Where,
+    now: datetime,
+    call_scopes: tuple[str, ...],
+) -> int:
+    if definition.kind == "care_call":
+        calls = care_calls_this_month(now)
+        visible = _visible_care_calls(actor, call_scopes, calls)
+        return session.scalar(select(func.count()).select_from(calls).where(visible)) or 0
     return session.scalar(select(func.count()).select_from(_ENTITIES[definition.kind]).where(*where)) or 0
 
 
@@ -452,13 +480,21 @@ def _feedback_rows(
 def _care_staff_rows(
     session: Session, where: Where, *, now: datetime, offset: int, limit: int | None
 ) -> list[DashboardCareStaffRow]:
-    recorded = [Order.csat_recorded_by == Employee.id, *care_where(now)["customers"]]
-    care_count = select(func.count()).where(*recorded).scalar_subquery()
-    last_recorded_at = select(func.max(Order.csat_recorded_at)).where(*recorded).scalar_subquery()
+    calls = care_calls_this_month(now)
+    per_caller = (
+        select(
+            calls.c.caller_id,
+            func.count().label("care_count"),
+            func.max(calls.c.called_at).label("last_at"),
+        )
+        .group_by(calls.c.caller_id)
+        .subquery()
+    )
     rows = session.execute(
-        select(Employee.id, Employee.code, Employee.full_name, care_count, last_recorded_at)
+        select(Employee.id, Employee.code, Employee.full_name, per_caller.c.care_count, per_caller.c.last_at)
+        .join(per_caller, per_caller.c.caller_id == Employee.id)
         .where(*where)
-        .order_by(care_count.desc(), Employee.full_name, Employee.code)
+        .order_by(per_caller.c.care_count.desc(), Employee.full_name, Employee.code)
         .offset(offset)
         .limit(limit)
     ).all()
@@ -471,6 +507,48 @@ def _care_staff_rows(
             last_recorded_at=last_at,
         )
         for employee_id, code, full_name, count, last_at in rows
+    ]
+
+
+def _care_call_summary(
+    rating: int | None, comment: str | None, offered: str | None, request: str | None
+) -> str:
+    if offered is None:
+        return f"{rating}★ — {comment}" if comment else f"{rating}★"
+    return f"Chào: {offered} · Yêu cầu: {request}" if request else f"Chào: {offered}"
+
+
+def _care_call_rows(
+    session: Session,
+    actor: Actor,
+    *,
+    now: datetime,
+    call_scopes: tuple[str, ...],
+    offset: int,
+    limit: int | None,
+) -> list[DashboardCareCallRow]:
+    calls = care_calls_this_month(now)
+    rows = session.execute(
+        select(calls, Employee.full_name)
+        .outerjoin(Employee, Employee.id == calls.c.caller_id)
+        .where(_visible_care_calls(actor, call_scopes, calls))
+        .order_by(calls.c.called_at.desc(), calls.c.id.desc())
+        .offset(offset)
+        .limit(limit)
+    ).all()
+    return [
+        DashboardCareCallRow(
+            source=r.source,
+            called_at=r.called_at,
+            customer_id=r.customer_id,
+            customer_name=r.customer_name,
+            customer_phone=r.customer_phone,
+            order_id=r.order_id,
+            order_code=r.order_code,
+            caller_name=r.full_name,
+            summary=_care_call_summary(r.rating, r.comment, r.offered, r.customer_request),
+        )
+        for r in rows
     ]
 
 
@@ -503,13 +581,14 @@ def list_items(
     page: int,
     page_size: int,
     show_prices: bool,
+    call_scopes: tuple[str, ...],
 ) -> DashboardCardItemsOut:
     definition, where = _resolve(session, card, actor, now)
     out = DashboardCardItemsOut(
         card=card,
         label=definition.label,
         kind=definition.kind,
-        total=_total(session, definition, where),
+        total=_total(session, actor, definition, where, now, call_scopes),
         page=page,
         page_size=page_size,
     )
@@ -522,6 +601,10 @@ def list_items(
         out.feedback_items = _feedback_rows(session, where, offset=offset, limit=page_size)
     elif definition.kind == "care_staff":
         out.care_staff_items = _care_staff_rows(session, where, now=now, offset=offset, limit=page_size)
+    elif definition.kind == "care_call":
+        out.care_call_items = _care_call_rows(
+            session, actor, now=now, call_scopes=call_scopes, offset=offset, limit=page_size
+        )
     elif definition.kind == "credited_order":
         out.credited_order_items = _credited_order_rows(session, where, actor, offset=offset, limit=page_size)
     else:
@@ -541,11 +624,17 @@ def _vn_time(value: datetime) -> str:
 
 
 def export_csv(
-    session: Session, actor: Actor, card: str, *, now: datetime, show_prices: bool
+    session: Session,
+    actor: Actor,
+    card: str,
+    *,
+    now: datetime,
+    show_prices: bool,
+    call_scopes: tuple[str, ...],
 ) -> tuple[str, bytes]:
     """Toàn bộ dòng của thẻ (không phân trang) → (tên file, CSV UTF-8 BOM). Quá `EXPORT_MAX_ROWS` → 409."""
     definition, where = _resolve(session, card, actor, now)
-    if _total(session, definition, where) > EXPORT_MAX_ROWS:
+    if _total(session, actor, definition, where, now, call_scopes) > EXPORT_MAX_ROWS:
         raise AppError(
             409,
             "EXPORT_TOO_LARGE",
@@ -604,10 +693,24 @@ def export_csv(
             for f in _feedback_rows(session, where, offset=0, limit=None)
         )
     elif definition.kind == "care_staff":
-        table = [["Mã NV", "Họ tên", "Số KH đã chăm sóc", "Lần ghi gần nhất"]]
+        table = [["Mã NV", "Họ tên", "Số lượt gọi", "Lần ghi gần nhất"]]
         table.extend(
             [_cell(e.employee_code), _cell(e.full_name), e.care_count, _vn_time(e.last_recorded_at)]
             for e in _care_staff_rows(session, where, now=now, offset=0, limit=None)
+        )
+    elif definition.kind == "care_call":
+        table = [["Thời gian", "Nguồn", "Mã đơn", "Khách hàng", "SĐT", "Nội dung", "Người gọi"]]
+        table.extend(
+            [
+                _vn_time(c.called_at),
+                _CARE_CALL_SOURCE_LABELS[c.source],
+                _cell(c.order_code),
+                _cell(c.customer_name),
+                _cell(c.customer_phone),
+                _cell(c.summary),
+                _cell(c.caller_name),
+            ]
+            for c in _care_call_rows(session, actor, now=now, call_scopes=call_scopes, offset=0, limit=None)
         )
     elif definition.kind == "credited_order":
         table = [["Mã đơn", "Khách hàng", "Ngày tạo", "Trạng thái", "Doanh số ghi cho CSKH"]]

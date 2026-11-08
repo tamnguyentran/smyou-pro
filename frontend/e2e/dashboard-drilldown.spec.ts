@@ -188,24 +188,31 @@ test("AC-DASH-054 AC-DASH-056 AC-DASH-058 AC-DASH-059 @a11y @screenshot An (MANA
   await evidence(page, info, "dashboard-top-customers-feedback-summary.png");
 });
 
-test("AC-DASH-116 AC-DASH-120 AC-DASH-122 @a11y @screenshot Lan (CSKH) bấm 'KH đã gọi' + '2★' → popup phản hồi; mobile là sheet, không Excel", async ({
+test("AC-DASH-116 AC-DASH-137 AC-DASH-139 AC-DASH-120 AC-DASH-122 @a11y @screenshot Lan (CSKH) bấm 'Lượt gọi CSKH' (recheck + cuộc gọi) + '2★' → popup; mobile là sheet, không Excel", async ({
   page,
 }, info) => {
   await signIn(page, CUSTOMER_CARE, "/");
   await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();
   const desktop = (page.viewportSize()?.width ?? 0) >= 1024;
 
-  const tile = await openPopup(page, "Chăm sóc khách hàng (tháng này)", /KH đã gọi/);
-  const care = page.getByRole("dialog", { name: /^KH đã gọi \([1-9]\d*\)$/ });
+  // seed_e2e.py: Lan có đơn recheck (E2E-DH-M1503*) + 1 cuộc gọi trang "Chăm sóc KH" trong tháng.
+  const tile = await openPopup(page, "Chăm sóc khách hàng (tháng này)", /Lượt gọi CSKH/);
+  const care = page.getByRole("dialog", { name: /^Lượt gọi CSKH \([1-9]\d*\)$/ });
   await expect(care).toBeVisible();
   await expect(page).toHaveURL(/\/$/);
-  await expect(care.getByRole("link").first()).toHaveAttribute("href", /\/orders\//);
+  const recheck = care.getByRole("link", { name: /^Recheck / }).first();
+  await expect(recheck).toHaveAttribute("href", /\/orders\//);
+  await expect(care.getByText("Cuộc gọi CSKH").first()).toBeVisible();
+  await expect(care.getByText(/^Chào: /).first()).toBeVisible();
   if (desktop) {
-    await expect(care.getByRole("columnheader", { name: "Số sao" })).toBeVisible();
+    for (const header of ["Thời gian", "Nguồn", "Khách hàng", "SĐT", "Nội dung", "Người gọi"]) {
+      await expect(care.getByRole("columnheader", { name: header })).toBeVisible();
+    }
     await expect(care.getByRole("button", { name: /Xuất Excel/ })).toBeVisible();
   } else {
     await expect(care.getByTestId("sheet-panel")).toHaveClass(/bottom-0/);
     await expect(care.getByRole("button", { name: /Xuất Excel/ })).toHaveCount(0);
+    expect((await recheck.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
   }
   await noHorizontalScroll(page);
   await evidence(page, info, "dashboard-card-popup-care-customers.png");
@@ -308,7 +315,7 @@ function sameHeight(boxes: Box[], where: string) {
   expect(Math.max(...heights) - Math.min(...heights), where).toBeLessThanOrEqual(1);
 }
 
-test("AC-UI-071 AC-UI-072 @screenshot 'Chăm sóc khách hàng': thẻ 'KH đã gọi' trọn hàng 1 trên điện thoại, 3 thẻ 1 hàng cao đều trên tablet/desktop", async ({
+test("AC-UI-071 AC-UI-072 @screenshot 'Chăm sóc khách hàng': thẻ 'Lượt gọi CSKH' trọn hàng 1 trên điện thoại, 3 thẻ 1 hàng cao đều trên tablet/desktop", async ({
   page,
 }, info) => {
   const desktop = (page.viewportSize()?.width ?? 0) >= 1024;
@@ -322,7 +329,7 @@ test("AC-UI-071 AC-UI-072 @screenshot 'Chăm sóc khách hàng': thẻ 'KH đã 
     if (desktop) await page.setViewportSize({ width, height: 900 });
     const { tiles, boxes } = await tileBoxes(page, section, 3);
     const [first, second, third] = boxes as [Box, Box, Box];
-    await expect(tiles.first().locator("p").first()).toHaveText("KH đã gọi");
+    await expect(tiles.first().locator("p").first()).toHaveText("Lượt gọi CSKH");
     await expect(tiles.first()).toContainText(/Hôm nay: \d+/);
     if (desktop) {
       const where = `AC-UI-072 @${String(width)}px`;

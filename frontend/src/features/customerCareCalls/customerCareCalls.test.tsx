@@ -31,7 +31,7 @@ const LAN: Person = {
     "customer.manage": all,
     "employee.lookup": all,
     "customer_care.call.record": all,
-    "customer_care.call.read": ["own"],
+    "customer_care.call.read": all,
   },
 };
 const NAM: Person = {
@@ -473,7 +473,8 @@ describe("Trang Chăm sóc khách hàng (/customer-care)", () => {
       expect(last?.get("from")).toBe("2026-11-01");
       expect(last?.get("to")).toBe("2026-11-08");
       expect(last?.get("limit")).toBe("20");
-      expect(last?.has("caller_id")).toBe(false);
+      // M27-03: Lan mặc định "Chỉ cuộc gọi của tôi" → caller_id = Lan (AC-CUS-081 thay phần cũ).
+      expect(last?.get("caller_id")).toBe(lanId);
     });
   });
 

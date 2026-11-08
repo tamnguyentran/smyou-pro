@@ -14,6 +14,7 @@ type TaskRow = components["schemas"]["DashboardTaskRow"];
 type StaffRow = components["schemas"]["DashboardStaffRow"];
 type FeedbackRow = components["schemas"]["DashboardFeedbackRow"];
 type CareStaffRow = components["schemas"]["DashboardCareStaffRow"];
+type CareCallRow = components["schemas"]["DashboardCareCallRow"];
 
 const ORDER_SUMMARY: NonNullable<Dashboard["order_summary"]> = {
   scope: "own",
@@ -783,6 +784,43 @@ function careStaffRow(overrides: Partial<CareStaffRow> = {}): CareStaffRow {
   };
 }
 
+/** M27-02b: 1 dòng recheck đơn + 1 dòng cuộc gọi trang "Chăm sóc KH" (mới nhất trước). */
+function careCallItems(): CardItems {
+  const rows: CareCallRow[] = [
+    {
+      source: "CARE_CALL",
+      called_at: "2026-11-05T02:30:00Z",
+      customer_id: MINH_PHAT_ID,
+      customer_name: "Công ty TNHH Minh Phát",
+      customer_phone: "0912345678",
+      order_id: null,
+      order_code: null,
+      caller_name: "Vũ Thị Mai",
+      summary: "Chào: Gói bảo trì · Yêu cầu: Báo giá máy in",
+    },
+    {
+      source: "ORDER_RECHECK",
+      called_at: "2026-11-04T07:05:00Z",
+      customer_id: HOANG_GIA_ID,
+      customer_name: "Nhà sách Hoàng Gia",
+      customer_phone: null,
+      order_id: "b0000000-0000-4000-8000-000000000041",
+      order_code: "DH2611-0041",
+      caller_name: "Phan Thị Linh",
+      summary: "5★ — Lắp camera gọn gàng",
+    },
+  ];
+  return {
+    card: "care.customers",
+    label: "Lượt gọi CSKH",
+    kind: "care_call",
+    total: rows.length,
+    page: 1,
+    page_size: 20,
+    care_call_items: rows,
+  };
+}
+
 function headersOf(dialog: HTMLElement) {
   return within(dialog)
     .getAllByRole("columnheader")
@@ -794,42 +832,95 @@ const FEEDBACK = "Phản hồi – đánh giá từ khách hàng (tháng này)";
 const TOP = "Top 10 khách hàng (tháng này)";
 
 describe("Popup chi tiết khối CSKH / Phản hồi / Top 10 (M18-01c)", () => {
-  test("AC-DASH-116 Linh desktop bấm 'KH đã gọi' → popup phản hồi, Excel, link đơn, URL không đổi", async () => {
+  test("AC-DASH-136 Linh: thẻ 'Lượt gọi CSKH' = care_summary.month, 'Hôm nay: n'", async () => {
+    signedInAs("linh-id", LINH);
+    mockDashboard({ ...CUSTOMER_SECTIONS, care_summary: { today: 2, month: 5 } });
+    renderApp("/");
+
+    const section = (await screen.findByRole("heading", { name: CARE }, COLD_START)).closest(
+      "section",
+    ) as HTMLElement;
+    const tile = within(section).getByRole("button", { name: /Lượt gọi CSKH/ });
+    expect(within(tile).getByText("Lượt gọi CSKH")).toBeInTheDocument();
+    expect(within(tile).getByText("5")).toBeInTheDocument();
+    expect(within(tile).getByText("Hôm nay: 2")).toBeInTheDocument();
+    expect(within(section).queryByText("KH đã gọi")).not.toBeInTheDocument();
+  });
+
+  test("AC-DASH-116 AC-DASH-137 Linh desktop bấm 'Lượt gọi CSKH' → bảng gộp 2 nguồn, Excel, recheck link đơn, cuộc gọi không link", async () => {
     signedInAs("linh-id", LINH);
     mockDashboard(CUSTOMER_SECTIONS);
-    const calls = mockItems(
-      feedbackItems("care.customers", "KH đã gọi", [
-        feedbackRow(1),
-        feedbackRow(2, { csat_rating: 3, csat_comment: null, recorded_by_name: "Vũ Thị Mai" }),
-        feedbackRow(3, { csat_rating: 4 }),
-      ]),
-    );
+    const calls = mockItems(careCallItems());
     const router = renderApp("/");
 
-    await openTile(/KH đã gọi/, CARE);
+    await openTile(/Lượt gọi CSKH/, CARE);
 
-    const dialog = await screen.findByRole("dialog", { name: "KH đã gọi (3)" });
+    const dialog = await screen.findByRole("dialog", { name: "Lượt gọi CSKH (2)" });
     expect(router.state.location.pathname).toBe("/");
     expect(calls[0]?.card).toBe("care.customers");
     expect(headersOf(dialog)).toEqual([
-      "Mã đơn",
+      "Thời gian",
+      "Nguồn",
       "Khách hàng",
       "SĐT",
-      "Số sao",
-      "Nhận xét",
-      "Người ghi nhận",
-      "Thời điểm ghi nhận",
+      "Nội dung",
+      "Người gọi",
     ]);
     expect(within(dialog).getByRole("button", { name: /Xuất Excel/ })).toBeInTheDocument();
-    expect(within(dialog).getByRole("link", { name: "DH2610-0041" }).getAttribute("href")).toBe(
-      "/orders/b0000000-0000-4000-8000-000000000041",
-    );
-    expect(within(dialog).getByText("3★")).toBeInTheDocument();
+    const links = within(dialog).getAllByRole("link");
+    expect(links).toHaveLength(1);
+    expect(links[0]?.textContent).toBe("Recheck DH2611-0041");
+    expect(links[0]?.getAttribute("href")).toBe("/orders/b0000000-0000-4000-8000-000000000041");
+    expect(within(dialog).getByText("Cuộc gọi CSKH")).toBeInTheDocument();
+    expect(within(dialog).getByText("5★ — Lắp camera gọn gàng")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("Chào: Gói bảo trì · Yêu cầu: Báo giá máy in"),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText("Công ty TNHH Minh Phát")).toBeInTheDocument();
+    expect(within(dialog).getByText("0912 34 5678")).toBeInTheDocument();
     expect(within(dialog).getByText("Vũ Thị Mai")).toBeInTheDocument();
-    expect(within(dialog).getAllByText("28/10/2026 14:05")).toHaveLength(3);
+    expect(within(dialog).getByText("05/11/2026 09:30")).toBeInTheDocument();
+
+    const exported: string[] = [];
+    server.use(
+      http.get("/api/v1/dashboard/cards/:card/export", ({ params }) => {
+        exported.push(String(params.card));
+        return new HttpResponse("﻿Thời gian\n", {
+          headers: { "Content-Type": "text/csv; charset=utf-8" },
+        });
+      }),
+    );
+    await userEvent.setup().click(within(dialog).getByRole("button", { name: /Xuất Excel/ }));
+    await waitFor(() => {
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+    });
+    expect(exported).toEqual(["care.customers"]);
   });
 
-  test("AC-DASH-117 An desktop bấm 'NV đã gọi điện CSKH' → popup nhân viên CSKH, không link", async () => {
+  test("AC-DASH-137 Linh mobile bấm 'Lượt gọi CSKH' → sheet thẻ gộp 2 nguồn, link recheck ≥44px, không Excel", async () => {
+    mobile();
+    signedInAs("linh-id", LINH);
+    mockDashboard(CUSTOMER_SECTIONS);
+    mockItems(careCallItems());
+    renderApp("/");
+
+    await openTile(/Lượt gọi CSKH/, CARE);
+
+    const dialog = await screen.findByRole("dialog", { name: "Lượt gọi CSKH (2)" });
+    expect(within(dialog).queryByRole("table")).not.toBeInTheDocument();
+    expect(within(dialog).getAllByRole("listitem")).toHaveLength(2);
+    const link = within(dialog).getByRole("link", { name: "Recheck DH2611-0041" });
+    expect(link.getAttribute("href")).toBe("/orders/b0000000-0000-4000-8000-000000000041");
+    expect(link.className).toContain("min-h-11");
+    expect(within(dialog).getAllByRole("link")).toHaveLength(1);
+    expect(within(dialog).getByText("Cuộc gọi CSKH")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("Chào: Gói bảo trì · Yêu cầu: Báo giá máy in"),
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: /Xuất Excel/ })).not.toBeInTheDocument();
+  });
+
+  test("AC-DASH-117 AC-DASH-138 An desktop bấm 'NV đã gọi điện CSKH' → popup nhân viên CSKH, cột 'Số lượt gọi', không link", async () => {
     signedInAs("an-id", AN);
     mockDashboard(CUSTOMER_SECTIONS);
     const calls = mockItems({
@@ -855,7 +946,7 @@ describe("Popup chi tiết khối CSKH / Phản hồi / Top 10 (M18-01c)", () =>
 
     const dialog = await screen.findByRole("dialog", { name: "NV đã gọi điện CSKH (2)" });
     expect(calls[0]?.card).toBe("care.staff");
-    expect(headersOf(dialog)).toEqual(["Mã NV", "Họ tên", "Số KH đã chăm sóc", "Lần ghi gần nhất"]);
+    expect(headersOf(dialog)).toEqual(["Mã NV", "Họ tên", "Số lượt gọi", "Lần ghi gần nhất"]);
     expect(within(dialog).getByText("Phan Thị Linh")).toBeInTheDocument();
     expect(within(dialog).getByText("NV028")).toBeInTheDocument();
     expect(within(dialog).queryAllByRole("link")).toHaveLength(0);

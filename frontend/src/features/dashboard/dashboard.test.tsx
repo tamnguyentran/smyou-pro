@@ -491,7 +491,7 @@ describe("Tổng quan", () => {
 
     const heading = await screen.findByText("Chăm sóc khách hàng (tháng này)");
     const section = heading.closest("section") as HTMLElement;
-    expect(within(section).getByText("KH đã gọi")).toBeInTheDocument();
+    expect(within(section).getByText("Lượt gọi CSKH")).toBeInTheDocument();
     expect(within(section).getByText("8")).toBeInTheDocument();
     expect(within(section).getByText("Hôm nay: 2")).toBeInTheDocument();
     expect(within(section).getByText("NV đã gọi điện CSKH")).toBeInTheDocument();
@@ -521,7 +521,7 @@ describe("Tổng quan", () => {
     renderApp("/");
 
     await screen.findByText("Chăm sóc khách hàng (tháng này)");
-    expect(screen.getByText("KH đã gọi")).toBeInTheDocument();
+    expect(screen.getByText("Lượt gọi CSKH")).toBeInTheDocument();
     expect(screen.getByText("NV đã gọi điện CSKH")).toBeInTheDocument();
     expect(screen.getByText("Đơn hàng phải sửa")).toBeInTheDocument();
   });

@@ -1,5 +1,6 @@
 import { PhoneCall, Search } from "lucide-react";
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { MeError } from "../../../app/shell/MeError";
 import { usePageTitle } from "../../../app/shell/pageTitle";
 import { ForbiddenPage } from "../../../app/shell/StatusPage";
@@ -29,11 +30,15 @@ function Waiting() {
 }
 
 /** M27-01b: "Đơn hàng › Chăm sóc KH" — vào trang cần `customer_care.call.read`; nút ghi cuộc gọi cần
- * `customer_care.call.record`. Ô "Người gọi" chỉ khi đọc được cuộc gọi của mọi người (phạm vi `all`,
- * AC-CUS-076) — CSKH phạm vi `own` chỉ thấy cuộc gọi mình ghi nên lọc theo người gọi vô nghĩa. */
+ * `customer_care.call.record`.
+ * AC-CUS-081..084 (M27-03, Q197): "Chỉ cuộc gọi của tôi" — `?mine=1`/`?mine=0` thắng; không có thì
+ * mặc định bật cho CSKH không kiêm Quản lý (giống "Chỉ đơn của tôi"). Bật → lọc `caller_id` = mình và
+ * ẩn ô "Người gọi"; danh sách chỉ tải khi `me` có dữ liệu để request đầu tiên đã đúng `caller_id`. */
 export function CustomerCareCallsPage() {
   usePageTitle("Chăm sóc khách hàng");
   const me = useMe();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const mineParam = searchParams.get("mine");
   const [q, setQ] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -42,8 +47,14 @@ export function CustomerCareCallsPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const debouncedQ = useDebouncedValue(q, 300);
 
+  const roles = me.data?.roles ?? [];
+  const mine =
+    mineParam === "1" ||
+    (mineParam !== "0" && roles.includes("CUSTOMER_CARE") && !roles.includes("MANAGER"));
+  const callerId = mine ? (me.data?.employee.id ?? "") : caller.id;
+
   const calls = useCareCalls(
-    { q: debouncedQ, dateFrom, dateTo, callerId: caller.id, limit: PAGE_SIZE, offset },
+    { q: debouncedQ, dateFrom, dateTo, callerId, limit: PAGE_SIZE, offset },
     me.data !== undefined && "customer_care.call.read" in me.data.capabilities,
   );
 
@@ -58,10 +69,8 @@ export function CustomerCareCallsPage() {
   }
   if (!me.data) return <Waiting />;
   const capabilities = me.data.capabilities;
-  const readScopes = capabilities["customer_care.call.read"];
-  if (!readScopes) return <ForbiddenPage />;
+  if (!("customer_care.call.read" in capabilities)) return <ForbiddenPage />;
   const canRecord = "customer_care.call.record" in capabilities;
-  const readsAll = readScopes.includes("all");
 
   return (
     <div className="space-y-4">
@@ -116,7 +125,7 @@ export function CustomerCareCallsPage() {
             setOffset(0);
           }}
         />
-        {readsAll ? (
+        {!mine ? (
           <div className="col-span-2 lg:col-span-1">
             <EmployeeSearchField
               label="Người gọi"
@@ -129,6 +138,26 @@ export function CustomerCareCallsPage() {
             />
           </div>
         ) : null}
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-body">
+          <input
+            type="checkbox"
+            checked={mine}
+            onChange={(event) => {
+              const next = event.target.checked;
+              setSearchParams(
+                (params) => {
+                  params.set("mine", next ? "1" : "0");
+                  return params;
+                },
+                { replace: true },
+              );
+              setCaller({ id: "", name: "" });
+              setOffset(0);
+            }}
+            className="size-5 shrink-0 rounded border-line accent-[color:var(--color-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+          />
+          Chỉ cuộc gọi của tôi
+        </label>
       </div>
 
       {calls.isPending ? (

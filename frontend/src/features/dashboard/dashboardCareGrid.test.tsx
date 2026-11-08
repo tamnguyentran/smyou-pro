@@ -19,7 +19,7 @@ const DASHBOARD: Dashboard = {
 const ITEMS: Record<string, CardItems> = {
   "care.customers": {
     card: "care.customers",
-    label: "KH đã gọi",
+    label: "Lượt gọi CSKH",
     kind: "feedback",
     total: 8,
     page: 1,
@@ -61,7 +61,7 @@ function classes(el: Element) {
 }
 
 describe("Lưới mục 'Chăm sóc khách hàng' (M20-10)", () => {
-  test("AC-UI-070 An: lưới grid-cols-2 + md:grid-cols-3; thẻ 'KH đã gọi' col-span-2 + md:col-span-1; đủ 3 thẻ đúng thứ tự", async () => {
+  test("AC-UI-070 An: lưới grid-cols-2 + md:grid-cols-3; thẻ 'Lượt gọi CSKH' col-span-2 + md:col-span-1; đủ 3 thẻ đúng thứ tự", async () => {
     signedInAs("an-id", AN);
     mockApi();
     renderApp("/");
@@ -70,7 +70,7 @@ describe("Lưới mục 'Chăm sóc khách hàng' (M20-10)", () => {
     expect(classes(grid)).toEqual(expect.arrayContaining(["grid-cols-2", "md:grid-cols-3"]));
     const tiles = within(grid).getAllByRole("button");
     expect(tiles.map((tile) => tile.querySelector("p")?.textContent)).toEqual([
-      "KH đã gọi",
+      "Lượt gọi CSKH",
       "NV đã gọi điện CSKH",
       "Đơn hàng phải sửa",
     ]);
@@ -81,7 +81,7 @@ describe("Lưới mục 'Chăm sóc khách hàng' (M20-10)", () => {
     expect(within(tiles[0] as HTMLElement).getByText("Hôm nay: 2")).toBeInTheDocument();
   });
 
-  test("AC-UI-074 An bấm 'Đơn hàng phải sửa' rồi 'KH đã gọi' → popup như M18-01c; vùng bấm phủ cả chiều cao thẻ", async () => {
+  test("AC-UI-074 An bấm 'Đơn hàng phải sửa' rồi 'Lượt gọi CSKH' → popup như M18-01c; vùng bấm phủ cả chiều cao thẻ", async () => {
     signedInAs("an-id", AN);
     mockApi();
     renderApp("/");
@@ -99,22 +99,22 @@ describe("Lưới mục 'Chăm sóc khách hàng' (M20-10)", () => {
     await user.keyboard("{Escape}");
     expect(revision).not.toBeInTheDocument();
 
-    await user.click(within(grid).getByRole("button", { name: /KH đã gọi/ }));
-    expect(await screen.findByRole("dialog", { name: "KH đã gọi (8)" })).toBeInTheDocument();
+    await user.click(within(grid).getByRole("button", { name: /Lượt gọi CSKH/ }));
+    expect(await screen.findByRole("dialog", { name: "Lượt gọi CSKH (8)" })).toBeInTheDocument();
   });
 
-  test("AC-UI-075 An: không còn chuỗi 'Khách hàng đã chăm sóc'; thẻ + popup tên 'KH đã gọi'; tiêu đề mục giữ nguyên", async () => {
+  test("AC-UI-075 An: không còn chuỗi 'Khách hàng đã chăm sóc'; thẻ + popup tên 'Lượt gọi CSKH'; tiêu đề mục giữ nguyên", async () => {
     signedInAs("an-id", AN);
     mockApi();
     renderApp("/");
 
     const grid = await careGrid();
     expect(screen.getByRole("heading", { name: "Chăm sóc khách hàng (tháng này)" })).toBeVisible();
-    expect(within(grid).getByText("KH đã gọi")).toBeInTheDocument();
+    expect(within(grid).getByText("Lượt gọi CSKH")).toBeInTheDocument();
     expect(document.body.textContent).not.toContain("Khách hàng đã chăm sóc");
 
-    await userEvent.setup().click(within(grid).getByRole("button", { name: /KH đã gọi/ }));
-    expect(await screen.findByRole("dialog", { name: "KH đã gọi (8)" })).toBeInTheDocument();
+    await userEvent.setup().click(within(grid).getByRole("button", { name: /Lượt gọi CSKH/ }));
+    expect(await screen.findByRole("dialog", { name: "Lượt gọi CSKH (8)" })).toBeInTheDocument();
     expect(document.body.textContent).not.toContain("Khách hàng đã chăm sóc");
   });
 });

@@ -12,11 +12,12 @@ from datetime import date, datetime, time, timedelta
 from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import ColumnElement, func, select
+from sqlalchemy import ColumnElement, Subquery, Uuid, cast, func, literal, null, select, union_all
 from sqlalchemy.orm import Session
 
 from app.core.authz import Actor
 from app.modules.assignments.schemas import MyAssignmentOut
+from app.modules.customer_care_calls.models import CustomerCareCall
 from app.modules.customers.models import Customer
 from app.modules.dashboard.schemas import (
     CareSummaryOut,
@@ -304,16 +305,58 @@ def feedback_where(now: datetime, rating: int) -> list[ColumnElement[bool]]:
     return [*completed_this_month_where(now), Order.csat_rating == rating]
 
 
+def care_calls(start: datetime, end: datetime) -> Subquery:
+    """M27-02a (Q195): mọi lượt gọi CSKH có `called_at` trong [start, end) — recheck đơn (ghi phản
+    hồi, `orders.csat_recorded_*`) và cuộc gọi trang "Chăm sóc KH" (`customer_care_calls`).
+    Dùng chung cho số trên thẻ, "NV đã gọi điện CSKH" và popup để không bao giờ lệch."""
+    no_text = cast(null(), CustomerCareCall.offered.type)
+    recheck = select(
+        literal("ORDER_RECHECK").label("source"),
+        Order.id.label("id"),
+        Order.csat_recorded_at.label("called_at"),
+        Order.csat_recorded_by.label("caller_id"),
+        Order.customer_id.label("customer_id"),
+        Order.customer_name.label("customer_name"),
+        Order.customer_phone.label("customer_phone"),
+        Order.id.label("order_id"),
+        Order.code.label("order_code"),
+        Order.csat_rating.label("rating"),
+        Order.csat_comment.label("comment"),
+        no_text.label("offered"),
+        no_text.label("customer_request"),
+    ).where(Order.csat_recorded_at >= start, Order.csat_recorded_at < end)
+    call = (
+        select(
+            literal("CARE_CALL"),
+            CustomerCareCall.id,
+            CustomerCareCall.called_at,
+            CustomerCareCall.caller_id,
+            CustomerCareCall.customer_id,
+            Customer.name,
+            Customer.phone,
+            cast(null(), Uuid),
+            cast(null(), Order.code.type),
+            cast(null(), Order.csat_rating.type),
+            no_text,
+            CustomerCareCall.offered,
+            CustomerCareCall.customer_request,
+        )
+        .join(Customer, Customer.id == CustomerCareCall.customer_id)
+        .where(CustomerCareCall.called_at >= start, CustomerCareCall.called_at < end)
+    )
+    return union_all(recheck, call).subquery("care_calls")
+
+
+def care_calls_this_month(now: datetime) -> Subquery:
+    return care_calls(*_current_month_vn_bounds(now))
+
+
 def care_where(now: datetime) -> dict[str, list[ColumnElement[bool]]]:
-    """M16-03 (AC-DASH-060…062) — dùng chung cho số trên thẻ và popup M18-01c.
-    `customers`/`revision_orders` lọc `Order`; `staff` lọc `Employee`."""
+    """M16-03 (AC-DASH-061/062) — dùng chung cho số trên thẻ và popup M18-01c.
+    `staff` lọc `Employee` (có ≥1 lượt gọi 2 nguồn, M27-02a); `revision_orders` lọc `Order`."""
     month_start, month_end = _current_month_vn_bounds(now)
-    recorded_this_month = [Order.csat_recorded_at >= month_start, Order.csat_recorded_at < month_end]
     return {
-        "customers": recorded_this_month,
-        "staff": [
-            select(Order.id).where(Order.csat_recorded_by == Employee.id, *recorded_this_month).exists()
-        ],
+        "staff": [Employee.id.in_(select(care_calls_this_month(now).c.caller_id))],
         "revision_orders": [
             select(OrderRevision.id)
             .where(
@@ -397,22 +440,22 @@ def _feedback_summary(session: Session, *, now: datetime) -> dict[str, int]:
     return counts
 
 
+def count_care_calls(session: Session, calls: Subquery) -> int:
+    return session.scalar(select(func.count()).select_from(calls)) or 0
+
+
 def _care_summary(session: Session, *, now: datetime) -> CareSummaryOut:
-    """M16-03 (AC-DASH-060): proxy cho "KH đã chăm sóc" — số đơn có `csat_recorded_at` trong
-    ngày/tháng hiện tại (giờ VN), vì hệ thống chưa có log chăm sóc/gọi điện riêng (spec §8)."""
+    """M27-02a (AC-DASH-131): số lượt gọi CSKH (2 nguồn cộng lại) trong ngày/tháng hiện tại (giờ VN)."""
     today_vn = now.astimezone(VIETNAM).date()
-    today_start = _vn_day_start_utc(today_vn)
-    today_end = _vn_day_start_utc(today_vn + timedelta(days=1))
-    month_count = _count(session, Order, *care_where(now)["customers"])
-    today_count = session.scalar(
-        select(func.count()).where(Order.csat_recorded_at >= today_start, Order.csat_recorded_at < today_end)
+    today = care_calls(_vn_day_start_utc(today_vn), _vn_day_start_utc(today_vn + timedelta(days=1)))
+    return CareSummaryOut(
+        today=count_care_calls(session, today), month=count_care_calls(session, care_calls_this_month(now))
     )
-    return CareSummaryOut(today=today_count or 0, month=month_count)
 
 
 def _care_staff_count(session: Session, *, now: datetime) -> int:
-    """M16-03 (AC-DASH-061): proxy cho "NV đã gọi điện CSKH" — số NV duy nhất
-    (`csat_recorded_by`) đã ghi CSAT cho ít nhất 1 đơn trong tháng hiện tại (spec §8)."""
+    """M27-02a (AC-DASH-132): "NV đã gọi điện CSKH" — số NV khác nhau có ≥1 lượt gọi ở bất kỳ
+    nguồn nào trong tháng hiện tại."""
     return _count(session, Employee, *care_where(now)["staff"])
 
 
