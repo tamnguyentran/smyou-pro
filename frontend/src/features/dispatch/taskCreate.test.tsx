@@ -682,6 +682,59 @@ describe("M28-01 tiêu đề + mô tả đầu việc mặc định từ mô t�
   });
 });
 
+describe("M28-01 không ghi đè ô người dùng đã xoá trắng", () => {
+  test("AC-DSP-137 xoá trắng Mô tả, Tải lại khi mô tả đơn đã đổi → Mô tả vẫn trống, tiêu đề giữ giá trị đã gõ", async () => {
+    let version = 7;
+    let workDescription = "Lắp 4 camera kho";
+    signedInAs(tuanId, TUAN, { pending_dispatch_count: 1 });
+    server.use(
+      http.get("/api/v1/orders", () =>
+        HttpResponse.json({ items: [DON_I], total: 1, limit: 20, offset: 0 }),
+      ),
+      http.get("/api/v1/orders/:id", () =>
+        HttpResponse.json(detail({ version, work_description: workDescription })),
+      ),
+      http.get("/api/v1/employees", () =>
+        HttpResponse.json({ items: [KHOA, MINH], total: 2, limit: 100, offset: 0 }),
+      ),
+      http.get("/api/v1/services/:id", ({ params }) =>
+        HttpResponse.json(service(String(params.id), "DV", "2.00")),
+      ),
+      http.post("/api/v1/orders/:id/tasks", () =>
+        HttpResponse.json(
+          {
+            status: 409,
+            code: "STALE_VERSION",
+            detail: "Thông tin đã bị người khác thay đổi. Vui lòng tải lại.",
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    const { user, dialog } = await openPanel();
+    const title = within(dialog).getByLabelText("Tiêu đề đầu việc");
+    const description = within(dialog).getByLabelText("Mô tả");
+    await waitFor(() => {
+      expect(description).toHaveValue("Lắp 4 camera kho");
+    });
+    await user.clear(title);
+    await user.type(title, "Khảo sát");
+    await user.clear(description);
+    await user.click(within(dialog).getByRole("checkbox", { name: /Trần Minh Khoa/ }));
+
+    version = 8;
+    workDescription = "Lắp 6 camera kho";
+    await user.click(within(dialog).getByRole("button", { name: "Tạo đầu việc" }));
+    await user.click(await within(dialog).findByRole("button", { name: "Tải lại" }));
+    await waitFor(() => {
+      expect(within(dialog).queryByRole("button", { name: "Tải lại" })).not.toBeInTheDocument();
+    });
+
+    expect(title).toHaveValue("Khảo sát");
+    expect(description).toHaveValue("");
+  });
+});
+
 describe("M28-02 hạn hoàn thành mặc định theo giờ làm việc", () => {
   // Thứ 4 2026-11-11 10:00 giờ VN.
   const WED_10AM = new Date("2026-11-11T03:00:00Z");

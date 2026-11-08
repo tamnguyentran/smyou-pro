@@ -67,9 +67,12 @@ export function TaskCreateSheet({
   const [showReload, setShowReload] = useState(false);
   const [hoursTouched, setHoursTouched] = useState(false);
   const [dueTouched, setDueTouched] = useState(false);
+  // Không dùng `isDirty`: RHF coi ô đã bị xoá trắng (= giá trị mặc định "") là chưa sửa.
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [descriptionTouched, setDescriptionTouched] = useState(false);
   const ready = detail.data !== undefined && !technicians.isPending;
 
-  const { register, handleSubmit, formState, setValue, setFocus, control, getFieldState } =
+  const { register, handleSubmit, formState, setValue, setFocus, control } =
     useForm<TaskCreateFormValues>({
       resolver: zodResolver(taskCreateSchema) as Resolver<TaskCreateFormValues>,
       defaultValues: {
@@ -91,11 +94,11 @@ export function TaskCreateSheet({
   // người dùng đã sửa thì không ghi đè (kể cả khi đơn nạp lại).
   const workDescription = detail.data?.work_description ?? "";
   useEffect(() => {
-    if (!getFieldState("title").isDirty) {
-      setValue("title", titleFromWorkDescription(workDescription));
-    }
-    if (!getFieldState("description").isDirty) setValue("description", workDescription);
-  }, [workDescription, getFieldState, setValue]);
+    if (!titleTouched) setValue("title", titleFromWorkDescription(workDescription));
+  }, [workDescription, titleTouched, setValue]);
+  useEffect(() => {
+    if (!descriptionTouched) setValue("description", workDescription);
+  }, [workDescription, descriptionTouched, setValue]);
 
   // M28-02 (Q194): hạn mặc định = bây giờ + số giờ ước tính trong giờ làm việc; tính lại mỗi khi số
   // giờ đổi (kể cả gợi ý AC-DSP-020), trừ khi người dùng đã tự sửa hạn.
@@ -249,9 +252,20 @@ export function TaskCreateSheet({
             label="Tiêu đề đầu việc"
             placeholder="Vd: Lắp đặt 4 camera tầng 1"
             error={formState.errors.title?.message}
-            {...register("title")}
+            {...register("title", {
+              onChange: () => {
+                setTitleTouched(true);
+              },
+            })}
           />
-          <Textarea label="Mô tả" {...register("description")} />
+          <Textarea
+            label="Mô tả"
+            {...register("description", {
+              onChange: () => {
+                setDescriptionTouched(true);
+              },
+            })}
+          />
           <TextField
             label="Số giờ ước tính"
             inputMode="decimal"
