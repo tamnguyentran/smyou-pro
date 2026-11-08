@@ -1166,6 +1166,26 @@ describe("AC-EMP-126 nguyên tắc người tạo đơn (UAT-02)", () => {
   });
 });
 
+describe("AC-EMP-127 quyền cuộc gọi chăm sóc KH (M27-01a)", () => {
+  test("AC-EMP-127 bảng quyền có 2 quyền cuộc gọi CSKH đúng phạm vi + câu nguyên tắc", async () => {
+    mockViewport(true);
+    const region = await openGuide();
+    const table = within(region).getByRole("table");
+    const cellsOf = (name: RegExp) =>
+      within(within(table).getByRole("row", { name }))
+        .getAllByRole("cell")
+        .map((td) => td.textContent);
+    // Columns: Quản lý chung, Kinh doanh, CSKH, QLKT, Kỹ thuật. Quản lý chung luôn kèm CSKH → cũng ghi được.
+    expect(cellsOf(/^Ghi nhận cuộc gọi chăm sóc KH/)).toEqual(["Tất cả", "—", "Tất cả", "—", "—"]);
+    expect(cellsOf(/^Xem cuộc gọi chăm sóc KH/)).toEqual(["Tất cả", "—", "Của mình", "—", "—"]);
+    expect(
+      within(region).getByText(
+        "Nhân viên CSKH ghi nhận cuộc gọi chăm sóc khách hàng; yêu cầu của khách trở thành tiềm năng sử dụng dịch vụ của khách.",
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("AC-EMP-088 màn hình được vào theo menu.json", () => {
   test("AC-EMP-088 KTV: Tổng quan, Việc của tôi, Báo cáo › Báo cáo KPI; Sale có Khách hàng, không có Danh mục", async () => {
     mockViewport(false);

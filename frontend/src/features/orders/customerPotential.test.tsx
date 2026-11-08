@@ -90,6 +90,7 @@ function note(overrides: Partial<PotentialNote> = {}): PotentialNote {
     customer_id: minhPhatId,
     order_id: orderId,
     order_code: "DH2611-0005",
+    source: "ORDER",
     note: "Muốn lắp thêm 4 camera kho",
     author_id: khangId,
     author_name: "Trần Minh Khang",
@@ -264,6 +265,33 @@ describe("Tiềm năng sử dụng dịch vụ trên chi tiết đơn", () => {
     expect(oldest).toHaveTextContent("Lê Văn Đức");
     expect(oldest).toHaveTextContent("DH2610-0002");
     expect(oldest).toHaveTextContent("01/10/2026 16:15");
+  });
+
+  test("AC-CUS-078 ghi chú từ cuộc gọi CSKH hiện 'Cuộc gọi CSKH' thay cho mã đơn", async () => {
+    signedInAs(khangId, KHANG);
+    mockOrder([
+      note({
+        id: "d0000000-0000-4000-8000-000000000003",
+        order_id: null,
+        order_code: null,
+        source: "CARE_CALL",
+        note: "Báo giá 6 camera",
+        author_name: "Nguyễn Thị Lan",
+        created_at: "2026-11-06T03:00:00Z",
+      }),
+      note({ created_at: "2026-11-05T02:30:00Z" }),
+    ]);
+    const block = await openOrder();
+    const user = userEvent.setup();
+
+    await user.click(await within(block).findByRole("button", { name: "Xem lịch sử (2)" }));
+    const [call, fromOrder] = within(
+      within(block).getByRole("list", { name: "Lịch sử tiềm năng" }),
+    ).getAllByRole("listitem") as [HTMLElement, HTMLElement];
+    expect(call).toHaveTextContent("Báo giá 6 camera");
+    expect(call).toHaveTextContent("Nguyễn Thị Lan · Cuộc gọi CSKH · 06/11/2026 10:00");
+    expect(fromOrder).toHaveTextContent("DH2611-0005");
+    expect(fromOrder).not.toHaveTextContent("Cuộc gọi CSKH");
   });
 
   test("AC-CUS-057 Hoa (SALE) thấy khối tiềm năng chỉ đọc, không có nút 'Ghi tiềm năng'", async () => {

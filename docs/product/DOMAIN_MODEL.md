@@ -285,12 +285,24 @@ Mỗi tháng là một dòng riêng → sửa tháng này không đổi tháng k
 | Trường | Kiểu | Ghi chú |
 |---|---|---|
 | customer_id | uuid FK → Customer, bắt buộc | lấy từ `orders.customer_id` lúc ghi (đơn không có khách trong danh bạ → 409 `order_has_customer`) |
-| order_id | uuid FK → Order, bắt buộc | đơn KTV đang làm khi ghi |
-| author_id | uuid FK → Employee, bắt buộc | KTV ghi |
-| note | text, 1–1000 ký tự (trim, CHECK) | ghi chú tự do |
+| order_id | uuid FK → Order, null được (M27-01a) | đơn KTV đang làm khi ghi |
+| care_call_id | uuid FK → CustomerCareCall, null được (M27-01a) | ghi chú sinh từ yêu cầu trong cuộc gọi CSKH; CHECK `num_nonnulls(order_id, care_call_id) = 1` |
+| author_id | uuid FK → Employee, bắt buộc | KTV ghi / CSKH gọi |
+| note | text, CHECK 1–2000 ký tự (M27-01a; KTV nhập ≤ 1000, yêu cầu cuộc gọi ≤ 2000) | ghi chú tự do |
 | created_at | timestamptz | index `(customer_id, created_at DESC)` |
 
-Không sửa/xoá — ghi bản mới thay thế; bản mới nhất là "tiềm năng hiện tại" của **khách** (Q156), dù ghi ở đơn nào. Ghi: `customer.potential.record` (KTV có phân công ACCEPTED/IN_PROGRESS/DONE trên đơn — PENDING/REJECTED → 404; đơn COMPLETED/CANCELLED → 409 `order_open_for_potential_note`, Q154). Đọc lịch sử: ai đọc được đơn (`order.read`). Audit `entity_type=CUSTOMER`, `action=potential_note` (`{order_id, order_code, note_id}`). Báo cáo Doanh thu theo KH thêm `potential_note`/`potential_noted_at` và `last_purchase_date` = ngày tạo (giờ VN) đơn gần nhất khác DRAFT/CANCELLED trên toàn lịch sử khách (Q155).
+Không sửa/xoá — ghi bản mới thay thế; bản mới nhất là "tiềm năng hiện tại" của **khách** (Q156), dù ghi ở đơn nào hay từ cuộc gọi CSKH (Q192). API trả `source = ORDER | CARE_CALL`. Ghi: `customer.potential.record` (KTV có phân công ACCEPTED/IN_PROGRESS/DONE trên đơn — PENDING/REJECTED → 404; đơn COMPLETED/CANCELLED → 409 `order_open_for_potential_note`, Q154). Đọc lịch sử: ai đọc được đơn (`order.read`). Audit `entity_type=CUSTOMER`, `action=potential_note` (`{order_id, order_code, note_id}`). Báo cáo Doanh thu theo KH thêm `potential_note`/`potential_noted_at` và `last_purchase_date` = ngày tạo (giờ VN) đơn gần nhất khác DRAFT/CANCELLED trên toàn lịch sử khách (Q155).
+
+## 19. CustomerCareCall (Cuộc gọi chăm sóc KH) — `customer_care_calls` (M27-01a, append-only)
+| Trường | Kiểu | Ghi chú |
+|---|---|---|
+| customer_id | uuid FK → Customer, bắt buộc | mọi khách trong danh bạ |
+| caller_id | uuid FK → Employee, bắt buộc | người ghi (CSKH) |
+| offered | text, 1–2000 ký tự (trim, CHECK) | Chào sản phẩm/dịch vụ gì — gõ tự do (Q190) |
+| customer_request | text null, ≤ 2000 ký tự | Ghi nhận yêu cầu của KH; có → cùng giao dịch thêm 1 CustomerPotentialNote (`care_call_id`) |
+| called_at | timestamptz, mặc định now() | thời điểm lưu; index `(caller_id, called_at DESC)`, `(customer_id, called_at DESC)` |
+
+Không sửa/xoá. Ghi: `customer_care.call.record` (CSKH, Q189). Đọc: `customer_care.call.read` (Quản lý tất cả, CSKH cuộc gọi của mình — Q191). Audit `entity_type=CUSTOMER`, `action=care_call` (`{care_call_id}`).
 
 ## Quy tắc tính tiền (có test property-based)
 Giá và VAT **tách riêng**: đơn giá luôn lưu chưa VAT; % VAT gắn với từng sản phẩm/dịch vụ và được snapshot vào từng dòng, nên một đơn có thể có nhiều mức VAT.

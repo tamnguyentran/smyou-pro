@@ -1,5 +1,5 @@
 import { Search, UserPlus } from "lucide-react";
-import { useState } from "react";
+import { useState, type Ref } from "react";
 import type { FieldErrors, UseFormRegister, UseFormSetValue, UseFormWatch } from "react-hook-form";
 import { Button } from "../../../components/ui/Button";
 import { TextField } from "../../../components/ui/TextField";
@@ -29,24 +29,6 @@ export function CustomerPicker({
   const customerId = watch("customer_id");
   const customerName = watch("customer_name");
   const customerPhone = watch("customer_phone");
-  const [query, setQuery] = useState("");
-  const [createOpen, setCreateOpen] = useState(false);
-  const canCreateCustomer = "customer.manage" in (useMe().data?.capabilities ?? {});
-  const [selected, setSelected] = useState<Pick<Customer, "name" | "phone" | "address"> | null>(
-    null,
-  );
-  // Reflect an already-linked customer (loaded order, or a background refetch) into the picker's own
-  // UI state — done during render, like OrderLinesSection's serverSnapshot, so a reopened draft never
-  // shows a blank search box for a customer it actually has.
-  const [syncedCustomerId, setSyncedCustomerId] = useState<string | undefined>(undefined);
-  if (mode === "search" && customerId && customerId !== syncedCustomerId && selected === null) {
-    setSyncedCustomerId(customerId);
-    setSelected({ name: customerName ?? "", phone: customerPhone ?? "", address: null });
-    setQuery(customerName ?? "");
-  }
-  const debouncedQuery = useDebouncedValue(query, 300);
-  const searching = mode === "search" && debouncedQuery.trim() !== "" && selected === null;
-  const results = useCustomers({ q: debouncedQuery, type: "", limit: 8, offset: 0 }, searching);
 
   if (mode === "walkin") {
     return (
@@ -83,11 +65,69 @@ export function CustomerPicker({
   }
 
   return (
+    <CustomerSearchPicker
+      customerId={customerId}
+      customerName={customerName}
+      customerPhone={customerPhone}
+      onChange={(customer, created) => {
+        setValue("customer_id", customer?.id ?? "", created ? { shouldDirty: true } : undefined);
+      }}
+    />
+  );
+}
+
+/** Ô tìm khách hàng + "Thêm khách hàng" của đơn hàng, theo giá trị (không gắn form đơn) — M27-01b
+ * dùng lại ở sheet "Ghi nhận cuộc gọi". `onChange(null)` khi người dùng gõ lại ô tìm. */
+export function CustomerSearchPicker({
+  label = "Tìm khách hàng",
+  customerId,
+  customerName,
+  customerPhone,
+  onChange,
+  error,
+  inputRef,
+}: {
+  label?: string;
+  customerId: string | undefined;
+  customerName: string | undefined;
+  customerPhone: string | undefined;
+  onChange: (customer: Customer | null, created?: boolean) => void;
+  error?: string | undefined;
+  inputRef?: Ref<HTMLInputElement>;
+}) {
+  const [query, setQuery] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const canCreateCustomer = "customer.manage" in (useMe().data?.capabilities ?? {});
+  const [selected, setSelected] = useState<Pick<Customer, "name" | "phone" | "address"> | null>(
+    null,
+  );
+  // Reflect an already-linked customer (loaded order, or a background refetch) into the picker's own
+  // UI state — done during render, like OrderLinesSection's serverSnapshot, so a reopened draft never
+  // shows a blank search box for a customer it actually has.
+  const [syncedCustomerId, setSyncedCustomerId] = useState<string | undefined>(undefined);
+  if (customerId && customerId !== syncedCustomerId && selected === null) {
+    setSyncedCustomerId(customerId);
+    setSelected({ name: customerName ?? "", phone: customerPhone ?? "", address: null });
+    setQuery(customerName ?? "");
+  }
+  const debouncedQuery = useDebouncedValue(query, 300);
+  const searching = debouncedQuery.trim() !== "" && selected === null;
+  const results = useCustomers({ q: debouncedQuery, type: "", limit: 8, offset: 0 }, searching);
+
+  function pick(candidate: Customer) {
+    setSelected(candidate);
+    onChange(candidate);
+    setQuery(candidate.name);
+  }
+
+  return (
     <div className="space-y-2">
       <div className="flex flex-col gap-3 @lg:flex-row @lg:items-end">
         <div className="relative flex-1">
           <TextField
-            label="Tìm khách hàng"
+            ref={inputRef}
+            label={label}
+            error={error}
             placeholder="Tên, số điện thoại, mã số thuế…"
             role="combobox"
             aria-expanded={searching}
@@ -96,7 +136,7 @@ export function CustomerPicker({
             value={selected ? selected.name : query}
             onChange={(event) => {
               setSelected(null);
-              setValue("customer_id", "");
+              onChange(null);
               setQuery(event.target.value);
             }}
             trailing={
@@ -133,7 +173,7 @@ export function CustomerPicker({
           }}
           onCreated={(created) => {
             setSelected(created);
-            setValue("customer_id", created.id, { shouldDirty: true });
+            onChange(created, true);
             setQuery(created.name);
           }}
         />
@@ -163,15 +203,11 @@ export function CustomerPicker({
               aria-selected={false}
               tabIndex={0}
               onClick={() => {
-                setSelected(candidate);
-                setValue("customer_id", candidate.id);
-                setQuery(candidate.name);
+                pick(candidate);
               }}
               onKeyDown={(event) => {
                 if (event.key !== "Enter") return;
-                setSelected(candidate);
-                setValue("customer_id", candidate.id);
-                setQuery(candidate.name);
+                pick(candidate);
               }}
               className="flex cursor-pointer flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
             >

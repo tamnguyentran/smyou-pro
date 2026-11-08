@@ -97,5 +97,5 @@ def test_every_capability_for_every_role_and_pair(
         checked += 1
     # M17-04: + order.print; M19-01a: + catalog.read_cost, order.edit_lines_on_site
     # M21-01a: + kpi_target.manage; M21-02a: + report.kpi_sales.read; M21-05a: + customer.potential.record
-    # M23a: + report.business_charts.read
-    assert checked == len(PERMISSIONS.capabilities) == 42
+    # M23a: + report.business_charts.read; M27-01a: + customer_care.call.record, customer_care.call.read
+    assert checked == len(PERMISSIONS.capabilities) == 44

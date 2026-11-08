@@ -150,6 +150,8 @@ describe("Đánh bóng UI điều phối (M4-01e)", () => {
   test("AC-DSP-039 Thử lại gọi lại đúng 1 lần, hiện danh sách, giữ nguyên trường đã nhập", async () => {
     const { user, dialog, calls } = await openPanel(["fail", [HUNG, BAO]]);
     await within(dialog).findByRole("alert");
+    // M28-01: ô đã điền sẵn từ mô tả công việc — xoá trước khi gõ.
+    await user.clear(within(dialog).getByLabelText("Tiêu đề đầu việc"));
     await user.type(within(dialog).getByLabelText("Tiêu đề đầu việc"), "Lắp camera cổng sau");
     const before = calls();
 

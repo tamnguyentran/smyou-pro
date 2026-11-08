@@ -20,8 +20,8 @@ export const TECH_LEAD_GUIDE: Guide = {
       title: "Tạo đầu việc",
       steps: [
         "Trong đơn, mở tab Đầu việc, bấm Tạo đầu việc.",
-        "Nhập Tiêu đề đầu việc và Mô tả.",
-        "Nhập Số giờ ước tính (0,25 – 200 giờ, bước 0,25) và chọn Hạn hoàn thành (không ở quá khứ), Mức ưu tiên.",
+        "Kiểm tra Tiêu đề đầu việc (điền sẵn 100 ký tự đầu của Mô tả công việc) và Mô tả (chép đầy đủ Mô tả công việc), sửa nếu cần.",
+        "Nhập Số giờ ước tính (0,25 – 200 giờ, bước 0,25) — Hạn hoàn thành tự tính = bây giờ + số giờ, chỉ trong giờ làm 8h–12h, 13h–17h, Thứ 2 – Thứ 7 (sửa tay nếu cần, không ở quá khứ); chọn Mức ưu tiên.",
         "Ở Giao cho kỹ thuật viên, chọn một hoặc nhiều kỹ thuật viên.",
         "Bấm Tạo đầu việc — kỹ thuật viên được thông báo.",
       ],

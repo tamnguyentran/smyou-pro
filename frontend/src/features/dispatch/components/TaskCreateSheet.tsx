@@ -18,12 +18,14 @@ import { PRIORITY_LABELS, PRIORITY_ORDER } from "../../orders/schemas";
 import { DISPATCH_QUEUE_KEY, useActiveTechnicians, useCreateTask, useSuggestedHours } from "../api";
 import {
   hoursLabel,
+  hoursValid,
   parseHours,
   priorityOrDefault,
   taskCreateSchema,
   toOffsetIso,
   type TaskCreateFormValues,
 } from "../schemas";
+import { defaultDueAt } from "../dueDefault";
 import { AssigneePicker } from "./AssigneePicker";
 
 const GENERIC_ERROR = "Không tạo được đầu việc. Vui lòng thử lại.";
@@ -41,6 +43,13 @@ export interface TaskCreateOrder {
  * khi đã có chi tiết đơn + danh sách KTV: `version` để gửi lệnh và người được giao đều bắt buộc. */
 const FORM_ID = "task-create-form";
 
+const DEFAULT_TITLE_LENGTH = 100;
+
+/** M28-01 (Q193): ô tiêu đề 1 dòng — gộp xuống dòng/khoảng trắng liên tiếp rồi lấy 100 ký tự đầu. */
+function titleFromWorkDescription(description: string): string {
+  return description.replace(/\s+/g, " ").trim().slice(0, DEFAULT_TITLE_LENGTH);
+}
+
 export function TaskCreateSheet({
   order,
   onClose,
@@ -57,6 +66,10 @@ export function TaskCreateSheet({
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [showReload, setShowReload] = useState(false);
   const [hoursTouched, setHoursTouched] = useState(false);
+  const [dueTouched, setDueTouched] = useState(false);
+  // Không dùng `isDirty`: RHF coi ô đã bị xoá trắng (= giá trị mặc định "") là chưa sửa.
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [descriptionTouched, setDescriptionTouched] = useState(false);
   const ready = detail.data !== undefined && !technicians.isPending;
 
   const { register, handleSubmit, formState, setValue, setFocus, control } =
@@ -76,6 +89,24 @@ export function TaskCreateSheet({
   useEffect(() => {
     if (ready) setFocus("title");
   }, [ready, setFocus]);
+
+  // M28-01 (Q193): tiêu đề = 100 ký tự đầu, Mô tả = chép đầy đủ "Mô tả công việc" của đơn — ô nào
+  // người dùng đã sửa thì không ghi đè (kể cả khi đơn nạp lại).
+  const workDescription = detail.data?.work_description ?? "";
+  useEffect(() => {
+    if (!titleTouched) setValue("title", titleFromWorkDescription(workDescription));
+  }, [workDescription, titleTouched, setValue]);
+  useEffect(() => {
+    if (!descriptionTouched) setValue("description", workDescription);
+  }, [workDescription, descriptionTouched, setValue]);
+
+  // M28-02 (Q194): hạn mặc định = bây giờ + số giờ ước tính trong giờ làm việc; tính lại mỗi khi số
+  // giờ đổi (kể cả gợi ý AC-DSP-020), trừ khi người dùng đã tự sửa hạn.
+  const hoursValue = useWatch({ control, name: "estimated_hours" });
+  useEffect(() => {
+    if (dueTouched || !hoursValid(hoursValue)) return;
+    setValue("due_at", defaultDueAt(new Date(), parseHours(hoursValue)));
+  }, [hoursValue, dueTouched, setValue]);
 
   // AC-DSP-020: gợi ý chỉ điền lần đầu — khi Quản lý kỹ thuật đã sửa thì không ghi đè.
   useEffect(() => {
@@ -221,9 +252,20 @@ export function TaskCreateSheet({
             label="Tiêu đề đầu việc"
             placeholder="Vd: Lắp đặt 4 camera tầng 1"
             error={formState.errors.title?.message}
-            {...register("title")}
+            {...register("title", {
+              onChange: () => {
+                setTitleTouched(true);
+              },
+            })}
           />
-          <Textarea label="Mô tả" {...register("description")} />
+          <Textarea
+            label="Mô tả"
+            {...register("description", {
+              onChange: () => {
+                setDescriptionTouched(true);
+              },
+            })}
+          />
           <TextField
             label="Số giờ ước tính"
             inputMode="decimal"
@@ -249,7 +291,10 @@ export function TaskCreateSheet({
                 error={formState.errors.due_at?.message}
                 name={field.name}
                 value={field.value}
-                onChange={field.onChange}
+                onChange={(value) => {
+                  setDueTouched(true);
+                  field.onChange(value);
+                }}
               />
             )}
           />

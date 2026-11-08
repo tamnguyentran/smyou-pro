@@ -50,6 +50,7 @@ export const ACTION_LABELS: Record<string, string> = {
   "kpi_target.delete": "Xoá chỉ tiêu KPI",
   "kpi_target.copy": "Copy chỉ tiêu KPI",
   potential_note: "Ghi tiềm năng KH",
+  care_call: "Ghi cuộc gọi CSKH",
 };
 
 export const ENTITY_TYPE_LABELS: Record<string, string> = {

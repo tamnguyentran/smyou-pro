@@ -4,6 +4,14 @@ Trạng thái: `[ ]` chưa làm · `[S]` spec đang viết · `[A]` spec Approve
 Mỗi item là **lát cắt dọc** (DB → API → UI → test) giao được trong 1 phiên. Làm theo thứ tự; item sau phụ thuộc item trước.
 Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatch), `ASG`, `CMP` (completion/revision), `NTF`, `DASH` (dashboard), `KPI`, `UI` (style thuần, xuyên module, không đổi API/quyền).
 
+## M28 — Giao việc: giá trị mặc định khi tạo đầu việc (2026-11-08)
+- `[~]` M28-01 — "Tiêu đề đầu việc" điền sẵn 100 ký tự đầu, "Mô tả" chép đầy đủ "Mô tả công việc" của đơn, mọi lần tạo đầu việc. `docs/specs/M28-01-task-title-from-work-description.md` (4 AC; Q193).
+- `[~]` M28-02 — "Hạn hoàn thành" mặc định = bây giờ + giờ ước tính, trong giờ làm 8–12/13–17, Thứ 2–Thứ 7, làm tròn lên 15 phút. `docs/specs/M28-02-task-due-default-working-hours.md` (8 AC; Q194).
+
+## M27 — Chăm sóc khách hàng: ghi nhận cuộc gọi (2026-11-08)
+- `[~]` M27-01a — API cuộc gọi CSKH (`customer_care_calls`), yêu cầu của khách → tiềm năng dùng chung; 2 capability mới. `docs/specs/M27-01a-customer-care-calls-api.md` (10 AC; Q189–Q192).
+- `[~]` M27-01b — UI trang "Chăm sóc KH" (menu Đơn hàng, sau Khách hàng), sheet ghi cuộc gọi + thêm khách mới, danh sách + lọc. `docs/specs/M27-01b-customer-care-calls-ui.md` (10 AC). Phụ thuộc M27-01a.
+
 ## M26 — Hướng dẫn sử dụng theo vai trò (2026-11-06)
 - `[x]` M26-01a — Nút ? trên đầu trang, trang `/huong-dan` (tab theo vai trò; Quản lý chung xem cả 5 bản), phần chung + bản Nhân viên kỹ thuật + Nhân viên kinh doanh. `docs/specs/M26-01-role-user-guide.md` (Approved).
 - `[x]` M26-01b — Bản Chăm sóc khách hàng, Quản lý kỹ thuật, Quản lý chung. Phụ thuộc M26-01a.

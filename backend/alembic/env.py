@@ -10,6 +10,7 @@ import app.core.sequences  # registers tables on Base.metadata
 import app.modules.audit.models  # registers tables on Base.metadata
 import app.modules.catalog.models  # registers tables on Base.metadata
 import app.modules.company.models  # registers tables on Base.metadata
+import app.modules.customer_care_calls.models  # registers tables on Base.metadata
 import app.modules.customer_gifts.models  # registers tables on Base.metadata
 import app.modules.customer_potential.models  # registers tables on Base.metadata
 import app.modules.customers.models  # registers tables on Base.metadata

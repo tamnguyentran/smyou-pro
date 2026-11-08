@@ -48,20 +48,22 @@ def _guard_failed(guard: str) -> AppError:
 
 
 def _notes_query(customer_id: uuid.UUID) -> Select[tuple[CustomerPotentialNote, str, str]]:
+    """M27-01a: notes from a customer-care call have no order — outer join."""
     return (
         select(CustomerPotentialNote, Order.code, Employee.full_name)
-        .join(Order, Order.id == CustomerPotentialNote.order_id)
+        .outerjoin(Order, Order.id == CustomerPotentialNote.order_id)
         .join(Employee, Employee.id == CustomerPotentialNote.author_id)
         .where(CustomerPotentialNote.customer_id == customer_id)
     )
 
 
-def _out(note: CustomerPotentialNote, order_code: str, author_name: str) -> CustomerPotentialNoteOut:
+def _out(note: CustomerPotentialNote, order_code: str | None, author_name: str) -> CustomerPotentialNoteOut:
     return CustomerPotentialNoteOut(
         id=note.id,
         customer_id=note.customer_id,
         order_id=note.order_id,
         order_code=order_code,
+        source="ORDER" if note.order_id is not None else "CARE_CALL",
         note=note.note,
         author_id=note.author_id,
         author_name=author_name,

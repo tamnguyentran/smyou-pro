@@ -32,6 +32,8 @@
 | Sửa dòng hàng/giá sau khi gửi (tới trước Hoàn tất/Huỷ, có audit) | ✅ | đơn của mình (Q09) | — | — |
 | Thêm dòng hàng tại hiện trường; sửa/xoá dòng mình thêm (`order.edit_lines_on_site`, M19-01a: đơn Đang thực hiện/Chỉnh sửa, phân công đã nhận/đang làm; doanh số luôn ghi cho chính KTV) | — | — | — | đơn được giao |
 | Ghi "Tiềm năng sử dụng dịch vụ" của khách chủ đơn (`customer.potential.record`, M21-05a · Q154: phân công đã nhận/đang làm/xong, đơn chưa Hoàn tất/Huỷ; chỉ thêm bản mới, không sửa/xoá) | — | — | — | đơn được giao |
+| Ghi nhận cuộc gọi chăm sóc KH — chào SP/DV gì, khách yêu cầu gì; yêu cầu thành tiềm năng của khách (`customer_care.call.record`, M27-01a · Q189: **CSKH**; Quản lý luôn kèm CSKH; không sửa/xoá) | ✅ (qua CSKH) | — | — | — |
+| Xem cuộc gọi chăm sóc KH (`customer_care.call.read`, M27-01a · Q191: CSKH xem cuộc gọi do mình ghi) | tất cả | — | — | — |
 | Nhận/từ chối/bắt đầu/xong task | — | — | — | của mình |
 | KPI | tất cả | — | tất cả | của mình |
 | Thông tin Công ty (xem/sửa, logo — M17-01) | ✅ | — | — | — |
@@ -48,6 +50,7 @@
 | ✅ Việc của tôi | TECHNICIAN |
 | 🔧 Điều phối kỹ thuật → Đơn chờ điều phối · Bảng đầu việc · Lịch & tải việc · Đơn cần chỉnh sửa | TECH_LEAD |
 | 🛍️ Đơn hàng → Danh sách đơn · Tạo đơn mới · Khách hàng | SALE, MANAGER |
+| 🛍️ Đơn hàng → Chăm sóc KH (`/customer-care`, ngay sau Khách hàng; M27-01b) | CUSTOMER_CARE (cuộc gọi mình ghi), MANAGER (mọi cuộc gọi, lọc theo người gọi) |
 | 📦 Danh mục → Sản phẩm · Dịch vụ | MANAGER |
 | 📈 Báo cáo → Biểu đồ kinh doanh (`/reports/business-charts`, M23a/M23b) | MANAGER |
 | 📈 Báo cáo → Công việc theo nhân viên (`/reports/kpi`, tên cũ "Báo cáo KPI" — đổi ở M21-02b) | MANAGER, TECH_LEAD, TECHNICIAN (của mình) |

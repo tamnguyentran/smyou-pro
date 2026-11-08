@@ -35,7 +35,7 @@ export function hoursLabel(hours: number | string): string {
   return HOURS_FORMAT.format(Number(hours));
 }
 
-function hoursValid(value: string): boolean {
+export function hoursValid(value: string): boolean {
   const hours = parseHours(value);
   if (!Number.isFinite(hours) || hours < 0.25 || hours > 200) return false;
   // Phải so khớp đúng như guard `estimated_hours_positive` của backend (Decimal chính xác):

@@ -52,6 +52,8 @@ capabilities:
   order.complete:        { TECH_LEAD: all, TECHNICIAN: assigned }  # Q04
   order.revise:          { TECH_LEAD: all }
   customer_care.manage_feedback: { MANAGER: all, CUSTOMER_CARE: all }  # scaffolded here (M15-01), used from M15-02a
+  customer_care.call.record: { CUSTOMER_CARE: all }   # M27-01a (Q189): chỉ CSKH ghi; Quản lý luôn kèm CSKH (MANAGER_BUNDLE)
+  customer_care.call.read:   { MANAGER: all, CUSTOMER_CARE: own }   # M27-01a (Q191): own = cuộc gọi do mình ghi
   # --- Đầu việc ---
   task.read:             { MANAGER: all, TECH_LEAD: all, TECHNICIAN: assigned }
   task.manage:           { TECH_LEAD: all }          # create, update, assign, remove assignee, cancel
@@ -126,6 +128,7 @@ menu:
       - { id: order-new,     label: Tạo đơn mới,   icon: FilePlus2,   path: /orders/new }
       - { id: customer-gifts, label: Ghi nhận quà tặng KH, icon: Gift, path: /customer-gifts, capability: customer_gift.read }
       - { id: customers,     label: Khách hàng,    icon: Users,       path: /customers, capability: customer.manage }
+      - { id: customer-care, label: Chăm sóc KH,   icon: PhoneCall,   path: /customer-care, capability: customer_care.call.read }  # M27-01b
   - id: catalog
     label: Danh mục
     icon: Package

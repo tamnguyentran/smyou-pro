@@ -28,6 +28,8 @@ export const CAPABILITY_LABELS: Record<string, string> = {
   "order.complete": "Hoàn tất đơn",
   "order.revise": "Chỉnh sửa đơn đã hoàn tất",
   "customer_care.manage_feedback": "Ghi nhận phản hồi chăm sóc khách hàng",
+  "customer_care.call.record": "Ghi nhận cuộc gọi chăm sóc KH",
+  "customer_care.call.read": "Xem cuộc gọi chăm sóc KH",
   "task.read": "Xem đầu việc",
   "task.manage": "Tạo, giao, sửa, huỷ đầu việc",
   "task.reopen": "Mở lại đầu việc",

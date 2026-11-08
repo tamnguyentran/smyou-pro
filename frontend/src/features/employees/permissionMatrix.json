@@ -234,6 +234,19 @@
             "MANAGER": "all",
             "CUSTOMER_CARE": "all"
           }
+        },
+        {
+          "id": "customer_care.call.record",
+          "roles": {
+            "CUSTOMER_CARE": "all"
+          }
+        },
+        {
+          "id": "customer_care.call.read",
+          "roles": {
+            "MANAGER": "all",
+            "CUSTOMER_CARE": "own"
+          }
         }
       ]
     },
