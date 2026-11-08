@@ -2337,6 +2337,20 @@
             "title": "Card",
             "type": "string"
           },
+          "care_call_items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DashboardCareCallRow"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Care Call Items"
+          },
           "care_staff_items": {
             "anyOf": [
               {
@@ -2380,7 +2394,15 @@
             "title": "Feedback Items"
           },
           "kind": {
-            "enum": ["order", "task", "staff", "feedback", "care_staff", "credited_order"],
+            "enum": [
+              "order",
+              "task",
+              "staff",
+              "feedback",
+              "care_staff",
+              "care_call",
+              "credited_order"
+            ],
             "title": "Kind",
             "type": "string"
           },
@@ -2447,8 +2469,108 @@
         "title": "DashboardCardItemsOut",
         "type": "object"
       },
+      "DashboardCareCallRow": {
+        "description": "M27-02a: 1 lượt gọi CSKH — popup \"Lượt gọi CSKH\"; gộp recheck đơn (`ORDER_RECHECK`) và cuộc gọi\ntrang \"Chăm sóc KH\" (`CARE_CALL`, không có đơn). `summary`: \"n★ — nhận xét\" | \"Chào: … · Yêu cầu: …\".",
+        "properties": {
+          "called_at": {
+            "format": "date-time",
+            "title": "Called At",
+            "type": "string"
+          },
+          "caller_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caller Name"
+          },
+          "customer_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Id"
+          },
+          "customer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Name"
+          },
+          "customer_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Phone"
+          },
+          "order_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Code"
+          },
+          "order_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Id"
+          },
+          "source": {
+            "enum": ["ORDER_RECHECK", "CARE_CALL"],
+            "title": "Source",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "called_at",
+          "customer_id",
+          "customer_name",
+          "customer_phone",
+          "order_id",
+          "order_code",
+          "caller_name",
+          "summary"
+        ],
+        "title": "DashboardCareCallRow",
+        "type": "object"
+      },
       "DashboardCareStaffRow": {
-        "description": "M18-01c: 1 nhân viên đã ghi phản hồi trong tháng — popup \"NV đã gọi điện CSKH\".",
+        "description": "M18-01c: 1 nhân viên có ≥1 lượt gọi CSKH trong tháng (M27-02a: recheck đơn + trang Chăm sóc KH)\n— popup \"NV đã gọi điện CSKH\"; `care_count` = số lượt gọi.",
         "properties": {
           "care_count": {
             "title": "Care Count",
@@ -2526,7 +2648,7 @@
         "type": "object"
       },
       "DashboardFeedbackRow": {
-        "description": "M18-01c: 1 đơn đã ghi phản hồi — popup \"KH đã gọi\" và thẻ n★.",
+        "description": "M18-01c: 1 đơn đã ghi phản hồi — popup thẻ n★ (khối Phản hồi - đánh giá).",
         "properties": {
           "completed_at": {
             "anyOf": [

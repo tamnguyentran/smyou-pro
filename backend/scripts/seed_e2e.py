@@ -19,6 +19,7 @@ from app.core.db import create_db_engine, create_session_factory
 from app.core.security import hash_password
 from app.modules.audit.models import AuditEvent
 from app.modules.catalog.models import Product, ProductServiceGroup, Service
+from app.modules.customer_care_calls.models import CustomerCareCall
 from app.modules.customer_potential.models import CustomerPotentialNote
 from app.modules.customers.models import Customer
 from app.modules.departments.models import STANDARD_DEPARTMENT_IDS
@@ -157,6 +158,8 @@ REOPEN_ORDERS = [
 # idiom. COMPLETED with a csat_comment already recorded (by lan.cskh@smyou.vn) so the "Tạo yêu
 # cầu chỉnh sửa" button (requires csat_comment non-empty) is visible without driving the CSAT
 # form first.
+E2E_CARE_CALL_OFFERED = "Gói bảo trì định kỳ E2E"
+
 CSK_REVISION_ORDERS = [
     ("E2E-DH-M1503A", "E2E-DH-M1503A-T1", "Máy vẫn còn kêu to sau khi lắp"),  # mobile
     ("E2E-DH-M1503B", "E2E-DH-M1503B-T1", "Camera bị mờ góc trái"),  # desktop
@@ -554,6 +557,22 @@ def main(session_factory: sessionmaker[Session] | None = None) -> int:
         # customer_id + csat_rating trong tháng hiện tại (giờ thật lúc `make e2e` chạy, không
         # phải FakeClock — khác integration test). Gắn vào khách hàng E2E-KH-001 đã seed sẵn.
         e2e_kh_001_id = session.scalars(select(Customer.id).where(Customer.code == "E2E-KH-001")).one()
+        # M27-02b AC-DASH-137: popup "Lượt gọi CSKH" của Lan cần ≥1 cuộc gọi trang "Chăm sóc KH"
+        # trong tháng (cạnh các đơn recheck M15-03) — xoá rồi ghi lại để `called_at` luôn là tháng này.
+        session.execute(
+            delete(CustomerCareCall).where(
+                CustomerCareCall.caller_id == lan_id, CustomerCareCall.offered == E2E_CARE_CALL_OFFERED
+            )
+        )
+        session.add(
+            CustomerCareCall(
+                customer_id=e2e_kh_001_id,
+                caller_id=lan_id,
+                offered=E2E_CARE_CALL_OFFERED,
+                customer_request="Báo giá máy in E2E",
+                called_at=now,
+            )
+        )
         dashboard_order = session.scalars(select(Order).where(Order.code == "E2E-DH-M1504A")).one_or_none()
         if dashboard_order is None:
             dashboard_order = Order(

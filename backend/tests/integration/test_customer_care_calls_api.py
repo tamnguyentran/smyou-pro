@@ -264,24 +264,15 @@ def seed_three_calls(
 
 
 @pytest.mark.ac("AC-CUS-065")
-def test_care_staff_see_own_calls_manager_sees_all_newest_first(
+def test_manager_sees_all_calls_newest_first(
     app: FastAPI,
     db: Connection,
     people: dict[str, uuid.UUID],
     minh_phat: uuid.UUID,
     an_khang: uuid.UUID,
 ) -> None:
+    # M27-03 (Q197): phần "Lan/Mai chỉ thấy cuộc gọi của mình" được AC-CUS-080 thay thế.
     seed_three_calls(db, people, minh_phat, an_khang)
-
-    lan = client_as(app, LAN).get(URL)
-    assert lan.status_code == 200, lan.text
-    assert lan.json()["total"] == 2
-    assert [c["offered"] for c in lan.json()["items"]] == ["Camera IP 4MP", "Máy in Canon LBP2900"]
-    assert {c["caller_name"] for c in lan.json()["items"]} == {"Phạm Thị Lan"}
-
-    mai = client_as(app, MAI).get(URL)
-    assert mai.status_code == 200, mai.text
-    assert [c["offered"] for c in mai.json()["items"]] == ["Bảo trì máy tính định kỳ"]
 
     nam = client_as(app, AN).get(URL)
     assert nam.status_code == 200, nam.text
@@ -300,6 +291,37 @@ def test_care_staff_see_own_calls_manager_sees_all_newest_first(
 
 @pytest.mark.ac("AC-CUS-065")
 def test_sale_cannot_read_calls(app: FastAPI, people: dict[str, uuid.UUID]) -> None:
+    problem(client_as(app, HOA).get(URL), 403, "FORBIDDEN")
+
+
+@pytest.mark.ac("AC-CUS-080")
+def test_care_staff_see_all_calls_and_filter_by_caller(
+    app: FastAPI,
+    db: Connection,
+    people: dict[str, uuid.UUID],
+    minh_phat: uuid.UUID,
+    an_khang: uuid.UUID,
+) -> None:
+    seed_three_calls(db, people, minh_phat, an_khang)
+    lan = client_as(app, LAN)
+
+    res = lan.get(URL)
+    assert res.status_code == 200, res.text
+    assert res.json()["total"] == 3
+    assert [c["offered"] for c in res.json()["items"]] == [
+        "Bảo trì máy tính định kỳ",
+        "Camera IP 4MP",
+        "Máy in Canon LBP2900",
+    ]
+    assert {c["caller_name"] for c in res.json()["items"]} == {"Phạm Thị Lan", "Võ Thị Mai"}
+
+    only_mai = lan.get(URL, params={"caller_id": str(people["NV015"])})
+    assert only_mai.status_code == 200, only_mai.text
+    assert only_mai.json()["total"] == 1
+    assert [(c["offered"], c["caller_name"]) for c in only_mai.json()["items"]] == [
+        ("Bảo trì máy tính định kỳ", "Võ Thị Mai")
+    ]
+
     problem(client_as(app, HOA).get(URL), 403, "FORBIDDEN")
 
 

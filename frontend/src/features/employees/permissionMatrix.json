@@ -245,7 +245,7 @@
           "id": "customer_care.call.read",
           "roles": {
             "MANAGER": "all",
-            "CUSTOMER_CARE": "own"
+            "CUSTOMER_CARE": "all"
           }
         }
       ]

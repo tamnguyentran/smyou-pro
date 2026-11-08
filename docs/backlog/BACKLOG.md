@@ -9,8 +9,11 @@ Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatc
 - `[~]` M28-02 — "Hạn hoàn thành" mặc định = bây giờ + giờ ước tính, trong giờ làm 8–12/13–17, Thứ 2–Thứ 7, làm tròn lên 15 phút. `docs/specs/M28-02-task-due-default-working-hours.md` (8 AC; Q194).
 
 ## M27 — Chăm sóc khách hàng: ghi nhận cuộc gọi (2026-11-08)
-- `[~]` M27-01a — API cuộc gọi CSKH (`customer_care_calls`), yêu cầu của khách → tiềm năng dùng chung; 2 capability mới. `docs/specs/M27-01a-customer-care-calls-api.md` (10 AC; Q189–Q192).
-- `[~]` M27-01b — UI trang "Chăm sóc KH" (menu Đơn hàng, sau Khách hàng), sheet ghi cuộc gọi + thêm khách mới, danh sách + lọc. `docs/specs/M27-01b-customer-care-calls-ui.md` (10 AC). Phụ thuộc M27-01a.
+- `[x]` M27-01a — API cuộc gọi CSKH (`customer_care_calls`), yêu cầu của khách → tiềm năng dùng chung; 2 capability mới. `docs/specs/M27-01a-customer-care-calls-api.md` (10 AC; Q189–Q192).
+- `[x]` M27-01b — UI trang "Chăm sóc KH" (menu Đơn hàng, sau Khách hàng), sheet ghi cuộc gọi + thêm khách mới, danh sách + lọc. `docs/specs/M27-01b-customer-care-calls-ui.md` (10 AC). Phụ thuộc M27-01a.
+- `[x]` M27-02a — API Tổng quan: "lượt gọi CSKH" gộp recheck đơn + cuộc gọi trang Chăm sóc KH; NV đã gọi gộp 2 nguồn; popup/CSV `care_call`. `docs/specs/M27-02a-dashboard-care-calls-count-api.md` (5 AC; Q195).
+- `[x]` M27-02b — UI thẻ "Lượt gọi CSKH" + popup gộp 2 nguồn. `docs/specs/M27-02b-dashboard-care-calls-count-ui.md` (4 AC). Phụ thuộc M27-02a.
+- `[x]` M27-03 — CSKH xem tất cả cuộc gọi CSKH (`customer_care.call.read` CSKH own → all) + checkbox "Chỉ cuộc gọi của tôi" ở trang Chăm sóc KH (CSKH mặc định bật, Quản lý tắt); popup Tổng quan CSKH thấy hết (Q197). `docs/specs/M27-03-care-calls-see-all-mine-toggle.md` (8 AC); đụng phân quyền → quy tắc 13.
 
 ## M26 — Hướng dẫn sử dụng theo vai trò (2026-11-06)
 - `[x]` M26-01a — Nút ? trên đầu trang, trang `/huong-dan` (tab theo vai trò; Quản lý chung xem cả 5 bản), phần chung + bản Nhân viên kỹ thuật + Nhân viên kinh doanh. `docs/specs/M26-01-role-user-guide.md` (Approved).

@@ -2884,6 +2884,8 @@ export interface components {
     DashboardCardItemsOut: {
       /** Card */
       card: string;
+      /** Care Call Items */
+      care_call_items?: components["schemas"]["DashboardCareCallRow"][] | null;
       /** Care Staff Items */
       care_staff_items?: components["schemas"]["DashboardCareStaffRow"][] | null;
       /** Credited Order Items */
@@ -2894,7 +2896,7 @@ export interface components {
        * Kind
        * @enum {string}
        */
-      kind: "order" | "task" | "staff" | "feedback" | "care_staff" | "credited_order";
+      kind: "order" | "task" | "staff" | "feedback" | "care_staff" | "care_call" | "credited_order";
       /** Label */
       label: string;
       /** Order Items */
@@ -2911,8 +2913,40 @@ export interface components {
       total: number;
     };
     /**
+     * DashboardCareCallRow
+     * @description M27-02a: 1 lượt gọi CSKH — popup "Lượt gọi CSKH"; gộp recheck đơn (`ORDER_RECHECK`) và cuộc gọi
+     *     trang "Chăm sóc KH" (`CARE_CALL`, không có đơn). `summary`: "n★ — nhận xét" | "Chào: … · Yêu cầu: …".
+     */
+    DashboardCareCallRow: {
+      /**
+       * Called At
+       * Format: date-time
+       */
+      called_at: string;
+      /** Caller Name */
+      caller_name: string | null;
+      /** Customer Id */
+      customer_id: string | null;
+      /** Customer Name */
+      customer_name: string | null;
+      /** Customer Phone */
+      customer_phone: string | null;
+      /** Order Code */
+      order_code: string | null;
+      /** Order Id */
+      order_id: string | null;
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: "ORDER_RECHECK" | "CARE_CALL";
+      /** Summary */
+      summary: string;
+    };
+    /**
      * DashboardCareStaffRow
-     * @description M18-01c: 1 nhân viên đã ghi phản hồi trong tháng — popup "NV đã gọi điện CSKH".
+     * @description M18-01c: 1 nhân viên có ≥1 lượt gọi CSKH trong tháng (M27-02a: recheck đơn + trang Chăm sóc KH)
+     *     — popup "NV đã gọi điện CSKH"; `care_count` = số lượt gọi.
      */
     DashboardCareStaffRow: {
       /** Care Count */
@@ -2959,7 +2993,7 @@ export interface components {
     };
     /**
      * DashboardFeedbackRow
-     * @description M18-01c: 1 đơn đã ghi phản hồi — popup "KH đã gọi" và thẻ n★.
+     * @description M18-01c: 1 đơn đã ghi phản hồi — popup thẻ n★ (khối Phản hồi - đánh giá).
      */
     DashboardFeedbackRow: {
       /** Completed At */

@@ -53,7 +53,7 @@ capabilities:
   order.revise:          { TECH_LEAD: all }
   customer_care.manage_feedback: { MANAGER: all, CUSTOMER_CARE: all }  # scaffolded here (M15-01), used from M15-02a
   customer_care.call.record: { CUSTOMER_CARE: all }   # M27-01a (Q189): chỉ CSKH ghi; Quản lý luôn kèm CSKH (MANAGER_BUNDLE)
-  customer_care.call.read:   { MANAGER: all, CUSTOMER_CARE: own }   # M27-01a (Q191): own = cuộc gọi do mình ghi
+  customer_care.call.read:   { MANAGER: all, CUSTOMER_CARE: all }   # M27-01a; Q197 (M27-03): CSKH xem tất cả, trang mặc định "Chỉ cuộc gọi của tôi"
   # --- Đầu việc ---
   task.read:             { MANAGER: all, TECH_LEAD: all, TECHNICIAN: assigned }
   task.manage:           { TECH_LEAD: all }          # create, update, assign, remove assignee, cancel

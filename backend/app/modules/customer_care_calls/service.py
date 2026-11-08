@@ -22,7 +22,8 @@ from app.modules.identity.models import Employee
 
 VIETNAM = ZoneInfo("Asia/Ho_Chi_Minh")
 
-# Q191: `own` = calls the actor recorded.
+# Q191: `own` = calls the actor recorded. Q197 (M27-03): no role holds `own` any more;
+# kept so a future `own` grant stays scoped.
 RULES: ScopeRules = {"own": lambda actor: CustomerCareCall.caller_id == actor.id}
 
 

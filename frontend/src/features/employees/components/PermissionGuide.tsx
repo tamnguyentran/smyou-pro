@@ -32,7 +32,7 @@ const PRINCIPLES = [
   "Người tạo đơn (Nhân viên kinh doanh hoặc Chăm sóc khách hàng) được huỷ đơn của mình khi đơn chưa điều phối hoặc mọi đầu việc đã huỷ, và nhận thông báo về đơn đó.",
   "Báo cáo KPI (doanh số mọi nhân viên) chỉ Quản lý chung xem; mỗi nhân viên xem KPI doanh số của chính mình ở Thông tin tài khoản.",
   "Biểu đồ kinh doanh (số liệu toàn công ty) chỉ Quản lý chung xem.",
-  "Nhân viên CSKH ghi nhận cuộc gọi chăm sóc khách hàng; yêu cầu của khách trở thành tiềm năng sử dụng dịch vụ của khách.",
+  "Nhân viên CSKH ghi nhận cuộc gọi chăm sóc khách hàng và xem được cuộc gọi của cả nhóm (mặc định chỉ hiện cuộc gọi của mình); yêu cầu của khách trở thành tiềm năng sử dụng dịch vụ của khách.",
   "Menu chỉ hiện mục mà người dùng có quyền. Quyền được kiểm tra lại ở máy chủ mỗi lần thao tác, nên ẩn menu không phải là cách duy nhất chặn truy cập.",
   "Dữ liệu ngoài phạm vi sẽ báo “không tìm thấy”; thiếu quyền sẽ báo “không có quyền”.",
   "Hệ thống luôn giữ ít nhất 1 Quản lý chung đang hoạt động. Tài khoản bị khoá không đăng nhập được; mở khoá thì quyền trở lại như cũ.",

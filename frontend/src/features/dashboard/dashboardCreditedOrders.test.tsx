@@ -105,7 +105,7 @@ describe("Thẻ 'Đơn ghi doanh số' khối CSKH (M21-03)", () => {
     expect(classes(grid)).not.toContain("md:grid-cols-3");
     const tiles = within(grid).getAllByRole("button");
     expect(tiles.map((tile) => tile.querySelector("p")?.textContent)).toEqual([
-      "KH đã gọi",
+      "Lượt gọi CSKH",
       "NV đã gọi điện CSKH",
       "Đơn hàng phải sửa",
       "Đơn ghi doanh số",

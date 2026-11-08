@@ -99,6 +99,7 @@ def codes(data: dict[str, Any]) -> list[str]:
         "order": ("order_items", "order_code"),
         "feedback": ("feedback_items", "order_code"),
         "care_staff": ("care_staff_items", "employee_code"),
+        "care_call": ("care_call_items", "order_code"),
     }[data["kind"]]
     return [r[field] for r in data[key]]
 
@@ -149,7 +150,8 @@ _DASHBOARD_NUMBER: dict[str, Callable[[dict[str, Any]], int]] = {
     "care.revision_orders": lambda d: d["orders_needing_revision_count"],
     **{f"feedback.{n}": (lambda d, n=n: d["feedback_summary"][str(n)]) for n in range(1, 6)},
 }
-_EXPECTED_KIND = {"care.customers": "feedback", "care.staff": "care_staff", "care.revision_orders": "order"}
+# M27-02a (AC-DASH-133) thay "feedback" của M18-01c bằng "care_call" cho care.customers.
+_EXPECTED_KIND = {"care.customers": "care_call", "care.staff": "care_staff", "care.revision_orders": "order"}
 
 
 @pytest.mark.ac("AC-DASH-104")
@@ -177,6 +179,8 @@ def test_card_total_matches_dashboard_number(
 def test_care_customers_lists_feedback_recorded_this_month(
     db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
 ) -> None:
+    """M27-02a thay dòng "feedback" bằng "care_call" (AC-DASH-133); vẫn chỉ tính phản hồi ghi trong
+    tháng này (giờ VN), kể cả đơn hoàn tất tháng trước."""
     completed(
         db, people, "DH2609-0041", rating=5, comment="Lắp camera gọn gàng",
         recorded_by="NV023", recorded_at=datetime(2026, 9, 24, 7, 5, tzinfo=UTC),
@@ -195,18 +199,17 @@ def test_care_customers_lists_feedback_recorded_this_month(
     )  # fmt: skip
 
     data = items(client_as(app, AN), "care.customers")
-    assert data["kind"] == "feedback"
+    assert data["kind"] == "care_call"
     assert data["total"] == 3
     assert codes(data) == ["DH2609-0042", "DH2609-0041", "DH2608-0090"]
-    assert all(set(r) == FEEDBACK_ROW_KEYS for r in data["feedback_items"])
-    second = data["feedback_items"][1]
-    assert second["csat_rating"] == 5
-    assert second["csat_comment"] == "Lắp camera gọn gàng"
-    assert second["recorded_by_name"] == LINH.full_name
+    assert {r["source"] for r in data["care_call_items"]} == {"ORDER_RECHECK"}
+    second = data["care_call_items"][1]
+    assert second["summary"] == "5★ — Lắp camera gọn gàng"
+    assert second["caller_name"] == LINH.full_name
     assert second["customer_name"] == "KH DH2609-0041"
     assert second["customer_phone"] == "0912345678"
-    assert data["feedback_items"][0]["csat_comment"] is None
-    assert data["feedback_items"][0]["recorded_by_name"] == MAI.full_name
+    assert data["care_call_items"][0]["summary"] == "3★"
+    assert data["care_call_items"][0]["caller_name"] == MAI.full_name
 
 
 @pytest.mark.ac("AC-DASH-106")
@@ -403,7 +406,7 @@ def test_care_staff_and_top_export_csv(
         == 'attachment; filename="tong-quan-cskh-nv-goi-dien-2026-10-30.csv"'
     )
     staff = csv_table(staff_res)
-    assert staff[0] == ["Mã NV", "Họ tên", "Số KH đã chăm sóc", "Lần ghi gần nhất"]
+    assert staff[0] == ["Mã NV", "Họ tên", "Số lượt gọi", "Lần ghi gần nhất"]  # M27-02a
     assert staff[1] == [LINH.code, LINH.full_name, "1", "28/10/2026 14:05"]
 
     top_res = tuan.get(f"/api/v1/dashboard/cards/top.{minh_phat}/export")
@@ -437,13 +440,14 @@ def test_page_size_limit_and_export_too_large(
 
 
 @pytest.mark.ac("AC-UI-075")
-def test_care_customers_card_label_is_kh_da_goi(
+@pytest.mark.ac("AC-DASH-136")
+def test_care_customers_card_label_is_luot_goi_cskh(
     db: Connection, app: FastAPI, people: dict[str, uuid.UUID]
 ) -> None:
-    """M20-10: tiêu đề thẻ/popup đổi "Khách hàng đã chăm sóc" → "KH đã gọi"; slug Excel giữ nguyên."""
+    """M20-10: "Khách hàng đã chăm sóc" → "KH đã gọi"; M27-02b: → "Lượt gọi CSKH"; slug Excel giữ nguyên."""
     completed(db, people, "DH2609-0041", rating=5, recorded_by="NV023", recorded_at=SEPT_10)
     an = client_as(app, AN)
-    assert items(an, "care.customers")["label"] == "KH đã gọi"
+    assert items(an, "care.customers")["label"] == "Lượt gọi CSKH"
     export = an.get("/api/v1/dashboard/cards/care.customers/export")
     assert export.status_code == 200
     assert "cskh-kh-da-cham-soc" in export.headers["content-disposition"]
