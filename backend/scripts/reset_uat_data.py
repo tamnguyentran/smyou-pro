@@ -5,8 +5,9 @@ runs on the production server until go-live; the UAT data is wiped before going 
 
 Keeps: the company profile (+ its current logo), every department, the 3 standard product/service
 groups, and the employees / customers / products / services listed below. Deletes everything else:
-orders and everything hanging off them, tasks/assignments/defects, customer gifts, potential notes,
-audit log, notifications, sessions, password resets, price history, KPI targets, other attachments.
+orders and everything hanging off them, tasks/assignments/defects, customer gifts, customer care calls,
+potential notes, audit log, notifications, sessions, password resets, price history, KPI targets,
+other attachments.
 
 Then sets the UAT fixtures to a known state so every run starts identically (`make e2e` re-seeds its
 own accounts and toggles some of these rows — re-run this after any e2e/verify run):
@@ -33,6 +34,7 @@ from app.core.sequences import CodeSequence
 from app.modules.audit.models import AuditEvent
 from app.modules.catalog.models import CatalogPriceHistory, Product, ProductServiceGroup, Service
 from app.modules.company.models import CompanyProfile
+from app.modules.customer_care_calls.models import CustomerCareCall
 from app.modules.customer_gifts.models import CustomerGift
 from app.modules.customer_potential.models import CustomerPotentialNote
 from app.modules.customers.models import Customer
@@ -125,6 +127,7 @@ def reset(session: Session, settings: Settings, today: date) -> dict[str, int]:
     run("order_lines", delete(OrderLine))
     run("orders", delete(Order))
     run("customer_gifts", delete(CustomerGift))
+    run("customer_care_calls", delete(CustomerCareCall))
     # Logs, inboxes, sessions, history.
     run("audit_events", delete(AuditEvent))
     run("notifications", delete(Notification))

@@ -607,14 +607,254 @@ describe("AC-CAT-016 ảnh sản phẩm", () => {
 
     expect(await within(dialog).findByText("Ảnh vượt quá 10MB.")).toBeInTheDocument();
   });
+});
 
-  test("không hiện ô chọn ảnh khi đang tạo mới (chưa có id)", async () => {
+// M29-01 supersedes M2-01b §8 ("chỉ tải ảnh sau khi tạo"): the create form now picks an image too.
+const NEW_ID = "e0000000-0000-4000-8000-0000000000aa";
+const PC_NAME = "PC SMYOU CORE I5-13400";
+
+async function openCreateForm() {
+  renderApp("/catalog/products");
+  await openMenu();
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "Thêm sản phẩm" }));
+  const dialog = await screen.findByRole("dialog", { name: "Thêm sản phẩm" });
+  return { user, dialog };
+}
+
+async function fillCreateForm(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement) {
+  await user.type(within(dialog).getByLabelText("Mã hàng"), "MAYBO3551");
+  await user.type(within(dialog).getByLabelText("Tên sản phẩm"), PC_NAME);
+  await user.selectOptions(within(dialog).getByLabelText("Danh mục"), "PC");
+  await user.selectOptions(within(dialog).getByLabelText("Đơn vị tính"), "BO");
+  await user.type(within(dialog).getByLabelText("Đơn giá"), "12500000");
+  await user.type(within(dialog).getByLabelText("Giá vốn"), "10000000");
+}
+
+/** POST /products counts calls; PATCH answers the edit-mode save of AC-CAT-114. */
+function createHandlers(calls: string[]) {
+  server.use(
+    http.post("/api/v1/products", () => {
+      calls.push("create");
+      return HttpResponse.json(product({ id: NEW_ID, sku: "MAYBO3551", name: PC_NAME }), {
+        status: 201,
+      });
+    }),
+    http.patch("/api/v1/products/:id", () => {
+      calls.push("update");
+      return HttpResponse.json(
+        product({ id: NEW_ID, sku: "MAYBO3551", name: PC_NAME, version: 2 }),
+      );
+    }),
+  );
+}
+
+function mockImagePipeline() {
+  vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:mock-preview");
+  vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+  vi.mocked(validateImageFile).mockReturnValue(null);
+  vi.mocked(compressImage).mockResolvedValue(new Blob(["x"], { type: "image/jpeg" }));
+}
+
+describe("M29-01 ảnh khi thêm sản phẩm", () => {
+  test("AC-CAT-111 form Thêm có ô Ảnh sản phẩm: ảnh mặc định 'Chưa có ảnh' + nút Chọn ảnh", async () => {
     signedInAs(AN, () => HttpResponse.json(page([])));
+    const { dialog } = await openCreateForm();
+
+    expect(within(dialog).getByText("Ảnh sản phẩm")).toBeInTheDocument();
+    expect(within(dialog).getByRole("img", { name: "Chưa có ảnh" })).toBeInTheDocument();
+    expect(within(dialog).getByText("Chưa có ảnh")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Chọn ảnh", { exact: false })).toBeInTheDocument();
+  });
+
+  test("AC-CAT-112 chọn ảnh hợp lệ: xem trước; Lưu → tạo SP rồi tải ảnh nén, tiến trình, đóng sheet, danh sách hiện ảnh", async () => {
+    mockViewport(false);
+    mockImagePipeline();
+    const calls: string[] = [];
+    let finishUpload: (() => void) | undefined;
+    vi.mocked(uploadProductImage).mockImplementation(
+      (_id, _blob, onProgress) =>
+        new Promise((resolve) => {
+          calls.push("upload");
+          onProgress(50);
+          finishUpload = () => {
+            onProgress(100);
+            resolve({ image_attachment_id: "attach-new" });
+          };
+        }),
+    );
+    signedInAs(AN, () =>
+      HttpResponse.json(
+        page(
+          calls.includes("upload")
+            ? [product({ id: NEW_ID, name: PC_NAME, image_attachment_id: "attach-new" })]
+            : [],
+        ),
+      ),
+    );
+    createHandlers(calls);
+    const { user, dialog } = await openCreateForm();
+    await fillCreateForm(user, dialog);
+
+    await user.upload(
+      within(dialog).getByLabelText("Chọn ảnh", { exact: false }),
+      file("photo.jpg", "image/jpeg"),
+    );
+    expect(within(dialog).getByAltText("Ảnh sản phẩm")).toHaveAttribute("src", "blob:mock-preview");
+    expect(uploadProductImage).not.toHaveBeenCalled();
+    expect(calls).toEqual([]);
+
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+    expect(await within(dialog).findByText("Đang tải ảnh… 50%")).toBeInTheDocument();
+    expect(within(dialog).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
+    expect(within(dialog).getByRole("button", { name: "Lưu" })).toBeDisabled();
+    expect(calls).toEqual(["create", "upload"]);
+    const compressed = (await vi.mocked(compressImage).mock.results[0]?.value) as Blob;
+    expect(uploadProductImage).toHaveBeenCalledWith(NEW_ID, compressed, expect.any(Function));
+
+    finishUpload?.();
+    expect(await screen.findByText(/^Đã thêm sản phẩm/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Thêm sản phẩm" })).not.toBeInTheDocument();
+    });
+    const card = await screen.findByRole("button", { name: new RegExp(PC_NAME) });
+    await waitFor(() => {
+      expect(card.querySelector("img")?.getAttribute("src")).toContain("attach-new");
+    });
+  });
+
+  test("AC-CAT-113 tệp không phải ảnh → báo lỗi, không gọi API; vẫn lưu được SP không kèm ảnh", async () => {
+    vi.mocked(validateImageFile).mockReturnValue({
+      code: "INVALID_FILE_TYPE",
+      message: "Tệp không phải ảnh hợp lệ.",
+    });
+    const calls: string[] = [];
+    signedInAs(AN, () => HttpResponse.json(page([])));
+    createHandlers(calls);
+    const { user, dialog } = await openCreateForm();
+    await fillCreateForm(user, dialog);
+
+    await user.upload(
+      within(dialog).getByLabelText("Chọn ảnh", { exact: false }),
+      file("a.gif", "image/gif"),
+    );
+    expect(await within(dialog).findByText("Tệp không phải ảnh hợp lệ.")).toBeInTheDocument();
+    expect(calls).toEqual([]);
+    expect(compressImage).not.toHaveBeenCalled();
+
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+    expect(await screen.findByText(/^Đã thêm sản phẩm/)).toBeInTheDocument();
+    expect(calls).toEqual(["create"]);
+    expect(uploadProductImage).not.toHaveBeenCalled();
+  });
+
+  test("AC-CAT-113 ảnh > 10MB → báo lỗi dưới ô ảnh, không gọi API", async () => {
+    vi.mocked(validateImageFile).mockReturnValue({
+      code: "FILE_TOO_LARGE",
+      message: "Ảnh vượt quá 10MB.",
+    });
+    const calls: string[] = [];
+    signedInAs(AN, () => HttpResponse.json(page([])));
+    createHandlers(calls);
+    const { user, dialog } = await openCreateForm();
+
+    await user.upload(
+      within(dialog).getByLabelText("Chọn ảnh", { exact: false }),
+      file("big.jpg", "image/jpeg", 11 * 1024 * 1024),
+    );
+    expect(await within(dialog).findByText("Ảnh vượt quá 10MB.")).toBeInTheDocument();
+    expect(calls).toEqual([]);
+    expect(compressImage).not.toHaveBeenCalled();
+    expect(uploadProductImage).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["500", new ApiError({ status: 500, code: "INTERNAL", detail: "Lỗi máy chủ." })],
+    ["mạng", new Error("Lỗi kết nối khi tải ảnh.")],
+  ])(
+    "AC-CAT-114 tải ảnh lỗi (%s): SP vẫn tạo, sheet chuyển sang Sửa, báo lỗi; Lưu lại không tạo trùng",
+    async (_kind, failure) => {
+      mockImagePipeline();
+      vi.mocked(uploadProductImage).mockRejectedValue(failure);
+      const calls: string[] = [];
+      signedInAs(AN, () => HttpResponse.json(page([])));
+      createHandlers(calls);
+      const { user, dialog } = await openCreateForm();
+      await fillCreateForm(user, dialog);
+      await user.upload(
+        within(dialog).getByLabelText("Chọn ảnh", { exact: false }),
+        file("photo.jpg", "image/jpeg"),
+      );
+
+      await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+      const edit = await screen.findByRole("dialog", { name: "Sửa sản phẩm" });
+      expect(
+        await within(edit).findByText(
+          "Đã thêm sản phẩm nhưng chưa tải được ảnh. Vui lòng chọn ảnh lại.",
+        ),
+      ).toBeInTheDocument();
+      expect(within(edit).getByLabelText("Tên sản phẩm")).toHaveValue(PC_NAME);
+      expect(within(edit).getByLabelText("Chọn ảnh", { exact: false })).toBeInTheDocument();
+      expect(calls).toEqual(["create"]);
+
+      await user.click(within(edit).getByRole("button", { name: "Lưu" }));
+      await waitFor(() => {
+        expect(calls).toEqual(["create", "update"]);
+      });
+      expect(uploadProductImage).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("AC-CAT-115 không chọn ảnh → chỉ gọi POST /products, không gọi API ảnh", async () => {
+    const calls: string[] = [];
+    signedInAs(AN, () => HttpResponse.json(page([])));
+    createHandlers(calls);
+    const { user, dialog } = await openCreateForm();
+    await fillCreateForm(user, dialog);
+
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+    expect(await screen.findByText(`Đã thêm sản phẩm ${PC_NAME}.`)).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Thêm sản phẩm" })).not.toBeInTheDocument();
+    expect(calls).toEqual(["create"]);
+    expect(compressImage).not.toHaveBeenCalled();
+    expect(uploadProductImage).not.toHaveBeenCalled();
+  });
+});
+
+describe("AC-CAT-116 ảnh mặc định 'Chưa có ảnh'", () => {
+  const WITH_IMAGE = product({
+    id: "e0000000-0000-4000-8000-0000000000bb",
+    sku: "CAM001",
+    name: "Camera Hikvision 2MP",
+    image_attachment_id: "attach-cam",
+  });
+
+  test("danh sách (thẻ mobile): SP chưa có ảnh hiện ImageOff 'Chưa có ảnh', không còn icon Monitor; SP có ảnh vẫn hiện ảnh", async () => {
+    mockViewport(false);
+    signedInAs(AN, () => HttpResponse.json(page([LCD, WITH_IMAGE])));
     renderApp("/catalog/products");
     await openMenu();
-    await userEvent.setup().click(await screen.findByRole("button", { name: "Thêm sản phẩm" }));
-    const dialog = await screen.findByRole("dialog", { name: "Thêm sản phẩm" });
-    expect(within(dialog).queryByLabelText("Chọn ảnh", { exact: false })).not.toBeInTheDocument();
+
+    const noImage = await screen.findByRole("button", { name: /Màn hình Dell 22 inch/ });
+    expect(within(noImage).getByRole("img", { name: "Chưa có ảnh" })).toBeInTheDocument();
+    expect(noImage.querySelector(".lucide-image-off")).not.toBeNull();
+    expect(noImage.querySelector(".lucide-monitor")).toBeNull();
+
+    const withImage = screen.getByRole("button", { name: /Camera Hikvision 2MP/ });
+    expect(within(withImage).queryByRole("img", { name: "Chưa có ảnh" })).not.toBeInTheDocument();
+    expect(withImage.querySelector("img")?.getAttribute("src")).toContain("attach-cam");
+  });
+
+  test("xem chi tiết (Sale): ô lớn hiện 'Chưa có ảnh' kèm chữ", async () => {
+    signedInAs(HOA, () => HttpResponse.json(page([LCD])));
+    renderApp("/catalog/products");
+    await openMenu();
+    await userEvent.setup().click(await screen.findByText("Màn hình Dell 22 inch"));
+    const dialog = await screen.findByRole("dialog", { name: "Chi tiết sản phẩm" });
+
+    expect(within(dialog).getByRole("img", { name: "Chưa có ảnh" })).toBeInTheDocument();
+    expect(within(dialog).getByText("Chưa có ảnh")).toBeInTheDocument();
+    expect(dialog.querySelector(".lucide-monitor")).toBeNull();
   });
 });
 

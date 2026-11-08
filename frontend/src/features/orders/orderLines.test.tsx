@@ -762,3 +762,42 @@ describe("AC-ORD-263 (M21-08) SP/DV chưa có giá vốn — lỗi ngay dưới 
     expect(search).toHaveValue("cam");
   });
 });
+
+describe("AC-CAT-116 (M29-01) ảnh mặc định ở sheet 'Thêm dòng hàng'", () => {
+  test("SP chưa có ảnh hiện 'Chưa có ảnh' (ImageOff), SP có ảnh vẫn hiện ảnh", async () => {
+    signedInAsHoa();
+    server.use(
+      http.get("/api/v1/products", () =>
+        HttpResponse.json({
+          items: [
+            dellProduct(),
+            dellProduct({
+              id: "f0000000-0000-4000-8000-000000000041",
+              sku: "CAM-HIK2",
+              name: "Camera Hikvision 2MP",
+              image_attachment_id: "attach-cam",
+            }),
+          ],
+          total: 2,
+          limit: 20,
+          offset: 0,
+        }),
+      ),
+    );
+    await openExisting(order({ lines: [] }));
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Thêm dòng hàng" }));
+    const sheet = await screen.findByRole("dialog", { name: "Thêm dòng hàng" });
+    await user.type(within(sheet).getByLabelText("Tìm sản phẩm"), "a");
+
+    const noImage = await within(sheet).findByRole("button", { name: /Màn hình Dell 22 inch/ });
+    expect(within(noImage).getByRole("img", { name: "Chưa có ảnh" })).toBeInTheDocument();
+    expect(noImage.querySelector(".lucide-image-off")).not.toBeNull();
+    expect(noImage.querySelector(".lucide-monitor")).toBeNull();
+
+    const withImage = within(sheet).getByRole("button", { name: /Camera Hikvision 2MP/ });
+    expect(within(withImage).queryByRole("img", { name: "Chưa có ảnh" })).not.toBeInTheDocument();
+    expect(withImage.querySelector("img")?.getAttribute("src")).toContain("attach-cam");
+  });
+});

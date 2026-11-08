@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { Alert } from "../../../components/ui/Alert";
 import { Button } from "../../../components/ui/Button";
@@ -35,7 +35,7 @@ import {
   type ProductFormValues,
   type Unit,
 } from "../schemas";
-import { ImageUploadField } from "./ImageUploadField";
+import { compressAndUpload, ImagePickerField, ImageUploadField } from "./ImageUploadField";
 import { ProductImage, StatusBadge } from "./ProductList";
 
 type ConfirmKind = "deactivate" | "activate" | null;
@@ -56,9 +56,11 @@ const SHOWN_FIELDS = [
 ];
 
 const FORM_ID = "product-form";
+const CREATE_UPLOAD_FAILED = "Đã thêm sản phẩm nhưng chưa tải được ảnh. Vui lòng chọn ảnh lại.";
 
 /** Create or edit a product (AC-CAT-013/014); read-only detail view for Sale (AC-CAT-017); ngừng/mở
- * kinh doanh (AC-CAT-015) live in the same sheet. Image upload (AC-CAT-016) is wired in separately. */
+ * kinh doanh (AC-CAT-015) live in the same sheet. Image upload: right away when editing (AC-CAT-016);
+ * on create, only previewed until "Lưu" creates the product, then uploaded (AC-CAT-112/114). */
 export function ProductFormSheet({
   onClose,
   product: initialProduct,
@@ -85,6 +87,16 @@ export function ProductFormSheet({
   const [confirming, setConfirming] = useState<ConfirmKind>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
+  // Create mode only: the picked file + its preview URL, uploaded once the product exists.
+  const [pendingImage, setPendingImage] = useState<{ file: File; url: string } | null>(null);
+  const [createProgress, setCreateProgress] = useState<number | null>(null);
+  const [createImageError, setCreateImageError] = useState<string | null>(null);
+  useEffect(
+    () => () => {
+      if (pendingImage) URL.revokeObjectURL(pendingImage.url);
+    },
+    [pendingImage],
+  );
   const [showHistory, setShowHistory] = useState(false);
   const history = useProductPriceHistory(product?.id ?? "", showHistory && product !== undefined);
 
@@ -140,6 +152,23 @@ export function ProductFormSheet({
           specs: values.specs || null,
         };
         const created = await create.mutateAsync(body);
+        if (pendingImage) {
+          setImageUploading(true);
+          setCreateProgress(0);
+          try {
+            await compressAndUpload(created.id, pendingImage.file, setCreateProgress);
+            invalidateList();
+          } catch {
+            // AC-CAT-114: keep the product, switch to editing it so "Lưu" can't create a duplicate.
+            setCreateImageError(CREATE_UPLOAD_FAILED);
+            setPendingImage(null);
+            setProduct(created);
+            return;
+          } finally {
+            setCreateProgress(null);
+            setImageUploading(false);
+          }
+        }
         toast(`Đã thêm sản phẩm ${created.name}.`);
         onClose();
         return;
@@ -191,6 +220,8 @@ export function ProductFormSheet({
     }
   };
   const confirmRunning = deactivate.isPending || activate.isPending;
+  // Only the create form's upload locks "Lưu" (M29-01 §6); an edit-mode upload never did.
+  const createUploading = createProgress !== null;
 
   return (
     <>
@@ -219,9 +250,9 @@ export function ProductFormSheet({
               <Button
                 type="submit"
                 form={FORM_ID}
-                loading={create.isPending || update.isPending}
-                disabled={costPriceMissing}
-                aria-disabled={costPriceMissing}
+                loading={create.isPending || update.isPending || createUploading}
+                disabled={costPriceMissing || createUploading}
+                aria-disabled={costPriceMissing || createUploading}
               >
                 Lưu
               </Button>
@@ -237,6 +268,7 @@ export function ProductFormSheet({
               }
               alt="Ảnh sản phẩm"
               size="size-20"
+              caption
             />
             <dl className="divide-y divide-line">
               {(
@@ -302,13 +334,23 @@ export function ProductFormSheet({
             {product ? (
               <ImageUploadField
                 product={product}
+                initialError={createImageError}
                 onUploaded={(imageAttachmentId) => {
                   setProduct({ ...product, image_attachment_id: imageAttachmentId });
                   invalidateList();
                 }}
                 onBusyChange={setImageUploading}
               />
-            ) : null}
+            ) : (
+              <ImagePickerField
+                imageSrc={pendingImage?.url ?? null}
+                progress={createProgress}
+                error={null}
+                onPick={(file) => {
+                  setPendingImage({ file, url: URL.createObjectURL(file) });
+                }}
+              />
+            )}
             {!product ? (
               <Select
                 label="Danh mục"

@@ -4,6 +4,9 @@ Trạng thái: `[ ]` chưa làm · `[S]` spec đang viết · `[A]` spec Approve
 Mỗi item là **lát cắt dọc** (DB → API → UI → test) giao được trong 1 phiên. Làm theo thứ tự; item sau phụ thuộc item trước.
 Prefix AC theo module: `SYS`, `AUTH`, `EMP`, `CAT`, `CUS`, `ORD`, `DSP` (dispatch), `ASG`, `CMP` (completion/revision), `NTF`, `DASH` (dashboard), `KPI`, `UI` (style thuần, xuyên module, không đổi API/quyền).
 
+## M29 — Danh mục: ảnh sản phẩm (2026-11-08)
+- `[x]` M29-01 — Tải ảnh ngay khi thêm sản phẩm + ảnh mặc định "Chưa có ảnh" (icon `ImageOff`) ở danh sách, chi tiết, sheet "Thêm dòng hàng". `docs/specs/M29-01-product-image-on-create.md` (7 AC; Q198).
+
 ## M28 — Giao việc: giá trị mặc định khi tạo đầu việc (2026-11-08)
 - `[~]` M28-01 — "Tiêu đề đầu việc" điền sẵn 100 ký tự đầu, "Mô tả" chép đầy đủ "Mô tả công việc" của đơn, mọi lần tạo đầu việc. `docs/specs/M28-01-task-title-from-work-description.md` (4 AC; Q193).
 - `[~]` M28-02 — "Hạn hoàn thành" mặc định = bây giờ + giờ ước tính, trong giờ làm 8–12/13–17, Thứ 2–Thứ 7, làm tròn lên 15 phút. `docs/specs/M28-02-task-due-default-working-hours.md` (8 AC; Q194).

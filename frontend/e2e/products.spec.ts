@@ -49,6 +49,13 @@ async function evidence(
   if (size) await page.setViewportSize(size);
 }
 
+// A real (decodable) 4×4 JPEG — unlike the backend's magic-byte-only fixtures, the browser's
+// createImageBitmap() (used by compressImage) needs actual valid image data, not just headers.
+const JPEG = Buffer.from(
+  "/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAABKADAAQAAAABAAAABAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgABAAEAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAgICAgICAwICAwUDAwMFBgUFBQUGCAYGBgYGCAoICAgICAgKCgoKCgoKCgwMDAwMDA4ODg4ODw8PDw8PDw8PD//bAEMBAgICBAQEBwQEBxALCQsQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEP/dAAQAAf/aAAwDAQACEQMRAD8A+L6KKK/lM/38P//Z",
+  "base64",
+);
+
 test("AC-CAT-012 AC-CAT-018 AC-UI-014 @a11y @screenshot danh sách Sản phẩm (Manager)", async ({
   page,
 }, info) => {
@@ -119,15 +126,9 @@ test("AC-CAT-016 @a11y @screenshot tải ảnh sản phẩm: xem trước → ti
   const dialog = page.getByRole("dialog", { name: "Sửa sản phẩm" });
   await expect(dialog).toBeVisible();
 
-  // A real (decodable) 4×4 JPEG — unlike the backend's magic-byte-only fixtures, the browser's
-  // createImageBitmap() (used by compressImage) needs actual valid image data, not just headers.
-  const jpeg = Buffer.from(
-    "/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAABKADAAQAAAABAAAABAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgABAAEAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAgICAgICAwICAwUDAwMFBgUFBQUGCAYGBgYGCAoICAgICAgKCgoKCgoKCgwMDAwMDA4ODg4ODw8PDw8PDw8PD//bAEMBAgICBAQEBwQEBxALCQsQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEP/dAAQAAf/aAAwDAQACEQMRAD8A+L6KKK/lM/38P//Z",
-    "base64",
-  );
   await dialog
     .getByLabel("Chọn ảnh", { exact: false })
-    .setInputFiles({ name: "photo.jpg", mimeType: "image/jpeg", buffer: jpeg });
+    .setInputFiles({ name: "photo.jpg", mimeType: "image/jpeg", buffer: JPEG });
   await expect(dialog.getByAltText("Ảnh sản phẩm")).toBeVisible({ timeout: 15_000 });
   await evidence(page, info, "product-image.png");
 });
@@ -172,4 +173,54 @@ test("AC-CAT-018 không cuộn ngang ở 360px (danh sách, form thêm)", async 
   await form.getByLabel("Đơn giá").fill("1000");
   await form.getByLabel("Giá vốn").fill("800");
   await noHorizontalScroll(); // form thêm sản phẩm
+});
+
+test("AC-CAT-112 AC-CAT-117 @a11y @screenshot thêm sản phẩm kèm ảnh: xem trước → Lưu → danh sách hiện ảnh", async ({
+  page,
+}, info) => {
+  await signIn(page, MANAGER);
+  await page.getByRole("button", { name: "Thêm sản phẩm" }).click();
+  const form = page.getByRole("dialog", { name: "Thêm sản phẩm" });
+  await expect(form.getByRole("img", { name: "Chưa có ảnh" })).toBeVisible();
+
+  const sku = `QA-IMG-${String(Date.now())}`;
+  const name = `QA Ảnh khi thêm ${sku}`;
+  await form.getByLabel("Mã hàng").fill(sku);
+  await form.getByLabel("Tên sản phẩm").fill(name);
+  await form.getByLabel("Danh mục").selectOption("ACCESSORY");
+  await form.getByLabel("Đơn vị tính").selectOption("CAI");
+  await form.getByLabel("Đơn giá").fill("150000");
+  await form.getByLabel("Giá vốn").fill("100000");
+  await form
+    .getByLabel("Chọn ảnh", { exact: false })
+    .setInputFiles({ name: "photo.jpg", mimeType: "image/jpeg", buffer: JPEG });
+  await expect(form.getByAltText("Ảnh sản phẩm")).toBeVisible();
+
+  const pick = await form.locator("label", { hasText: "Chọn ảnh" }).boundingBox();
+  expect(pick?.height ?? 0).toBeGreaterThanOrEqual(44);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  await evidence(page, info, "product-create-image.png");
+
+  await form.getByRole("button", { name: "Lưu" }).click();
+  await expect(page.getByText(`Đã thêm sản phẩm ${name}.`)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("dialog", { name: "Thêm sản phẩm" })).not.toBeVisible();
+
+  await page.getByLabel("Tìm kiếm").fill(sku);
+  const row = page.getByRole("button", { name });
+  await expect(row).toBeVisible();
+  if (info.project.name === "mobile") {
+    await expect(row.locator("img")).toHaveAttribute("src", /\/api\/v1\/attachments\//);
+  }
+  await evidence(page, info, "products-with-image.png", { checkOverflow: true });
+
+  await row.click();
+  const edit = page.getByRole("dialog", { name: "Sửa sản phẩm" });
+  await expect(edit.getByAltText("Ảnh sản phẩm")).toHaveAttribute(
+    "src",
+    /\/api\/v1\/attachments\//,
+  );
 });

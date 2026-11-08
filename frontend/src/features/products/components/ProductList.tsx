@@ -1,4 +1,4 @@
-import { Monitor } from "lucide-react";
+import { ImageOff } from "lucide-react";
 import { Badge } from "../../../components/ui/Badge";
 import { cn } from "../../../lib/cn";
 import { formatCurrency } from "../../../lib/format";
@@ -21,16 +21,19 @@ export function CostPriceBadge({ product }: { product: Product }) {
   return <Badge tone="urgent">Thiếu giá vốn</Badge>;
 }
 
-/** Image or a placeholder icon — shared by the list thumbnail, the read-only detail view, and
- * ImageUploadField's preview (which needs a local blob URL too, hence `src` rather than `product`). */
+/** Image or the "Chưa có ảnh" placeholder (AC-CAT-116) — shared by the list thumbnail, the read-only
+ * detail view, AddLineSheet and ImagePickerField's preview (which needs a local blob URL too, hence
+ * `src` rather than `product`). `caption` adds the visible text under the icon for large boxes. */
 export function ProductImage({
   src,
   alt = "",
   size = "size-12",
+  caption = false,
 }: {
   src: string | null;
   alt?: string;
   size?: string;
+  caption?: boolean;
 }) {
   if (src) {
     return (
@@ -43,12 +46,19 @@ export function ProductImage({
   }
   return (
     <div
+      role="img"
+      aria-label="Chưa có ảnh"
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-xl border border-line bg-sidebar-sub",
+        "flex shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-line bg-sidebar-sub",
         size,
       )}
     >
-      <Monitor aria-hidden="true" className="size-5 text-muted" />
+      <ImageOff aria-hidden="true" className="size-5 text-muted" />
+      {caption ? (
+        <span aria-hidden="true" className="text-xs text-muted">
+          Chưa có ảnh
+        </span>
+      ) : null}
     </div>
   );
 }
