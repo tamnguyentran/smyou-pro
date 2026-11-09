@@ -18,7 +18,7 @@ Là nhân viên SMYou, tôi đăng nhập bằng email + mật khẩu trên đi�
 |---|---|---|---|---|
 | AC-AUTH-021 | Chưa đăng nhập | mở `/smyoutask/` (hoặc bất kỳ trang nào) | chuyển tới `/smyoutask/dang-nhap?next=<trang cũ>`; form có nhãn "Email", "Mật khẩu", nút hiện/ẩn mật khẩu (`aria-label` "Hiện mật khẩu"/"Ẩn mật khẩu"), nút "Đăng nhập" cao ≥ 44px | component + e2e |
 | AC-AUTH-022 | Trang đăng nhập | bấm "Đăng nhập" | nút hiện spinner và bị khoá (chống bấm đôi); lỗi 401/423/403 hiện đúng `detail` tiếng Việt từ server phía trên form; lỗi 422 hiện dưới từng ô | component |
-| AC-AUTH-023 | An đăng nhập thành công | — | chuyển tới `next` (chỉ nhận đường dẫn nội bộ bắt đầu bằng `/`, không nhận URL ngoài) hoặc trang chủ | component + e2e |
+| AC-AUTH-023 | An đăng nhập thành công | — | chuyển tới `next` (chỉ nhận đường dẫn nội bộ bắt đầu bằng `/`, không nhận URL ngoài) hoặc trang chủ. **UAT-05 (AC-AUTH-087):** luôn về trang chủ (Tổng quan), bỏ `next` | component + e2e |
 | AC-AUTH-024 | Khoa đăng nhập lần đầu | — | chuyển tới "Đổi mật khẩu" (`/doi-mat-khau`), không đi được trang khác; đổi thành công → toast "Đã đổi mật khẩu." và về trang chủ | e2e |
 | AC-AUTH-025 | Đang dùng app, access token hết hạn | một lệnh gọi API nhận 401 | client tự gọi `/auth/refresh` **một lần** rồi gọi lại; nhiều lệnh đồng thời chỉ gây 1 lần refresh; refresh thất bại → về trang đăng nhập với `next` | component |
 | AC-AUTH-026 | An đã đăng nhập | bấm "Đăng xuất" (tạm đặt trên trang chủ cho tới AppShell M1-03) | về trang đăng nhập; nút quay lại trình duyệt không mở lại trang cần đăng nhập | e2e |

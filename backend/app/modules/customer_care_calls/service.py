@@ -1,7 +1,7 @@
 """Customer-care staff record their calls (M27-01a). Callers own the transaction; these never commit.
 
-A call with a customer request also appends a `customer_potential_notes` row (Q192): the request becomes
-the customer's current "Tiềm năng sử dụng dịch vụ", shared with the technicians' notes.
+The customer's request stays on the call only (UAT-05, Q199 replaces Q192): "Tiềm năng sử dụng dịch vụ"
+is the technicians' notes alone.
 """
 
 import uuid
@@ -16,7 +16,6 @@ from app.core.errors import AppError
 from app.modules.audit import service as audit
 from app.modules.customer_care_calls.models import CustomerCareCall
 from app.modules.customer_care_calls.schemas import CareCallCreate, CareCallOut, CareCallPage
-from app.modules.customer_potential.models import CustomerPotentialNote
 from app.modules.customers.models import Customer
 from app.modules.identity.models import Employee
 
@@ -68,17 +67,6 @@ def record_call(
     session.add(call)
     session.flush()
     session.refresh(call)
-    if call.customer_request is not None:
-        session.add(
-            CustomerPotentialNote(
-                customer_id=customer.id,
-                care_call_id=call.id,
-                author_id=actor.id,
-                note=call.customer_request,
-                created_at=call.called_at,
-            )
-        )
-        session.flush()
     audit.record(
         session,
         actor_id=actor.id,

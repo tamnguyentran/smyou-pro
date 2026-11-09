@@ -3669,6 +3669,8 @@ export interface components {
     };
     /** KpiSalesTotalsOut */
     KpiSalesTotalsOut: {
+      /** Achievement Pct */
+      achievement_pct: number | null;
       /** Has Missing Cost */
       has_missing_cost: boolean;
       /** Net Revenue */

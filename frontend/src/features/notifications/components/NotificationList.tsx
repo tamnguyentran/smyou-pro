@@ -10,6 +10,7 @@ import {
   XCircle,
   type LucideIcon,
 } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { formatRelativeTime } from "../../../lib/format";
 import { useMarkRead, type Notification } from "../api";
@@ -33,17 +34,47 @@ const TYPE_ICONS: Record<string, LucideIcon> = {
   ASSIGNMENT_REMOVED: XCircle,
 };
 
+/** UAT-05 (AC-NTF-054/055): chưa đọc và ≥ 50% hàng nằm trong vùng nhìn liên tục 3 giây → đã đọc. */
+const AUTO_READ_DELAY_MS = 3_000;
+
 function Row({ item }: { item: Notification }) {
-  const markRead = useMarkRead();
+  const { mutate: markRead } = useMarkRead();
   const unread = item.read_at === null;
+  const ref = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!unread || !element || typeof IntersectionObserver === "undefined") return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          timer ??= setTimeout(() => {
+            markRead(item.id);
+          }, AUTO_READ_DELAY_MS);
+        } else {
+          clearTimeout(timer);
+          timer = undefined;
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
+  }, [unread, item.id, markRead]);
+
   return (
     // A tinted background for unread rows failed color-contrast for the muted timestamp text
     // (#64748b on the mixed #f3f7f8 ≈ 4.41:1, just under AA's 4.5:1) — the dot below is enough.
     <li>
       <Link
+        ref={ref}
         to={`/orders/${item.entity_id}`}
         onClick={() => {
-          if (unread) markRead.mutate(item.id);
+          if (unread) markRead(item.id);
         }}
         className="flex min-h-11 gap-3 rounded-xl p-3 transition duration-200 hover:bg-sidebar-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
         data-unread={unread}

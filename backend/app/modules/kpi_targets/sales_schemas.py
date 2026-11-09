@@ -23,6 +23,8 @@ class KpiSalesTotalsOut(BaseModel):
     net_revenue: int
     target: int
     has_missing_cost: bool
+    # UAT-05: total net revenue / total target, same rounding as a row; None when the total target is 0.
+    achievement_pct: float | None
 
 
 class KpiSalesReportOut(BaseModel):

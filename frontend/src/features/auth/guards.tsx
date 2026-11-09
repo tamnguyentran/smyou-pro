@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
-import { Navigate, useLocation, useSearchParams } from "react-router";
+import { Navigate } from "react-router";
 import { useSession } from "./api";
-import { safeNext } from "./next";
 
 function PageSkeleton() {
   return (
@@ -21,29 +20,20 @@ export function RequireSession({
   pendingPasswordOk?: boolean;
 }) {
   const { data: session, isPending } = useSession();
-  const location = useLocation();
   if (isPending) return <PageSkeleton />;
-  if (!session) {
-    const next = encodeURIComponent(`${location.pathname}${location.search}`);
-    return <Navigate to={`/dang-nhap?next=${next}`} replace />;
-  }
+  if (!session) return <Navigate to="/dang-nhap" replace />;
   if (session.must_change_password && !pendingPasswordOk)
     return <Navigate to="/doi-mat-khau" replace />;
   return children;
 }
 
-/** The sign-in page: once a session exists, leave for `next` (or the forced password change). */
+/** The sign-in page: once a session exists, always land on Tổng quan (UAT-05), or the forced
+ * password change. */
 export function SignedOutOnly({ children }: { children: ReactNode }) {
   const { data: session, isPending } = useSession();
-  const [params] = useSearchParams();
   if (isPending) return <PageSkeleton />;
   if (session) {
-    return (
-      <Navigate
-        to={session.must_change_password ? "/doi-mat-khau" : safeNext(params.get("next"))}
-        replace
-      />
-    );
+    return <Navigate to={session.must_change_password ? "/doi-mat-khau" : "/"} replace />;
   }
   return children;
 }

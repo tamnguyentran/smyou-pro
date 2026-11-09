@@ -150,11 +150,14 @@ def get_report(
                 achievement_pct=_achievement_pct(entry.net_revenue, target),
             )
         )
+    net_revenue = sum(r.net_revenue or 0 for r in rows)
+    target_total = sum(r.target or 0 for r in rows)
     totals = KpiSalesTotalsOut(
         total_sales=sum(r.total_sales for r in rows),
-        net_revenue=sum(r.net_revenue or 0 for r in rows),
-        target=sum(r.target or 0 for r in rows),
+        net_revenue=net_revenue,
+        target=target_total,
         has_missing_cost=any(r.net_revenue is None for r in rows),
+        achievement_pct=_achievement_pct(net_revenue, target_total),
     )
     return KpiSalesReportOut(month=_label(month), rows=rows, totals=totals)
 
