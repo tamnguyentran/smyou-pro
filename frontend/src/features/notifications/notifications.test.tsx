@@ -1,7 +1,7 @@
-import { screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import type { components } from "../../lib/api/schema";
 import { markSignedIn } from "../../lib/sessionHint";
 import { server } from "../../test/msw";
@@ -112,6 +112,8 @@ function orderDetail(): OrderDetail {
 
 afterEach(() => {
   server.resetHandlers();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe("Trang /thong-bao", () => {
@@ -256,4 +258,106 @@ describe("Trang /thong-bao", () => {
     renderApp("/thong-bao");
     expect(await screen.findByText(/Bạn không có quyền/)).toBeInTheDocument();
   });
+
+  test("AC-NTF-054 thông báo chưa đọc nằm trong vùng nhìn đủ 3 giây → tự đánh dấu đã đọc", async () => {
+    const visibility = stubIntersectionObserver();
+    signedInAs(FULL_CAPS, 1);
+    const readCalls = stubReadableList([notif({ id: "n1", title: "Thông báo 1" })]);
+    renderApp("/thong-bao");
+    const row = (await screen.findByText("Thông báo 1")).closest("a");
+    if (!row) throw new Error("row link missing");
+
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"], shouldAdvanceTime: true });
+    visibility.set(row, true);
+    act(() => {
+      vi.advanceTimersByTime(2_900);
+    });
+    expect(readCalls).toEqual([]);
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    await waitFor(() => {
+      expect(readCalls).toEqual(["n1"]);
+    });
+  });
+
+  test("AC-NTF-055 rời vùng nhìn trước 3 giây, hoặc thông báo đã đọc → không đánh dấu", async () => {
+    const visibility = stubIntersectionObserver();
+    signedInAs(FULL_CAPS, 1);
+    const readCalls = stubReadableList([
+      notif({ id: "n1", title: "Thông báo 1" }),
+      notif({ id: "n2", title: "Thông báo 2", read_at: "2026-10-09T04:00:00Z" }),
+    ]);
+    renderApp("/thong-bao");
+    const unreadRow = (await screen.findByText("Thông báo 1")).closest("a");
+    const readRow = screen.getByText("Thông báo 2").closest("a");
+    if (!unreadRow || !readRow) throw new Error("row link missing");
+
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"], shouldAdvanceTime: true });
+    visibility.set(unreadRow, true);
+    visibility.set(readRow, true);
+    act(() => {
+      vi.advanceTimersByTime(2_000);
+    });
+    visibility.set(unreadRow, false);
+    act(() => {
+      vi.advanceTimersByTime(5_000);
+    });
+    vi.useRealTimers();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(readCalls).toEqual([]);
+  });
 });
+
+type IoCallback = (entries: { isIntersecting: boolean; target: Element }[]) => void;
+
+/** jsdom has no IntersectionObserver: a fake whose visibility the test drives per element. */
+function stubIntersectionObserver() {
+  const observed = new Map<Element, IoCallback>();
+  class FakeIntersectionObserver {
+    readonly callback: IoCallback;
+    constructor(callback: IoCallback) {
+      this.callback = callback;
+    }
+    observe(target: Element) {
+      observed.set(target, this.callback);
+    }
+    unobserve(target: Element) {
+      observed.delete(target);
+    }
+    disconnect() {
+      for (const [target, callback] of observed)
+        if (callback === this.callback) observed.delete(target);
+    }
+    takeRecords() {
+      return [];
+    }
+  }
+  vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
+  return {
+    set(target: Element, isIntersecting: boolean) {
+      act(() => {
+        observed.get(target)?.([{ isIntersecting, target }]);
+      });
+    },
+  };
+}
+
+function stubReadableList(state: Notification[]): string[] {
+  const readCalls: string[] = [];
+  server.use(
+    http.get("/api/v1/notifications", () =>
+      HttpResponse.json({ items: state, total: state.length, limit: 20, offset: 0 }),
+    ),
+    http.post("/api/v1/notifications/:id/read", ({ params }) => {
+      const notifId = params.id as string;
+      readCalls.push(notifId);
+      const item = state.find((n) => n.id === notifId);
+      if (item) item.read_at = "2026-10-09T04:00:00Z";
+      return HttpResponse.json(item);
+    }),
+  );
+  return readCalls;
+}

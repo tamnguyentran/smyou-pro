@@ -527,12 +527,10 @@ describe("Khung ứng dụng — chặn trang & trạng thái", () => {
     expect(screen.getByRole("link", { name: "Về trang chủ" })).toHaveAttribute("href", "/");
   });
 
-  test("AC-SYS-042 chưa đăng nhập mở đường dẫn lạ → về đăng nhập với next", async () => {
+  test("AC-SYS-042 chưa đăng nhập mở đường dẫn lạ → về đăng nhập (không kèm next, UAT-05)", async () => {
     const router = renderApp("/khong-co-trang-nay");
     expect(await screen.findByRole("heading", { name: "Đăng nhập" })).toBeInTheDocument();
-    expect(new URLSearchParams(router.state.location.search).get("next")).toBe(
-      "/khong-co-trang-nay",
-    );
+    expect(router.state.location.search).toBe("");
   });
 
   test("AC-SYS-043 mục menu chưa làm → trang đang phát triển", async () => {
@@ -603,7 +601,7 @@ describe("Khung ứng dụng — chặn trang & trạng thái", () => {
     expect(await within(nav).findByRole("link", { name: "Tổng quan" })).toBeInTheDocument();
   });
 
-  test("AC-SYS-044 /me trả 401 và không làm mới được → về đăng nhập với next", async () => {
+  test("AC-SYS-044 /me trả 401 và không làm mới được → về đăng nhập (không kèm next, UAT-05)", async () => {
     let refreshes = 0;
     server.use(
       http.post("/api/v1/auth/refresh", () => {
@@ -622,7 +620,7 @@ describe("Khung ứng dụng — chặn trang & trạng thái", () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/dang-nhap");
     });
-    expect(new URLSearchParams(router.state.location.search).get("next")).toBe("/dispatch/board");
+    expect(router.state.location.search).toBe("");
   });
 
   test("AC-SYS-045 tiêu đề tab theo trang; nút chỉ có icon đều có nhãn", async () => {

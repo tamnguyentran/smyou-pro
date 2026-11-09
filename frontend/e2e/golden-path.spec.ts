@@ -22,10 +22,13 @@ const JPEG_BASE64 =
 
 async function signIn(page: Page, email: string, path: string) {
   await page.context().clearCookies();
-  await page.goto(`./dang-nhap?next=${encodeURIComponent(path)}`);
+  await page.goto("./dang-nhap");
   await page.getByLabel("Tên đăng nhập").fill(loginName(email));
   await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
+  // UAT-05: sign-in always lands on Tổng quan; then open the page under test.
+  await page.waitForURL(/\/smyoutask\/$/);
+  await page.goto(`.${path}`);
   await expect(page).not.toHaveURL(/dang-nhap/);
 }
 

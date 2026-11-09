@@ -469,4 +469,81 @@ describe("Trang Ghi nhận quà tặng KH (/customer-gifts)", () => {
 
     expect(await screen.findByText(/không có quyền/i)).toBeInTheDocument();
   });
+
+  test("AC-GFT-044 thêm quà tặng thành công → toast rồi tự đóng sheet", async () => {
+    signedInAs(anId, AN);
+    const { gifts } = stub();
+    server.use(
+      http.post("/api/v1/customer-gifts", () => {
+        const created = gift({ gift_name: "Giỏ quà Trung thu" });
+        gifts.push(created);
+        return HttpResponse.json(created, { status: 201 });
+      }),
+    );
+    const user = await openPage();
+    await selectCustomer(user);
+    await user.click(screen.getByRole("button", { name: "Thêm quà tặng" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Thêm quà tặng" });
+    await user.type(within(dialog).getByLabelText("Dịp/lễ"), "Trung thu");
+    await user.type(within(dialog).getByLabelText("Ngày thực hiện"), "20/09/2026");
+    await user.type(within(dialog).getByLabelText("Tên gói quà"), "Giỏ quà Trung thu");
+    await selectEmployeeInSheet(user, dialog, "Người thực hiện");
+    await selectEmployeeInSheet(user, dialog, "Người yêu cầu");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+
+    expect(await screen.findByText("Đã thêm quà tặng.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(await screen.findByText("Giỏ quà Trung thu")).toBeInTheDocument();
+  });
+
+  test("AC-GFT-045 sửa quà tặng thành công → toast rồi tự đóng sheet", async () => {
+    signedInAs(anId, AN);
+    stub({ gifts: [gift()] });
+    server.use(
+      http.patch("/api/v1/customer-gifts/:id", () =>
+        HttpResponse.json(gift({ version: 2 }), { status: 200 }),
+      ),
+    );
+    const user = await openPage();
+    await selectCustomer(user);
+    await user.click(await screen.findByText("Giỏ quà Tết"));
+    const dialog = await screen.findByRole("dialog", { name: "Sửa quà tặng" });
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+
+    expect(await screen.findByText("Đã cập nhật.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+  });
+
+  test("AC-GFT-046 lưu lỗi → báo lỗi, sheet giữ nguyên với giá trị đã nhập", async () => {
+    signedInAs(anId, AN);
+    stub({ gifts: [gift()] });
+    server.use(
+      http.patch("/api/v1/customer-gifts/:id", () =>
+        HttpResponse.json(
+          {
+            code: "VALIDATION_ERROR",
+            detail: "Dữ liệu không hợp lệ.",
+            errors: [{ field: "gift_name", code: "invalid", message: "Tên gói quà không hợp lệ." }],
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    const user = await openPage();
+    await selectCustomer(user);
+    await user.click(await screen.findByText("Giỏ quà Tết"));
+    const dialog = await screen.findByRole("dialog", { name: "Sửa quà tặng" });
+    await user.clear(within(dialog).getByLabelText("Tên gói quà"));
+    await user.type(within(dialog).getByLabelText("Tên gói quà"), "Quà sai");
+    await user.click(within(dialog).getByRole("button", { name: "Lưu" }));
+
+    expect(await within(dialog).findByText("Tên gói quà không hợp lệ.")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Sửa quà tặng" })).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Tên gói quà")).toHaveValue("Quà sai");
+  });
 });

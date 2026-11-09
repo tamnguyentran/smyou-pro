@@ -265,7 +265,13 @@ describe("Biểu đồ kinh doanh (/reports/business-charts)", () => {
         HttpResponse.json({
           month: "2026-11",
           rows: [],
-          totals: { total_sales: 0, net_revenue: 0, target: 0, has_missing_cost: false },
+          totals: {
+            total_sales: 0,
+            net_revenue: 0,
+            target: 0,
+            has_missing_cost: false,
+            achievement_pct: null,
+          },
         }),
       ),
     );

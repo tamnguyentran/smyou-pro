@@ -28,10 +28,13 @@ const MENUS: Record<Role, string[]> = {
 };
 
 async function signIn(page: Page, role: Role, path = "/") {
-  await page.goto(`./dang-nhap?next=${encodeURIComponent(path)}`);
+  await page.goto("./dang-nhap");
   await page.getByLabel("Tên đăng nhập").fill(loginName(ACCOUNTS[role].email));
   await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
+  // UAT-05: sign-in always lands on Tổng quan; then open the page under test.
+  await page.waitForURL(/\/smyoutask\/$/);
+  await page.goto(`.${path}`);
 }
 
 const isMobile = (info: TestInfo) => info.project.name === "mobile";

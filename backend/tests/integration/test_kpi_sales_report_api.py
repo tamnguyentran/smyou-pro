@@ -292,6 +292,7 @@ def test_department_and_employee_filters(
 
 
 @pytest.mark.ac("AC-RPT-080")
+@pytest.mark.ac("AC-RPT-171")
 def test_totals_sum_rows(an: TestClient, db: Connection, people: dict[str, uuid.UUID]) -> None:
     seed_ac072(db, people)
     put_target(db, people["NV007"], MONTH, 15_000_000)
@@ -304,6 +305,7 @@ def test_totals_sum_rows(an: TestClient, db: Connection, people: dict[str, uuid.
         "net_revenue": 29_000_000,
         "target": 35_000_000,
         "has_missing_cost": False,
+        "achievement_pct": 82.9,
     }
 
 
@@ -321,7 +323,18 @@ def test_totals_skip_null_net_and_flag_missing_cost(
         "net_revenue": 25_000_000,
         "target": 20_000_000,
         "has_missing_cost": True,
+        "achievement_pct": 125.0,
     }
+
+
+@pytest.mark.ac("AC-RPT-171")
+def test_totals_pct_null_without_target(an: TestClient, db: Connection, people: dict[str, uuid.UUID]) -> None:
+    sale(db, people["NV008"], code="DHN", line_total=10_000_000, cost=6_000_000)
+
+    totals = report(an)["totals"]
+
+    assert totals["target"] == 0
+    assert totals["achievement_pct"] is None
 
 
 @pytest.mark.ac("AC-RPT-081")
