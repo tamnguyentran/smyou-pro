@@ -46,7 +46,7 @@ async function fillLogin(email: string, password: string) {
 }
 
 describe("Review M1-01b — phiên", () => {
-  test("AC-AUTH-025 refresh bị từ chối giữa chừng → về /dang-nhap với next = trang hiện tại, xoá dấu đăng nhập", async () => {
+  test("AC-AUTH-025 refresh bị từ chối giữa chừng → về /dang-nhap (không kèm next, UAT-05), xoá dấu đăng nhập", async () => {
     mockDashboardApis();
     let refreshes = 0;
     server.use(
@@ -67,7 +67,7 @@ describe("Review M1-01b — phiên", () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/dang-nhap");
     });
-    expect(new URLSearchParams(router.state.location.search).get("next")).toBe("/?tab=lich-su");
+    expect(router.state.location.search).toBe("");
     expect(hasSignedIn()).toBe(false);
   });
 
@@ -114,20 +114,6 @@ describe("Review M1-01b — phiên", () => {
 });
 
 describe("Review M1-01b — đăng nhập", () => {
-  test("AC-AUTH-023 next nội bộ khác trang chủ được dùng thật", async () => {
-    server.use(
-      http.post("/api/v1/auth/login", () =>
-        HttpResponse.json({ employee: AN, must_change_password: false }),
-      ),
-    );
-    const router = renderApp("/dang-nhap?next=%2Fdoi-mat-khau");
-    const user = await fillLogin("an.nguyen@smyou.vn", "SmYou@2026");
-    await user.click(screen.getByRole("button", { name: "Đăng nhập" }));
-
-    expect(await screen.findByRole("heading", { name: "Đổi mật khẩu" })).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe("/doi-mat-khau");
-  });
-
   test("AC-AUTH-022 lỗi 422 của server nằm dưới ô (không ở khung lỗi chung) và bấm đôi chỉ gửi 1 lần", async () => {
     let requests = 0;
     server.use(

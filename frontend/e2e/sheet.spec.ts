@@ -6,10 +6,13 @@ const PASSWORD = "E2e@SmYou2026";
 const MANAGER = "an.e2e@smyou.vn";
 
 async function openCustomerForm(page: Page) {
-  await page.goto(`./dang-nhap?next=${encodeURIComponent("/customers")}`);
+  await page.goto("./dang-nhap");
   await page.getByLabel("Tên đăng nhập").fill(loginName(MANAGER));
   await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
+  // UAT-05: sign-in always lands on Tổng quan; then open the page under test.
+  await page.waitForURL(/\/smyoutask\/$/);
+  await page.goto("./customers");
   await page.getByRole("button", { name: "Thêm khách hàng" }).click();
   return page.getByRole("dialog", { name: "Thêm khách hàng" });
 }

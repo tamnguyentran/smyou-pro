@@ -151,12 +151,14 @@ function PhotosSection({ giftId }: { giftId: string }) {
 
 /** Tạo/sửa 1 bản ghi tặng quà (M16-01b AC-GFT-022..025). Sheet sửa: khách hàng cố định, không
  * sửa được. Sheet thêm mới: có ô chọn khách hàng riêng (search-select), bắt buộc chọn trước khi
- * lưu — điền sẵn khách đang chọn ở trang `/customer-gifts` nếu có, nhưng vẫn sửa được. */
+ * lưu — điền sẵn khách đang chọn ở trang `/customer-gifts` nếu có, nhưng vẫn sửa được.
+ * UAT-05 (AC-GFT-044..046): lưu thành công → toast rồi đóng; lỗi → giữ sheet để sửa. Ảnh quà tặng
+ * thêm ở sheet sửa. */
 export function GiftFormSheet({
   onClose,
   customerId: pageCustomerId,
   customerName: pageCustomerName = "",
-  gift: initialGift,
+  gift,
   onCustomerSaved,
 }: {
   onClose: () => void;
@@ -166,7 +168,6 @@ export function GiftFormSheet({
   /** Gọi sau khi tạo mới thành công, để trang chuyển ô tìm kiếm sang khách hàng vừa chọn. */
   onCustomerSaved?: (customer: { id: string; name: string }) => void;
 }) {
-  const [gift, setGift] = useState<CustomerGift | undefined>(initialGift);
   const [customerId, setCustomerId] = useState(pageCustomerId);
   const [customerName, setCustomerName] = useState(pageCustomerName);
   const [customerError, setCustomerError] = useState<string | null>(null);
@@ -224,18 +225,18 @@ export function GiftFormSheet({
     };
     try {
       if (!gift) {
-        const created = await create.mutateAsync({ customer_id: customerId, ...shared });
-        setGift(created);
+        await create.mutateAsync({ customer_id: customerId, ...shared });
         toast("Đã thêm quà tặng.");
         onCustomerSaved?.({ id: customerId, name: customerName });
+        onClose();
         return;
       }
-      const updated = await update.mutateAsync({
+      await update.mutateAsync({
         id: gift.id,
         body: { version: gift.version, ...shared },
       });
-      setGift(updated);
       toast("Đã cập nhật.");
+      onClose();
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.problem.code === "STALE_VERSION") setShowReload(true);

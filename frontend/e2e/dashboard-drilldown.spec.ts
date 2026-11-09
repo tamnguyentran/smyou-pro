@@ -12,10 +12,13 @@ const MANAGER = "an.e2e@smyou.vn";
 const CUSTOMER_CARE = "lan.cskh@smyou.vn";
 
 async function signIn(page: Page, email: string, path: string) {
-  await page.goto(`./dang-nhap?next=${encodeURIComponent(path)}`);
+  await page.goto("./dang-nhap");
   await page.getByLabel("Tên đăng nhập").fill(loginName(email));
   await page.getByLabel("Mật khẩu", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
+  // UAT-05: sign-in always lands on Tổng quan; then open the page under test.
+  await page.waitForURL(/\/smyoutask\/$/);
+  await page.goto(`.${path}`);
 }
 
 function shot(info: TestInfo, file: string) {

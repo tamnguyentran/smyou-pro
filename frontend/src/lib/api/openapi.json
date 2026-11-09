@@ -4570,6 +4570,17 @@
       },
       "KpiSalesTotalsOut": {
         "properties": {
+          "achievement_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Achievement Pct"
+          },
           "has_missing_cost": {
             "title": "Has Missing Cost",
             "type": "boolean"
@@ -4587,7 +4598,7 @@
             "type": "integer"
           }
         },
-        "required": ["total_sales", "net_revenue", "target", "has_missing_cost"],
+        "required": ["total_sales", "net_revenue", "target", "has_missing_cost", "achievement_pct"],
         "title": "KpiSalesTotalsOut",
         "type": "object"
       },

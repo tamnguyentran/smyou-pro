@@ -34,16 +34,20 @@ function shot(info: TestInfo, name: string) {
   return resolve(import.meta.dirname, "../../reports/screenshots", info.project.name, name);
 }
 
-test("AC-AUTH-021 chưa đăng nhập → trang đăng nhập với next, nút cao ≥ 44px", async ({ page }) => {
+test("AC-AUTH-021 chưa đăng nhập → trang đăng nhập (không kèm next, UAT-05), nút cao ≥ 44px", async ({
+  page,
+}) => {
   await page.goto("./");
-  await expect(page).toHaveURL(/\/smyoutask\/dang-nhap\?next=%2F$/);
+  await expect(page).toHaveURL(/\/smyoutask\/dang-nhap$/);
   await expect(page.getByRole("heading", { name: "Đăng nhập" })).toBeVisible();
   const box = await page.getByRole("button", { name: "Đăng nhập" }).boundingBox();
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
 });
 
-test("AC-AUTH-023 đăng nhập thật qua API dưới /smyoutask → về trang đích", async ({ page }) => {
-  await page.goto("./dang-nhap?next=%2F");
+test("AC-AUTH-023 AC-AUTH-087 đăng nhập thật qua API dưới /smyoutask → về Tổng quan dù có next", async ({
+  page,
+}) => {
+  await page.goto("./dang-nhap?next=%2Forders");
   await login(page, MANAGER.email, MANAGER.password);
   await expect(page).toHaveURL(/\/smyoutask\/$/);
   await expect(page.getByRole("heading", { name: "Tổng quan" })).toBeVisible();

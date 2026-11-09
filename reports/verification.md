@@ -1,18 +1,18 @@
-# Verification — M29-01 — 2026-11-08
+# Verification — UAT-05 (2026-11-09)
 
-| Gate | Command | Result |
-|---|---|---|
-| Lint BE/FE | make lint | ✅ ruff "All checks passed!", eslint 0 problems |
-| Typecheck | make typecheck | ✅ |
-| Unit FE | vitest --coverage | ✅ 102 files, 1100 passed |
-| Integration + generated + stateful (BE) | make test | ✅ 1567 passed, 29 deselected; coverage 97.01% (≥ 85%) |
-| Contract drift | make contract | ✅ clean (no API change) |
-| Migrations up/down | make migrations-check | ✅ downgrade/upgrade 3e8a1c5d7b90 OK |
-| AC traceability | make ac | ✅ 1774/1774 enforced ACs covered (M29-01: 8/8) |
-| E2E mobile + desktop + axe | make e2e | ✅ 321 passed, 1 flaky, 0 a11y violations |
+Spec: `docs/specs/UAT-05-uat-feedback-batch.md` (11 AC).
 
-Screenshots: `reports/screenshots/{mobile,desktop}/product-create-image.png`, `reports/screenshots/{mobile,desktop}/products-with-image.png`
+| Cổng | Kết quả |
+|---|---|
+| lint + typecheck (BE ruff/mypy/import-linter, FE eslint/prettier/tsc) | All checks passed |
+| Backend test (unit + integration, coverage ≥ 85%) | 1568 passed, 29 deselected (22m18s) |
+| Frontend unit/component (vitest) | 100 files, 1090 passed |
+| contract (OpenAPI + TS types) | khớp sau khi stage file sinh lại (`totals.achievement_pct`) |
+| AC traceability | 1791/1791 enforced ACs covered; UAT-05 15/15 |
+| migrations-check | passed (không có migration mới) |
+| e2e Playwright (mobile + desktop, axe) | 322 passed (10.9m) |
 
-Failures / skipped gates:
-- Flaky (passed on retry), unrelated to M29-01: `[desktop] e2e/orders.spec.ts:76 AC-ORD-024…` timed out waiting for the customer option "Cty Sáng Tạo Mới E2E" in the customer picker.
-- The previous `make verify` run failed the axe check of `AC-CAT-016` (color-contrast on "Lưu" while its color was still transitioning). Cause: an upload on the edit form also locked "Lưu". Fixed by locking only during the create-form upload (spec §6); `products.spec.ts` then passed 48/48 (repeat-each 3) before this final run.
+Ghi chú:
+- `make verify` lần 1 dừng ở `contract` vì file sinh lại chưa commit (git diff); đã `git add` (không commit) rồi chạy tiếp `contract ac migrations-check e2e` → exit 0.
+- Stop hook `check-fast-changed` báo timeout 5s ở vài file không liên quan khi chạy song song với e2e; chạy lại riêng: dispatchPolish/guide/orderCacheRace/orderList 53/53, businessCharts 25/25 passed.
+- Review độc lập (code-reviewer): PASS, 0 High/Medium; 2 Low (tỷ lệ đạt tổng khi thiếu giá vốn; không tự thử lại khi đánh dấu đọc lỗi mạng).

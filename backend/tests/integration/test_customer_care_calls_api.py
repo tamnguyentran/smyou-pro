@@ -1,5 +1,5 @@
-"""M27-01a: CSKH ghi nhận cuộc gọi chăm sóc khách hàng; yêu cầu của khách thành "tiềm năng sử dụng
-dịch vụ" dùng chung với ghi chú của KTV (AC-CUS-061…068)."""
+"""M27-01a: CSKH ghi nhận cuộc gọi chăm sóc khách hàng (AC-CUS-061…066). UAT-05 (Q199, thay Q192):
+yêu cầu của khách chỉ lưu ở cuộc gọi, không thành "tiềm năng sử dụng dịch vụ" (AC-CUS-086/087)."""
 
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -106,7 +106,8 @@ def test_care_call_capabilities_declared() -> None:
 
 
 @pytest.mark.ac("AC-CUS-061")
-def test_care_staff_records_call_and_request_becomes_potential(
+@pytest.mark.ac("AC-CUS-086")
+def test_care_staff_records_call_and_request_stays_on_the_call(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID], minh_phat: uuid.UUID
 ) -> None:
     res = client_as(app, LAN).post(
@@ -133,12 +134,11 @@ def test_care_staff_records_call_and_request_becomes_potential(
     assert event.actor_id == people["NV016"]
     assert event.data["care_call_id"] == body["id"]
 
-    notes = potential_rows(db, minh_phat)
-    assert len(notes) == 1
-    assert notes[0].note == REQUEST
-    assert notes[0].order_id is None
-    assert str(notes[0].care_call_id) == body["id"]
-    assert notes[0].author_id == people["NV016"]
+    stored = db.execute(
+        text("SELECT customer_request FROM customer_care_calls WHERE id = :id"), {"id": body["id"]}
+    ).scalar_one()
+    assert stored == REQUEST
+    assert potential_rows(db, minh_phat) == []
 
 
 @pytest.mark.ac("AC-CUS-061")
@@ -153,7 +153,10 @@ def test_offered_and_request_are_trimmed(
     assert res.status_code == 201, res.text
     assert res.json()["offered"] == OFFERED
     assert res.json()["customer_request"] == REQUEST
-    assert potential_rows(db, minh_phat)[0].note == REQUEST
+    stored = db.execute(
+        text("SELECT customer_request FROM customer_care_calls WHERE id = :id"), {"id": res.json()["id"]}
+    ).scalar_one()
+    assert stored == REQUEST
 
 
 @pytest.mark.ac("AC-CUS-062")
@@ -365,8 +368,37 @@ def test_invalid_paging_is_422(app: FastAPI, people: dict[str, uuid.UUID], param
     problem(client_as(app, AN).get(URL, params=params), 422, "VALIDATION_ERROR")
 
 
-@pytest.mark.ac("AC-CUS-067")
-def test_report_potential_is_latest_call_request(
+def insert_legacy_call_note(
+    db: Connection, people: dict[str, uuid.UUID], customer_id: uuid.UUID, created_at: datetime
+) -> None:
+    """A potential note written from a care call before UAT-05 (Q192) — still in the table."""
+    call_id = insert_call(
+        db,
+        customer_id=customer_id,
+        caller_id=people["NV016"],
+        offered=OFFERED,
+        customer_request=REQUEST,
+        called_at=created_at,
+    )
+    db.execute(
+        text(
+            "INSERT INTO customer_potential_notes"
+            " (id, customer_id, care_call_id, author_id, note, created_at)"
+            " VALUES (:id, :customer_id, :care_call_id, :author_id, :note, :created_at)"
+        ),
+        {
+            "id": uuid.uuid4(),
+            "customer_id": customer_id,
+            "care_call_id": call_id,
+            "author_id": people["NV016"],
+            "note": REQUEST,
+            "created_at": created_at,
+        },
+    )
+
+
+@pytest.mark.ac("AC-CUS-087")
+def test_report_potential_ignores_care_call_notes(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID], minh_phat: uuid.UUID
 ) -> None:
     sep_order = completed_sep_order(db, people, minh_phat)
@@ -378,20 +410,17 @@ def test_report_potential_is_latest_call_request(
         note="Muốn lắp thêm 4 camera kho",
         created_at=datetime(2026, 10, 1, 3, 0, tzinfo=UTC),
     )
-    res = client_as(app, LAN).post(
-        URL, json={"customer_id": str(minh_phat), "offered": OFFERED, "customer_request": REQUEST}
-    )
-    assert res.status_code == 201, res.text
+    insert_legacy_call_note(db, people, minh_phat, datetime(2026, 10, 5, 3, 0, tzinfo=UTC))
 
     row = report_row(
         client_as(app, AN).get("/api/v1/reports/revenue-by-customer", params=REPORT_RANGE), minh_phat
     )
 
-    assert row["potential_note"] == REQUEST
+    assert row["potential_note"] == "Muốn lắp thêm 4 camera kho"
 
 
-@pytest.mark.ac("AC-CUS-068")
-def test_order_potential_history_includes_call_requests(
+@pytest.mark.ac("AC-CUS-087")
+def test_order_potential_history_ignores_care_call_notes(
     app: FastAPI, db: Connection, people: dict[str, uuid.UUID], minh_phat: uuid.UUID
 ) -> None:
     order_id = order_with_assignment(db, people, minh_phat)
@@ -403,17 +432,11 @@ def test_order_potential_history_includes_call_requests(
         note="Muốn lắp thêm 4 camera kho",
         created_at=datetime(2026, 10, 1, 3, 0, tzinfo=UTC),
     )
-    call = client_as(app, LAN).post(
-        URL, json={"customer_id": str(minh_phat), "offered": OFFERED, "customer_request": REQUEST}
-    )
-    assert call.status_code == 201, call.text
+    insert_legacy_call_note(db, people, minh_phat, datetime(2026, 10, 5, 3, 0, tzinfo=UTC))
 
     res = client_as(app, AN).get(f"/api/v1/orders/{order_id}/customer-potential")
 
     assert res.status_code == 200, res.text
     notes = res.json()
-    assert [n["note"] for n in notes] == [REQUEST, "Muốn lắp thêm 4 camera kho"]
-    assert [n["source"] for n in notes] == ["CARE_CALL", "ORDER"]
-    assert [n["order_code"] for n in notes] == [None, "DH2611-0005"]
-    assert [n["order_id"] for n in notes] == [None, str(order_id)]
-    assert [n["author_name"] for n in notes] == ["Phạm Thị Lan", "Trần Minh Khang"]
+    assert [n["note"] for n in notes] == ["Muốn lắp thêm 4 camera kho"]
+    assert [n["source"] for n in notes] == ["ORDER"]

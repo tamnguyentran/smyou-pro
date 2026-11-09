@@ -23,7 +23,8 @@ function Figure({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/** AC-RPT-089/090/094: bảng (desktop) / thẻ 2×2 (mobile), dòng "Tổng cộng" cuối. */
+/** AC-RPT-089/090/094: bảng (desktop) / thẻ 2×2 (mobile), dòng "Tổng cộng" cuối — có Tỷ lệ đạt
+ * do server tính trên tổng (UAT-05 AC-RPT-172). */
 export function KpiSalesTable({ rows, totals }: { rows: KpiSalesRow[]; totals: KpiSalesTotals }) {
   const desktop = useMediaQuery("(min-width: 1024px)", true);
 
@@ -72,7 +73,9 @@ export function KpiSalesTable({ rows, totals }: { rows: KpiSalesRow[]; totals: K
               <NetRevenue amount={totals.net_revenue} missingCost={totals.has_missing_cost} />
             </td>
             <td className="px-4 py-3 text-right">{formatCurrency(totals.target)}</td>
-            <td className="px-4 py-3" />
+            <td className="px-4 py-3 text-right">
+              <Achievement pct={totals.achievement_pct} />
+            </td>
           </tr>
         </tfoot>
       </table>
@@ -111,6 +114,9 @@ export function KpiSalesTable({ rows, totals }: { rows: KpiSalesRow[]; totals: K
             <NetRevenue amount={totals.net_revenue} missingCost={totals.has_missing_cost} />
           </Figure>
           <Figure label="Mục tiêu">{formatCurrency(totals.target)}</Figure>
+          <Figure label="Tỷ lệ đạt">
+            <Achievement pct={totals.achievement_pct} />
+          </Figure>
         </dl>
       </section>
     </div>

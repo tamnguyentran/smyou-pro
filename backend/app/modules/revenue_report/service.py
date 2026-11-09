@@ -105,12 +105,15 @@ def _line_profit(line_total: int, cost_price_snapshot: int | None, quantity: Dec
 def _latest_potential_notes(
     session: Session, customer_ids: set[uuid.UUID]
 ) -> dict[uuid.UUID, tuple[str, datetime]]:
-    """M21-05a (Q156): newest note per customer, whichever order it was written on."""
+    """M21-05a (Q156): newest note per customer, whichever order it was written on. UAT-05 (Q199):
+    notes from care calls (no order) are ignored."""
     stmt = (
         select(
             CustomerPotentialNote.customer_id, CustomerPotentialNote.note, CustomerPotentialNote.created_at
         )
-        .where(CustomerPotentialNote.customer_id.in_(customer_ids))
+        .where(
+            CustomerPotentialNote.customer_id.in_(customer_ids), CustomerPotentialNote.order_id.is_not(None)
+        )
         .distinct(CustomerPotentialNote.customer_id)
         .order_by(
             CustomerPotentialNote.customer_id,

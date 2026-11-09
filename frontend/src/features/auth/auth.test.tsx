@@ -52,12 +52,12 @@ async function fillLogin(username: string, password: string) {
 }
 
 describe("Trang đăng nhập", () => {
-  test("AC-AUTH-021 chưa đăng nhập → chuyển tới /dang-nhap?next=, form đủ nhãn, không gọi API khi chưa từng đăng nhập", async () => {
+  test("AC-AUTH-021 chưa đăng nhập → chuyển tới /dang-nhap, form đủ nhãn, không gọi API khi chưa từng đăng nhập", async () => {
     const router = renderApp("/");
 
     expect(await screen.findByRole("heading", { name: "Đăng nhập" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/dang-nhap");
-    expect(new URLSearchParams(router.state.location.search).get("next")).toBe("/");
+    expect(router.state.location.search).toBe("");
     expect(screen.getByLabelText("Tên đăng nhập")).toHaveAttribute("type", "text");
     const password = screen.getByLabelText("Mật khẩu");
     expect(password).toHaveAttribute("type", "password");
@@ -152,6 +152,30 @@ describe("Trang đăng nhập", () => {
 
     expect(await screen.findByRole("heading", { name: "Tổng quan" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe(expected);
+  });
+
+  test("AC-AUTH-087 đăng nhập thành công luôn vào Tổng quan, bỏ qua next", async () => {
+    mockDashboardApis();
+    server.use(
+      http.post("/api/v1/auth/login", () =>
+        HttpResponse.json({ employee: AN, must_change_password: false }),
+      ),
+    );
+    const router = renderApp("/dang-nhap?next=%2Forders");
+    const user = await fillLogin("an.nguyen@smyou.vn", "SmYou@2026");
+
+    await user.click(screen.getByRole("button", { name: "Đăng nhập" }));
+
+    expect(await screen.findByRole("heading", { name: "Tổng quan" })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/");
+  });
+
+  test("AC-AUTH-088 chưa đăng nhập mở link sâu → /dang-nhap không kèm next", async () => {
+    const router = renderApp("/orders");
+
+    expect(await screen.findByRole("heading", { name: "Đăng nhập" })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/dang-nhap");
+    expect(router.state.location.search).toBe("");
   });
 
   test("AC-AUTH-052 có link Quên mật khẩu? dưới ô Mật khẩu, trỏ /quen-mat-khau, vùng chạm ≥44px", async () => {

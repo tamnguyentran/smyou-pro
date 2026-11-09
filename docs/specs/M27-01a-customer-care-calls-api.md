@@ -21,14 +21,14 @@ Là nhân viên CSKH, tôi muốn ghi lại mỗi cuộc gọi chăm sóc khách
 ## 3. Acceptance Criteria
 | ID | Given | When | Then | Lớp test |
 |---|---|---|---|---|
-| AC-CUS-061 | Lan (CUSTOMER_CARE), KH "Công ty TNHH Minh Phát" | Lan `POST /customer-care-calls {customer_id, offered:"Camera IP 4MP", customer_request:"Báo giá 6 camera kho"}` | 201; `caller=Lan`, `called_at` ≈ now; 1 audit `care_call` trên CUSTOMER; 1 `customer_potential_notes` `note="Báo giá 6 camera kho"`, `order_id=null`, `care_call_id`=cuộc gọi, `author=Lan` | integration |
+| AC-CUS-061 | Lan (CUSTOMER_CARE), KH "Công ty TNHH Minh Phát" | Lan `POST /customer-care-calls {customer_id, offered:"Camera IP 4MP", customer_request:"Báo giá 6 camera kho"}` | 201; `caller=Lan`, `called_at` ≈ now; 1 audit `care_call` trên CUSTOMER; ~~1 `customer_potential_notes`~~ (UAT-05 AC-CUS-086, Q199: không ghi tiềm năng, yêu cầu chỉ lưu ở cuộc gọi) | integration |
 | AC-CUS-062 | Như trên, không có `customer_request` (hoặc chỉ khoảng trắng) | POST | 201; **không** thêm ghi chú tiềm năng | integration |
 | AC-CUS-063 | `offered` rỗng/khoảng trắng hoặc > 2000 ký tự; `customer_request` > 2000; `customer_id` không tồn tại | POST | 422 `VALIDATION_ERROR` (field tương ứng) / 404 khách hàng | integration |
 | AC-CUS-064 | Hoa (SALE), Toàn (TECH_LEAD), Quân (TECHNICIAN) | POST | 403 | integration |
 | AC-CUS-065 | Lan ghi 2 cuộc, Mai (CSKH khác) ghi 1 cuộc | Lan / Mai / Nam (Manager) `GET /customer-care-calls` | Lan thấy 2 (của mình), Mai thấy 1, Nam thấy 3; mới nhất trước; Hoa (SALE) → 403 | integration |
 | AC-CUS-066 | 3 cuộc gọi ở 2 khách, 2 ngày khác nhau | Nam GET lọc `customer_id`, `caller_id`, `from/to` (ngày giờ VN), `q` (tên/SĐT khách) | Mỗi bộ lọc trả đúng tập; `total` đúng; phân trang `limit/offset` | integration |
-| AC-CUS-067 | KH Minh Phát có ghi chú KTV (đơn DH2611-0005) rồi Lan ghi cuộc gọi có yêu cầu | `GET /reports/revenue-by-customer` | Cột tiềm năng của Minh Phát = yêu cầu từ cuộc gọi (mới nhất) | integration |
-| AC-CUS-068 | Như trên | `GET /orders/{DH2611-0005}/customer-potential` | 2 dòng, mới nhất trước: dòng cuộc gọi `source=CARE_CALL`, `order_code=null`, tác giả Lan; dòng KTV `source=ORDER`, `order_code="DH2611-0005"` | integration |
+| ~~AC-CUS-067~~ (→ UAT-05 AC-CUS-087: tiềm năng chỉ từ KTV, Q199) | KH Minh Phát có ghi chú KTV (đơn DH2611-0005) rồi Lan ghi cuộc gọi có yêu cầu | `GET /reports/revenue-by-customer` | Cột tiềm năng của Minh Phát = yêu cầu từ cuộc gọi (mới nhất) | integration |
+| ~~AC-CUS-068~~ (→ UAT-05 AC-CUS-087: tiềm năng chỉ từ KTV, Q199) | Như trên | `GET /orders/{DH2611-0005}/customer-potential` | 2 dòng, mới nhất trước: dòng cuộc gọi `source=CARE_CALL`, `order_code=null`, tác giả Lan; dòng KTV `source=ORDER`, `order_code="DH2611-0005"` | integration |
 | AC-CUS-069 | DB có ghi chú tiềm năng cũ (đều có `order_id`) | migration upgrade → downgrade → upgrade | Dữ liệu cũ giữ nguyên; downgrade xoá ghi chú từ cuộc gọi rồi khôi phục `order_id NOT NULL` | integration (migration) |
 | AC-EMP-127 | Manager mở Nhân sự › "Cách phân quyền hoạt động" | xem ma trận/nguyên tắc | Có 2 quyền "Ghi nhận cuộc gọi chăm sóc KH" (CSKH) và "Xem cuộc gọi chăm sóc KH" (Quản lý: tất cả; CSKH: của mình); câu nguyên tắc "Nhân viên CSKH ghi nhận cuộc gọi chăm sóc khách hàng; yêu cầu của khách trở thành tiềm năng sử dụng dịch vụ của khách." | component |
 

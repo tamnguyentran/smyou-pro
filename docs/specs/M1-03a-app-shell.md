@@ -38,7 +38,7 @@ Tài khoản mẫu (seed E2E): **An** [MANAGER], **Hoa** [SALE], **Tuấn** [TEC
 | AC-SYS-041 | Khoa (không có `employee.manage`) | mở trực tiếp `/smyoutask/employees` | trang 403 trong khung ứng dụng: icon `ShieldX`, "Bạn không có quyền truy cập trang này.", nút "Về trang chủ"; không gọi API của trang đó | component + e2e |
 | AC-SYS-042 | Đã đăng nhập | mở `/smyoutask/khong-co-trang-nay` | trang 404: icon `SearchX`, "Không tìm thấy trang.", nút "Về trang chủ". Chưa đăng nhập → vẫn về trang đăng nhập trước (AC-AUTH-021) | component + e2e |
 | AC-SYS-043 | Hoa có quyền, mục "Danh sách đơn" chưa được xây | chọn mục đó | trang giữ chỗ trong khung: tiêu đề "Danh sách đơn", icon của mục, "Tính năng đang được phát triển." (Q27) | component |
-| AC-SYS-044 | `/me` đang tải / lỗi mạng / trả 401 | mở app | đang tải: khung với Skeleton ở vị trí menu (không spinner toàn trang); lỗi: "Không tải được thông tin tài khoản." + nút "Thử lại"; 401: về trang đăng nhập với `next` (luồng làm mới phiên của M1-01b) | component |
+| AC-SYS-044 | `/me` đang tải / lỗi mạng / trả 401 | mở app | đang tải: khung với Skeleton ở vị trí menu (không spinner toàn trang); lỗi: "Không tải được thông tin tài khoản." + nút "Thử lại"; 401: về trang đăng nhập (luồng làm mới phiên của M1-01b; UAT-05: không kèm `next`) | component |
 | AC-SYS-045 | Mọi trang trong khung | — | tiêu đề tab `<Tên trang> · SMYou Pro`; mọi nút chỉ có icon có `aria-label` tiếng Việt; vùng chạm ≥ 44px | component |
 | AC-SYS-046 | An, Hoa, Tuấn, Khoa trên iPhone 13 và 1440px | E2E | 0 vi phạm axe serious/critical (menu mở và đóng); không cuộn ngang ở 360px; ảnh chụp `shell-<vai trò>.png` (mobile có ảnh drawer mở `shell-drawer.png`) | e2e |
 

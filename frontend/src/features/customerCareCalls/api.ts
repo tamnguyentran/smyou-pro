@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import type { components } from "../../lib/api/schema";
 import { toApiError } from "../auth/errors";
-import { CUSTOMER_POTENTIAL_KEY } from "../orders/api";
 
 export type CareCall = components["schemas"]["CareCallOut"];
 export type CareCallCreateBody = components["schemas"]["CareCallCreate"];
@@ -43,7 +42,7 @@ export function useCareCalls(filters: CareCallFilters, enabled: boolean) {
   });
 }
 
-/** AC-CUS-071: ghi cuộc gọi; yêu cầu của KH thành tiềm năng của khách nên khối tiềm năng ở đơn cũng tải lại. */
+/** AC-CUS-071: ghi cuộc gọi. Yêu cầu của KH chỉ lưu ở cuộc gọi, không thành tiềm năng (UAT-05, Q199). */
 export function useRecordCareCall() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -54,7 +53,6 @@ export function useRecordCareCall() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [CARE_CALLS_KEY] });
-      void queryClient.invalidateQueries({ queryKey: [CUSTOMER_POTENTIAL_KEY] });
     },
   });
 }

@@ -76,7 +76,7 @@ export const CUSTOMER_CARE_GUIDE: Guide = {
         "Tìm khách hàng; khách mới thì bấm Thêm khách hàng, nhập thông tin rồi Lưu — khách vừa thêm được chọn sẵn.",
         "Ghi Chào sản phẩm/dịch vụ gì và Ghi nhận yêu cầu của KH (nếu có), bấm Lưu.",
       ],
-      note: "Yêu cầu của khách được ghi thành tiềm năng sử dụng dịch vụ của khách đó. Bạn chỉ xem được các cuộc gọi do mình ghi.",
+      note: "Yêu cầu của khách được lưu ở cuộc gọi (không ghi vào tiềm năng sử dụng dịch vụ — phần đó do kỹ thuật viên ghi nhận). Bạn chỉ xem được các cuộc gọi do mình ghi.",
       screens: ["/customer-care"],
     },
     {

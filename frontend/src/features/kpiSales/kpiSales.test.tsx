@@ -101,6 +101,7 @@ const TOTALS: KpiSalesTotals = {
   net_revenue: 25_000_000,
   target: 20_000_000,
   has_missing_cost: false,
+  achievement_pct: 125.0,
 };
 
 function mockReport(
@@ -289,6 +290,7 @@ describe("Báo cáo KPI (/reports/kpi-sales)", () => {
       net_revenue: 0,
       target: 0,
       has_missing_cost: false,
+      achievement_pct: null,
     });
     renderApp("/reports/kpi-sales");
 
@@ -320,6 +322,45 @@ describe("Báo cáo KPI (/reports/kpi-sales)", () => {
     expect(within(list).getAllByRole("listitem")).toHaveLength(1);
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Xuất Excel" })).not.toBeInTheDocument();
+  });
+
+  test("AC-RPT-172 desktop: dòng Tổng cộng có Tỷ lệ đạt = tổng doanh thu thuần / tổng mục tiêu", async () => {
+    signedInAs(anId, AN);
+    mockFilterSources();
+    mockReport([row()], undefined, {
+      total_sales: 140_000_000,
+      net_revenue: 29_000_000,
+      target: 35_000_000,
+      has_missing_cost: false,
+      achievement_pct: 82.9,
+    });
+    renderApp("/reports/kpi-sales");
+
+    const table = await screen.findByRole("table");
+    const totalRow = within(table).getByText("Tổng cộng").closest("tr");
+    expect(
+      within(totalRow as HTMLElement)
+        .getAllByRole("cell")
+        .map((td) => td.textContent),
+    ).toEqual(["Tổng cộng", "140.000.000 ₫", "29.000.000 ₫", "35.000.000 ₫", "82,9%"]);
+  });
+
+  test("AC-RPT-172 mobile 390px: thẻ Tổng cộng có Tỷ lệ đạt; null hiện —", async () => {
+    mobile();
+    signedInAs(anId, AN);
+    mockFilterSources();
+    mockReport([row()], undefined, {
+      total_sales: 140_000_000,
+      net_revenue: 29_000_000,
+      target: 0,
+      has_missing_cost: false,
+      achievement_pct: null,
+    });
+    renderApp("/reports/kpi-sales");
+
+    const totals = await screen.findByRole("region", { name: "Tổng cộng" });
+    const rate = within(totals).getByText("Tỷ lệ đạt").closest("div");
+    expect(rate).toHaveTextContent("—");
   });
 
   test.each([
